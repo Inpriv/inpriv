@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/icons/shield.svg" width="48" height="48" alt="Inpriv shield">
+<img src="icon.png" width="72" height="72" alt="Inpriv logo">
 
 # Inpriv
 
