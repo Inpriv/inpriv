@@ -5,7 +5,7 @@
 
   Suite landing page. Curates a set of zero-knowledge, fully client-side
   web utilities (encrypted chat, metadata wipe, WebRTC audit, hashing, QR,
-  brute force, and more). No trackers, no server logs — everything runs in the browser.
+  TOTP authenticator, brute force, and more). No trackers, no server logs — everything runs in the browser.
 -->
 <html lang="en" data-theme="dark">
 <head>
@@ -15,8 +15,8 @@
   <!-- Primary SEO Meta Tags -->
   <title>Inpriv — Privacy-First Tools | Zero-Knowledge & Client-Side</title>
   <meta name="title" content="Inpriv — Privacy-First Tools | Zero-Knowledge & Client-Side">
-  <meta name="description" content="A suite of zero-knowledge, client-side web utilities engineered for total digital privacy. Encrypted chat, EXIF wipe, WebRTC leak test, hash brute force, client-side compression, and more.">
-  <meta name="keywords" content="privacy tools, zero knowledge, client side encryption, hush chat, metadata sanitizer, image compression, webrtc leak test, open source privacy">
+  <meta name="description" content="A suite of zero-knowledge, client-side web utilities engineered for total digital privacy. Encrypted chat, EXIF wipe, WebRTC leak test, TOTP authenticator, hash brute force, client-side compression, and more.">
+  <meta name="keywords" content="privacy tools, zero knowledge, client side encryption, hush chat, metadata sanitizer, image compression, webrtc leak test, totp authenticator, 2fa, open source privacy">
   <meta name="author" content="Aurex Labs">
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
   <link rel="canonical" href="https://inpriv.xyz/">
@@ -33,7 +33,7 @@
   <meta property="og:url" content="https://inpriv.xyz/">
   <meta property="og:site_name" content="Inpriv">
   <meta property="og:title" content="Inpriv — Privacy-First Tools | Zero-Knowledge & Client-Side">
-  <meta property="og:description" content="A suite of zero-knowledge, client-side web utilities engineered for total digital privacy. No trackers, no server logs.">
+  <meta property="og:description" content="A suite of zero-knowledge, client-side web utilities engineered for total digital privacy. TOTP authenticator. No trackers, no server logs.">
   <meta property="og:image" content="https://hush.best/icon.png">
   <meta property="og:image:alt" content="Inpriv Logo">
   <meta property="og:locale" content="en_US">
@@ -42,7 +42,7 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:url" content="https://inpriv.xyz/">
   <meta name="twitter:title" content="Inpriv — Privacy-First Tools | Zero-Knowledge & Client-Side">
-  <meta name="twitter:description" content="A suite of zero-knowledge, client-side web utilities engineered for total digital privacy. No trackers, no server logs.">
+  <meta name="twitter:description" content="A suite of zero-knowledge, client-side web utilities engineered for total digital privacy. TOTP authenticator. No trackers, no server logs.">
   <meta name="twitter:image" content="https://hush.best/icon.png">
 
   <!-- Favicons & App Icons -->
@@ -241,6 +241,19 @@
               "name": "Brute",
               "description": "Client-side hash brute force matcher. MD5, SHA-1, SHA-256, SHA-384, SHA-512.",
               "url": "https://brute.inpriv.xyz",
+              "applicationCategory": "SecurityApplication",
+              "operatingSystem": "All"
+            }
+          }
+                  ,
+          {
+            "@type": "ListItem",
+            "position": 15,
+            "item": {
+              "@type": "SoftwareApplication",
+              "name": "TOTP",
+              "description": "Time-based one-time password generator (RFC 6238). Authenticator, client-side.",
+              "url": "https://totp.inpriv.xyz",
               "applicationCategory": "SecurityApplication",
               "operatingSystem": "All"
             }
@@ -745,7 +758,17 @@
       <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
     </a>
 
-    <div class="service-card coming-soon" style="animation-delay: 0.81s;">
+    <a href="https://totp.inpriv.xyz" class="service-card" style="animation-delay: 0.81s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">timer</span></div>
+      <div class="service-info">
+        <h2 class="service-name">TOTP</h2>
+        <p class="service-desc">Time-based one-time password generator (RFC 6238). 2FA codes, client-side.</p>
+      </div>
+      <span class="status-badge live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
+    <div class="service-card coming-soon" style="animation-delay: 0.87s;">
       <div class="service-icon-box"><span class="icon" aria-hidden="true">auto_awesome</span></div>
       <div class="service-info">
         <h2 class="service-name">Soon</h2>
@@ -783,15 +806,6 @@
       <div class="service-info">
         <h2 class="service-name">OSINT</h2>
         <p class="service-desc">AI-powered open-source intelligence on anything.</p>
-      </div>
-      <span class="status-badge soon">Soon</span>
-    </div>
-
-    <div class="service-card coming-soon" style="animation-delay: 0.75s;">
-      <div class="service-icon-box"><span class="icon" aria-hidden="true">timer</span></div>
-      <div class="service-info">
-        <h2 class="service-name">TOTP</h2>
-        <p class="service-desc">Time-based one-time password generator.</p>
       </div>
       <span class="status-badge soon">Soon</span>
     </div>
