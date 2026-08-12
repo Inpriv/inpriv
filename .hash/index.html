@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<!--
+  Inpriv Hash — Client-side Checksum & Digest
+  Copyright (c) 2026 Aurex Labs — MIT License
+
+  Computes SHA-1/256/384/512 via Web Crypto (crypto.subtle) and MD5 via a
+  bundled pure-JS implementation. Accepts text or files; nothing is uploaded.
+-->
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Inpriv Hash — Client-side Checksum & Digest</title>
+  <meta name="description" content="Compute SHA-1, SHA-256, SHA-384, SHA-512 and MD5 checksums of any text or file entirely in your browser. Nothing is uploaded." />
+
+  <link rel="icon" type="image/png" href="https://hush.best/icon.png" />
+  <link rel="apple-touch-icon" href="https://hush.best/icon.png" />
+  <link rel="shortcut icon" href="https://hush.best/icon.png" />
+
+  <!-- Typography: Roboto Flex & Material Symbols Rounded -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:ital,opsz,wght@0,8..144,100..1000;1,8..144,100..1000&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+
+  <style>
+    /* ==========================================================================
+       1. COLOR PALETTE & DESIGN TOKENS (Aurex Labs M3 Earthy Forest)
+       ========================================================================== */
+    :root {
+      --md-easing-standard: cubic-bezier(0.2, 0.0, 0.0, 1.0);
+      --md-easing-emphasized: cubic-bezier(0.3, 0.0, 0.0, 1.0);
+      --md-easing-spring: cubic-bezier(0.2, 1.4, 0.0, 1.0);
+      --md-easing-spring-soft: cubic-bezier(0.34, 1.3, 0.64, 1.0);
+      --font-primary: 'Roboto Flex', system-ui, -apple-system, sans-serif;
+    }
+
+    [data-theme="light"] {
+      --md-primary: #466E47; --md-on-primary: #FFFFFF;
+      --md-primary-container: #C7EFA0; --md-on-primary-container: #0C2000;
+      --md-secondary: #55624C; --md-on-secondary: #FFFFFF;
+      --md-secondary-container: #D8E7CB; --md-on-secondary-container: #131F0C;
+      --md-tertiary: #9C4231; --md-on-tertiary: #FFFFFF;
+      --md-tertiary-container: #FFDAD3; --md-on-tertiary-container: #3D0A03;
+      --md-error: #BA1A1A; --md-on-error: #FFFFFF;
+      --md-surface: #FAF9F0; --md-on-surface: #1A1C17; --md-on-surface-variant: #43483D;
+      --md-surface-dim: #DBDAD0;
+      --md-surface-container-lowest: #FFFFFF;
+      --md-surface-container-low: #F4F3E7;
+      --md-surface-container: #EEEDDE;
+      --md-surface-container-high: #E9E7D9;
+      --md-surface-container-highest: #E3E2D3;
+      --md-outline: #74796C; --md-outline-variant: #C3C8B6;
+      --md-inverse-surface: #2F312C; --md-inverse-on-surface: #F0EFE7; --md-inverse-primary: #ABD37A;
+      --md-shadow-color: rgba(20, 25, 15, 0.15);
+      --md-shadow-color-strong: rgba(20, 25, 15, 0.28);
+    }
+
+    [data-theme="dark"] {
+      --md-primary: #ABD37A; --md-on-primary: #173800;
+      --md-primary-container: #2E4F2F; --md-on-primary-container: #C7EFA0;
+      --md-secondary: #BCCBAF; --md-on-secondary: #27341F;
+      --md-secondary-container: #3D4B34; --md-on-secondary-container: #D8E7CB;
+      --md-tertiary: #FFB4A5; --md-on-tertiary: #5E1709;
+      --md-tertiary-container: #7E2D1E; --md-on-tertiary-container: #FFDAD3;
+      --md-error: #FFB4AB; --md-on-error: #690005;
+      --md-surface: #13140E; --md-on-surface: #E3E2D3; --md-on-surface-variant: #C3C8B6;
+      --md-surface-dim: #13140E;
+      --md-surface-container-lowest: #0D0F09;
+      --md-surface-container-low: #1A1C17;
+      --md-surface-container: #1F211B;
+      --md-surface-container-high: #292B25;
+      --md-surface-container-highest: #34362F;
+      --md-outline: #8D9283; --md-outline-variant: #43483D;
+      --md-inverse-surface: #E3E2D3; --md-inverse-on-surface: #2F312C; --md-inverse-primary: #466E47;
+      --md-shadow-color: rgba(0, 0, 0, 0.4);
+      --md-shadow-color-strong: rgba(0, 0, 0, 0.65);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-primary);
+      background-color: var(--md-surface);
+      color: var(--md-on-surface);
+      min-height: 100vh;
+      padding: 24px 16px 140px 16px;
+      position: relative;
+      overflow-x: hidden;
+      transition: background-color 0.5s var(--md-easing-standard), color 0.5s var(--md-easing-standard);
+      font-optical-sizing: auto;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    @media (min-width: 600px) { body { padding: 32px 24px 160px 24px; } }
+
+    body::before {
+      content: ""; position: fixed; inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 85% 0%, color-mix(in srgb, var(--md-primary-container) 55%, transparent) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 0% 100%, color-mix(in srgb, var(--md-tertiary-container) 45%, transparent) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+    }
+
+    .bg-grid {
+      position: fixed; inset: 0;
+      background-image: radial-gradient(circle at 1px 1px, var(--md-outline-variant) 1px, transparent 0);
+      background-size: 28px 28px; opacity: 0.18;
+      mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+      -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+      pointer-events: none; z-index: 0;
+    }
+
+    .bg-blob {
+      position: fixed; top: -100px; right: -100px;
+      width: 420px; height: 420px; border-radius: 50%;
+      background: radial-gradient(circle, color-mix(in srgb, var(--md-tertiary) 22%, transparent), transparent 70%);
+      filter: blur(60px);
+      animation: drift 22s ease-in-out infinite;
+      pointer-events: none; z-index: 0;
+    }
+
+    .app-wrapper { max-width: 860px; margin: 0 auto; position: relative; z-index: 1; }
+
+    .material-symbols-rounded {
+      font-family: 'Material Symbols Rounded';
+      font-weight: normal; font-style: normal;
+      font-size: 24px; line-height: 1; display: inline-block;
+      white-space: nowrap; word-wrap: normal; direction: ltr;
+      -webkit-font-smoothing: antialiased;
+      font-variation-settings: 'wght' 500, 'GRAD' 0, 'opsz' 24;
+    }
+
+    @keyframes barIn { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--md-primary) 35%, transparent); } 50% { box-shadow: 0 0 0 18px color-mix(in srgb, var(--md-primary) 0%, transparent); } }
+    @keyframes drift { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-60px, 40px) scale(1.1); } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes fabPop { 0% { transform: scale(1); } 40% { transform: scale(0.92); } 70% { transform: scale(1.05); } 100% { transform: scale(1); } }
+
+    /* App Bar */
+    .app-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      height: 54px; padding: 6px 8px 6px 18px;
+      border-radius: 9999px;
+      background: color-mix(in srgb, var(--md-surface-container) 80%, transparent);
+      backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 1px solid color-mix(in srgb, var(--md-outline-variant) 50%, transparent);
+      box-shadow: 0 4px 20px -4px var(--md-shadow-color);
+      animation: barIn 0.7s var(--md-easing-spring);
+      margin-bottom: 32px;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .brand-icon {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--md-primary-container); color: var(--md-on-primary-container);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .brand-text { min-width: 0; overflow: hidden; }
+    .brand-h1 {
+      font-size: 16px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.1;
+      color: var(--md-on-surface); display: flex; align-items: center; gap: 8px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .brand-h1 span { color: var(--md-primary); }
+    .open-source-badge {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 2px 6px; border-radius: 4px;
+      background: var(--md-surface-container-high); color: var(--md-on-surface-variant);
+      border: 1px solid var(--md-outline-variant);
+    }
+    .brand-tagline {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+      color: var(--md-on-surface-variant); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .app-bar-actions { display: flex; align-items: center; gap: 4px; }
+
+    .icon-btn {
+      width: 40px; height: 40px; border-radius: 50%; border: none; background: transparent;
+      color: var(--md-on-surface); cursor: pointer;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      transition: background-color 0.2s var(--md-easing-standard), transform 0.15s var(--md-easing-spring);
+    }
+    .icon-btn:hover { background-color: color-mix(in srgb, var(--md-on-surface) 8%, transparent); }
+    .icon-btn:active { transform: scale(0.92); }
+
+    /* Hero */
+    .hero { text-align: center; margin-bottom: 28px; animation: fadeUp 0.8s var(--md-easing-spring); }
+    .hero-h2 { font-size: clamp(32px, 7vw, 52px); font-weight: 800; letter-spacing: -0.025em; line-height: 1.05; margin-bottom: 12px; }
+    .hero-h2 .accent { font-style: italic; font-weight: 300; color: var(--md-primary); }
+    .hero-desc { font-size: clamp(14px, 2vw, 15px); color: var(--md-on-surface-variant); max-width: 620px; margin: 0 auto; line-height: 1.5; }
+    .privacy-pill {
+      display: inline-flex; align-items: center; gap: 6px; margin-top: 14px;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 6px 12px; border-radius: 9999px;
+      background: var(--md-primary-container); color: var(--md-on-primary-container);
+    }
+    .privacy-pill .material-symbols-rounded { font-size: 14px; }
+
+    /* Mode segmented control */
+    .seg-bar {
+      display: flex; gap: 4px; padding: 4px; border-radius: 9999px;
+      background: var(--md-surface-container-high);
+      max-width: 360px; margin: 0 auto 20px auto;
+      animation: fadeUp 0.8s var(--md-easing-spring) 0.05s backwards;
+    }
+    .seg-btn {
+      flex: 1; height: 40px; border: none; border-radius: 9999px;
+      background: transparent; color: var(--md-on-surface-variant); cursor: pointer;
+      font-family: inherit; font-size: 13px; font-weight: 600; letter-spacing: 0.02em;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      transition: all 0.25s var(--md-easing-spring-soft);
+    }
+    .seg-btn .material-symbols-rounded { font-size: 18px; }
+    .seg-btn.active { background: var(--md-secondary-container); color: var(--md-on-secondary-container); }
+    .seg-btn:active { transform: scale(0.96); }
+
+    /* Card */
+    .card {
+      background: var(--md-surface-container-low);
+      border: 1px solid var(--md-outline-variant);
+      border-radius: 24px; padding: 22px 24px;
+      display: flex; flex-direction: column;
+      position: relative; transition: all 0.4s var(--md-easing-spring-soft);
+      animation: fadeUp 0.8s var(--md-easing-spring) 0.1s backwards;
+      margin-bottom: 16px;
+    }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 12px; }
+    .card-label {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--md-on-surface-variant); display: flex; align-items: center; gap: 6px;
+    }
+    .card-label .material-symbols-rounded { font-size: 18px; }
+
+    .text-input {
+      width: 100%; min-height: 120px; resize: vertical;
+      font-family: var(--font-primary); font-size: 14px; line-height: 1.5;
+      color: var(--md-on-surface);
+      background: var(--md-surface-container);
+      border: 1px solid var(--md-outline-variant); border-radius: 16px;
+      padding: 14px 16px; outline: none;
+      transition: border-color 0.2s var(--md-easing-standard), box-shadow 0.2s var(--md-easing-standard);
+    }
+    .text-input:focus { border-color: var(--md-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-primary) 18%, transparent); }
+    .text-input::placeholder { color: var(--md-on-surface-variant); opacity: 0.7; }
+
+    .input-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+    .meta-chip {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+      padding: 5px 10px; border-radius: 9999px;
+      background: var(--md-surface-container-high); color: var(--md-on-surface-variant);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Dropzone */
+    .dropzone {
+      border: 2px dashed var(--md-outline-variant); border-radius: 24px;
+      padding: 40px 20px; text-align: center; cursor: pointer;
+      background: var(--md-surface-container-low);
+      transition: all 0.3s var(--md-easing-spring-soft);
+      display: flex; flex-direction: column; align-items: center; gap: 14px;
+    }
+    .dropzone:hover { transform: translateY(-3px); border-color: var(--md-primary); background: var(--md-surface-container); box-shadow: 0 8px 24px -6px var(--md-shadow-color); }
+    .dropzone:focus-within { border-color: var(--md-primary); }
+    .dropzone.dragover { border-style: solid; border-color: var(--md-primary); background: var(--md-primary-container); transform: scale(1.01); }
+    .dz-icon {
+      width: 64px; height: 64px; border-radius: 20px;
+      background: var(--md-primary-container); color: var(--md-on-primary-container);
+      display: flex; align-items: center; justify-content: center;
+      animation: pulse 2.8s infinite;
+      transition: transform 0.3s var(--md-easing-spring);
+    }
+    .dropzone:hover .dz-icon { transform: scale(1.08) rotate(-4deg); }
+    .dz-icon .material-symbols-rounded { font-size: 34px; font-variation-settings: 'wght' 400, 'GRAD' 0, 'opsz' 48; }
+    .dz-title { font-size: 18px; font-weight: 700; color: var(--md-on-surface); }
+    .dz-sub { font-size: 13px; color: var(--md-on-surface-variant); max-width: 360px; line-height: 1.45; }
+    .dz-browse {
+      display: inline-flex; align-items: center; gap: 6px; margin-top: 4px;
+      font-size: 13px; font-weight: 600;
+      color: var(--md-primary); text-decoration: underline; text-underline-offset: 3px;
+    }
+
+    .file-info {
+      display: flex; align-items: center; gap: 14px;
+      background: var(--md-surface-container); border-radius: 16px; padding: 14px 16px; margin-top: 14px;
+    }
+    .file-info-icon {
+      width: 44px; height: 44px; border-radius: 14px; flex-shrink: 0;
+      background: var(--md-primary-container); color: var(--md-on-primary-container);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .file-info-icon .material-symbols-rounded { font-size: 24px; }
+    .file-info-body { flex: 1; min-width: 0; }
+    .file-info-name { font-size: 14px; font-weight: 700; color: var(--md-on-surface); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .file-info-meta { font-size: 12px; color: var(--md-on-surface-variant); margin-top: 2px; font-variant-numeric: tabular-nums; }
+
+    /* Progress */
+    .progress-bar-container { width: 100%; height: 4px; background: var(--md-surface-container-high); border-radius: 2px; overflow: hidden; margin-top: 14px; }
+    .progress-bar-fill { height: 100%; width: 0%; background: var(--md-primary); transition: width 0.25s var(--md-easing-standard); }
+
+    /* Hash results */
+    .hash-row {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--md-surface-container); border-radius: 16px; padding: 12px 14px;
+      margin-bottom: 8px;
+    }
+    .hash-row:last-child { margin-bottom: 0; }
+    .hash-algo {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+      color: var(--md-primary); flex-shrink: 0; width: 78px;
+    }
+    .hash-value {
+      flex: 1; min-width: 0; font-family: 'Roboto Flex', monospace; font-variant-numeric: tabular-nums;
+      font-size: 13px; font-weight: 600; color: var(--md-on-surface);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; word-break: break-all;
+    }
+    .hash-value.match { color: var(--md-primary); }
+    .copy-btn {
+      background: transparent; border: none; color: var(--md-on-surface-variant); cursor: pointer;
+      border-radius: 50%; width: 34px; height: 34px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s var(--md-easing-standard);
+    }
+    .copy-btn:hover { background: var(--md-surface-container-high); color: var(--md-primary); }
+    .copy-btn:active { transform: scale(0.9); }
+    .copy-btn .material-symbols-rounded { font-size: 18px; }
+
+    /* Compare field */
+    .compare-input {
+      width: 100%; font-family: 'Roboto Flex', monospace; font-size: 13px;
+      color: var(--md-on-surface); background: var(--md-surface-container);
+      border: 1px solid var(--md-outline-variant); border-radius: 16px;
+      padding: 12px 14px; outline: none;
+      transition: border-color 0.2s var(--md-easing-standard);
+    }
+    .compare-input:focus { border-color: var(--md-primary); }
+    .compare-match {
+      display: inline-flex; align-items: center; gap: 5px; margin-top: 10px;
+      font-size: 12px; font-weight: 700; letter-spacing: 0.02em;
+      padding: 5px 10px; border-radius: 9999px;
+    }
+    .compare-match .material-symbols-rounded { font-size: 14px; }
+    .compare-match.yes { background: var(--md-primary-container); color: var(--md-on-primary-container); }
+    .compare-match.no { background: var(--md-tertiary-container); color: var(--md-on-tertiary-container); }
+    .compare-match.idle { background: var(--md-surface-container-high); color: var(--md-on-surface-variant); }
+
+    /* Floating Toolbar */
+    .floating-toolbar {
+      position: fixed; bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+      left: 50%; transform: translateX(-50%);
+      width: calc(100% - 32px); max-width: 680px;
+      background: color-mix(in srgb, var(--md-surface-container) 85%, transparent);
+      backdrop-filter: blur(28px) saturate(180%); -webkit-backdrop-filter: blur(28px) saturate(180%);
+      border: 1px solid color-mix(in srgb, var(--md-outline-variant) 50%, transparent);
+      box-shadow: 0 12px 40px -6px var(--md-shadow-color-strong);
+      border-radius: 9999px; padding: 8px 12px;
+      display: flex; align-items: center; gap: 12px; z-index: 40;
+      animation: barIn 0.7s var(--md-easing-spring) 0.15s backwards;
+    }
+    .fab-btn {
+      flex: 1; height: 48px; border-radius: 9999px; border: none;
+      background: var(--md-primary); color: var(--md-on-primary);
+      font-family: inherit; font-size: 14px; font-weight: 600; letter-spacing: 0.02em;
+      display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;
+      box-shadow: 0 4px 16px -2px var(--md-shadow-color);
+      transition: all 0.3s var(--md-easing-spring-soft); white-space: nowrap;
+    }
+    .fab-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px -2px var(--md-shadow-color-strong); }
+    .fab-btn:active { transform: scale(0.96); }
+    .fab-btn.success { background: var(--md-secondary-container); color: var(--md-on-secondary-container); animation: fabPop 0.5s var(--md-easing-spring); }
+    .fab-btn.secondary-fab { background: var(--md-surface-container-high); color: var(--md-on-surface); border: 1px solid var(--md-outline-variant); box-shadow: none; }
+    .fab-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none !important; box-shadow: none; }
+
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid color-mix(in srgb, currentColor 30%, transparent);
+      border-top-color: currentColor; border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    /* Footer */
+    .app-footer {
+      text-align: center; margin-top: 40px; padding-top: 24px;
+      border-top: 1px solid var(--md-outline-variant);
+      color: var(--md-on-surface-variant); font-size: 12px;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+    }
+    .footer-links { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; justify-content: center; }
+    .footer-links a { color: var(--md-primary); text-decoration: none; font-weight: 600; }
+    .footer-links a:hover { text-decoration: underline; }
+
+    /* Toast */
+    .toast-container { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); z-index: 100; pointer-events: none; }
+    .toast {
+      background: var(--md-inverse-surface); color: var(--md-inverse-on-surface);
+      border-radius: 14px; padding: 12px 20px;
+      display: flex; align-items: center; gap: 12px;
+      box-shadow: 0 8px 24px var(--md-shadow-color-strong);
+      opacity: 0; transform: translateY(20px) scale(0.95);
+      transition: all 0.35s var(--md-easing-spring); pointer-events: auto;
+    }
+    .toast.show { opacity: 1; transform: translateY(0) scale(1); }
+    .toast-icon { color: var(--md-inverse-primary); }
+    .toast-text { font-size: 14px; font-weight: 600; }
+
+    .skeleton-text { height: 18px; width: 140px; background: color-mix(in srgb, var(--md-on-surface) 12%, transparent); border-radius: 6px; }
+
+    /* Mobile */
+    @media (max-width: 600px) {
+      body { padding: 16px 12px 140px 12px; }
+      .app-bar { padding: 6px 8px 6px 12px; margin-bottom: 24px; }
+      .brand { gap: 8px; }
+      .brand-h1 { font-size: 15px; }
+      .open-source-badge { display: none; }
+      .hero { margin-bottom: 22px; }
+      .card { padding: 18px 16px; border-radius: 20px; }
+      .dropzone { padding: 32px 16px; border-radius: 20px; }
+      .dz-icon { width: 56px; height: 56px; }
+      .dz-title { font-size: 16px; }
+      .hash-row { flex-wrap: wrap; }
+      .hash-algo { width: auto; }
+      .hash-value { white-space: normal; font-size: 12px; }
+      .toast-container { bottom: calc(96px + env(safe-area-inset-bottom, 0px)); width: calc(100% - 24px); }
+      .toast { padding: 10px 16px; justify-content: center; text-align: center; }
+      .toast-text { font-size: 13px; }
+      .floating-toolbar { padding: 6px 8px; gap: 8px; }
+      .fab-btn { font-size: 13px; }
+    }
+    @media (max-width: 380px) {
+      .fab-btn span:last-child { display: none; }
+      .fab-btn { padding: 0; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-blob"></div>
+
+  <div class="app-wrapper">
+
+    <!-- App Bar -->
+    <header class="app-bar">
+      <div class="brand">
+        <a href="https://inpriv.xyz" class="brand-icon" aria-label="Inpriv Homepage" style="text-decoration:none">
+          <span class="material-symbols-rounded">fingerprint</span>
+        </a>
+        <div class="brand-text">
+          <span class="brand-h1">Inpriv<span>.</span> <span class="open-source-badge">Hash</span></span>
+          <span class="brand-tagline">Client-side Checksum &amp; Digest</span>
+        </div>
+      </div>
+      <div class="app-bar-actions">
+        <button class="icon-btn" id="themeToggleBtn" aria-label="Toggle Dark/Light Theme" type="button">
+          <span class="material-symbols-rounded" id="themeIcon">light_mode</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Hero -->
+    <section class="hero">
+      <h2 class="hero-h2">Hash &amp; <span class="accent">Checksum</span></h2>
+      <p class="hero-desc">
+        Compute cryptographic digests of any text or file — SHA-1, SHA-256, SHA-384, SHA-512 and MD5 —
+        entirely in your browser. Verify file integrity or compare checksums against an expected value.
+      </p>
+      <div class="privacy-pill">
+        <span class="material-symbols-rounded">lock</span>
+        100% local · nothing leaves your device
+      </div>
+    </section>
+
+    <!-- Mode segmented control -->
+    <div class="seg-bar" role="tablist" aria-label="Input mode">
+      <button class="seg-btn active" id="modeTextBtn" role="tab" aria-selected="true" type="button">
+        <span class="material-symbols-rounded">text_fields</span> Text
+      </button>
+      <button class="seg-btn" id="modeFileBtn" role="tab" aria-selected="false" type="button">
+        <span class="material-symbols-rounded">draft</span> File
+      </button>
+    </div>
+
+    <!-- Input card -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-label"><span class="material-symbols-rounded">input</span> Input</span>
+        <button class="copy-btn" id="clearBtn" title="Clear" aria-label="Clear input" type="button">
+          <span class="material-symbols-rounded">delete</span>
+        </button>
+      </div>
+
+      <!-- Text mode -->
+      <div id="textMode">
+        <textarea class="text-input" id="textInput" placeholder="Type or paste text to hash…" autocomplete="off" spellcheck="false"></textarea>
+        <div class="input-row">
+          <span class="meta-chip" id="charCount">0 chars</span>
+          <span class="meta-chip" id="byteCount">0 bytes (UTF-8)</span>
+        </div>
+      </div>
+
+      <!-- File mode -->
+      <div id="fileMode" style="display:none;">
+        <label class="dropzone" id="dropzone" for="fileInput" tabindex="0" aria-label="Upload a file. Click or drop a file here.">
+          <div class="dz-icon"><span class="material-symbols-rounded">upload_file</span></div>
+          <div class="dz-title">Drop a file to hash</div>
+          <div class="dz-sub">Any file type, any size. Read locally in chunks and never uploaded.</div>
+          <span class="dz-browse"><span class="material-symbols-rounded" style="font-size:16px;">folder_open</span>Browse files</span>
+          <input type="file" id="fileInput" style="display:none;" />
+        </label>
+        <div id="fileInfoWrap" style="display:none;">
+          <div class="file-info">
+            <div class="file-info-icon"><span class="material-symbols-rounded">description</span></div>
+            <div class="file-info-body">
+              <div class="file-info-name" id="fileName">—</div>
+              <div class="file-info-meta" id="fileMeta">—</div>
+            </div>
+            <button class="copy-btn" id="fileRemoveBtn" aria-label="Remove file" title="Remove" type="button">
+              <span class="material-symbols-rounded">close</span>
+            </button>
+          </div>
+          <div class="progress-bar-container"><div class="progress-bar-fill" id="progressBar"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results card -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-label"><span class="material-symbols-rounded">fingerprint</span> Digests</span>
+        <span class="meta-chip" id="hashSource">Text input</span>
+      </div>
+      <div id="hashResults">
+        <div class="hash-row"><span class="hash-algo">MD5</span><span class="hash-value" id="r-md5">—</span><button class="copy-btn" data-copy="md5" aria-label="Copy MD5"><span class="material-symbols-rounded">content_copy</span></button></div>
+        <div class="hash-row"><span class="hash-algo">SHA-1</span><span class="hash-value" id="r-sha1">—</span><button class="copy-btn" data-copy="sha1" aria-label="Copy SHA-1"><span class="material-symbols-rounded">content_copy</span></button></div>
+        <div class="hash-row"><span class="hash-algo">SHA-256</span><span class="hash-value" id="r-sha256">—</span><button class="copy-btn" data-copy="sha256" aria-label="Copy SHA-256"><span class="material-symbols-rounded">content_copy</span></button></div>
+        <div class="hash-row"><span class="hash-algo">SHA-384</span><span class="hash-value" id="r-sha384">—</span><button class="copy-btn" data-copy="sha384" aria-label="Copy SHA-384"><span class="material-symbols-rounded">content_copy</span></button></div>
+        <div class="hash-row"><span class="hash-algo">SHA-512</span><span class="hash-value" id="r-sha512">—</span><button class="copy-btn" data-copy="sha512" aria-label="Copy SHA-512"><span class="material-symbols-rounded">content_copy</span></button></div>
+      </div>
+    </div>
+
+    <!-- Compare card -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-label"><span class="material-symbols-rounded">verified</span> Verify against expected hash</span>
+      </div>
+      <input type="text" class="compare-input" id="compareInput" placeholder="Paste an expected checksum to compare…" autocomplete="off" spellcheck="false" />
+      <div id="compareResult"><span class="compare-match idle"><span class="material-symbols-rounded">info</span> Awaiting expected hash</span></div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <div>Inpriv Hash · Open Source Privacy Suite</div>
+      <div class="footer-links">
+        <a href="https://inpriv.xyz" rel="noopener">Inpriv</a>
+        <span>•</span>
+        <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener">MIT License</a>
+        <span>•</span>
+        <a href="javascript:void(0)" id="exportReport">Export JSON Report</a>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Floating Toolbar -->
+  <div class="floating-toolbar">
+    <button class="fab-btn" id="copyAllBtn" type="button">
+      <span class="material-symbols-rounded">content_copy</span>
+      <span>Copy All</span>
+    </button>
+    <button class="fab-btn secondary-fab" id="exportFab" type="button">
+      <span class="material-symbols-rounded">download</span>
+      <span>Export</span>
+    </button>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast-container">
+    <div class="toast" id="toast" role="status" aria-live="polite">
+      <span class="material-symbols-rounded toast-icon" id="toastIcon">check_circle</span>
+      <span class="toast-text" id="toastText">Copied</span>
+    </div>
+  </div>
+
+  <script>
+    /* ===================== Theme Manager ===================== */
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    const themeIcon = document.getElementById('themeIcon');
+    const htmlElem = document.documentElement;
+    function setTheme(theme) {
+      htmlElem.setAttribute('data-theme', theme);
+      localStorage.setItem('aurex_theme', theme);
+      themeIcon.textContent = theme === 'dark' ? 'light_mode' : 'dark_mode';
+    }
+    const savedTheme = localStorage.getItem('aurex_theme') || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    setTheme(savedTheme);
+    themeToggleBtn.addEventListener('click', () => setTheme(htmlElem.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
+
+    /* ===================== Toast ===================== */
+    const toast = document.getElementById('toast');
+    const toastText = document.getElementById('toastText');
+    const toastIcon = document.getElementById('toastIcon');
+    let toastTimeout;
+    function showToast(message, icon = 'check_circle') {
+      clearTimeout(toastTimeout);
+      toastText.textContent = message;
+      toastIcon.textContent = icon;
+      toast.classList.add('show');
+      toastTimeout = setTimeout(() => toast.classList.remove('show'), 2600);
+    }
+
+    /* ===================== MD5 (self-contained, RFC 1321) ===================== */
+    /* Minimal, dependency-free MD5 implementation. Output: lowercase hex. */
+    var md5 = (function () {
+      function rl(n, c) { return (n << c) | (n >>> (32 - c)); }
+      function au(x, y) { const lsw = (x & 0xFFFF) + (y & 0xFFFF); const msw = (x >> 16) + (y >> 16) + (lsw >> 16); return (msw << 16) | (lsw & 0xFFFF); }
+      function cmn(q, a, b, x, s, t) { return au(rl(au(au(a, q), au(x, t)), s), b); }
+      function ff(a, b, c, d, x, s, t) { return cmn((b & c) | ((~b) & d), a, b, x, s, t); }
+      function gg(a, b, c, d, x, s, t) { return cmn((b & d) | (c & (~d)), a, b, x, s, t); }
+      function hh(a, b, c, d, x, s, t) { return cmn(b ^ c ^ d, a, b, x, s, t); }
+      function ii(a, b, c, d, x, s, t) { return cmn(c ^ (b | (~d)), a, b, x, s, t); }
+      function core(x, len) {
+        x[len >> 5] |= 0x80 << (len % 32);
+        x[(((len + 64) >>> 9) << 4) + 14] = len;
+        let a = 1732584193, b = -271733879, c = -1732584194, d = 271733878;
+        for (let i = 0; i < x.length; i += 16) {
+          const oa = a, ob = b, oc = c, od = d;
+          a = ff(a, b, c, d, x[i], 7, -680876936); d = ff(d, a, b, c, x[i+1], 12, -389564586);
+          c = ff(c, d, a, b, x[i+2], 17, 606105819); b = ff(b, c, d, a, x[i+3], 22, -1044525330);
+          a = ff(a, b, c, d, x[i+4], 7, -176418897); d = ff(d, a, b, c, x[i+5], 12, 1200080426);
+          c = ff(c, d, a, b, x[i+6], 17, -1473231341); b = ff(b, c, d, a, x[i+7], 22, -45705983);
+          a = ff(a, b, c, d, x[i+8], 7, 1770035416); d = ff(d, a, b, c, x[i+9], 12, -1958414417);
+          c = ff(c, d, a, b, x[i+10], 17, -42063); b = ff(b, c, d, a, x[i+11], 22, -1990404162);
+          a = ff(a, b, c, d, x[i+12], 7, 1804603682); d = ff(d, a, b, c, x[i+13], 12, -40341101);
+          c = ff(c, d, a, b, x[i+14], 17, -1502002290); b = ff(b, c, d, a, x[i+15], 22, 1236535329);
+          a = gg(a, b, c, d, x[i+1], 5, -165796510); d = gg(d, a, b, c, x[i+6], 9, -1069501632);
+          c = gg(c, d, a, b, x[i+11], 14, 643717713); b = gg(b, c, d, a, x[i], 20, -373897302);
+          a = gg(a, b, c, d, x[i+5], 5, -701558691); d = gg(d, a, b, c, x[i+10], 9, 38016083);
+          c = gg(c, d, a, b, x[i+15], 14, -660478335); b = gg(b, c, d, a, x[i+4], 20, -405537848);
+          a = gg(a, b, c, d, x[i+9], 5, 568446438); d = gg(d, a, b, c, x[i+14], 9, -1019803690);
+          c = gg(c, d, a, b, x[i+3], 14, -187363961); b = gg(b, c, d, a, x[i+8], 20, 1163531501);
+          a = gg(a, b, c, d, x[i+13], 5, -1444681467); d = gg(d, a, b, c, x[i+2], 9, -51403784);
+          c = gg(c, d, a, b, x[i+7], 14, 1735328473); b = gg(b, c, d, a, x[i+12], 20, -1926607734);
+          a = hh(a, b, c, d, x[i+5], 4, -378558); d = hh(d, a, b, c, x[i+8], 11, -2022574463);
+          c = hh(c, d, a, b, x[i+11], 16, 1839030562); b = hh(b, c, d, a, x[i+14], 23, -35309556);
+          a = hh(a, b, c, d, x[i+1], 4, -1530992060); d = hh(d, a, b, c, x[i+4], 11, 1272893353);
+          c = hh(c, d, a, b, x[i+7], 16, -155497632); b = hh(b, c, d, a, x[i+10], 23, -1094730640);
+          a = hh(a, b, c, d, x[i+13], 4, 681279174); d = hh(d, a, b, c, x[i], 11, -358537222);
+          c = hh(c, d, a, b, x[i+3], 16, -722521979); b = hh(b, c, d, a, x[i+6], 23, 76029189);
+          a = hh(a, b, c, d, x[i+9], 4, -640364487); d = hh(d, a, b, c, x[i+12], 11, -421815835);
+          c = hh(c, d, a, b, x[i+15], 16, 530742520); b = hh(b, c, d, a, x[i+2], 23, -995338651);
+          a = ii(a, b, c, d, x[i], 6, -198630844); d = ii(d, a, b, c, x[i+7], 10, 1126891415);
+          c = ii(c, d, a, b, x[i+14], 15, -1416354905); b = ii(b, c, d, a, x[i+5], 21, -57434055);
+          a = ii(a, b, c, d, x[i+12], 6, 1700485571); d = ii(d, a, b, c, x[i+3], 10, -1894986606);
+          c = ii(c, d, a, b, x[i+10], 15, -1051523); b = ii(b, c, d, a, x[i+1], 21, -2054922799);
+          a = ii(a, b, c, d, x[i+8], 6, 1873313359); d = ii(d, a, b, c, x[i+15], 10, -30611744);
+          c = ii(c, d, a, b, x[i+6], 15, -1560198380); b = ii(b, c, d, a, x[i+13], 21, 1309151649);
+          a = ii(a, b, c, d, x[i+4], 6, -145523070); d = ii(d, a, b, c, x[i+11], 10, -1120210379);
+          c = ii(c, d, a, b, x[i+2], 15, 718787259); b = ii(b, c, d, a, x[i+9], 21, -343485551);
+          a = au(a, oa); b = au(b, ob); c = au(c, oc); d = au(d, od);
+        }
+        return [a, b, c, d];
+      }
+      function bytesToWords(bytes) {
+        const w = []; for (let i = 0; i < bytes.length * 8; i += 8) w[i >> 5] |= (bytes[i / 8] & 0xFF) << (i % 32); return w;
+      }
+      function wordsToHex(w) {
+        const hex = '0123456789abcdef'; let out = '';
+        for (let i = 0; i < w.length * 4; i++) { out += hex.charAt((w[i >> 2] >> ((i % 4) * 8 + 4)) & 0x0F) + hex.charAt((w[i >> 2] >> ((i % 4) * 8)) & 0x0F); }
+        return out;
+      }
+      return function (bytes) {
+        const x = bytesToWords(bytes); const out = core(x, bytes.length * 8);
+        return wordsToHex(out).toUpperCase();
+      };
+    })();
+
+    /* ===================== Hash engine ===================== */
+    function bufToHexUpper(buf) {
+      return Array.prototype.map.call(new Uint8Array(buf), b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+    }
+    async function sha(algo, bytes) {
+      const digest = await crypto.subtle.digest(algo, bytes);
+      return bufToHexUpper(digest);
+    }
+    function utf8Bytes(str) { return new TextEncoder().encode(str); }
+
+    /* ===================== State ===================== */
+    let currentMode = 'text';
+    let currentBytes = null;        // Uint8Array of current input
+    let currentFileName = null;
+    let lastHashes = { md5: '', sha1: '', sha256: '', sha384: '', sha512: '' };
+    let textDebounce = null;
+
+    const ids = ['md5', 'sha1', 'sha256', 'sha384', 'sha512'];
+
+    function setResults(hashes) {
+      lastHashes = hashes;
+      ids.forEach(k => {
+        const el = document.getElementById('r-' + k);
+        el.textContent = hashes[k] || '—';
+        el.classList.remove('match');
+      });
+      updateCompare();
+    }
+
+    async function compute(bytes) {
+      if (!bytes || bytes.length === 0) { setResults({ md5:'', sha1:'', sha256:'', sha384:'', sha512:'' }); return; }
+      const [s1, s256, s384, s512] = await Promise.all([
+        sha('SHA-1', bytes), sha('SHA-256', bytes), sha('SHA-384', bytes), sha('SHA-512', bytes)
+      ]);
+      // MD5 on the main thread (large inputs can be slow; keep simple).
+      const m = md5(bytes);
+      setResults({ md5: m, sha1: s1, sha256: s256, sha384: s384, sha512: s512 });
+    }
+
+    /* ===================== Text mode ===================== */
+    const textInput = document.getElementById('textInput');
+    const charCount = document.getElementById('charCount');
+    const byteCount = document.getElementById('byteCount');
+    const hashSource = document.getElementById('hashSource');
+
+    function onTextChange() {
+      const val = textInput.value;
+      const b = utf8Bytes(val);
+      charCount.textContent = val.length + ' chars';
+      byteCount.textContent = b.length + ' bytes (UTF-8)';
+      hashSource.textContent = 'Text input';
+      currentBytes = b; currentFileName = null;
+      clearTimeout(textDebounce);
+      textDebounce = setTimeout(() => compute(b), 110);
+    }
+    textInput.addEventListener('input', onTextChange);
+
+    /* ===================== File mode ===================== */
+    const modeTextBtn = document.getElementById('modeTextBtn');
+    const modeFileBtn = document.getElementById('modeFileBtn');
+    const textModeBox = document.getElementById('textMode');
+    const fileModeBox = document.getElementById('fileMode');
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const fileInfoWrap = document.getElementById('fileInfoWrap');
+    const fileName = document.getElementById('fileName');
+    const fileMeta = document.getElementById('fileMeta');
+    const fileRemoveBtn = document.getElementById('fileRemoveBtn');
+    const progressBar = document.getElementById('progressBar');
+    const clearBtn = document.getElementById('clearBtn');
+
+    function setMode(mode) {
+      currentMode = mode;
+      if (mode === 'text') {
+        modeTextBtn.classList.add('active'); modeFileBtn.classList.remove('active');
+        modeTextBtn.setAttribute('aria-selected', 'true'); modeFileBtn.setAttribute('aria-selected', 'false');
+        textModeBox.style.display = ''; fileModeBox.style.display = 'none';
+        onTextChange();
+      } else {
+        modeFileBtn.classList.add('active'); modeTextBtn.classList.remove('active');
+        modeFileBtn.setAttribute('aria-selected', 'true'); modeTextBtn.setAttribute('aria-selected', 'false');
+        textModeBox.style.display = 'none'; fileModeBox.style.display = '';
+        hashSource.textContent = currentFileName ? ('File: ' + currentFileName) : 'No file loaded';
+      }
+    }
+    modeTextBtn.addEventListener('click', () => setMode('text'));
+    modeFileBtn.addEventListener('click', () => setMode('file'));
+
+    function humanSize(n) {
+      if (n < 1024) return n + ' B';
+      if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+      if (n < 1024 * 1024 * 1024) return (n / 1024 / 1024).toFixed(2) + ' MB';
+      return (n / 1024 / 1024 / 1024).toFixed(2) + ' GB';
+    }
+
+    async function readFile(file) {
+      currentFileName = file.name;
+      fileName.textContent = file.name;
+      fileMeta.textContent = humanSize(file.size) + ' · reading…';
+      hashSource.textContent = 'File: ' + file.name;
+      progressBar.style.width = '0%';
+      // Read in chunks for progress.
+      const chunkSize = 4 * 1024 * 1024; // 4 MB
+      const chunks = [];
+      let offset = 0;
+      while (offset < file.size) {
+        const end = Math.min(offset + chunkSize, file.size);
+        const slice = file.slice(offset, end);
+        const buf = await slice.arrayBuffer();
+        chunks.push(new Uint8Array(buf));
+        offset = end;
+        progressBar.style.width = Math.round((offset / file.size) * 100) + '%';
+        if (offset < file.size) await new Promise(r => setTimeout(r, 0)); // keep UI responsive
+      }
+      const all = new Uint8Array(file.size);
+      let pos = 0;
+      for (const c of chunks) { all.set(c, pos); pos += c.length; }
+      currentBytes = all;
+      fileMeta.textContent = humanSize(file.size) + ' · ' + file.type + (file.lastModified ? ' · ' + new Date(file.lastModified).toLocaleString() : '');
+      await compute(all);
+    }
+
+    function handleFile(file) {
+      if (!file) return;
+      fileInfoWrap.style.display = '';
+      readFile(file).catch(err => {
+        fileMeta.textContent = 'Error reading file';
+        showToast('Could not read file', 'error');
+      });
+    }
+
+    fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+    fileRemoveBtn.addEventListener('click', e => {
+      e.preventDefault(); e.stopPropagation();
+      fileInfoWrap.style.display = 'none';
+      fileInput.value = ''; currentBytes = null; currentFileName = null;
+      progressBar.style.width = '0%';
+      hashSource.textContent = 'No file loaded';
+      setResults({ md5:'', sha1:'', sha256:'', sha384:'', sha512:'' });
+    });
+
+    // Drag & drop (global with counter to prevent flicker)
+    let dragCounter = 0;
+    window.addEventListener('dragenter', e => {
+      if (currentMode !== 'file') return;
+      e.preventDefault(); dragCounter++; dropzone.classList.add('dragover');
+    });
+    window.addEventListener('dragover', e => { if (currentMode === 'file') e.preventDefault(); });
+    window.addEventListener('dragleave', e => {
+      if (currentMode !== 'file') return;
+      dragCounter--; if (dragCounter <= 0) { dragCounter = 0; dropzone.classList.remove('dragover'); }
+    });
+    window.addEventListener('drop', e => {
+      if (currentMode !== 'file') return;
+      e.preventDefault(); dragCounter = 0; dropzone.classList.remove('dragover');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+    });
+    // Keyboard accessible dropzone
+    dropzone.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); } });
+
+    clearBtn.addEventListener('click', () => {
+      if (currentMode === 'text') { textInput.value = ''; onTextChange(); }
+      else { fileRemoveBtn.click(); }
+    });
+
+    /* ===================== Copy / Compare ===================== */
+    document.querySelectorAll('.copy-btn[data-copy]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const k = btn.getAttribute('data-copy');
+        const v = lastHashes[k];
+        if (!v) return;
+        navigator.clipboard.writeText(v).then(() => showToast(k.toUpperCase() + ' copied', 'content_copy'));
+      });
+    });
+
+    const compareInput = document.getElementById('compareInput');
+    const compareResult = document.getElementById('compareResult');
+    function updateCompare() {
+      const expected = compareInput.value.trim().toUpperCase();
+      if (!expected) {
+        compareResult.innerHTML = '<span class="compare-match idle"><span class="material-symbols-rounded">info</span> Awaiting expected hash</span>';
+        ids.forEach(k => document.getElementById('r-' + k).classList.remove('match'));
+        return;
+      }
+      const matched = ids.find(k => lastHashes[k] && lastHashes[k].toUpperCase() === expected);
+      if (matched) {
+        compareResult.innerHTML = '<span class="compare-match yes"><span class="material-symbols-rounded">check_circle</span> Match — identical to ' + matched.toUpperCase() + '</span>';
+        document.getElementById('r-' + matched).classList.add('match');
+        ids.forEach(k => { if (k !== matched) document.getElementById('r-' + k).classList.remove('match'); });
+      } else if (!lastHashes.sha256) {
+        compareResult.innerHTML = '<span class="compare-match idle"><span class="material-symbols-rounded">hourglass_empty</span> Provide input to compare</span>';
+      } else {
+        compareResult.innerHTML = '<span class="compare-match no"><span class="material-symbols-rounded">cancel</span> No match against any computed digest</span>';
+        ids.forEach(k => document.getElementById('r-' + k).classList.remove('match'));
+      }
+    }
+    compareInput.addEventListener('input', updateCompare);
+
+    /* ===================== Copy all / Export ===================== */
+    function reportObj() {
+      return {
+        app: 'Inpriv Hash',
+        timestamp: new Date().toISOString(),
+        source: currentMode === 'text' ? 'text' : (currentFileName || 'file'),
+        size: currentBytes ? currentBytes.length : 0,
+        digests: lastHashes
+      };
+    }
+    document.getElementById('copyAllBtn').addEventListener('click', () => {
+      if (!lastHashes.sha256) { showToast('Nothing to copy yet', 'info'); return; }
+      const lines = ids.map(k => k.toUpperCase() + ': ' + (lastHashes[k] || '—')).join('\n');
+      navigator.clipboard.writeText(lines).then(() => {
+        const b = document.getElementById('copyAllBtn');
+        b.classList.add('success'); b.querySelector('span:last-child').textContent = 'Copied!';
+        setTimeout(() => { b.classList.remove('success'); b.querySelector('span:last-child').textContent = 'Copy All'; }, 1800);
+        showToast('All digests copied', 'content_copy');
+      });
+    });
+    function exportJson() {
+      const json = JSON.stringify(reportObj(), null, 2);
+      navigator.clipboard.writeText(json).then(() => showToast('JSON report copied to clipboard', 'file_download'));
+    }
+    document.getElementById('exportFab').addEventListener('click', exportJson);
+    document.getElementById('exportReport').addEventListener('click', exportJson);
+
+    /* ===================== Init ===================== */
+    setMode('text');
+    // Seed with an empty compute so the UI shows dashes cleanly.
+    onTextChange();
+  </script>
+</body>
+</html>

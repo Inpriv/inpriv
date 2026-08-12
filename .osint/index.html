@@ -1,0 +1,1504 @@
+<!DOCTYPE html>
+<!--
+  Inpriv OSINT AI — Intel Search
+  Copyright (c) 2026 Aurex Labs — MIT License
+
+  Aggregator front-end for open-source intelligence lookups. UI rendered with
+  Tailwind (CDN) + marked (CDN). Query assembly happens client-side.
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OSINT AI | Intel Search</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        /* ── Reset & Base ── */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #050505;
+            color: #fff;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* ── Background Orbs ── */
+        .orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(120px);
+            z-index: -1;
+            pointer-events: none;
+            transition: opacity 0.8s ease;
+        }
+        .orb-1 { width: 400px; height: 400px; background: #06b6d4; top: -120px; left: -80px; opacity: 0.2; }
+        .orb-2 { width: 350px; height: 350px; background: #10b981; bottom: -100px; right: -60px; opacity: 0.15; }
+        .orb-3 { width: 250px; height: 250px; background: #8b5cf6; top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0.08; }
+
+        /* ── Glassmorphism System ── */
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .glass-strong {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-hover {
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .glass-hover:hover {
+            background: rgba(255, 255, 255, 0.07);
+            border-color: rgba(255, 255, 255, 0.12);
+            transform: translateY(-1px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        /* ── Scrollbar ── */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+        /* ── Animations ── */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(24px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeScaleIn {
+            from { opacity: 0; transform: scale(0.96); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-8px) scaleY(0.97); }
+            to { opacity: 1; transform: translateY(0) scaleY(1); }
+        }
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 20px rgba(6, 182, 212, 0.1), 0 0 40px rgba(6, 182, 212, 0.05); }
+            50% { box-shadow: 0 0 30px rgba(6, 182, 212, 0.2), 0 0 60px rgba(6, 182, 212, 0.1); }
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        @keyframes shimmer {
+            0% { background-position: -200% center; }
+            100% { background-position: 200% center; }
+        }
+        @keyframes dotFlashing {
+            0% { background-color: #06b6d4; }
+            50%, 100% { background-color: rgba(6, 182, 212, 0.15); }
+        }
+
+        .fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        .fade-in-up { animation: fadeInUp 0.6s ease-out forwards; }
+
+        /* ── Search Section ── */
+        #searchSection {
+            transition: padding-top 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        #searchSection.centered {
+            padding-top: calc(50vh - 180px);
+        }
+        #searchSection.searched {
+            padding-top: 6vh;
+        }
+
+        /* ── Model Dropdown ── */
+        .model-trigger {
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .model-trigger:hover {
+            border-color: rgba(6, 182, 212, 0.3);
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .model-trigger.open {
+            border-color: rgba(6, 182, 212, 0.4);
+            background: rgba(255, 255, 255, 0.06);
+        }
+        .model-trigger .chevron {
+            transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .model-trigger.open .chevron {
+            transform: rotate(180deg);
+        }
+
+        .model-dropdown {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            right: 0;
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+            transition: max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+                        opacity 0.3s ease,
+                        margin 0.3s ease;
+            margin-top: -8px;
+            z-index: 50;
+            border-radius: 16px;
+        }
+        .model-dropdown.open {
+            max-height: 420px;
+            opacity: 1;
+            margin-top: 0;
+            overflow-y: auto;
+        }
+
+        .model-option {
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-left: 2px solid transparent;
+        }
+        .model-option:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-left-color: rgba(6, 182, 212, 0.4);
+        }
+        .model-option.selected {
+            background: rgba(6, 182, 212, 0.08);
+            border-left-color: #06b6d4;
+        }
+
+        /* Provider group label */
+        .provider-label {
+            font-size: 0.6rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.25);
+            padding: 8px 14px 4px;
+            font-weight: 600;
+        }
+
+        /* Badge */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 0.6rem;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+        }
+        .badge-cyan {
+            background: rgba(6, 182, 212, 0.12);
+            color: #5eead4;
+        }
+        .badge-emerald {
+            background: rgba(16, 185, 129, 0.12);
+            color: #6ee7b7;
+        }
+        .badge-slate {
+            background: rgba(255, 255, 255, 0.06);
+            color: rgba(255, 255, 255, 0.4);
+        }
+        .badge-purple {
+            background: rgba(139, 92, 246, 0.12);
+            color: #c4b5fd;
+        }
+        .badge-amber {
+            background: rgba(251, 191, 36, 0.12);
+            color: #fde68a;
+        }
+
+        /* ── Settings Modal ── */
+        .settings-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .settings-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .settings-modal {
+            width: 90%;
+            max-width: 720px;
+            max-height: 80vh;
+            background: rgba(10, 10, 15, 0.85);
+            backdrop-filter: blur(32px);
+            -webkit-backdrop-filter: blur(32px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            padding: 28px;
+            transform: scale(0.95) translateY(10px);
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            overflow-y: auto;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+        }
+        .settings-overlay.open .settings-modal {
+            transform: scale(1) translateY(0);
+        }
+
+        /* Filter pills */
+        .filter-pill {
+            padding: 5px 14px;
+            border-radius: 999px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(255, 255, 255, 0.03);
+            color: rgba(255, 255, 255, 0.4);
+            font-weight: 500;
+            user-select: none;
+        }
+        .filter-pill:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.12);
+            color: rgba(255, 255, 255, 0.7);
+        }
+        .filter-pill.active {
+            background: rgba(6, 182, 212, 0.15);
+            border-color: rgba(6, 182, 212, 0.35);
+            color: #5eead4;
+        }
+
+        /* Model card in settings */
+        .model-card {
+            background: rgba(255, 255, 255, 0.025);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 14px;
+            padding: 14px 16px;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            cursor: pointer;
+        }
+        .model-card:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.1);
+            transform: translateY(-1px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+        }
+        .model-card.active-model {
+            border-color: rgba(6, 182, 212, 0.35);
+            background: rgba(6, 182, 212, 0.06);
+        }
+
+        /* Settings search */
+        .settings-search {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 10px 16px;
+            color: #fff;
+            font-size: 0.85rem;
+            width: 100%;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        .settings-search:focus {
+            border-color: rgba(6, 182, 212, 0.3);
+            background: rgba(255, 255, 255, 0.06);
+        }
+        .settings-search::placeholder {
+            color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* ── Results ── */
+        #aiReviewCard {
+            animation: fadeInUp 0.6s ease-out forwards, pulseGlow 2.5s ease-in-out 0.4s 2;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 20px rgba(6, 182, 212, 0.06), 0 0 40px rgba(6, 182, 212, 0.03); }
+            50% { box-shadow: 0 0 35px rgba(6, 182, 212, 0.18), 0 0 60px rgba(6, 182, 212, 0.08); }
+        }
+
+        .usage-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.65rem;
+            font-weight: 500;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            color: rgba(255, 255, 255, 0.5);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* ── Loading Spinner ── */
+        .loading-ring {
+            width: 32px;
+            height: 32px;
+            border: 2px solid rgba(6, 182, 212, 0.1);
+            border-top-color: #06b6d4;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        /* ── Source Card ── */
+        .source-card {
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .source-card:hover {
+            background: rgba(255, 255, 255, 0.06);
+            transform: translateX(3px);
+        }
+
+        /* ── Misc ── */
+        .text-gradient {
+            background: linear-gradient(135deg, #fff 30%, #94a3b8 70%, #64748b 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .text-gradient-cyan {
+            background: linear-gradient(135deg, #5eead4, #06b6d4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .shimmer-text {
+            background: linear-gradient(90deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0.06) 100%);
+            background-size: 200% 100%;
+            animation: shimmer 2.5s ease-in-out infinite;
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            #searchSection.centered { padding-top: calc(50vh - 160px); }
+            .settings-modal { padding: 20px; max-height: 85vh; }
+            .model-dropdown.open { max-height: 340px; }
+        }
+
+        /* ── Exit Warning Modal ── */
+        .exit-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 110;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .exit-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .exit-modal {
+            width: 90%;
+            max-width: 400px;
+            background: rgba(10, 10, 15, 0.88);
+            backdrop-filter: blur(32px);
+            -webkit-backdrop-filter: blur(32px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            padding: 32px 28px 24px;
+            text-align: center;
+            transform: scale(0.94) translateY(12px);
+            transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+        }
+        .exit-overlay.open .exit-modal {
+            transform: scale(1) translateY(0);
+        }
+
+        .exit-modal .exit-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 16px;
+            border-radius: 50%;
+            background: rgba(251, 191, 36, 0.1);
+            border: 1px solid rgba(251, 191, 36, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: #fcd34d;
+        }
+
+        .exit-modal h2 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 10px;
+        }
+
+        .exit-modal p {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.45);
+            line-height: 1.6;
+            margin-bottom: 6px;
+        }
+
+        .exit-modal .exit-domain {
+            display: inline-block;
+            margin: 12px auto 20px;
+            padding: 8px 18px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 10px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.6);
+            word-break: break-all;
+        }
+
+        .exit-modal .exit-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .exit-modal .exit-actions button {
+            flex: 1;
+            max-width: 140px;
+            padding: 10px 0;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            border: none;
+            outline: none;
+        }
+
+        .exit-modal .exit-btn-cancel {
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .exit-modal .exit-btn-cancel:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .exit-modal .exit-btn-continue {
+            background: linear-gradient(135deg, #06b6d4, #10b981);
+            color: #000;
+        }
+        .exit-modal .exit-btn-continue:hover {
+            opacity: 0.9;
+            transform: scale(1.02);
+        }
+        .exit-modal .exit-btn-continue:active {
+            transform: scale(0.97);
+        }
+
+        /* ── Markdown Rendered Content ── */
+        .md-content {
+            line-height: 1.8;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+        }
+
+        /* ── Headings ── */
+        .md-content h1,
+        .md-content h2,
+        .md-content h3,
+        .md-content h4 {
+            color: rgba(255, 255, 255, 0.92);
+            font-weight: 700;
+            margin-top: 1.5em;
+            margin-bottom: 0.5em;
+            letter-spacing: -0.01em;
+        }
+        .md-content h1 { font-size: 1.2rem; }
+        .md-content h2 {
+            font-size: 1.05rem;
+            color: #5eead4;
+            padding-left: 12px;
+            border-left: 3px solid rgba(6, 182, 212, 0.4);
+        }
+        .md-content h3 {
+            font-size: 0.95rem;
+            padding-bottom: 4px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+        .md-content h4 { font-size: 0.9rem; }
+        .md-content h1:first-child,
+        .md-content h2:first-child,
+        .md-content h3:first-child { margin-top: 0; }
+
+        /* ── Paragraphs ── */
+        .md-content p {
+            margin-bottom: 0.75em;
+        }
+        .md-content p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* ── Emphasis ── */
+        .md-content strong {
+            color: rgba(255, 255, 255, 0.88);
+            font-weight: 600;
+        }
+        .md-content em {
+            color: rgba(255, 255, 255, 0.55);
+            font-style: italic;
+        }
+
+        /* ── Lists ── */
+        .md-content ul,
+        .md-content ol {
+            margin: 0.5em 0 0.75em;
+            padding-left: 1.5em;
+        }
+        .md-content li {
+            margin-bottom: 0.35em;
+            line-height: 1.65;
+        }
+        .md-content ul li::marker {
+            color: #06b6d4;
+            content: "•";
+        }
+        .md-content ol li::marker {
+            color: rgba(6, 182, 212, 0.6);
+            font-weight: 600;
+        }
+
+        /* ── Inline Code ── */
+        .md-content code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78em;
+            background: rgba(6, 182, 212, 0.08);
+            border: 1px solid rgba(6, 182, 212, 0.1);
+            padding: 1px 7px;
+            border-radius: 6px;
+            color: #5eead4;
+            word-break: break-word;
+        }
+
+        /* ── Code Blocks ── */
+        .md-content pre {
+            margin: 0.85em 0;
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px 18px;
+            overflow-x: auto;
+            position: relative;
+        }
+        .md-content pre::before {
+            content: "⟨code⟩";
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            font-size: 0.55rem;
+            letter-spacing: 0.1em;
+            color: rgba(255, 255, 255, 0.12);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .md-content pre code {
+            background: none;
+            border: none;
+            padding: 0;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.78em;
+            line-height: 1.65;
+        }
+
+        /* ── Links ── */
+        .md-content a {
+            color: #5eead4;
+            text-decoration: none;
+            border-bottom: 1px solid rgba(94, 234, 212, 0.15);
+            transition: all 0.2s ease;
+        }
+        .md-content a:hover {
+            border-bottom-color: rgba(94, 234, 212, 0.6);
+            color: #99f6e4;
+        }
+
+        /* ── Blockquotes ── */
+        .md-content blockquote {
+            border-left: 3px solid rgba(6, 182, 212, 0.25);
+            padding: 0.5em 0 0.5em 1.2em;
+            margin: 0.85em 0;
+            background: rgba(255, 255, 255, 0.015);
+            border-radius: 0 8px 8px 0;
+            color: rgba(255, 255, 255, 0.5);
+            font-style: italic;
+        }
+
+        /* ── Horizontal Rule ── */
+        .md-content hr {
+            border: none;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
+            margin: 1.25em 0;
+        }
+
+        /* ── Tables ── */
+        .md-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0.85em 0;
+            font-size: 0.8rem;
+        }
+        .md-content th,
+        .md-content td {
+            padding: 8px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            text-align: left;
+        }
+        .md-content th {
+            background: rgba(255, 255, 255, 0.03);
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 600;
+        }
+        .md-content td {
+            color: rgba(255, 255, 255, 0.55);
+        }
+
+        /* ── Citation Badges [1][2] ── */
+        .citation-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 4px;
+            font-size: 0.6rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            background: rgba(6, 182, 212, 0.12);
+            border: 1px solid rgba(6, 182, 212, 0.2);
+            border-radius: 4px;
+            color: #5eead4;
+            vertical-align: super;
+            line-height: 1;
+            cursor: default;
+            transition: all 0.15s ease;
+        }
+        .citation-badge:hover {
+            background: rgba(6, 182, 212, 0.2);
+            border-color: rgba(6, 182, 212, 0.35);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ── Ambient Background Orbs ── -->
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+
+    <!-- ── Header ── -->
+    <header class="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-6 py-4">
+        <div class="flex items-center gap-2.5 text-sm font-bold tracking-tight">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500/20 to-emerald-500/20 border border-cyan-400/20 flex items-center justify-center">
+                <i class="fa-solid fa-fingerprint text-cyan-400 text-xs"></i>
+            </div>
+            <span class="text-white/80">OSINT<span class="text-cyan-400">AI</span></span>
+        </div>
+        <button onclick="toggleSettings()" class="w-9 h-9 rounded-full glass flex items-center justify-center text-white/40 hover:text-white/70 hover:bg-white/[0.07] transition-all duration-300" title="Settings">
+            <i class="fa-solid fa-sliders-h text-sm"></i>
+        </button>
+    </header>
+
+    <!-- ── Search Section ── -->
+    <div id="searchSection" class="centered w-full max-w-xl mx-auto text-center px-4 relative z-10">
+
+        <div class="mb-3">
+            <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-gradient leading-tight">
+                Open Source Intelligence.
+            </h1>
+            <p class="text-slate-600 mt-2 text-sm sm:text-base font-light tracking-wide">
+                Aggregated search via SearXNG &bull; Analyzed by AI
+            </p>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="relative w-full glass-strong rounded-2xl flex items-center shadow-2xl shadow-black/40 transition-all duration-300 focus-within:shadow-cyan-500/10 focus-within:border-cyan-400/20" style="border: 1px solid rgba(255,255,255,0.06);">
+            <div class="pl-5 pr-2">
+                <i class="fa-solid fa-magnifying-glass text-slate-600 text-sm"></i>
+            </div>
+            <input 
+                type="text" 
+                id="searchInput"
+                class="w-full bg-transparent px-3 py-3.5 sm:py-4 text-white placeholder-slate-700 focus:outline-none text-sm sm:text-base"
+                placeholder="@username, email, name, or entity..."
+            >
+            <button 
+                id="searchBtn"
+                onclick="executeSearch()"
+                class="m-1.5 w-14 h-11 bg-gradient-to-br from-cyan-500 to-emerald-500 rounded-xl flex items-center justify-center hover:opacity-90 transition-all duration-300 active:scale-90 shadow-lg shadow-cyan-500/20"
+            >
+                <i class="fa-solid fa-arrow-right text-black text-sm"></i>
+            </button>
+        </div>
+
+        <!-- ── Custom Model Selector ── -->
+        <div class="relative mt-3 inline-block" style="min-width: 240px; max-width: 100%;">
+            <div id="modelTrigger" class="model-trigger glass rounded-xl px-4 py-2.5 flex items-center justify-between gap-3 text-xs" onclick="toggleModelDropdown(event)">
+                <div class="flex items-center gap-2.5 min-w-0">
+                    <i class="fa-solid fa-microchip text-slate-600 text-[10px]"></i>
+                    <span id="selectedModelName" class="text-white/70 font-medium truncate">Loading models...</span>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <span id="selectedModelCost" class="badge badge-slate hidden"></span>
+                    <i class="fa-solid fa-chevron-down chevron text-white/30 text-[10px]"></i>
+                </div>
+            </div>
+
+            <!-- Dropdown -->
+            <div id="modelDropdown" class="model-dropdown glass-strong" style="box-shadow: 0 16px 48px rgba(0,0,0,0.5);">
+                <!-- Search inside dropdown -->
+                <div class="sticky top-0 z-10 p-2 border-b border-white/5" style="background: rgba(10,10,15,0.95); backdrop-filter: blur(20px);">
+                    <div class="relative">
+                        <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-white/20 text-[10px]"></i>
+                        <input
+                            type="text"
+                            id="modelFilterInput"
+                            class="w-full bg-white/5 border border-white/5 rounded-lg pl-8 pr-3 py-2 text-xs text-white/70 placeholder-white/30 focus:outline-none focus:border-cyan-400/20 transition-colors"
+                            placeholder="Search models..."
+                            oninput="filterModelDropdown()"
+                            onclick="event.stopPropagation();"
+                        >
+                    </div>
+                </div>
+                <div id="modelList" class="py-1"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Results ── -->
+    <div id="resultsContainer" class="w-full max-w-xl mx-auto z-10 flex flex-col gap-5 px-4 pb-12 mt-8">
+        
+        <!-- Loading -->
+        <div id="loadingState" class="hidden glass-strong rounded-2xl p-8 flex-col items-center justify-center gap-4">
+            <div class="loading-ring"></div>
+            <p id="loadingText" class="text-slate-600 text-[11px] tracking-[0.2em] font-medium">GATHERING INTEL</p>
+        </div>
+
+        <!-- AI Review -->
+        <div id="aiReviewCard" class="hidden glass-strong rounded-2xl shadow-xl shadow-black/30" style="border: 1px solid rgba(255,255,255,0.06);">
+            <div class="h-[3px] rounded-t-2xl bg-gradient-to-r from-cyan-500 via-emerald-400 to-cyan-500 opacity-80"></div>
+            <div class="p-5 sm:p-6">
+                <div class="flex items-center gap-3 mb-5 pb-4 border-b border-white/5">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500/15 to-emerald-500/15 border border-cyan-400/20 flex items-center justify-center shadow-lg shadow-cyan-500/5">
+                        <i class="fa-solid fa-brain text-cyan-400 text-base"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h2 class="text-sm font-bold text-white/90 tracking-tight">Intelligence Report</h2>
+                        <span id="metaText" class="text-[11px] text-slate-500">Analyzed by AI</span>
+                    </div>
+                    <span id="modelBadge" class="badge badge-cyan hidden text-[10px]"></span>
+                </div>
+                <div id="aiReviewContent" class="md-content"></div>
+
+                <!-- Token Usage Footer -->
+                <div id="usageFooter" class="hidden mt-6 pt-4 border-t border-white/5 flex flex-wrap items-center gap-2">
+                    <span class="text-[10px] text-slate-600 font-medium uppercase tracking-wider mr-1">Usage</span>
+                    <span id="usagePromptTokens" class="usage-pill"><i class="fa-solid fa-arrow-right-to-bracket text-[9px] text-cyan-500/50"></i> <span class="usage-val">—</span></span>
+                    <span id="usageCompletionTokens" class="usage-pill"><i class="fa-solid fa-arrow-left-from-bracket text-[9px] text-emerald-500/50"></i> <span class="usage-val">—</span></span>
+                    <span id="usageTotalTokens" class="usage-pill"><i class="fa-solid fa-cube text-[9px] text-white/30"></i> <span class="usage-val">—</span></span>
+                    <span id="usageCost" class="usage-pill"><i class="fa-solid fa-coins text-[9px] text-amber-500/50"></i> <span class="usage-val">—</span></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sources -->
+        <div id="sourcesContainer" class="hidden">
+            <div class="flex items-center gap-2 mb-4 px-1">
+                <i class="fa-solid fa-database text-slate-700 text-[10px]"></i>
+                <h3 class="text-[10px] font-bold text-slate-600 uppercase tracking-[0.15em]">Raw Sources</h3>
+                <span id="sourceCount" class="badge badge-slate text-[9px]"></span>
+            </div>
+            <div id="sourcesList" class="flex flex-col gap-2.5"></div>
+        </div>
+    </div>
+
+    <!-- ── Settings Modal ── -->
+    <div id="settingsOverlay" class="settings-overlay" onclick="if(event.target===this) toggleSettings()">
+        <div class="settings-modal">
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-5">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-500/10 to-emerald-500/10 border border-cyan-400/15 flex items-center justify-center">
+                        <i class="fa-solid fa-sliders-h text-cyan-400 text-xs"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-sm font-bold text-white/90">Model Settings</h2>
+                        <p class="text-[10px] text-slate-600">Browse, filter &amp; select AI providers</p>
+                    </div>
+                </div>
+                <button onclick="toggleSettings()" class="w-7 h-7 rounded-full glass flex items-center justify-center text-white/30 hover:text-white/60 transition-colors">
+                    <i class="fa-solid fa-xmark text-xs"></i>
+                </button>
+            </div>
+
+            <!-- Filters Row -->
+            <div class="flex flex-wrap items-center gap-2 mb-4">
+                <span class="text-[10px] text-slate-600 font-medium uppercase tracking-wider mr-1">Provider</span>
+                <button class="filter-pill active" data-provider="all" onclick="setProviderFilter('all', this)">All</button>
+            </div>
+
+            <div class="flex items-center gap-2 mb-4">
+                <div class="relative flex-1">
+                    <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-white/20 text-xs"></i>
+                    <input
+                        type="text"
+                        id="settingsSearchInput"
+                        class="settings-search pl-9"
+                        placeholder="Search models by name or ID..."
+                        oninput="renderSettingsModels()"
+                    >
+                </div>
+                <select id="settingsSortSelect" class="settings-search !w-auto !pr-8 !py-2.5 text-xs cursor-pointer" onchange="renderSettingsModels()" style="appearance: none; background-image: url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2366fcf1'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd' /%3E%3C/svg%3E&quot;); background-position: right 0.6rem center; background-repeat: no-repeat; background-size: 0.9em;">
+                    <option value="name">Name A–Z</option>
+                    <option value="cost-asc">Output Cost ↑</option>
+                    <option value="context-desc">Context ↓</option>
+                </select>
+            </div>
+
+            <!-- Model Grid -->
+            <div id="settingsModelsGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <!-- Rendered by JS -->
+            </div>
+
+            <div id="settingsNoResults" class="hidden text-center py-8 text-slate-600 text-xs">
+                <i class="fa-solid fa-search-minus text-lg mb-2 block text-slate-700"></i>
+                No models match your filters.
+            </div>
+
+            <!-- Footer -->
+            <div class="mt-5 pt-4 border-t border-white/5 flex items-center justify-between">
+                <span id="settingsModelCount" class="text-[10px] text-slate-600"></span>
+                <button onclick="toggleSettings()" class="text-xs px-4 py-2 rounded-lg glass hover:bg-white/[0.07] text-white/50 hover:text-white/70 transition-all duration-300">
+                    Done
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Exit Warning Modal ── -->
+    <div id="exitOverlay" class="exit-overlay" onclick="if(event.target===this) closeExitModal()">
+        <div class="exit-modal">
+            <div class="exit-icon">
+                <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <h2>External Link Warning</h2>
+            <p>You are about to leave <strong>OSINT AI</strong>.</p>
+            <p>Your IP address will be visible to the destination website.</p>
+            <span id="exitDomain" class="exit-domain">example.com</span>
+            <div class="exit-actions">
+                <button class="exit-btn-cancel" onclick="closeExitModal()">Cancel</button>
+                <button class="exit-btn-continue" onclick="confirmExit()">Continue</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = '';
+        let isSearching = false;
+        let allModels = [];
+        let selectedModelId = '';
+        let modelPricingMap = {};
+        let activeProviderFilter = 'all';
+        let currentUsage = null;
+
+        // ── Helpers ──
+
+        function getProvider(id) {
+            if (!id) return 'other';
+            const parts = id.split('/');
+            return parts[0] || 'other';
+        }
+
+        function getProviderDisplay(provider) {
+            const map = {
+                'openai': 'OpenAI',
+                'anthropic': 'Anthropic',
+                'google': 'Google',
+                'meta-llama': 'Meta',
+                'mistralai': 'Mistral',
+                'cohere': 'Cohere',
+                'microsoft': 'Microsoft',
+                'deepseek': 'DeepSeek',
+                'perplexity': 'Perplexity',
+                'qwen': 'Qwen',
+                '01-ai': '01.AI',
+                'nousresearch': 'Nous',
+                'cognitivecomputations': 'Cognitive',
+                'sophosympatheia': 'Sophos',
+                'liquid': 'Liquid',
+                'nvidia': 'NVIDIA',
+                'x-ai': 'xAI',
+                'ai21': 'AI21',
+                'amazon': 'AWS',
+                'databricks': 'Databricks',
+                'reka': 'Reka',
+                'upstage': 'Upstage',
+                'writer': 'Writer',
+                'inflection': 'Inflection',
+                'snowflake': 'Snowflake',
+                'together': 'Together',
+                'fireworks': 'Fireworks',
+                'groq': 'Groq',
+                'replicate': 'Replicate'
+            };
+            return map[provider] || provider.charAt(0).toUpperCase() + provider.slice(1);
+        }
+
+        function formatPrice(pricing) {
+            if (!pricing) return null;
+            const prompt = parseFloat(pricing.prompt);
+            const completion = parseFloat(pricing.completion);
+            if (isNaN(prompt) || isNaN(completion)) return null;
+            const isFree = (prompt === 0 && completion === 0);
+            const promptPer1k = prompt * 1000;
+            const completionPer1k = completion * 1000;
+            const promptPer1m = prompt * 1000000;
+            const completionPer1m = completion * 1000000;
+            return { promptPer1k, completionPer1k, promptPer1m, completionPer1m, isFree };
+        }
+
+        function formatCost(num) {
+            if (num === 0) return 'Free';
+            if (num < 0.0001) return '$' + num.toExponential(1);
+            return '$' + num.toFixed(4);
+        }
+
+        function formatCostPer1M(num) {
+            if (num === 0) return 'Free';
+            if (num >= 1) return '$' + num.toFixed(2) + '/M';
+            if (num >= 0.01) return '$' + num.toFixed(3) + '/M';
+            if (num >= 0.0001) return '$' + num.toFixed(4) + '/M';
+            return '$' + num.toExponential(2) + '/M';
+        }
+
+        function formatContext(ctx) {
+            if (!ctx) return '—';
+            if (ctx >= 1000000) return (ctx / 1000).toFixed(0) + 'M';
+            if (ctx >= 1000) return (ctx / 1000).toFixed(0) + 'K';
+            return String(ctx);
+        }
+
+        function estimateCost(pricing, usage) {
+            if (!pricing || !usage) return null;
+            const p = parseFloat(pricing.prompt);
+            const c = parseFloat(pricing.completion);
+            if (isNaN(p) || isNaN(c)) return null;
+            const promptTokens = usage.prompt_tokens || 0;
+            const completionTokens = usage.completion_tokens || 0;
+            const cost = (promptTokens * p) + (completionTokens * c);
+            return cost;
+        }
+
+        // ── Model Dropdown ──
+
+        function toggleModelDropdown(e) {
+            e.stopPropagation();
+            const dd = document.getElementById('modelDropdown');
+            const trigger = document.getElementById('modelTrigger');
+            const isOpen = dd.classList.contains('open');
+            if (isOpen) {
+                dd.classList.remove('open');
+                trigger.classList.remove('open');
+            } else {
+                dd.classList.add('open');
+                trigger.classList.add('open');
+                document.getElementById('modelFilterInput').value = '';
+                renderModelDropdown('');
+                setTimeout(() => document.getElementById('modelFilterInput')?.focus(), 100);
+            }
+        }
+
+        function closeModelDropdown() {
+            document.getElementById('modelDropdown').classList.remove('open');
+            document.getElementById('modelTrigger').classList.remove('open');
+        }
+
+        function filterModelDropdown() {
+            const q = document.getElementById('modelFilterInput').value.toLowerCase();
+            renderModelDropdown(q);
+        }
+
+        function renderModelDropdown(filter) {
+            const container = document.getElementById('modelList');
+            
+            // Filter models
+            let filtered = allModels;
+            if (filter) {
+                filtered = allModels.filter(m => 
+                    m.id.toLowerCase().includes(filter) || 
+                    (m.name || '').toLowerCase().includes(filter)
+                );
+            }
+
+            // Group by provider
+            const groups = {};
+            filtered.forEach(m => {
+                const prov = getProvider(m.id);
+                if (!groups[prov]) groups[prov] = [];
+                groups[prov].push(m);
+            });
+
+            // Sort providers by model count (most first)
+            const sortedProviders = Object.keys(groups).sort((a, b) => groups[b].length - groups[a].length);
+
+            let html = '';
+            if (filtered.length === 0) {
+                html = '<div class="text-center py-6 text-slate-600 text-xs"><i class="fa-solid fa-search-minus text-lg mb-2 block text-slate-700"></i>No models found</div>';
+            } else {
+                sortedProviders.forEach(prov => {
+                    html += `<div class="provider-label">${getProviderDisplay(prov)}</div>`;
+                    groups[prov].forEach(m => {
+                        const price = formatPrice(m.pricing);
+                        const isSelected = m.id === selectedModelId;
+                        let costLabel = '';
+                        if (price) {
+                            costLabel = price.isFree ? 'Free' : formatCostPer1M(price.completionPer1m);
+                        }
+                        html += `
+                            <div class="model-option flex items-center justify-between gap-2 px-3.5 py-2.5 ${isSelected ? 'selected' : ''}"
+                                 onclick="selectModel('${m.id}')">
+                                <div class="flex items-center gap-2.5 min-w-0">
+                                    ${isSelected ? '<i class="fa-solid fa-check text-[9px] text-cyan-400 shrink-0"></i>' : '<i class="fa-solid fa-circle text-[5px] text-white/15 shrink-0"></i>'}
+                                    <span class="text-xs text-white/70 truncate font-medium">${m.name || m.id}</span>
+                                </div>
+                                <div class="flex items-center gap-2 shrink-0">
+                                    ${m.context_length ? `<span class="badge badge-slate text-[9px]">${formatContext(m.context_length)}</span>` : ''}
+                                    ${costLabel ? `<span class="badge ${price && price.isFree ? 'badge-emerald' : 'badge-amber'} text-[9px]" title="Output cost per 1M tokens">${costLabel}</span>` : ''}
+                                </div>
+                            </div>
+                        `;
+                    });
+                });
+            }
+            container.innerHTML = html;
+        }
+
+        function selectModel(id) {
+            selectedModelId = id;
+            const model = allModels.find(m => m.id === id);
+            if (model) {
+                updateModelTrigger(model);
+            }
+            renderModelDropdown(document.getElementById('modelFilterInput').value || '');
+            closeModelDropdown();
+            renderSettingsModels();
+        }
+
+        function updateModelTrigger(model) {
+            const nameEl = document.getElementById('selectedModelName');
+            const costEl = document.getElementById('selectedModelCost');
+            nameEl.textContent = model.name || model.id;
+            const price = formatPrice(model.pricing);
+            if (price) {
+                costEl.classList.remove('hidden');
+                if (price.isFree) {
+                    costEl.className = 'badge badge-emerald';
+                    costEl.textContent = 'Free';
+                } else {
+                    costEl.className = 'badge badge-amber';
+                    costEl.textContent = formatCostPer1M(price.completionPer1m);
+                    costEl.title = 'Output cost per 1M tokens';
+                }
+            } else {
+                costEl.classList.add('hidden');
+            }
+        }
+
+        // ── Settings Modal ──
+
+        function toggleSettings() {
+            const overlay = document.getElementById('settingsOverlay');
+            const isOpen = overlay.classList.contains('open');
+            if (isOpen) {
+                overlay.classList.remove('open');
+                document.body.style.overflow = '';
+            } else {
+                overlay.classList.add('open');
+                document.body.style.overflow = 'hidden';
+                renderSettingsModels();
+            }
+        }
+
+        function setProviderFilter(provider, btn) {
+            activeProviderFilter = provider;
+            document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+            btn.classList.add('active');
+            renderSettingsModels();
+        }
+
+        // Build unique provider list for filter pills
+        function buildProviderFilters() {
+            const providers = [...new Set(allModels.map(m => getProvider(m.id)))];
+            providers.sort();
+            const container = document.querySelector('.filter-pill[data-provider="all"]').parentElement;
+            providers.forEach(prov => {
+                const btn = document.createElement('button');
+                btn.className = 'filter-pill';
+                btn.dataset.provider = prov;
+                btn.textContent = getProviderDisplay(prov);
+                btn.onclick = function() { setProviderFilter(prov, this); };
+                container.appendChild(btn);
+            });
+        }
+
+        function renderSettingsModels() {
+            const grid = document.getElementById('settingsModelsGrid');
+            const noResults = document.getElementById('settingsNoResults');
+            const countEl = document.getElementById('settingsModelCount');
+            const query = document.getElementById('settingsSearchInput').value.toLowerCase();
+            const sort = document.getElementById('settingsSortSelect').value;
+
+            let filtered = allModels.filter(m => {
+                if (activeProviderFilter !== 'all' && getProvider(m.id) !== activeProviderFilter) return false;
+                if (query && !m.id.toLowerCase().includes(query) && !(m.name || '').toLowerCase().includes(query)) return false;
+                return true;
+            });
+
+            // Sort
+            filtered.sort((a, b) => {
+                if (sort === 'name') return (a.name || a.id).localeCompare(b.name || b.id);
+                if (sort === 'cost-asc') {
+                    const pa = formatPrice(a.pricing);
+                    const pb = formatPrice(b.pricing);
+                    const ca = pa ? pa.completionPer1m : Infinity;
+                    const cb = pb ? pb.completionPer1m : Infinity;
+                    return ca - cb;
+                }
+                if (sort === 'context-desc') {
+                    return (b.context_length || 0) - (a.context_length || 0);
+                }
+                return 0;
+            });
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '';
+                noResults.classList.remove('hidden');
+                countEl.textContent = '0 models';
+                return;
+            }
+            noResults.classList.add('hidden');
+            countEl.textContent = `${filtered.length} model${filtered.length !== 1 ? 's' : ''}`;
+
+            let html = '';
+            filtered.forEach(m => {
+                const price = formatPrice(m.pricing);
+                const isActive = m.id === selectedModelId;
+                const prov = getProvider(m.id);
+                let promptCost = '—';
+                let completionCost = '—';
+                if (price) {
+                    if (price.isFree) {
+                        promptCost = 'Free';
+                        completionCost = 'Free';
+                    } else {
+                        promptCost = formatCostPer1M(price.promptPer1m);
+                        completionCost = formatCostPer1M(price.completionPer1m);
+                    }
+                }
+
+                html += `
+                    <div class="model-card ${isActive ? 'active-model' : ''}" onclick="selectModelFromSettings('${m.id}')">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="text-xs font-semibold text-white/80 truncate">${m.name || m.id}</span>
+                                    ${isActive ? '<span class="badge badge-cyan text-[8px]">Active</span>' : ''}
+                                </div>
+                                <div class="flex items-center gap-2 text-[10px] text-slate-600 font-mono">
+                                    <span>${getProviderDisplay(prov)}</span>
+                                    ${m.context_length ? `<span class="text-white/15">|</span> <span>${formatContext(m.context_length)} ctx</span>` : ''}
+                                </div>
+                            </div>
+                            <button class="text-[10px] px-3 py-1.5 rounded-lg ${isActive ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-400/20' : 'glass text-white/40 hover:text-white/70'} transition-all duration-200 shrink-0">
+                                ${isActive ? 'Selected' : 'Select'}
+                            </button>
+                        </div>
+                        <div class="flex items-center gap-3 mt-2.5">
+                            <span class="text-[9px] text-slate-600 flex items-center gap-1" title="Input cost per 1M tokens"><i class="fa-solid fa-arrow-right-to-bracket text-[8px] text-cyan-500/40"></i> In: ${promptCost}</span>
+                            <span class="text-[9px] text-slate-600 flex items-center gap-1" title="Output cost per 1M tokens"><i class="fa-solid fa-arrow-left-from-bracket text-[8px] text-emerald-500/40"></i> Out: ${completionCost}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            grid.innerHTML = html;
+        }
+
+        function selectModelFromSettings(id) {
+            selectModel(id);
+            renderSettingsModels();
+        }
+
+        // ── Exit Warning Modal ──
+
+        let _pendingExitUrl = '';
+
+        function showExitModal(url) {
+            _pendingExitUrl = url;
+            try {
+                const domain = new URL(url).hostname;
+                document.getElementById('exitDomain').textContent = domain;
+            } catch {
+                document.getElementById('exitDomain').textContent = url;
+            }
+            document.getElementById('exitOverlay').classList.add('open');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeExitModal() {
+            document.getElementById('exitOverlay').classList.remove('open');
+            document.body.style.overflow = '';
+            _pendingExitUrl = '';
+        }
+
+        function confirmExit() {
+            if (_pendingExitUrl) {
+                window.open(_pendingExitUrl, '_blank');
+            }
+            closeExitModal();
+        }
+
+        // ── API & Search ──
+
+        async function loadModels() {
+            const trigger = document.getElementById('selectedModelName');
+            try {
+                const res = await fetch(`${API_URL}/api/models`);
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(err.detail || `HTTP ${res.status}`);
+                }
+                const data = await res.json();
+                allModels = data.models || [];
+                selectedModelId = data.default || (allModels[0] && allModels[0].id) || '';
+
+                if (allModels.length === 0) {
+                    trigger.textContent = 'No models available';
+                    return;
+                }
+
+                // Build pricing map
+                allModels.forEach(m => {
+                    if (m.pricing) modelPricingMap[m.id] = m.pricing;
+                });
+
+                // Update trigger
+                const defaultModel = allModels.find(m => m.id === selectedModelId) || allModels[0];
+                if (defaultModel) {
+                    updateModelTrigger(defaultModel);
+                }
+
+                // Render dropdown
+                renderModelDropdown('');
+
+                // Build settings provider filters
+                buildProviderFilters();
+
+            } catch (error) {
+                console.error("Failed to load models:", error);
+                trigger.textContent = 'Failed to load models';
+                trigger.title = String(error.message || error);
+            }
+        }
+
+        async function executeSearch() {
+            if (isSearching) return;
+            
+            const query = document.getElementById('searchInput').value.trim();
+            if (!query) return;
+
+            if (!selectedModelId) {
+                // Try to pick first available
+                if (allModels.length > 0) {
+                    selectedModelId = allModels[0].id;
+                    updateModelTrigger(allModels[0]);
+                } else {
+                    return;
+                }
+            }
+
+            isSearching = true;
+            
+            document.getElementById('searchSection').classList.remove('centered');
+            document.getElementById('searchSection').classList.add('searched');
+            document.getElementById('aiReviewCard').classList.add('hidden');
+            document.getElementById('sourcesContainer').classList.add('hidden');
+            document.getElementById('loadingState').classList.remove('hidden');
+            document.getElementById('loadingState').classList.add('flex');
+
+            // Cycle through loading status messages
+            const loadingMessages = ['SEARCHING', 'GATHERING INTEL', 'ANALYZING', 'CROSS-REFERENCING', 'SYNTHESIZING'];
+            let msgIdx = 0;
+            const loadingInterval = setInterval(() => {
+                msgIdx = (msgIdx + 1) % loadingMessages.length;
+                document.getElementById('loadingText').textContent = loadingMessages[msgIdx];
+            }, 2800);
+            
+            try {
+                const res = await fetch(`${API_URL}/api/search`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query, model: selectedModelId })
+                });
+
+                if (!res.ok) {
+                    let detail = `Server error ${res.status}`;
+                    try {
+                        const errBody = await res.json();
+                        if (errBody.detail) detail = errBody.detail;
+                    } catch (_) {}
+                    throw new Error(detail);
+                }
+
+                const data = await res.json();
+                displayResults(data, selectedModelId);
+            } catch (error) {
+                const reviewEl = document.getElementById('aiReviewContent');
+                reviewEl.innerHTML = "⚠️ " + error.message;
+                document.getElementById('aiReviewCard').classList.remove('hidden');
+                document.getElementById('usageFooter').classList.add('hidden');
+                console.error("Search error:", error);
+            } finally {
+                isSearching = false;
+                clearInterval(loadingInterval);
+                document.getElementById('loadingState').classList.add('hidden');
+                document.getElementById('loadingState').classList.remove('flex');
+            }
+        }
+
+        function displayResults(data, modelId) {
+            const reviewEl = document.getElementById('aiReviewContent');
+            reviewEl.innerHTML = marked.parse(data.review);
+
+            // Post-process: style citation badges [1], [2], etc.
+            reviewEl.innerHTML = reviewEl.innerHTML.replace(
+                /\[(\d+)\]/g,
+                '<span class="citation-badge">$1</span>'
+            );
+
+            // Meta text
+            const model = allModels.find(m => m.id === modelId);
+            document.getElementById('metaText').textContent = `Synthesized by ${model ? (model.name || modelId) : modelId} • ${data.sources.length} source${data.sources.length !== 1 ? 's' : ''}`;
+
+            // Model badge
+            const modelBadge = document.getElementById('modelBadge');
+            modelBadge.classList.remove('hidden');
+            modelBadge.textContent = model ? (model.name || modelId) : modelId;
+
+            document.getElementById('aiReviewCard').classList.remove('hidden');
+
+            // ── Token Usage ──
+            const usage = data.usage;
+            currentUsage = usage;
+            const usageFooter = document.getElementById('usageFooter');
+
+            if (usage && (usage.prompt_tokens || usage.completion_tokens || usage.total_tokens)) {
+                usageFooter.classList.remove('hidden');
+                document.getElementById('usagePromptTokens').querySelector('.usage-val').textContent = 
+                    (usage.prompt_tokens || 0).toLocaleString() + ' in';
+                document.getElementById('usageCompletionTokens').querySelector('.usage-val').textContent = 
+                    (usage.completion_tokens || 0).toLocaleString() + ' out';
+                document.getElementById('usageTotalTokens').querySelector('.usage-val').textContent = 
+                    (usage.total_tokens || 0).toLocaleString() + ' total';
+
+                // Cost estimate
+                const pricing = modelPricingMap[modelId];
+                const estCost = estimateCost(pricing, usage);
+                const costEl = document.getElementById('usageCost').querySelector('.usage-val');
+                if (estCost !== null && estCost > 0) {
+                    costEl.textContent = '~$' + estCost.toFixed(6);
+                } else {
+                    costEl.textContent = 'Free';
+                }
+            } else {
+                usageFooter.classList.add('hidden');
+            }
+
+            // ── Sources ──
+            const sourcesList = document.getElementById('sourcesList');
+            sourcesList.innerHTML = '';
+            document.getElementById('sourceCount').textContent = data.sources.length + ' source' + (data.sources.length !== 1 ? 's' : '');
+            
+            data.sources.forEach((src, i) => {
+                const div = document.createElement('div');
+                div.className = 'source-card glass rounded-xl p-3.5 cursor-pointer flex items-start gap-3';
+                div.style.animation = `fadeIn 0.4s ease-out ${i * 0.08}s forwards`;
+                div.style.opacity = '0';
+                
+                let domain = '';
+                try { 
+                    domain = new URL(src.url).hostname.replace('www.', ''); 
+                } catch(e) {}
+                
+                div.innerHTML = `
+                    <div class="text-cyan-500/40 font-mono text-[10px] mt-0.5 font-medium shrink-0">#${i + 1}</div>
+                    <div class="flex-1 min-w-0">
+                        <h4 class="font-semibold text-white/80 text-sm hover:text-cyan-400 transition-colors truncate">${src.title || 'Untitled'}</h4>
+                        <p class="text-xs text-slate-600 mt-1 line-clamp-2 leading-relaxed">${src.content || ''}</p>
+                        <span class="text-[10px] text-cyan-500/50 mt-2 inline-block font-mono"><i class="fa-solid fa-link text-[8px] mr-1"></i>${domain}</span>
+                    </div>
+                `;
+                div.onclick = () => showExitModal(src.url);
+                sourcesList.appendChild(div);
+            });
+            
+            document.getElementById('sourcesContainer').classList.remove('hidden');
+
+            // Scroll to results
+            setTimeout(() => {
+                document.getElementById('aiReviewCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 200);
+        }
+
+        // ── Close dropdown on outside click ──
+        document.addEventListener('click', function(e) {
+            const dd = document.getElementById('modelDropdown');
+            const trigger = document.getElementById('modelTrigger');
+            if (dd.classList.contains('open') && !trigger.contains(e.target) && !dd.contains(e.target)) {
+                closeModelDropdown();
+            }
+        });
+
+        // ── Keyboard shortcuts ──
+        document.getElementById('searchInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') executeSearch();
+        });
+
+        // ESC closes settings, dropdown, and exit modal
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                if (document.getElementById('settingsOverlay').classList.contains('open')) {
+                    toggleSettings();
+                }
+                if (document.getElementById('modelDropdown').classList.contains('open')) {
+                    closeModelDropdown();
+                }
+                if (document.getElementById('exitOverlay').classList.contains('open')) {
+                    closeExitModal();
+                }
+            }
+        });
+
+        // ── Init ──
+        loadModels();
+    </script>
+</body>
+</html>

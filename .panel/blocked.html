@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<!--
+  Inpriv Panel — Access Restricted
+  Copyright (c) 2026 Aurex Labs — MIT License
+
+  Shown when a request to the operations panel is denied by the access policy.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f1119">
+  <title>Access Restricted — Inpriv</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0f1119;
+      --bg-card: rgba(24, 26, 37, 0.45);
+      --bg-card-hover: rgba(32, 35, 48, 0.6);
+      --accent: #a0a5b4;
+      --accent-hover: #c4c9d4;
+      --accent-glow: rgba(160, 165, 180, 0.18);
+      --text-primary: #e8eaef;
+      --text-secondary: #9498a4;
+      --text-tertiary: #6b6f7a;
+      --border: rgba(255, 255, 255, 0.07);
+      --border-light: rgba(255, 255, 255, 0.13);
+      --gradient-primary: linear-gradient(135deg, #8b8fa0, #6b6f7e);
+      --gradient-bg: linear-gradient(170deg, #0a0c14 0%, #11141f 30%, #161925 60%, #0f1119 100%);
+      --radius-sm: 10px;
+      --radius-md: 14px;
+      --radius-lg: 18px;
+      --radius-xl: 24px;
+      --shadow-glass: 0 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04);
+      --status-error: #f87171;
+      --status-warning: #fbbf24;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--gradient-bg);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow-x: hidden;
+      padding: 20px;
+    }
+
+    /* Ambient orbs */
+    body::before {
+      content: '';
+      position: fixed;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(160,165,180,0.08) 0%, transparent 70%);
+      top: -100px;
+      right: -100px;
+      pointer-events: none;
+      z-index: 0;
+    }
+    body::after {
+      content: '';
+      position: fixed;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(248,113,113,0.05) 0%, transparent 70%);
+      bottom: -100px;
+      left: -100px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 600px;
+    }
+
+    .blocked-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(28px) saturate(150%);
+      -webkit-backdrop-filter: blur(28px) saturate(150%);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-glass);
+      padding: 48px 40px;
+      text-align: center;
+      animation: slideUp 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .icon-shield {
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 24px;
+      background: rgba(248, 113, 113, 0.1);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    .icon-shield svg {
+      width: 36px;
+      height: 36px;
+    }
+
+    .logo {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+      background: var(--gradient-primary);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: transparent;
+    }
+
+    .blocked-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--status-error);
+      margin-bottom: 16px;
+      line-height: 1.3;
+    }
+
+    .blocked-message {
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--text-secondary);
+      margin-bottom: 28px;
+    }
+
+    .privacy-stance {
+      background: rgba(251, 191, 36, 0.08);
+      border: 1px solid rgba(251, 191, 36, 0.15);
+      border-radius: var(--radius-md);
+      padding: 20px 24px;
+      margin-bottom: 28px;
+      text-align: left;
+    }
+    .privacy-stance-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--status-warning);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .privacy-stance-text {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text-secondary);
+    }
+    .privacy-stance-text strong {
+      color: var(--text-primary);
+    }
+
+    .country-info {
+      font-size: 13px;
+      color: var(--text-tertiary);
+      margin-bottom: 24px;
+      padding: 10px 16px;
+      background: rgba(255,255,255,0.03);
+      border-radius: var(--radius-sm);
+      display: inline-block;
+    }
+
+    .footer-text {
+      font-size: 13px;
+      color: var(--text-tertiary);
+      border-top: 1px solid var(--border);
+      padding-top: 20px;
+      margin-top: 4px;
+      line-height: 1.6;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: var(--radius-full);
+      font-size: 13px;
+      font-weight: 500;
+      background: rgba(248, 113, 113, 0.1);
+      color: var(--status-error);
+      border: 1px solid rgba(248, 113, 113, 0.15);
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 480px) {
+      .blocked-card { padding: 32px 24px; }
+      .blocked-title { font-size: 22px; }
+      .blocked-message { font-size: 14px; }
+      .privacy-stance { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="blocked-card">
+      <div class="logo">Inpriv</div>
+
+      <div class="badge">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+        </svg>
+        Access Restricted
+      </div>
+
+      <h1 class="blocked-title" id="blockedTitle">Region Blocked</h1>
+
+      <p class="blocked-message" id="blockedMessage">
+        Due to the European Union's Chat Control 2.0 regulation — which mandates
+        mass surveillance of private communications — Inpriv cannot provide services
+        to visitors from the European Union. This regulation fundamentally violates
+        the right to privacy and anonymous communication.
+      </p>
+
+      <div class="privacy-stance" id="privacyStance">
+        <div class="privacy-stance-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          Inpriv's Stance
+        </div>
+        <div class="privacy-stance-text">
+          <strong>Your privacy matters.</strong> Inpriv does not comply with mass surveillance
+          mandates. We believe in <strong>end-to-end encryption</strong>,
+          <strong>anonymous access</strong>, and <strong>zero data collection</strong>.
+          Until EU regulations respect these fundamental rights, we are unable to
+          serve users from the European region.
+        </div>
+      </div>
+
+      <p class="footer-text">
+        🔒 Inpriv — Privacy-first infrastructure.
+        No tracking. No logging. No compromise.
+      </p>
+    </div>
+  </div>
+
+  <script>
+    // Try to load dynamic content from parent/opener if available
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('title')) {
+        document.getElementById('blockedTitle').textContent = params.get('title');
+      }
+      if (params.get('message')) {
+        document.getElementById('blockedMessage').textContent = params.get('message');
+      }
+      if (params.get('hideStance') === 'true') {
+        document.getElementById('privacyStance').style.display = 'none';
+      }
+    } catch(e) {}
+
+    // Set country info if provided
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('country')) {
+        const info = document.createElement('div');
+        info.className = 'country-info';
+        info.textContent = 'Detected region: ' + params.get('country').toUpperCase();
+        document.querySelector('.badge').after(info);
+      }
+    } catch(e) {}
+  </script>
+</body>
+</html>

@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<!--
+  Inpriv IP Info — What Your Browser Reveals
+  Copyright (c) 2026 Aurex Labs — MIT License
+
+  Shows your public IP/ISP/geo (via a public lookup) plus a full client-side
+  device fingerprint (canvas, WebGL, audio, navigator surface). Zero-knowledge;
+  nothing is uploaded.
+-->
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Inpriv IP Info — What Your Browser Reveals</title>
+  <meta name="description" content="See what your browser reveals: your public IP, ISP, geolocation, and a full client-side device fingerprint. Zero knowledge, nothing uploaded." />
+
+  <link rel="icon" type="image/png" href="https://hush.best/icon.png" />
+  <link rel="apple-touch-icon" href="https://hush.best/icon.png" />
+  <link rel="shortcut icon" href="https://hush.best/icon.png" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:ital,opsz,wght@0,8..144,100..1000;1,8..144,100..1000&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+
+  <style>
+    /* ==========================================================================
+       1. COLOR PALETTE & DESIGN TOKENS (Aurex Labs M3 Earthy Forest)
+       ========================================================================== */
+    :root {
+      --md-easing-standard: cubic-bezier(0.2, 0.0, 0.0, 1.0);
+      --md-easing-emphasized: cubic-bezier(0.3, 0.0, 0.0, 1.0);
+      --md-easing-spring: cubic-bezier(0.2, 1.4, 0.0, 1.0);
+      --md-easing-spring-soft: cubic-bezier(0.34, 1.3, 0.64, 1.0);
+      --font-primary: 'Roboto Flex', system-ui, -apple-system, sans-serif;
+    }
+    [data-theme="light"] {
+      --md-primary: #466E47; --md-on-primary: #FFFFFF;
+      --md-primary-container: #C7EFA0; --md-on-primary-container: #0C2000;
+      --md-secondary: #55624C; --md-on-secondary: #FFFFFF;
+      --md-secondary-container: #D8E7CB; --md-on-secondary-container: #131F0C;
+      --md-tertiary: #9C4231; --md-on-tertiary: #FFFFFF;
+      --md-tertiary-container: #FFDAD3; --md-on-tertiary-container: #3D0A03;
+      --md-error: #BA1A1A;
+      --md-surface: #FAF9F0; --md-on-surface: #1A1C17; --md-on-surface-variant: #43483D;
+      --md-surface-dim: #DBDAD0;
+      --md-surface-container-lowest: #FFFFFF; --md-surface-container-low: #F4F3E7;
+      --md-surface-container: #EEEDDE; --md-surface-container-high: #E9E7D9; --md-surface-container-highest: #E3E2D3;
+      --md-outline: #74796C; --md-outline-variant: #C3C8B6;
+      --md-inverse-surface: #2F312C; --md-inverse-on-surface: #F0EFE7; --md-inverse-primary: #ABD37A;
+      --md-shadow-color: rgba(20, 25, 15, 0.15); --md-shadow-color-strong: rgba(20, 25, 15, 0.28);
+    }
+    [data-theme="dark"] {
+      --md-primary: #ABD37A; --md-on-primary: #173800;
+      --md-primary-container: #2E4F2F; --md-on-primary-container: #C7EFA0;
+      --md-secondary: #BCCBAF; --md-on-secondary: #27341F;
+      --md-secondary-container: #3D4B34; --md-on-secondary-container: #D8E7CB;
+      --md-tertiary: #FFB4A5; --md-on-tertiary: #5E1709;
+      --md-tertiary-container: #7E2D1E; --md-on-tertiary-container: #FFDAD3;
+      --md-error: #FFB4AB;
+      --md-surface: #13140E; --md-on-surface: #E3E2D3; --md-on-surface-variant: #C3C8B6;
+      --md-surface-dim: #13140E;
+      --md-surface-container-lowest: #0D0F09; --md-surface-container-low: #1A1C17;
+      --md-surface-container: #1F211B; --md-surface-container-high: #292B25; --md-surface-container-highest: #34362F;
+      --md-outline: #8D9283; --md-outline-variant: #43483D;
+      --md-inverse-surface: #E3E2D3; --md-inverse-on-surface: #2F312C; --md-inverse-primary: #466E47;
+      --md-shadow-color: rgba(0, 0, 0, 0.4); --md-shadow-color-strong: rgba(0, 0, 0, 0.65);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-primary); background-color: var(--md-surface); color: var(--md-on-surface);
+      min-height: 100vh; padding: 24px 16px 140px 16px; position: relative; overflow-x: hidden;
+      transition: background-color 0.5s var(--md-easing-standard), color 0.5s var(--md-easing-standard);
+      font-optical-sizing: auto; -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%;
+    }
+    @media (min-width: 600px) { body { padding: 32px 24px 160px 24px; } }
+    body::before {
+      content: ""; position: fixed; inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 85% 0%, color-mix(in srgb, var(--md-primary-container) 55%, transparent) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 0% 100%, color-mix(in srgb, var(--md-tertiary-container) 45%, transparent) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+    }
+    .bg-grid {
+      position: fixed; inset: 0;
+      background-image: radial-gradient(circle at 1px 1px, var(--md-outline-variant) 1px, transparent 0);
+      background-size: 28px 28px; opacity: 0.18;
+      mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+      -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+      pointer-events: none; z-index: 0;
+    }
+    .bg-blob {
+      position: fixed; top: -100px; right: -100px; width: 420px; height: 420px; border-radius: 50%;
+      background: radial-gradient(circle, color-mix(in srgb, var(--md-tertiary) 22%, transparent), transparent 70%);
+      filter: blur(60px); animation: drift 22s ease-in-out infinite; pointer-events: none; z-index: 0;
+    }
+    .app-wrapper { max-width: 1080px; margin: 0 auto; position: relative; z-index: 1; }
+    .material-symbols-rounded {
+      font-family: 'Material Symbols Rounded'; font-weight: normal; font-style: normal;
+      font-size: 24px; line-height: 1; display: inline-block; white-space: nowrap; word-wrap: normal; direction: ltr;
+      -webkit-font-smoothing: antialiased; font-variation-settings: 'wght' 500, 'GRAD' 0, 'opsz' 24;
+    }
+    @keyframes barIn { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--md-primary) 35%, transparent); } 50% { box-shadow: 0 0 0 18px color-mix(in srgb, var(--md-primary) 0%, transparent); } }
+    @keyframes drift { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-60px, 40px) scale(1.1); } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* App Bar */
+    .app-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      height: 54px; padding: 6px 8px 6px 18px; border-radius: 9999px;
+      background: color-mix(in srgb, var(--md-surface-container) 80%, transparent);
+      backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 1px solid color-mix(in srgb, var(--md-outline-variant) 50%, transparent);
+      box-shadow: 0 4px 20px -4px var(--md-shadow-color);
+      animation: barIn 0.7s var(--md-easing-spring); margin-bottom: 32px;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .brand-icon { width: 36px; height: 36px; border-radius: 50%; background: var(--md-primary-container); color: var(--md-on-primary-container); display: flex; align-items: center; justify-content: center; flex-shrink: 0; text-decoration: none; }
+    .brand-text { min-width: 0; overflow: hidden; }
+    .brand-h1 { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.1; color: var(--md-on-surface); display: flex; align-items: center; gap: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .brand-h1 span { color: var(--md-primary); }
+    .open-source-badge { font-size: 9px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; background: var(--md-surface-container-high); color: var(--md-on-surface-variant); border: 1px solid var(--md-outline-variant); }
+    .brand-tagline { font-size: 10px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--md-on-surface-variant); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .app-bar-actions { display: flex; align-items: center; gap: 4px; }
+    .icon-btn { width: 40px; height: 40px; border-radius: 50%; border: none; background: transparent; color: var(--md-on-surface); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background-color 0.2s var(--md-easing-standard), transform 0.15s var(--md-easing-spring); }
+    .icon-btn:hover { background-color: color-mix(in srgb, var(--md-on-surface) 8%, transparent); }
+    .icon-btn:active { transform: scale(0.92); }
+
+    /* Hero */
+    .hero { text-align: center; margin-bottom: 28px; animation: fadeUp 0.8s var(--md-easing-spring); }
+    .hero-h2 { font-size: clamp(32px, 7vw, 52px); font-weight: 800; letter-spacing: -0.025em; line-height: 1.05; margin-bottom: 12px; }
+    .hero-h2 .accent { font-style: italic; font-weight: 300; color: var(--md-primary); }
+    .hero-desc { font-size: clamp(14px, 2vw, 15px); color: var(--md-on-surface-variant); max-width: 660px; margin: 0 auto; line-height: 1.5; }
+    .privacy-pill { display: inline-flex; align-items: center; gap: 6px; margin-top: 14px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 6px 12px; border-radius: 9999px; background: var(--md-primary-container); color: var(--md-on-primary-container); }
+    .privacy-pill .material-symbols-rounded { font-size: 14px; }
+
+    /* Status / hero IP card */
+    .ip-hero {
+      background: var(--md-surface-container-low); border: 1px solid var(--md-outline-variant);
+      border-radius: 28px; padding: 28px 24px; text-align: center; position: relative; overflow: hidden;
+      transition: all 0.4s var(--md-easing-spring-soft); margin-bottom: 16px;
+      animation: fadeUp 0.8s var(--md-easing-spring) 0.1s backwards;
+    }
+    .ip-hero-icon { width: 72px; height: 72px; border-radius: 24px; background: var(--md-primary-container); color: var(--md-on-primary-container); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto; }
+    .ip-hero-icon.scanning { animation: pulse 2.8s infinite; }
+    .ip-hero-icon .material-symbols-rounded { font-size: 38px; font-variation-settings: 'wght' 400, 'GRAD' 0, 'opsz' 48; }
+    .ip-address-big { font-size: clamp(22px, 5vw, 34px); font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--md-on-surface); word-break: break-all; line-height: 1.1; margin-bottom: 6px; }
+    .ip-loc { font-size: 14px; color: var(--md-on-surface-variant); margin-bottom: 12px; }
+    .ip-flag { font-size: 26px; vertical-align: middle; margin-right: 6px; }
+    .ip-copy-row { display: inline-flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+
+    /* Grid */
+    .grid-container { display: grid; grid-template-columns: 1fr; gap: 16px; margin-bottom: 24px; }
+    @media (min-width: 600px) { .grid-container { grid-template-columns: repeat(2, 1fr); } }
+
+    .card {
+      background: var(--md-surface-container-low); border: 1px solid var(--md-outline-variant);
+      border-radius: 24px; padding: 20px 24px; display: flex; flex-direction: column; position: relative;
+      transition: all 0.4s var(--md-easing-spring-soft); animation: fadeUp 0.8s var(--md-easing-spring) 0.15s backwards;
+    }
+    .card:hover { transform: translateY(-4px); border-color: var(--md-primary); box-shadow: 0 8px 24px -4px var(--md-shadow-color); }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 12px; }
+    .card-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--md-on-surface-variant); display: flex; align-items: center; gap: 6px; }
+    .card-label .material-symbols-rounded { font-size: 18px; }
+
+    .field-list { display: flex; flex-direction: column; gap: 2px; }
+    .field-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid color-mix(in srgb, var(--md-outline-variant) 30%, transparent); }
+    .field-row:last-child { border-bottom: none; }
+    .field-key { font-size: 12px; font-weight: 600; color: var(--md-on-surface-variant); flex-shrink: 0; }
+    .field-val { font-size: 13px; font-weight: 600; color: var(--md-on-surface); text-align: right; word-break: break-word; font-variant-numeric: tabular-nums; }
+    .field-val.mono { font-family: 'Roboto Flex', monospace; }
+    .field-val .copy-inline { background: transparent; border: none; color: var(--md-on-surface-variant); cursor: pointer; padding: 0 0 0 6px; vertical-align: middle; display: inline-flex; align-items: center; transition: color 0.2s var(--md-easing-standard); }
+    .field-val .copy-inline:hover { color: var(--md-primary); }
+    .field-val .copy-inline .material-symbols-rounded { font-size: 15px; }
+
+    .copy-btn { background: transparent; border: none; color: var(--md-on-surface-variant); cursor: pointer; border-radius: 50%; width: 34px; height: 34px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.2s var(--md-easing-standard); }
+    .copy-btn:hover { background: var(--md-surface-container-high); color: var(--md-primary); }
+    .copy-btn:active { transform: scale(0.9); }
+    .copy-btn .material-symbols-rounded { font-size: 18px; }
+
+    .tag-group { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+    .tag { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 10px; border-radius: 9999px; width: fit-content; }
+    .tag.safe { background: var(--md-primary-container); color: var(--md-on-primary-container); }
+    .tag.vpn { background: var(--md-secondary-container); color: var(--md-on-secondary-container); }
+    .tag.warning { background: var(--md-tertiary-container); color: var(--md-on-tertiary-container); }
+    .tag.neutral { background: var(--md-surface-container-high); color: var(--md-on-surface-variant); }
+
+    .skeleton-text { display: inline-block; height: 16px; width: 120px; background: color-mix(in srgb, var(--md-on-surface) 12%, transparent); border-radius: 6px; animation: pulse 1.5s infinite; }
+
+    /* Floating Toolbar */
+    .floating-toolbar {
+      position: fixed; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%);
+      width: calc(100% - 32px); max-width: 680px;
+      background: color-mix(in srgb, var(--md-surface-container) 85%, transparent);
+      backdrop-filter: blur(28px) saturate(180%); -webkit-backdrop-filter: blur(28px) saturate(180%);
+      border: 1px solid color-mix(in srgb, var(--md-outline-variant) 50%, transparent);
+      box-shadow: 0 12px 40px -6px var(--md-shadow-color-strong); border-radius: 9999px; padding: 8px 12px;
+      display: flex; align-items: center; gap: 12px; z-index: 40; animation: barIn 0.7s var(--md-easing-spring) 0.15s backwards;
+    }
+    .fab-btn { flex: 1; height: 48px; border-radius: 9999px; border: none; background: var(--md-primary); color: var(--md-on-primary); font-family: inherit; font-size: 14px; font-weight: 600; letter-spacing: 0.02em; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; box-shadow: 0 4px 16px -2px var(--md-shadow-color); transition: all 0.3s var(--md-easing-spring-soft); white-space: nowrap; }
+    .fab-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px -2px var(--md-shadow-color-strong); }
+    .fab-btn:active { transform: scale(0.96); }
+    .fab-btn.secondary-fab { background: var(--md-surface-container-high); color: var(--md-on-surface); border: 1px solid var(--md-outline-variant); box-shadow: none; }
+    .spinner { width: 18px; height: 18px; border: 2px solid color-mix(in srgb, currentColor 30%, transparent); border-top-color: currentColor; border-radius: 50%; animation: spin 0.8s linear infinite; }
+
+    .app-footer { text-align: center; margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--md-outline-variant); color: var(--md-on-surface-variant); font-size: 12px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .footer-links { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; justify-content: center; }
+    .footer-links a { color: var(--md-primary); text-decoration: none; font-weight: 600; }
+    .footer-links a:hover { text-decoration: underline; }
+
+    .toast-container { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); z-index: 100; pointer-events: none; }
+    .toast { background: var(--md-inverse-surface); color: var(--md-inverse-on-surface); border-radius: 14px; padding: 12px 20px; display: flex; align-items: center; gap: 12px; box-shadow: 0 8px 24px var(--md-shadow-color-strong); opacity: 0; transform: translateY(20px) scale(0.95); transition: all 0.35s var(--md-easing-spring); pointer-events: auto; }
+    .toast.show { opacity: 1; transform: translateY(0) scale(1); }
+    .toast-icon { color: var(--md-inverse-primary); }
+    .toast-text { font-size: 14px; font-weight: 600; }
+
+    @media (max-width: 600px) {
+      body { padding: 16px 12px 140px 12px; }
+      .app-bar { padding: 6px 8px 6px 12px; margin-bottom: 24px; }
+      .brand { gap: 8px; }
+      .brand-h1 { font-size: 15px; }
+      .open-source-badge { display: none; }
+      .hero { margin-bottom: 22px; }
+      .ip-hero { padding: 22px 16px; border-radius: 22px; }
+      .card { padding: 18px 16px; border-radius: 20px; }
+      .field-key { font-size: 11px; }
+      .field-val { font-size: 12px; }
+      .toast-container { bottom: calc(96px + env(safe-area-inset-bottom, 0px)); width: calc(100% - 24px); }
+      .toast { padding: 10px 16px; justify-content: center; text-align: center; }
+      .toast-text { font-size: 13px; }
+      .floating-toolbar { padding: 6px 8px; gap: 8px; }
+      .fab-btn { font-size: 13px; }
+    }
+    @media (max-width: 380px) { .fab-btn span:last-child { display: none; } .fab-btn { padding: 0; } }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-blob"></div>
+
+  <div class="app-wrapper">
+    <header class="app-bar">
+      <div class="brand">
+        <a href="https://inpriv.xyz" class="brand-icon" aria-label="Inpriv Homepage">
+          <span class="material-symbols-rounded">my_location</span>
+        </a>
+        <div class="brand-text">
+          <span class="brand-h1">Inpriv<span>.</span> <span class="open-source-badge">IP Info</span></span>
+          <span class="brand-tagline">Browser Exposure Diagnostic</span>
+        </div>
+      </div>
+      <div class="app-bar-actions">
+        <button class="icon-btn" id="themeToggleBtn" aria-label="Toggle Dark/Light Theme" type="button">
+          <span class="material-symbols-rounded" id="themeIcon">light_mode</span>
+        </button>
+      </div>
+    </header>
+
+    <section class="hero">
+      <h2 class="hero-h2">What your browser <span class="accent">reveals</span></h2>
+      <p class="hero-desc">Your public IP, ISP and geolocation, plus a complete client-side fingerprint of your device — all read locally and never uploaded.</p>
+      <div class="privacy-pill"><span class="material-symbols-rounded">lock</span> Read-only · nothing leaves your device</div>
+    </section>
+
+    <!-- Hero IP card -->
+    <div class="ip-hero">
+      <div class="ip-hero-icon scanning" id="ipHeroIcon"><span class="material-symbols-rounded">radar</span></div>
+      <div class="ip-address-big" id="publicIp"><span class="skeleton-text" style="width:180px;"></span></div>
+      <div class="ip-loc" id="ipLoc"><span class="skeleton-text" style="width:140px;"></span></div>
+      <div class="ip-copy-row">
+        <button class="copy-btn" id="copyIpBtn" aria-label="Copy IP address" type="button"><span class="material-symbols-rounded">content_copy</span></button>
+      </div>
+      <div class="tag-group" style="justify-content:center;" id="ipTags"></div>
+    </div>
+
+    <!-- Grid -->
+    <div class="grid-container">
+      <!-- Network -->
+      <div class="card">
+        <div class="card-header"><span class="card-label"><span class="material-symbols-rounded">router</span> Network &amp; ISP</span></div>
+        <div class="field-list" id="networkList"></div>
+      </div>
+      <!-- Location -->
+      <div class="card">
+        <div class="card-header"><span class="card-label"><span class="material-symbols-rounded">place</span> Geolocation</span></div>
+        <div class="field-list" id="locationList"></div>
+      </div>
+      <!-- Browser -->
+      <div class="card">
+        <div class="card-header"><span class="card-label"><span class="material-symbols-rounded">web</span> Browser &amp; OS</span></div>
+        <div class="field-list" id="browserList"></div>
+      </div>
+      <!-- Display -->
+      <div class="card">
+        <div class="card-header"><span class="card-label"><span class="material-symbols-rounded">monitor</span> Display &amp; Device</span></div>
+        <div class="field-list" id="displayList"></div>
+      </div>
+      <!-- Fingerprint surface -->
+      <div class="card">
+        <div class="card-header"><span class="card-label"><span class="material-symbols-rounded">fingerprint</span> Fingerprint Surface</span></div>
+        <div class="field-list" id="fpList"></div>
+      </div>
+      <!-- Headers -->
+      <div class="card">
+        <div class="card-header"><span class="card-label"><span class="material-symbols-rounded">code</span> Locally Observable Headers</span></div>
+        <div class="field-list" id="headersList"></div>
+        <p style="font-size:11px;color:var(--md-on-surface-variant);margin-top:10px;line-height:1.45;opacity:0.85;">Full HTTP header enumeration requires a server round-trip, which this tool avoids. The values above are read from <code>navigator</code> locally.</p>
+      </div>
+    </div>
+
+    <footer class="app-footer">
+      <div>Inpriv IP Info · Open Source Privacy Suite</div>
+      <div class="footer-links">
+        <a href="https://inpriv.xyz" rel="noopener">Inpriv</a>
+        <span>•</span>
+        <a href="https://webrtc.inpriv.xyz" target="_blank" rel="noopener">WebRTC Leak Test</a>
+        <span>•</span>
+        <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener">MIT License</a>
+        <span>•</span>
+        <a href="javascript:void(0)" id="exportReport">Export JSON Report</a>
+      </div>
+    </footer>
+  </div>
+
+  <div class="floating-toolbar">
+    <button class="fab-btn" id="refreshBtn" type="button"><span class="material-symbols-rounded">refresh</span><span>Refresh</span></button>
+    <button class="fab-btn secondary-fab" id="exportFab" type="button"><span class="material-symbols-rounded">download</span><span>Export</span></button>
+  </div>
+
+  <div class="toast-container">
+    <div class="toast" id="toast" role="status" aria-live="polite">
+      <span class="material-symbols-rounded toast-icon" id="toastIcon">check_circle</span>
+      <span class="toast-text" id="toastText">Copied</span>
+    </div>
+  </div>
+
+  <script>
+    /* ===================== Theme Manager ===================== */
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    const themeIcon = document.getElementById('themeIcon');
+    const htmlElem = document.documentElement;
+    function setTheme(theme) { htmlElem.setAttribute('data-theme', theme); localStorage.setItem('aurex_theme', theme); themeIcon.textContent = theme === 'dark' ? 'light_mode' : 'dark_mode'; }
+    const savedTheme = localStorage.getItem('aurex_theme') || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    setTheme(savedTheme);
+    themeToggleBtn.addEventListener('click', () => setTheme(htmlElem.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
+
+    /* ===================== Toast ===================== */
+    const toast = document.getElementById('toast');
+    const toastText = document.getElementById('toastText');
+    const toastIcon = document.getElementById('toastIcon');
+    let toastTimeout;
+    function showToast(message, icon = 'check_circle') { clearTimeout(toastTimeout); toastText.textContent = message; toastIcon.textContent = icon; toast.classList.add('show'); toastTimeout = setTimeout(() => toast.classList.remove('show'), 2600); }
+
+    function copy(text, label) {
+      if (!text || text === '—' || text.includes('Skeleton')) return;
+      navigator.clipboard.writeText(text).then(() => showToast((label || 'Copied') + ': ' + text, 'content_copy'));
+    }
+    document.getElementById('copyIpBtn').addEventListener('click', () => copy(window.__ipData && window.__ipData.ip, 'IP'));
+
+    /* ===================== IP intel (ipwho.is → ipapi.co) ===================== */
+    const VPN_DATACENTER_KEYWORDS = ['mullvad','m247','nordvpn','expressvpn','proton','cyberghost','surfshark','pia','private internet access','datacenter','hosting','server','digitalocean','linode','ovh','vultr','hetzner','choopa','tzulo','clouvider','datapacket','leaseweb','cogent','fastly','cloudflare','servers','cloud','host','m227','pvt','vpn'];
+    function isVpnDc(s) { const c = (s || '').toLowerCase(); return VPN_DATACENTER_KEYWORDS.some(k => c.includes(k)); }
+
+    async function getIpIntel() {
+      try {
+        const res = await fetch('https://ipwho.is/');
+        const d = await res.json();
+        if (d && d.success) {
+          const conn = d.connection || {};
+          const isp = conn.isp || conn.org || 'Unknown ISP';
+          const vpnDc = isVpnDc(isp + ' ' + (conn.org || '') + ' AS' + (conn.asn || ''));
+          return {
+            ip: d.ip, isp, org: conn.org || '', asn: conn.asn ? 'AS' + conn.asn : '',
+            country: d.country || '', countryCode: d.country_code || '', city: d.city || '', region: d.region || '',
+            flag: (d.flag && d.flag.emoji) || '', lat: d.latitude, lon: d.longitude, eu: d.is_eu,
+            postal: d.postal || '', timezone: (d.timezone && d.timezone.id) || '', callingCode: d.calling_code || '',
+            currency: d.currency || '', domain: conn.domain || '', vpnDc
+          };
+        }
+      } catch (e) {}
+      try {
+        const r2 = await fetch('https://ipapi.co/json/');
+        const d = await r2.json();
+        if (d && d.ip) {
+          const isp = d.org || 'Unknown ISP';
+          return {
+            ip: d.ip, isp, org: d.org || '', asn: d.asn || '',
+            country: d.country_name || '', countryCode: d.country_code || '', city: d.city || '', region: d.region || '',
+            flag: '', lat: d.latitude, lon: d.longitude, eu: d.in_eu,
+            postal: d.postal || '', timezone: d.timezone || '', callingCode: d.country_calling_code || '',
+            currency: d.currency || '', domain: '', vpnDc: isVpnDc(isp)
+          };
+        }
+      } catch (e) {}
+      return null;
+    }
+
+    /* ===================== Field renderer ===================== */
+    function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+    function row(key, val, opts) {
+      opts = opts || {};
+      if (val === null || val === undefined || val === '') val = '—';
+      const valHtml = opts.mono ? '<span class="mono">' + esc(val) + '</span>' : esc(val);
+      const copyBtn = opts.nocopy ? '' : '<button class="copy-inline" data-copy="' + esc(val) + '" data-label="' + esc(key) + '" title="Copy"><span class="material-symbols-rounded">content_copy</span></button>';
+      return '<div class="field-row"><span class="field-key">' + esc(key) + '</span><span class="field-val">' + valHtml + copyBtn + '</span></div>';
+    }
+
+    function renderNetwork(d) {
+      const list = document.getElementById('networkList');
+      if (!d) { list.innerHTML = row('IP Address', 'Unavailable', {mono:true}); return; }
+      list.innerHTML =
+        row('IP Address', d.ip, {mono:true}) +
+        row('ISP', d.isp) +
+        row('Organization', d.org || '—') +
+        row('ASN', d.asn || '—') +
+        row('Domain', d.domain || '—') +
+        row('Connection', d.vpnDc ? 'VPN / Datacenter' : 'Residential');
+    }
+    function renderLocation(d) {
+      const list = document.getElementById('locationList');
+      if (!d) { list.innerHTML = row('Location', 'Unavailable'); return; }
+      const maps = (d.lat && d.lon) ? '<a href="https://www.openstreetmap.org/?mlat=' + d.lat + '&mlon=' + d.lon + '#map=10/' + d.lat + '/' + d.lon + '" target="_blank" rel="noopener" style="color:var(--md-primary);text-decoration:none;font-weight:700;">Open in maps ↗</a>' : '';
+      list.innerHTML =
+        row('City', d.city) +
+        row('Region', d.region) +
+        row('Country', (d.flag ? d.flag + ' ' : '') + d.country) +
+        row('Postal', d.postal) +
+        row('Coordinates', (d.lat != null ? (d.lat + ', ' + d.lon) : '—'), {mono:true}) +
+        '<div class="field-row"><span class="field-key">Map</span><span class="field-val">' + (maps || '—') + '</span></div>' +
+        row('EU Member', d.eu ? 'Yes' : 'No') +
+        row('Calling Code', d.callingCode ? '+' + d.callingCode : '—');
+    }
+
+    function parseUA(ua) {
+      let browser = 'Unknown', os = 'Unknown';
+      if (/Edg\//.test(ua)) browser = 'Microsoft Edge';
+      else if (/OPR\/|Opera/.test(ua)) browser = 'Opera';
+      else if (/Firefox\//.test(ua)) browser = 'Firefox';
+      else if (/Chrome\//.test(ua)) browser = 'Chrome';
+      else if (/Safari\//.test(ua)) browser = 'Safari';
+      const bv = (ua.match(/(Edg|OPR|Firefox|Chrome|Version)\/([\d.]+)/) || [])[2];
+      if (bv) browser += ' ' + bv;
+      if (/Windows NT 10/.test(ua)) os = 'Windows';
+      else if (/Mac OS X/.test(ua)) os = 'macOS';
+      else if (/iPhone|iPad|iPod/.test(ua)) os = 'iOS';
+      else if (/Android/.test(ua)) os = 'Android';
+      else if (/Linux/.test(ua)) os = 'Linux';
+      return { browser, os };
+    }
+
+    function localData() {
+      const ua = navigator.userAgent || '';
+      const parsed = parseUA(ua);
+      const dpr = window.devicePixelRatio || 1;
+      const colors = (screen.colorDepth || 0) + '-bit';
+      const langs = (navigator.languages && navigator.languages.join(', ')) || navigator.language || '—';
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '—';
+      const touch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+      const dnt = navigator.doNotTrack === '1' || navigator.doNotTrack === 'yes' || window.doNotTrack === '1';
+      let scheme = 'Unknown';
+      if (window.matchMedia) {
+        if (window.matchMedia('(prefers-color-scheme: dark)').matches) scheme = 'Dark';
+        else if (window.matchMedia('(prefers-color-scheme: light)').matches) scheme = 'Light';
+      }
+      const mem = navigator.deviceMemory ? navigator.deviceMemory + ' GB' : '—';
+      const cores = navigator.hardwareConcurrency || '—';
+      const cookie = navigator.cookieEnabled ? 'Enabled' : 'Disabled';
+      const online = navigator.onLine ? 'Online' : 'Offline';
+      return { ua, parsed, dpr, colors, langs, tz, touch, dnt, scheme, mem, cores, cookie, online };
+    }
+
+    function webglInfo() {
+      try {
+        const c = document.createElement('canvas');
+        const gl = c.getContext('webgl') || c.getContext('experimental-webgl');
+        if (!gl) return { vendor: '—', renderer: '—' };
+        const ext = gl.getExtension('WEBGL_debug_renderer_info');
+        return {
+          vendor: ext ? gl.getParameter(ext.UNMASKED_VENDOR_WEBGL) : gl.getParameter(gl.VENDOR),
+          renderer: ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER)
+        };
+      } catch (e) { return { vendor: '—', renderer: '—' }; }
+    }
+
+    function renderLocal() {
+      const L = localData();
+      // Browser & OS
+      document.getElementById('browserList').innerHTML =
+        row('Browser', L.parsed.browser) +
+        row('Operating System', L.parsed.os) +
+        row('Platform', navigator.platform || '—') +
+        row('Languages', L.langs) +
+        row('Cookies', L.cookie) +
+        row('Online Status', L.online);
+      // Display
+      document.getElementById('displayList').innerHTML =
+        row('Screen', screen.width + ' × ' + screen.height) +
+        row('Viewport', window.innerWidth + ' × ' + window.innerHeight) +
+        row('Color Depth', L.colors) +
+        row('Pixel Ratio', L.dpr.toString()) +
+        row('Touch', L.touch ? 'Yes (' + navigator.maxTouchPoints + ' points)' : 'No');
+      // Fingerprint surface
+      const gl = webglInfo();
+      document.getElementById('fpList').innerHTML =
+        row('Timezone', L.tz, {mono:true}) +
+        row('CPU Cores', String(L.cores)) +
+        row('Device Memory', L.mem) +
+        row('Do Not Track', L.dnt ? 'Yes (1)' : 'No') +
+        row('Color Scheme', L.scheme) +
+        row('WebGL Vendor', gl.vendor) +
+        row('WebGL Renderer', gl.renderer);
+      // Headers
+      document.getElementById('headersList').innerHTML =
+        row('User-Agent', L.ua, {mono:true, nocopy:false}) +
+        row('Accept-Language', L.langs);
+    }
+
+    async function run() {
+      const refreshBtn = document.getElementById('refreshBtn');
+      refreshBtn.innerHTML = '<div class="spinner"></div><span>Scanning…</span>';
+      renderLocal();
+      const d = await getIpIntel();
+      window.__ipData = d;
+      const ipEl = document.getElementById('publicIp');
+      const locEl = document.getElementById('ipLoc');
+      const tagsEl = document.getElementById('ipTags');
+      const iconWrap = document.getElementById('ipHeroIcon');
+      iconWrap.classList.remove('scanning');
+      iconWrap.querySelector('.material-symbols-rounded').textContent = d ? 'public' : 'cloud_off';
+      if (d) {
+        ipEl.textContent = d.ip;
+        locEl.innerHTML = '<span class="ip-flag">' + (d.flag || '') + '</span>' + [d.city, d.country].filter(Boolean).join(', ') + (d.isp ? ' · ' + d.isp : '');
+        tagsEl.innerHTML =
+          '<span class="tag ' + (d.vpnDc ? 'vpn' : 'safe') + '"><span class="material-symbols-rounded" style="font-size:12px;">' + (d.vpnDc ? 'vpn_key' : 'home') + '</span>' + (d.vpnDc ? 'VPN / Datacenter' : 'Residential') + '</span>' +
+          (d.asn ? '<span class="tag neutral">' + d.asn + '</span>' : '') +
+          (d.timezone ? '<span class="tag neutral"><span class="material-symbols-rounded" style="font-size:12px;">schedule</span>' + d.timezone + '</span>' : '');
+      } else {
+        ipEl.textContent = 'Unavailable';
+        locEl.textContent = 'Could not reach IP lookup service (network blocked or offline).';
+        tagsEl.innerHTML = '<span class="tag warning"><span class="material-symbols-rounded" style="font-size:12px;">wifi_off</span>Lookup failed</span>';
+      }
+      renderNetwork(d); renderLocation(d);
+      refreshBtn.innerHTML = '<span class="material-symbols-rounded">refresh</span><span>Refresh</span>';
+      bindCopyInline();
+    }
+
+    function bindCopyInline() {
+      document.querySelectorAll('.copy-inline').forEach(b => {
+        b.onclick = () => copy(b.getAttribute('data-copy'), b.getAttribute('data-label'));
+      });
+    }
+
+    /* Export */
+    function reportObj() {
+      const d = window.__ipData || {};
+      return {
+        app: 'Inpriv IP Info',
+        timestamp: new Date().toISOString(),
+        publicIp: d.ip || null,
+        network: { isp: d.isp, org: d.org, asn: d.asn, domain: d.domain, vpnOrDatacenter: d.vpnDc },
+        location: { city: d.city, region: d.region, country: d.country, countryCode: d.countryCode, postal: d.postal, lat: d.lat, lon: d.lon, eu: d.eu, timezone: d.timezone, callingCode: d.callingCode },
+        client: clientReport()
+      };
+    }
+    function clientReport() {
+      const L = localData(); const gl = webglInfo();
+      return {
+        userAgent: L.ua, browser: L.parsed.browser, os: L.parsed.os, platform: navigator.platform || null,
+        languages: L.langs, timezone: L.tz, cookieEnabled: L.cookie, online: L.online, doNotTrack: L.dnt,
+        screen: screen.width + 'x' + screen.height, viewport: window.innerWidth + 'x' + window.innerHeight,
+        colorDepth: screen.colorDepth, pixelRatio: L.dpr, hardwareConcurrency: L.cores, deviceMemoryGB: navigator.deviceMemory || null,
+        touchPoints: navigator.maxTouchPoints, colorScheme: L.scheme, webglVendor: gl.vendor, webglRenderer: gl.renderer
+      };
+    }
+    function exportJson() {
+      const json = JSON.stringify(reportObj(), null, 2);
+      navigator.clipboard.writeText(json).then(() => showToast('JSON report copied to clipboard', 'file_download'));
+    }
+    document.getElementById('exportFab').addEventListener('click', exportJson);
+    document.getElementById('exportReport').addEventListener('click', exportJson);
+    document.getElementById('refreshBtn').addEventListener('click', run);
+
+    window.addEventListener('DOMContentLoaded', run);
+  </script>
+</body>
+</html>

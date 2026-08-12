@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<!--
+  Zero Wallet — Self-Custodial Solana Wallet
+  Copyright (c) 2026 Aurex Labs — MIT License
+
+  Non-custodial wallet: keys are generated, stored (encrypted) and used to sign
+  entirely in the browser. The server is a dumb RPC relay — it never sees
+  private keys, mnemonics or passwords. Phantom-compatible.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#13140E">
+  <title>Zero — Self-Custodial Solana Wallet</title>
+  <meta name="description" content="Zero — a self-custodial Solana wallet. Your keys, your coins. All cryptography runs in your browser.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300;8..144,400;8..144,500;8..144,600;8..144,700;8..144,800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="bg-blob" aria-hidden="true"></div>
+
+  <div class="app-shell">
+    <!-- ═══ App Bar ═══ -->
+    <header class="app-bar" id="app-bar">
+      <div class="app-bar-brand">
+        <div class="brand-icon" aria-hidden="true"><span class="material-symbols-rounded">account_balance_wallet</span></div>
+        <div class="brand-text">
+          <div class="brand-name">Zero</div>
+          <div class="brand-tag">self-custodial</div>
+        </div>
+      </div>
+      <div class="app-bar-actions">
+        <span class="network-chip" id="network-chip" title="Solana network">mainnet</span>
+        <button class="icon-btn" id="theme-toggle" aria-label="Toggle theme">
+          <span class="material-symbols-rounded" id="theme-icon">dark_mode</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- ═══ Main ═══ -->
+    <main class="app-main" id="app-main">
+
+      <!-- PAGE: Welcome -->
+      <section class="page" id="page-welcome">
+        <div class="welcome">
+          <div class="welcome-logo"><span class="material-symbols-rounded">account_balance_wallet</span></div>
+          <h1>Your keys.<br><span class="accent">Your coins.</span></h1>
+          <p class="lead">A self-custodial Solana wallet. Every key is generated and encrypted in your browser — nothing sensitive ever leaves this device.</p>
+          <div class="stack">
+            <button class="fab" id="welcome-create"><span class="material-symbols-rounded">add</span> Create a new wallet</button>
+            <button class="btn btn-tonal btn-block" id="welcome-import"><span class="material-symbols-rounded">download</span> Import existing wallet</button>
+          </div>
+          <div class="legal">
+            <button id="open-tos">Terms</button>
+            <button id="open-privacy">Privacy</button>
+            <span>·</span>
+            <span>Powered by Solana</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- PAGE: Create -->
+      <section class="page" id="page-create">
+        <div class="page-header">
+          <button class="icon-btn" data-back="page-welcome" aria-label="Back"><span class="material-symbols-rounded">arrow_back</span></button>
+          <h2 class="page-title">Create wallet</h2>
+        </div>
+        <div class="stepper" id="create-stepper">
+          <span class="dot active"></span><span class="dot"></span><span class="dot"></span>
+        </div>
+
+        <!-- Step 1: seed reveal -->
+        <div class="card" id="create-step-1">
+          <div class="info-card">
+            <span class="material-symbols-rounded">vpn_key</span>
+            <div class="text"><strong>Your secret recovery phrase</strong>Write these 12 words down, in order. Anyone with these words controls your wallet. We can never recover them for you.</div>
+          </div>
+          <div class="seed-grid" id="seed-grid"></div>
+          <div class="row" style="margin-bottom:16px">
+            <button class="btn btn-text btn-sm" id="copy-seed"><span class="material-symbols-rounded">content_copy</span> Copy</button>
+          </div>
+          <label class="checkbox">
+            <input type="checkbox" id="seed-saved">
+            <span class="box"></span>
+            <span>I've saved my recovery phrase somewhere safe and private.</span>
+          </label>
+          <button class="btn btn-primary btn-block" id="create-continue" disabled>Continue</button>
+        </div>
+
+        <!-- Step 2: confirm -->
+        <div class="card hidden" id="create-step-2">
+          <div class="info-card">
+            <span class="material-symbols-rounded">quiz</span>
+            <div class="text"><strong>Confirm your phrase</strong>Select the correct word for each position to prove you saved it.</div>
+          </div>
+          <p class="field-label" id="confirm-instruction">Select word #1</p>
+          <div class="seed-options" id="seed-options"></div>
+          <div class="row">
+            <button class="btn btn-tonal btn-sm" id="confirm-prev" disabled>Back</button>
+            <div class="spacer"></div>
+            <button class="btn btn-primary btn-sm" id="confirm-next" disabled>Next</button>
+          </div>
+        </div>
+
+        <!-- Step 3: password -->
+        <div class="card hidden" id="create-step-3">
+          <div class="info-card">
+            <span class="material-symbols-rounded">lock</span>
+            <div class="text"><strong>Set a password</strong>This encrypts your wallet on this device. Choose a strong one — it cannot be recovered.</div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="create-password">Password</label>
+            <input class="input" type="password" id="create-password" placeholder="At least 8 characters" autocomplete="new-password">
+            <div class="strength" id="create-strength"><span></span><span></span><span></span><span></span></div>
+            <div class="strength-text" id="create-strength-text"></div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="create-password-confirm">Confirm password</label>
+            <input class="input" type="password" id="create-password-confirm" placeholder="Re-enter password" autocomplete="new-password">
+            <div class="field-error" id="create-password-error">Passwords do not match</div>
+          </div>
+          <div class="field-error" id="create-error"></div>
+          <button class="btn btn-primary btn-block" id="create-finish" disabled>Create wallet</button>
+        </div>
+      </section>
+
+      <!-- PAGE: Import -->
+      <section class="page" id="page-import">
+        <div class="page-header">
+          <button class="icon-btn" data-back="page-welcome" aria-label="Back"><span class="material-symbols-rounded">arrow_back</span></button>
+          <h2 class="page-title">Import wallet</h2>
+        </div>
+        <div class="card">
+          <div class="segmented" id="import-segmented">
+            <button class="active" data-type="mnemonic">Seed phrase</button>
+            <button data-type="privatekey">Private key</button>
+          </div>
+
+          <div id="import-mnemonic-field" class="field">
+            <label class="field-label" for="import-mnemonic">Recovery phrase</label>
+            <textarea class="textarea" id="import-mnemonic" placeholder="Enter your 12 or 24 word recovery phrase"></textarea>
+          </div>
+          <div id="import-privatekey-field" class="field hidden">
+            <label class="field-label" for="import-privatekey">Private key</label>
+            <input class="input mono" type="text" id="import-privatekey" placeholder="Base58 private key" autocomplete="off">
+          </div>
+
+          <details class="mb-4" style="color:var(--md-on-surface-variant);font-size:12px">
+            <summary style="cursor:pointer;font-weight:600">Advanced: derivation path</summary>
+            <p style="margin-top:8px;line-height:1.5">Zero uses the Phantom-standard path <span class="mono">m/44'/501'/0'/0'</span>. If you're importing from an older Zero wallet (.zero), enable <strong>Legacy path</strong> to access your original address so you can move funds to the new one.</p>
+            <label class="checkbox" style="margin-top:12px;margin-bottom:0">
+              <input type="checkbox" id="import-legacy">
+              <span class="box"></span>
+              <span>Use legacy (.zero) derivation path <span class="mono">m/44'/501'/0'/0'/0'</span></span>
+            </label>
+          </details>
+
+          <div class="field">
+            <label class="field-label" for="import-password">New password</label>
+            <input class="input" type="password" id="import-password" placeholder="At least 8 characters" autocomplete="new-password">
+            <div class="strength" id="import-strength"><span></span><span></span><span></span><span></span></div>
+            <div class="strength-text" id="import-strength-text"></div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="import-password-confirm">Confirm password</label>
+            <input class="input" type="password" id="import-password-confirm" placeholder="Re-enter password" autocomplete="new-password">
+          </div>
+          <div class="field-error" id="import-error"></div>
+          <button class="btn btn-primary btn-block" id="import-finish" disabled>Import wallet</button>
+        </div>
+      </section>
+
+      <!-- PAGE: Unlock -->
+      <section class="page" id="page-unlock">
+        <div class="welcome" style="padding-top:24px">
+          <div class="welcome-logo" style="width:64px;height:64px;font-size:32px"><span class="material-symbols-rounded">lock_open</span></div>
+          <h1 style="font-size:clamp(28px,7vw,40px)">Welcome back</h1>
+          <p class="lead">Enter your password to unlock this wallet on this device.</p>
+          <div class="card text-center mb-3">
+            <div class="address-pill" id="unlock-address-pill" style="cursor:default">—</div>
+          </div>
+          <div class="field">
+            <input class="input" type="password" id="unlock-password" placeholder="Password" autocomplete="current-password">
+            <div class="field-error" id="unlock-error">Incorrect password</div>
+          </div>
+          <button class="btn btn-primary btn-block" id="unlock-submit">Unlock</button>
+          <button class="btn btn-text btn-block mt-2" id="unlock-different">Use a different wallet</button>
+        </div>
+      </section>
+
+      <!-- PAGE: Dashboard -->
+      <section class="page" id="page-dashboard">
+        <div class="card balance-hero">
+          <div class="balance-label">Total balance</div>
+          <div class="balance-amount"><span class="sym">SOL</span><span id="balance-value">0</span></div>
+          <div class="balance-usd" id="balance-usd"><span class="material-symbols-rounded" style="font-size:16px">trending_up</span> $0.00 USD</div>
+          <div class="address-pill" id="dash-address" title="Click to copy"><span class="material-symbols-rounded">content_copy</span> <span id="dash-address-text">—</span></div>
+        </div>
+
+        <div class="quick-actions">
+          <button class="quick-action" data-nav="page-send">
+            <div class="qa-icon"><span class="material-symbols-rounded">send</span></div>
+            <span class="qa-label">Send</span>
+          </button>
+          <button class="quick-action" data-nav="page-receive">
+            <div class="qa-icon"><span class="material-symbols-rounded">download</span></div>
+            <span class="qa-label">Receive</span>
+          </button>
+          <button class="quick-action" id="dash-copy">
+            <div class="qa-icon"><span class="material-symbols-rounded">content_copy</span></div>
+            <span class="qa-label">Copy</span>
+          </button>
+        </div>
+
+        <div class="card">
+          <div class="section-head">
+            <span class="section-title">Recent activity</span>
+            <button class="section-link" data-nav="page-activity">See all <span class="material-symbols-rounded" style="font-size:14px">chevron_right</span></button>
+          </div>
+          <div id="dash-activity">
+            <div class="empty-state"><span class="material-symbols-rounded">inbox</span><h3>No transactions yet</h3><p>Send or receive SOL to get started</p></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PAGE: Send -->
+      <section class="page" id="page-send">
+        <div class="page-header">
+          <button class="icon-btn" data-nav="page-dashboard" aria-label="Back"><span class="material-symbols-rounded">arrow_back</span></button>
+          <h2 class="page-title">Send SOL</h2>
+        </div>
+        <div class="send-layout">
+          <div class="card">
+            <div class="info-row"><span class="lbl">Available</span><span class="val" id="send-balance">0 SOL</span></div>
+            <div class="field mt-4">
+              <label class="field-label" for="send-address">Recipient address</label>
+              <input class="input mono" type="text" id="send-address" placeholder="Solana wallet address">
+            </div>
+            <div class="field">
+              <label class="field-label" for="send-amount">Amount (SOL)</label>
+              <div class="amount-wrapper">
+                <input class="input" type="number" id="send-amount" placeholder="0.00" step="0.0001" min="0">
+                <button class="max-chip" id="send-max">MAX</button>
+              </div>
+            </div>
+            <div class="info-rows">
+              <div class="info-row"><span class="lbl">Est. USD</span><span class="val" id="send-usd">—</span></div>
+              <div class="info-row"><span class="lbl">Network fee</span><span class="val">~0.000005 SOL</span></div>
+            </div>
+            <div class="field-error" id="send-error"></div>
+            <button class="btn btn-primary btn-block" id="send-review" disabled>Review</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- PAGE: Receive -->
+      <section class="page" id="page-receive">
+        <div class="page-header">
+          <button class="icon-btn" data-nav="page-dashboard" aria-label="Back"><span class="material-symbols-rounded">arrow_back</span></button>
+          <h2 class="page-title">Receive</h2>
+        </div>
+        <div class="receive-wrap">
+          <h3 style="font-size:17px;font-weight:600">Your wallet address</h3>
+          <p style="color:var(--md-on-surface-variant);font-size:13px;margin-top:4px">Share this address to receive SOL.</p>
+          <div class="qr-box"><img id="receive-qr" alt="Wallet address QR code" width="200" height="200"></div>
+          <div class="address-pill" id="receive-address-pill" title="Click to copy"><span class="material-symbols-rounded">content_copy</span> <span id="receive-address-text">—</span></div>
+          <div class="mt-4"><button class="btn btn-tonal btn-block" id="receive-copy"><span class="material-symbols-rounded">content_copy</span> Copy address</button></div>
+        </div>
+      </section>
+
+      <!-- PAGE: Activity -->
+      <section class="page" id="page-activity">
+        <div class="page-header">
+          <button class="icon-btn" data-nav="page-dashboard" aria-label="Back"><span class="material-symbols-rounded">arrow_back</span></button>
+          <h2 class="page-title">Activity</h2>
+        </div>
+        <div class="card">
+          <div id="activity-list">
+            <div class="empty-state"><span class="material-symbols-rounded">inbox</span><h3>No transactions yet</h3></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PAGE: Settings -->
+      <section class="page" id="page-settings">
+        <div class="page-header">
+          <button class="icon-btn" data-nav="page-dashboard" aria-label="Back"><span class="material-symbols-rounded">arrow_back</span></button>
+          <h2 class="page-title">Settings</h2>
+        </div>
+        <div class="settings-stack">
+          <div class="card">
+            <div class="card-header">Wallet</div>
+            <div class="settings-address" id="settings-address">—</div>
+            <button class="settings-row" id="settings-copy"><span class="material-symbols-rounded">content_copy</span> Copy address</button>
+          </div>
+
+          <div class="card">
+            <div class="card-header">Keys &amp; backup</div>
+            <button class="settings-row" id="settings-export"><span class="material-symbols-rounded">vpn_key</span> Export private key</button>
+            <button class="settings-row" id="settings-reveal"><span class="material-symbols-rounded">visibility</span> Reveal recovery phrase</button>
+            <button class="settings-row" id="settings-lock"><span class="material-symbols-rounded">lock</span> Lock wallet</button>
+          </div>
+
+          <div class="card">
+            <div class="card-header">Preferences</div>
+            <label class="settings-row">
+              <span class="material-symbols-rounded">palette</span> Light theme
+              <div class="switch"><input type="checkbox" id="pref-light"><span class="track"></span></div>
+            </label>
+          </div>
+
+          <div class="card">
+            <div class="card-header">Danger zone</div>
+            <button class="settings-row danger" id="settings-close"><span class="material-symbols-rounded">logout</span> Close account (drain all SOL)</button>
+            <button class="settings-row danger" id="settings-delete"><span class="material-symbols-rounded">delete</span> Delete this wallet from device</button>
+          </div>
+
+          <div class="text-center" style="color:var(--md-on-surface-variant);font-size:12px;padding:8px 0 24px">
+            Zero v2.0.0 · MIT · <span class="material-symbols-rounded" style="font-size:12px;vertical-align:middle">shield</span> Self-custodial
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- ═══ Navigation ═══ -->
+    <nav class="nav-bar" id="nav-bar">
+      <button class="nav-item active" data-nav="page-dashboard"><span class="material-symbols-rounded">wallet</span><span class="label">Wallet</span></button>
+      <button class="nav-item" data-nav="page-send"><span class="material-symbols-rounded">send</span><span class="label">Send</span></button>
+      <button class="nav-item" data-nav="page-receive"><span class="material-symbols-rounded">download</span><span class="label">Receive</span></button>
+      <button class="nav-item" data-nav="page-activity"><span class="material-symbols-rounded">receipt_long</span><span class="label">Activity</span></button>
+      <button class="nav-item" data-nav="page-settings"><span class="material-symbols-rounded">settings</span><span class="label">Settings</span></button>
+    </nav>
+    <nav class="nav-rail" id="nav-rail">
+      <button class="nav-item active" data-nav="page-dashboard" aria-label="Wallet"><span class="material-symbols-rounded">wallet</span></button>
+      <button class="nav-item" data-nav="page-send" aria-label="Send"><span class="material-symbols-rounded">send</span></button>
+      <button class="nav-item" data-nav="page-receive" aria-label="Receive"><span class="material-symbols-rounded">download</span></button>
+      <button class="nav-item" data-nav="page-activity" aria-label="Activity"><span class="material-symbols-rounded">receipt_long</span></button>
+      <button class="nav-item" data-nav="page-settings" aria-label="Settings"><span class="material-symbols-rounded">settings</span></button>
+    </nav>
+  </div>
+
+  <!-- ═══ Dialogs ═══ -->
+  <div class="dialog-overlay" id="dialog-send">
+    <div class="dialog" role="dialog" aria-labelledby="dialog-send-title">
+      <div class="dialog-title" id="dialog-send-title">Confirm transaction</div>
+      <div class="dialog-sub">Review the details before sending. Solana transactions are irreversible.</div>
+      <div class="info-rows">
+        <div class="info-row"><span class="lbl">Amount</span><span class="val" id="confirm-amount">—</span></div>
+        <div class="info-row"><span class="lbl">To</span><span class="val mono" id="confirm-to" style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</span></div>
+        <div class="info-row"><span class="lbl">Network fee</span><span class="val">~0.000005 SOL</span></div>
+      </div>
+      <div class="field-error" id="confirm-error"></div>
+      <div class="dialog-actions">
+        <button class="btn btn-tonal" data-close="dialog-send">Cancel</button>
+        <button class="btn btn-primary" id="confirm-send">Confirm &amp; send</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="dialog-overlay" id="dialog-success">
+    <div class="dialog text-center" role="dialog">
+      <div class="dialog-icon success"><span class="material-symbols-rounded">check</span></div>
+      <div class="dialog-title">Transaction sent</div>
+      <div class="dialog-sub">Your transaction is on the Solana network.</div>
+      <div class="result-box" id="success-sig">—</div>
+      <div class="dialog-actions"><button class="btn btn-primary" data-close="dialog-success">Done</button></div>
+    </div>
+  </div>
+
+  <div class="dialog-overlay" id="dialog-export">
+    <div class="dialog" role="dialog">
+      <div class="dialog-title">Export private key</div>
+      <div class="dialog-sub">Enter your password. Never share your private key — anyone with it has full control of your wallet.</div>
+      <div class="field"><input class="input" type="password" id="export-password" placeholder="Password" autocomplete="current-password"></div>
+      <div class="field-error" id="export-error"></div>
+      <div class="result-box hidden" id="export-result"></div>
+      <div class="dialog-actions">
+        <button class="btn btn-tonal" data-close="dialog-export">Close</button>
+        <button class="btn btn-primary" id="export-reveal">Reveal</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="dialog-overlay" id="dialog-reveal">
+    <div class="dialog" role="dialog">
+      <div class="dialog-title">Reveal recovery phrase</div>
+      <div class="dialog-sub">Enter your password. Keep your phrase private and offline.</div>
+      <div class="field"><input class="input" type="password" id="reveal-password" placeholder="Password" autocomplete="current-password"></div>
+      <div class="field-error" id="reveal-error"></div>
+      <div id="reveal-result"></div>
+      <div class="dialog-actions">
+        <button class="btn btn-tonal" data-close="dialog-reveal">Close</button>
+        <button class="btn btn-primary" id="reveal-go">Reveal</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="dialog-overlay" id="dialog-delete">
+    <div class="dialog text-center" role="dialog">
+      <div class="dialog-icon danger"><span class="material-symbols-rounded">delete</span></div>
+      <div class="dialog-title">Delete wallet from device</div>
+      <div class="dialog-sub">This removes the encrypted wallet from this browser. Make sure you've backed up your recovery phrase. Enter your password to confirm.</div>
+      <div class="field"><input class="input" type="password" id="delete-password" placeholder="Password" autocomplete="current-password"></div>
+      <div class="field-error" id="delete-error"></div>
+      <div class="dialog-actions">
+        <button class="btn btn-tonal" data-close="dialog-delete">Cancel</button>
+        <button class="btn btn-danger" id="delete-confirm">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="dialog-overlay" id="dialog-close-acct">
+    <div class="dialog" role="dialog">
+      <div class="dialog-title">Close account</div>
+      <div class="dialog-sub">Sends your entire balance (minus the fee) to a destination, leaving your account empty.</div>
+      <div class="info-rows">
+        <div class="info-row"><span class="lbl">Balance</span><span class="val" id="close-balance">—</span></div>
+        <div class="info-row"><span class="lbl">Network fee</span><span class="val">~0.000005 SOL</span></div>
+        <div class="info-row"><span class="lbl">You'll receive</span><span class="val" id="close-receive" style="color:var(--md-primary)">—</span></div>
+      </div>
+      <div class="field"><label class="field-label" for="close-dest">Destination address</label><input class="input mono" type="text" id="close-dest" placeholder="Solana address to receive funds"></div>
+      <div class="field-error" id="close-error"></div>
+      <button class="btn btn-danger btn-block" id="close-go">Drain &amp; close</button>
+      <div class="mt-3"><button class="btn btn-text btn-block btn-sm" data-close="dialog-close-acct">Cancel</button></div>
+    </div>
+  </div>
+
+  <div class="dialog-overlay" id="dialog-tos">
+    <div class="dialog" role="dialog">
+      <div class="dialog-title">Terms of Service</div>
+      <div class="dialog-sub" style="max-height:50vh;overflow-y:auto">
+        <p><strong>1. Self-custody.</strong> Zero is a self-custodial wallet. Your recovery phrase and password never leave your device. We cannot recover them.</p>
+        <p style="margin-top:10px"><strong>2. No financial advice.</strong> Zero does not provide investment, legal, or tax advice.</p>
+        <p style="margin-top:10px"><strong>3. Irreversible transactions.</strong> Blockchain transactions cannot be undone. Verify addresses carefully.</p>
+        <p style="margin-top:10px"><strong>4. No warranty.</strong> The software is provided "as is" under the MIT license. Use at your own risk.</p>
+      </div>
+      <div class="dialog-actions"><button class="btn btn-primary btn-block" data-close="dialog-tos">I understand</button></div>
+    </div>
+  </div>
+
+  <div class="dialog-overlay" id="dialog-privacy">
+    <div class="dialog" role="dialog">
+      <div class="dialog-title">Privacy Policy</div>
+      <div class="dialog-sub" style="max-height:50vh;overflow-y:auto">
+        <p><strong>Zero-knowledge by design.</strong> Your recovery phrase, private keys, and password are generated and used entirely in your browser. They are never transmitted to any server.</p>
+        <p style="margin-top:10px"><strong>Local storage only.</strong> Your encrypted wallet is stored in this browser's IndexedDB. It is protected by your password (Argon2id + AES-256-GCM).</p>
+        <p style="margin-top:10px"><strong>Network requests.</strong> The wallet talks only to its own server, which forwards balance, price, history, and signed-transaction requests to public Solana RPC nodes and CoinGecko. No keys are sent.</p>
+        <p style="margin-top:10px"><strong>No tracking.</strong> We use no cookies, analytics, or trackers.</p>
+      </div>
+      <div class="dialog-actions"><button class="btn btn-primary btn-block" data-close="dialog-privacy">I understand</button></div>
+    </div>
+  </div>
+
+  <!-- ═══ Toast ═══ -->
+  <div class="toast" id="toast" role="status" aria-live="polite">
+    <span class="material-symbols-rounded" id="toast-icon">check_circle</span>
+    <div class="text"><div class="title" id="toast-title">Done</div></div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

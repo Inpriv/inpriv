@@ -1,0 +1,13 @@
+Add a button to restart daemon cloudflared (sudo systemctl restart cloudflared)
+Add an option to type a password when saving and cftcfg doesnt have the sudo permissions (sometimes it says:
+== cftcfg ==  /etc/cloudflared/config.yml  tunnel=nimbo *unsaved changes*
+┏━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━┳━━━━━━┓
+┃ # ┃ Hostname    ┃ Service             ┃ Path ┃
+┡━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━╇━━━━━━┩
+│ 1 │ nimbo.fun   │ http://localhost:80 │      │
+│ 2 │ <catch-all> │ http_status:404     │      │
+└───┴─────────────┴─────────────────────┴──────┘
+
+(a)dd  (e)dit  (d)elete  (o) ports scan  (c)atch-all  (v)alidate  (s)ave  (r)eload  (b)ackup  (p)ath/config  PATH (i)ntegration  (q)uit
+choice: s
+error: backup failed: [Errno 13] Permission denied: '/etc/cloudflared/config.yml.bak.20260726-174421')

@@ -1,0 +1,35 @@
+# ── Node / build ──────────────────────────────
+node_modules/
+static/app.js
+static/app.js.map
+npm-debug.log*
+
+# ── Python ────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+
+# ── Environment & secrets ─────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Scratch / verification ────────────────────
+_verify/
+scratch/
+*.tmp
+
+# ── Editor / OS ───────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# ── Local wallet data (never committed) ───────
+.crypto-wallet/
+*.auto_unlock

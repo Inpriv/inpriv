@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<!--
+  Inpriv Pay — Non-Custodial Cryptocurrency Payment Gateway
+  Copyright (c) 2026 Aurex Labs — MIT License
+
+  URL-driven checkout for BTC, XMR and SOL. Keys never touch a server — all
+  signing and address derivation happen client-side. No custodian, no trust.
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#13140E">
+<meta name="description" content="Inpriv Pay — A non-custodial cryptocurrency payment gateway for Bitcoin, Monero, and Solana. Zero private key exposure. Fully client-side.">
+<meta name="author" content="Aurex Labs">
+<meta property="og:title" content="Inpriv Pay — Non-Custodial Crypto Gateway">
+<meta property="og:description" content="Request and receive BTC, XMR, and SOL payments with zero private key exposure. Fully client-side and URL-driven.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://aurexlabs.com/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Inpriv Pay">
+<meta name="twitter:description" content="Non-custodial crypto payment gateway. Zero trust required.">
+<title>Inpriv Pay — by Aurex Labs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300;8..144,400;8..144,500;8..144,600;8..144,700;8..144,800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0;24,500,0,200;24,600,0,200;48,400,0,0&display=swap" rel="stylesheet">
+<style>
+/*
+  Inpriv Pay — Non-Custodial Cryptocurrency Payment Gateway
+  Copyright (c) 2026 Aurex Labs
+  Licensed under the MIT License
+  https://opensource.org/licenses/MIT
+*/
+
+:root {
+  --md-primary: #466E47;
+  --md-on-primary: #FFFFFF;
+  --md-primary-container: #C7EFA0;
+  --md-on-primary-container: #0C2000;
+  --md-secondary: #55624C;
+  --md-on-secondary: #FFFFFF;
+  --md-secondary-container: #D8E7CB;
+  --md-on-secondary-container: #131F0C;
+  --md-tertiary: #9C4231;
+  --md-on-tertiary: #FFFFFF;
+  --md-tertiary-container: #FFDAD3;
+  --md-on-tertiary-container: #3D0A03;
+  --md-error: #BA1A1A;
+  --md-surface: #FAF9F0;
+  --md-on-surface: #1A1C17;
+  --md-on-surface-variant: #43483D;
+  --md-surface-dim: #DBDAD0;
+  --md-surface-container-lowest: #FFFFFF;
+  --md-surface-container-low: #F4F3E7;
+  --md-surface-container: #EEEDDE;
+  --md-surface-container-high: #E9E7D9;
+  --md-surface-container-highest: #E3E2D3;
+  --md-outline: #74796C;
+  --md-outline-variant: #C3C8B6;
+  --md-inverse-surface: #2F312C;
+  --md-inverse-on-surface: #F0EFE7;
+  --md-inverse-primary: #ABD37A;
+  --md-shadow-color: rgba(20, 25, 15, 0.15);
+  --md-shadow-color-strong: rgba(20, 25, 15, 0.28);
+  --md-easing-standard: cubic-bezier(0.2, 0.0, 0.0, 1.0);
+  --md-easing-emphasized: cubic-bezier(0.3, 0.0, 0.0, 1.0);
+  --md-easing-spring: cubic-bezier(0.2, 1.4, 0.0, 1.0);
+  --md-easing-spring-soft: cubic-bezier(0.34, 1.3, 0.64, 1.0);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --md-primary: #ABD37A; --md-on-primary: #173800; --md-primary-container: #2E4F2F; --md-on-primary-container: #C7EFA0;
+    --md-secondary: #BCCBAF; --md-on-secondary: #27341F; --md-secondary-container: #3D4B34; --md-on-secondary-container: #D8E7CB;
+    --md-tertiary: #FFB4A5; --md-on-tertiary: #5E1709; --md-tertiary-container: #7E2D1E; --md-on-tertiary-container: #FFDAD3;
+    --md-error: #FFB4AB; --md-surface: #13140E; --md-on-surface: #E3E2D3; --md-on-surface-variant: #C3C8B6;
+    --md-surface-dim: #1A1C17; --md-surface-container-lowest: #0D0F09; --md-surface-container-low: #1A1C17;
+    --md-surface-container: #1F211B; --md-surface-container-high: #292B25; --md-surface-container-highest: #34362F;
+    --md-outline: #8D9283; --md-outline-variant: #43483D; --md-inverse-surface: #E3E2D3; --md-inverse-on-surface: #2F312C;
+    --md-inverse-primary: #466E47; --md-shadow-color: rgba(0,0,0,0.4); --md-shadow-color-strong: rgba(0,0,0,0.65);
+  }
+}
+
+:root[data-theme="dark"] {
+  --md-primary: #ABD37A; --md-on-primary: #173800; --md-primary-container: #2E4F2F; --md-on-primary-container: #C7EFA0;
+  --md-secondary: #BCCBAF; --md-on-secondary: #27341F; --md-secondary-container: #3D4B34; --md-on-secondary-container: #D8E7CB;
+  --md-tertiary: #FFB4A5; --md-on-tertiary: #5E1709; --md-tertiary-container: #7E2D1E; --md-on-tertiary-container: #FFDAD3;
+  --md-error: #FFB4AB; --md-surface: #13140E; --md-on-surface: #E3E2D3; --md-on-surface-variant: #C3C8B6;
+  --md-surface-dim: #1A1C17; --md-surface-container-lowest: #0D0F09; --md-surface-container-low: #1A1C17;
+  --md-surface-container: #1F211B; --md-surface-container-high: #292B25; --md-surface-container-highest: #34362F;
+  --md-outline: #8D9283; --md-outline-variant: #43483D; --md-inverse-surface: #E3E2D3; --md-inverse-on-surface: #2F312C;
+  --md-inverse-primary: #466E47; --md-shadow-color: rgba(0,0,0,0.4); --md-shadow-color-strong: rgba(0,0,0,0.65);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Roboto Flex', system-ui, -apple-system, sans-serif;
+  font-optical-sizing: auto;
+  background: var(--md-surface);
+  color: var(--md-on-surface);
+  min-height: 100vh;
+  overflow-x: hidden;
+  transition: background-color 0.5s var(--md-easing-standard), color 0.5s var(--md-easing-standard);
+  -webkit-font-smoothing: antialiased;
+}
+
+.bg-ambient {
+  position: fixed; inset: 0; z-index: 0;
+  background: radial-gradient(ellipse 80% 60% at 85% 0%, color-mix(in srgb, var(--md-primary-container) 55%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 0% 100%, color-mix(in srgb, var(--md-tertiary-container) 45%, transparent) 0%, transparent 70%),
+    var(--md-surface);
+  background-attachment: fixed; pointer-events: none;
+}
+.bg-grid {
+  position: fixed; inset: 0; z-index: 0;
+  background-image: radial-gradient(circle at 1px 1px, var(--md-outline-variant) 1px, transparent 0);
+  background-size: 28px 28px; opacity: 0.18;
+  mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+  pointer-events: none;
+}
+.bg-blob {
+  position: fixed; width: 420px; height: 420px; border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--md-tertiary) 22%, transparent), transparent 70%);
+  filter: blur(60px); top: -100px; right: -100px; z-index: 0; pointer-events: none;
+  animation: drift 22s ease-in-out infinite;
+}
+@keyframes drift {
+  0%, 100% { transform: translate(0,0) scale(1); }
+  50% { transform: translate(-60px,40px) scale(1.1); }
+}
+
+.content-layer {
+  position: relative; z-index: 1; min-height: 100vh;
+  padding: 24px 16px 200px; max-width: 1200px; margin: 0 auto;
+}
+@media(min-width:600px){ .content-layer { padding: 32px 24px 200px; } }
+
+.app-bar {
+  position: fixed; top: 12px; left: 12px; right: 12px; z-index: 50; height: 46px;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--md-surface-container) 80%, transparent);
+  backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid color-mix(in srgb, var(--md-outline-variant) 50%, transparent);
+  box-shadow: 0 4px 20px -4px var(--md-shadow-color);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 6px 6px 14px;
+  animation: barIn 0.7s var(--md-easing-spring) both;
+}
+@media(min-width:600px){ .app-bar { top: 18px; left: 18px; right: 18px; height: 54px; padding: 8px 8px 8px 20px; } }
+@keyframes barIn { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
+
+.brand { display: flex; align-items: center; gap: 8px; font-size: 17px; font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; color: var(--md-on-surface); }
+@media(min-width:600px){ .brand { font-size: 19px; } }
+.brand-icon {
+  width: 32px; height: 32px; border-radius: 50%; background: var(--md-primary-container);
+  color: var(--md-on-primary-container); display: flex; align-items: center; justify-content: center;
+  font-family: 'Material Symbols Rounded'; font-variation-settings: 'wght' 500, 'GRAD' 200, 'opsz' 24; font-size: 18px;
+}
+.brand-by { font-size: 11px; font-weight: 500; color: var(--md-on-surface-variant); letter-spacing: 0.02em; margin-left: 4px; }
+@media(max-width:400px){ .brand-by { display: none; } }
+.app-actions { display: flex; align-items: center; gap: 4px; }
+.icon-btn {
+  width: 40px; height: 40px; border-radius: 50%; border: none; background: transparent;
+  color: var(--md-on-surface-variant); cursor: pointer; display: flex; align-items: center; justify-content: center;
+  position: relative; overflow: hidden; transition: transform 0.15s var(--md-easing-spring);
+  font-family: 'Material Symbols Rounded'; font-variation-settings: 'wght' 500, 'GRAD' 0, 'opsz' 24; font-size: 22px;
+}
+@media(min-width:600px){ .icon-btn { width: 44px; height: 44px; font-size: 24px; } }
+.icon-btn::before { content: ''; position: absolute; inset: 0; border-radius: 50%; background: currentColor; opacity: 0; transition: opacity 0.2s var(--md-easing-standard); }
+.icon-btn:hover::before { opacity: 0.08; }
+.icon-btn:active { transform: scale(0.92); }
+.icon-btn:active::before { opacity: 0.12; }
+
+.hero-title { font-size: clamp(32px, 9vw, 44px); font-weight: 800; letter-spacing: -0.025em; line-height: 1.05; color: var(--md-on-surface); text-align: center; margin-top: 80px; margin-bottom: 8px; animation: fadeUp 0.8s var(--md-easing-spring) 0.1s both; }
+@media(min-width:600px){ .hero-title { font-size: clamp(40px, 6.5vw, 68px); margin-top: 100px; } }
+.hero-title .accent { font-weight: 300; font-style: italic; color: var(--md-primary); }
+.hero-subtitle { font-size: 14px; font-weight: 400; line-height: 1.5; color: var(--md-on-surface-variant); text-align: center; max-width: 480px; margin: 0 auto 40px; animation: fadeUp 0.8s var(--md-easing-spring) 0.2s both; }
+@media(min-width:600px){ .hero-subtitle { font-size: 15px; margin-bottom: 48px; } }
+.label { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; line-height: 1.2; text-transform: uppercase; color: var(--md-on-surface-variant); }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+
+.card { background: var(--md-surface-container-low); border: 1px solid var(--md-outline-variant); border-radius: 24px; padding: 24px; transition: all 0.4s var(--md-easing-spring-soft); }
+@media(min-width:600px){ .card { border-radius: 28px; padding: 32px; } }
+.card:hover { transform: translateY(-4px); border-color: color-mix(in srgb, var(--md-primary) 50%, var(--md-outline-variant)); box-shadow: 0 12px 40px -6px var(--md-shadow-color); }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 52px; padding: 0 24px; border-radius: 9999px; border: none; font-family: inherit; font-size: 14px; font-weight: 600; letter-spacing: 0.02em; line-height: 1; cursor: pointer; position: relative; overflow: hidden; transition: all 0.4s var(--md-easing-spring-soft); white-space: nowrap; }
+@media(min-width:600px){ .btn { height: 56px; padding: 0 28px; font-size: 15px; } }
+.btn::before { content: ''; position: absolute; inset: 0; background: currentColor; opacity: 0; transition: opacity 0.2s var(--md-easing-standard); }
+.btn:hover::before { opacity: 0.08; }
+.btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px -4px var(--md-shadow-color); }
+.btn:active { transform: scale(0.96); }
+.btn:active::before { opacity: 0.12; }
+.btn-primary { background: var(--md-primary); color: var(--md-on-primary); box-shadow: 0 4px 16px -4px color-mix(in srgb, var(--md-primary) 40%, transparent); }
+.btn-secondary { background: var(--md-secondary-container); color: var(--md-on-secondary-container); }
+.btn-tertiary { background: transparent; color: var(--md-primary); border: 1px solid var(--md-outline); }
+.btn-fluid { width: 100%; }
+.btn-icon { font-family: 'Material Symbols Rounded'; font-variation-settings: 'wght' 500, 'GRAD' 0, 'opsz' 24; font-size: 20px; }
+
+.segmented { display: flex; background: var(--md-surface-container-high); border-radius: 9999px; padding: 4px; gap: 2px; }
+.segmented-btn { flex: 1; height: 40px; border-radius: 9999px; border: none; background: transparent; color: var(--md-on-surface-variant); font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; position: relative; overflow: hidden; transition: all 0.3s var(--md-easing-standard); }
+.segmented-btn.active { background: var(--md-secondary-container); color: var(--md-on-secondary-container); }
+.segmented-btn:active { transform: scale(0.96); }
+
+.form-group { margin-bottom: 20px; }
+.form-label { display: block; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--md-on-surface-variant); margin-bottom: 8px; }
+.input-field { width: 100%; height: 52px; padding: 0 16px; border-radius: 16px; border: 1px solid var(--md-outline-variant); background: var(--md-surface-container-lowest); color: var(--md-on-surface); font-family: inherit; font-size: 15px; font-weight: 400; transition: all 0.3s var(--md-easing-standard); outline: none; }
+.input-field:hover { border-color: var(--md-outline); }
+.input-field:focus { border-color: var(--md-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-primary) 15%, transparent); }
+.input-field::placeholder { color: var(--md-outline); }
+.input-field.error { border-color: var(--md-error); box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-error) 15%, transparent); }
+textarea.input-field { height: auto; min-height: 100px; padding: 16px; resize: vertical; }
+
+.toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; }
+.toggle-label { font-size: 14px; font-weight: 500; color: var(--md-on-surface); }
+.toggle { width: 48px; height: 28px; border-radius: 9999px; background: var(--md-surface-container-highest); position: relative; cursor: pointer; transition: background 0.3s var(--md-easing-standard); border: none; outline: none; }
+.toggle.active { background: var(--md-primary); }
+.toggle-knob { position: absolute; top: 4px; left: 4px; width: 20px; height: 20px; border-radius: 50%; background: var(--md-surface-container-lowest); box-shadow: 0 1px 3px rgba(0,0,0,0.2); transition: transform 0.3s var(--md-easing-spring); }
+.toggle.active .toggle-knob { transform: translateX(20px); }
+
+.modal-overlay { position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,0.5); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); display: flex; align-items: flex-end; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s var(--md-easing-standard); }
+.modal-overlay.active { opacity: 1; pointer-events: all; }
+@media(min-width:600px){ .modal-overlay { align-items: center; } }
+.modal { background: var(--md-surface-container-low); border-radius: 24px 24px 0 0; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; padding: 24px; transform: translateY(100%); transition: transform 0.4s var(--md-easing-spring); border: 1px solid var(--md-outline-variant); border-bottom: none; }
+@media(min-width:600px){ .modal { border-radius: 28px; border: 1px solid var(--md-outline-variant); transform: translateY(24px) scale(0.96); padding: 32px; } }
+.modal-overlay.active .modal { transform: translateY(0) scale(1); }
+.modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+.modal-title { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; color: var(--md-on-surface); }
+@media(min-width:600px){ .modal-title { font-size: 24px; } }
+
+.toast-container { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 100; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+.toast { background: var(--md-inverse-surface); color: var(--md-inverse-on-surface); padding: 12px 16px; border-radius: 12px; box-shadow: 0 8px 24px var(--md-shadow-color-strong); display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 600; animation: toastIn 0.4s var(--md-easing-spring) both; pointer-events: all; min-width: 280px; max-width: 90vw; }
+.toast.error { border-left: 3px solid var(--md-error); }
+.toast-icon { font-family: 'Material Symbols Rounded'; font-variation-settings: 'wght' 500, 'GRAD' 0, 'opsz' 24; font-size: 20px; color: var(--md-inverse-primary); flex-shrink: 0; }
+.toast.error .toast-icon { color: var(--md-error); }
+@keyframes toastIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes toastOut { to { opacity: 0; transform: translateY(10px); } }
+
+.qr-container { background: var(--md-surface-container-lowest); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 16px; border: 1px solid var(--md-outline-variant); }
+.qr-code { width: 200px; height: 200px; image-rendering: pixelated; }
+
+.status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 9999px; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; transition: all 0.4s var(--md-easing-standard); }
+.status-idle { background: var(--md-surface-container-high); color: var(--md-on-surface-variant); }
+.status-awaiting { background: color-mix(in srgb, var(--md-tertiary-container) 80%, transparent); color: var(--md-on-tertiary-container); animation: pulse-amber 2s ease-in-out infinite; }
+.status-detected { background: color-mix(in srgb, var(--md-primary-container) 80%, transparent); color: var(--md-on-primary-container); animation: pulse-blue 2s ease-in-out infinite; }
+.status-confirmed { background: var(--md-primary); color: var(--md-on-primary); }
+.status-expired { background: var(--md-surface-container-highest); color: var(--md-outline); }
+@keyframes pulse-amber { 0%,100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--md-tertiary) 30%, transparent); } 50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--md-tertiary) 0%, transparent); } }
+@keyframes pulse-blue { 0%,100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--md-primary) 30%, transparent); } 50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--md-primary) 0%, transparent); } }
+
+.send-card { max-width: 480px; margin: 80px auto 0; background: var(--md-surface-container-low); border: 1px solid var(--md-outline-variant); border-radius: 24px; padding: 28px; animation: editorIn 0.6s var(--md-easing-spring) both; }
+@media(min-width:600px){ .send-card { margin-top: 100px; border-radius: 28px; padding: 36px; } }
+@keyframes editorIn { from { opacity: 0; transform: translateY(24px) scale(0.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
+.send-header { text-align: center; margin-bottom: 24px; }
+.send-coin-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 9999px; background: var(--md-primary-container); color: var(--md-on-primary-container); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 16px; }
+.send-amount { font-size: clamp(36px, 8vw, 52px); font-weight: 800; letter-spacing: -0.03em; line-height: 1; color: var(--md-on-surface); font-variant-numeric: tabular-nums; }
+.send-fiat { font-size: 15px; font-weight: 500; color: var(--md-on-surface-variant); margin-top: 6px; }
+.send-title { font-size: 18px; font-weight: 700; color: var(--md-on-surface); margin-top: 8px; }
+.send-desc { font-size: 14px; color: var(--md-on-surface-variant); line-height: 1.5; margin-top: 4px; }
+.send-recipient { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 20px 0; padding: 12px 16px; background: var(--md-surface-container); border-radius: 16px; font-family: 'Roboto Mono', monospace; font-size: 13px; color: var(--md-on-surface-variant); word-break: break-all; }
+.send-actions { display: flex; flex-direction: column; gap: 12px; margin-top: 24px; }
+.wallet-list { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+.wallet-item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 16px; background: var(--md-surface-container); border: 1px solid transparent; cursor: pointer; transition: all 0.3s var(--md-easing-standard); }
+.wallet-item:hover { background: var(--md-surface-container-high); border-color: var(--md-outline-variant); transform: translateX(4px); }
+.wallet-item:active { transform: scale(0.98); }
+.wallet-icon { width: 40px; height: 40px; border-radius: 12px; background: var(--md-primary-container); color: var(--md-on-primary-container); display: flex; align-items: center; justify-content: center; font-family: 'Material Symbols Rounded'; font-size: 22px; flex-shrink: 0; }
+.wallet-name { font-size: 14px; font-weight: 600; color: var(--md-on-surface); }
+.wallet-status { font-size: 12px; color: var(--md-on-surface-variant); }
+.wallet-status.detected { color: var(--md-primary); }
+
+.home-actions { display: flex; flex-direction: column; gap: 16px; max-width: 360px; margin: 0 auto; animation: fadeUp 0.8s var(--md-easing-spring) 0.3s both; }
+.feature-grid { display: grid; grid-template-columns: 1fr; gap: 16px; max-width: 720px; margin: 48px auto 0; animation: fadeUp 0.8s var(--md-easing-spring) 0.4s both; }
+@media(min-width:600px){ .feature-grid { grid-template-columns: repeat(3, 1fr); } }
+.feature-card { background: var(--md-surface-container-low); border: 1px solid var(--md-outline-variant); border-radius: 24px; padding: 24px; text-align: center; transition: all 0.4s var(--md-easing-spring-soft); }
+.feature-card:hover { transform: translateY(-4px); border-color: color-mix(in srgb, var(--md-primary) 40%, var(--md-outline-variant)); box-shadow: 0 12px 40px -6px var(--md-shadow-color); }
+.feature-icon { width: 56px; height: 56px; border-radius: 16px; background: var(--md-primary-container); color: var(--md-on-primary-container); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-family: 'Material Symbols Rounded'; font-variation-settings: 'wght' 400, 'GRAD' 0, 'opsz' 48; font-size: 28px; }
+.feature-title { font-size: 16px; font-weight: 700; color: var(--md-on-surface); margin-bottom: 6px; }
+.feature-desc { font-size: 13px; color: var(--md-on-surface-variant); line-height: 1.5; }
+
+.copy-block { display: flex; align-items: center; gap: 8px; padding: 12px 14px; background: var(--md-surface-container); border-radius: 12px; border: 1px solid var(--md-outline-variant); font-family: 'Roboto Mono', monospace; font-size: 12px; color: var(--md-on-surface-variant); word-break: break-all; cursor: pointer; transition: all 0.2s var(--md-easing-standard); }
+.copy-block:hover { border-color: var(--md-primary); background: color-mix(in srgb, var(--md-primary-container) 20%, var(--md-surface-container)); }
+.copy-block .btn-icon { flex-shrink: 0; font-size: 18px; color: var(--md-primary); }
+
+.security-banner { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 16px; background: color-mix(in srgb, var(--md-primary-container) 60%, transparent); border: 1px solid color-mix(in srgb, var(--md-primary) 20%, transparent); margin-bottom: 20px; font-size: 13px; color: var(--md-on-primary-container); line-height: 1.5; }
+.security-banner .btn-icon { font-size: 20px; color: var(--md-primary); flex-shrink: 0; }
+
+.result-section { margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--md-outline-variant); }
+
+.spinner { width: 20px; height: 20px; border: 2px solid var(--md-outline-variant); border-top-color: var(--md-primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.hidden { display: none !important; }
+
+.footer {
+  position: relative; z-index: 1;
+  text-align: center; padding: 40px 16px 60px;
+  color: var(--md-on-surface-variant); font-size: 13px;
+}
+.footer a { color: var(--md-primary); text-decoration: none; font-weight: 500; }
+.footer a:hover { text-decoration: underline; }
+.footer-brand { font-weight: 700; color: var(--md-on-surface); margin-bottom: 6px; }
+.footer-copy { opacity: 0.7; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
+
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--md-outline-variant); border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: var(--md-outline); }
+</style>
+<base target="_blank">
+</head>
+<body>
+
+<div class="bg-ambient"></div>
+<div class="bg-grid"></div>
+<div class="bg-blob"></div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<nav class="app-bar">
+  <div class="brand">
+    <div class="brand-icon">account_balance_wallet</div>
+    <span>Inpriv Pay</span>
+    <span class="brand-by">by Aurex Labs</span>
+  </div>
+  <div class="app-actions">
+    <a class="icon-btn" href="https://github.com/aurexlabs/inpriv-pay" target="_blank" rel="noopener" aria-label="GitHub" title="View on GitHub">code</a>
+    <button class="icon-btn" id="themeToggle" aria-label="Toggle theme">dark_mode</button>
+  </div>
+</nav>
+
+<div class="content-layer">
+
+  <div id="homeView">
+    <h1 class="hero-title">Non-Custodial<br><span class="accent">Crypto Payments</span></h1>
+    <p class="hero-subtitle">Request and receive Bitcoin, Monero, and Solana payments with zero private key exposure. Fully client-side, URL-driven, and secure.</p>
+    <div class="home-actions">
+      <button class="btn btn-primary btn-fluid" id="openReceiveBtn">
+        <span class="btn-icon">add_card</span> Create Payment Request
+      </button>
+      <button class="btn btn-tertiary btn-fluid" id="pasteLinkBtn">
+        <span class="btn-icon">content_paste</span> Paste Payment Link
+      </button>
+    </div>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-icon">shield</div>
+        <div class="feature-title">Zero Custody</div>
+        <div class="feature-desc">We never touch your private keys. Ever. Pure public-key operations only.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">link</div>
+        <div class="feature-title">URL Driven</div>
+        <div class="feature-desc">Payment requests live entirely in shareable URL fragments. No server logs.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">visibility</div>
+        <div class="feature-title">Live Verification</div>
+        <div class="feature-desc">Real-time on-chain monitoring for all supported networks.</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="sendView" class="hidden">
+    <div class="send-card">
+      <div class="send-header">
+        <div class="send-coin-badge" id="sendCoinBadge">SOL</div>
+        <div class="send-amount" id="sendAmount">0.00</div>
+        <div class="send-fiat" id="sendFiat"></div>
+        <div class="send-title hidden" id="sendTitle"></div>
+        <div class="send-desc hidden" id="sendDesc"></div>
+      </div>
+      <div style="text-align:center; margin-bottom:16px;">
+        <span class="status-badge status-idle" id="statusBadge">Idle</span>
+      </div>
+      <div class="send-recipient" id="sendRecipient">...</div>
+      <div class="qr-container" id="qrContainer">
+        <canvas id="qrCanvas" class="qr-code" width="200" height="200"></canvas>
+        <div style="font-size:12px; color:var(--md-on-surface-variant); text-align:center;">Scan with your wallet app</div>
+      </div>
+      <div class="send-actions">
+        <div id="walletActions"></div>
+        <button class="btn btn-secondary btn-fluid" id="copyUriBtn">
+          <span class="btn-icon">content_copy</span> Copy Payment URI
+        </button>
+        <button class="btn btn-tertiary btn-fluid" id="copyLinkBtn">
+          <span class="btn-icon">share</span> Copy Share Link
+        </button>
+      </div>
+      <div class="result-section hidden" id="txResult">
+        <div class="label" style="margin-bottom:8px;">Transaction Detected</div>
+        <div class="copy-block" id="txCopyBlock">
+          <span id="txHash">...</span>
+          <span class="btn-icon">content_copy</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer" id="homeFooter">
+  <div class="footer-brand">Inpriv Pay</div>
+  <div class="footer-copy">
+    Copyright &copy; 2026 Aurex Labs. Licensed under MIT.
+    <br>
+    <a href="https://github.com/aurexlabs/inpriv-pay" target="_blank" rel="noopener">GitHub</a> &middot;
+    <a href="#" id="licenseLink">License</a>
+  </div>
+</div>
+
+<div class="modal-overlay" id="receiveModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Create Payment Request</div>
+      <button class="icon-btn" id="closeModalBtn" aria-label="Close">close</button>
+    </div>
+    <div class="security-banner">
+      <span class="btn-icon">security</span>
+      <span>Never paste private keys or seed phrases. This tool only accepts public addresses.</span>
+    </div>
+    <div class="form-group">
+      <div class="label" style="margin-bottom:10px;">Currency</div>
+      <div class="segmented" id="coinSelector">
+        <button class="segmented-btn active" data-coin="SOL">Solana</button>
+        <button class="segmented-btn" data-coin="BTC">Bitcoin</button>
+        <button class="segmented-btn" data-coin="XMR">Monero</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Recipient Address / Public Key</label>
+      <input type="text" class="input-field" id="recipientInput" placeholder="Enter public address..." autocomplete="off">
+      <div style="font-size:12px; color:var(--md-error); margin-top:6px; display:none;" id="addressError">Invalid address format for selected currency.</div>
+    </div>
+    <div class="form-group" id="viewKeyGroup" style="display:none;">
+      <label class="form-label">Secret View Key <span style="font-weight:400; opacity:0.7;">(Optional &mdash; for read-only tracking)</span></label>
+      <input type="text" class="input-field" id="viewKeyInput" placeholder="Enter Monero secret view key..." autocomplete="off">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Amount</label>
+      <div style="display:flex; gap:8px;">
+        <input type="number" class="input-field" id="amountInput" placeholder="0.00" step="any" style="flex:1;">
+        <select class="input-field" id="amountUnit" style="width:100px; padding:0 12px;">
+          <option value="crypto">SOL</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <div class="toggle-row">
+        <span class="toggle-label">Add Fiat Reference</span>
+        <button class="toggle" id="fiatToggle"><div class="toggle-knob"></div></button>
+      </div>
+      <div id="fiatFields" style="display:none; margin-top:12px;">
+        <div style="display:flex; gap:8px;">
+          <input type="number" class="input-field" id="fiatAmountInput" placeholder="0.00" step="any" style="flex:1;">
+          <select class="input-field" id="fiatCurrency" style="width:100px; padding:0 12px;">
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Title <span style="font-weight:400; opacity:0.7;">(Optional)</span></label>
+      <input type="text" class="input-field" id="titleInput" placeholder="Invoice #001" maxlength="60">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Description <span style="font-weight:400; opacity:0.7;">(Optional)</span></label>
+      <textarea class="input-field" id="descInput" placeholder="Payment for services rendered..." maxlength="250"></textarea>
+    </div>
+    <button class="btn btn-primary btn-fluid" id="generateBtn" style="margin-top:8px;">
+      <span class="btn-icon">qr_code_2</span> Generate Payment Link
+    </button>
+    <div class="result-section hidden" id="resultSection">
+      <div class="label" style="margin-bottom:12px;">Payment Request Ready</div>
+      <div class="qr-container" style="margin-bottom:16px;">
+        <canvas id="resultQrCanvas" class="qr-code" width="200" height="200"></canvas>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div class="copy-block" id="shareLinkCopy">
+          <span id="shareLinkText">https://...</span>
+          <span class="btn-icon">content_copy</span>
+        </div>
+        <div class="copy-block" id="uriCopy">
+          <span id="uriText">solana:...</span>
+          <span class="btn-icon">content_copy</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+/*
+  Inpriv Pay — Non-Custodial Cryptocurrency Payment Gateway
+  Copyright (c) 2026 Aurex Labs
+  Licensed under the MIT License
+  https://opensource.org/licenses/MIT
+
+  Supported networks: Solana (SOL), Bitcoin (BTC), Monero (XMR)
+  Architecture: 100% client-side, zero private key handling
+*/
+
+const CONFIG = {
+  SOLANA_RPC_WS: 'wss://api.mainnet-beta.solana.com',
+  SOLANA_RPC_HTTP: 'https://api.mainnet-beta.solana.com',
+  MEMPOOL_API: 'https://mempool.space/api',
+  VERSION: '1.0'
+};
+
+/* ---------- QR Code Generator ---------- */
+const QRCodeLib = (function() {
+  "use strict";
+
+  const GF256 = (function() {
+    const exp = new Uint16Array(512), log = new Uint16Array(256);
+    let x = 1;
+    for (let i = 0; i < 255; i++) { exp[i] = x; exp[i + 255] = x; log[x] = i; x <<= 1; if (x & 0x100) x ^= 0x11d; }
+    return { exp, log, mul(a, b) { return a && b ? exp[log[a] + log[b]] : 0; } };
+  })();
+
+  function rsGenPoly(n) {
+    let p = new Uint8Array([1]);
+    for (let i = 0; i < n; i++) {
+      const g = new Uint8Array(p.length + 1);
+      for (let j = 0; j < p.length; j++) { g[j] ^= GF256.mul(p[j], GF256.exp[i]); g[j + 1] ^= p[j]; }
+      p = g;
+    }
+    return p;
+  }
+
+  const QR_TABLE = {
+    1: [26,19,7], 2: [44,34,10,6,18], 3: [70,55,15,6,22], 4: [100,80,20,6,26],
+    5: [134,108,26,6,30], 6: [172,136,36,6,34], 7: [196,156,40,6,22,38],
+    8: [242,194,48,6,24,42], 9: [292,232,60,6,26,46], 10: [346,274,72,6,28,50],
+    11: [404,324,80,6,30,54], 12: [466,370,96,6,32,58], 13: [532,428,104,6,34,62],
+    14: [581,461,120,6,26,46,66], 15: [655,523,132,6,26,48,70], 16: [733,589,144,6,26,50,74],
+    17: [815,647,168,6,30,54,78], 18: [901,721,180,6,30,56,82], 19: [991,795,196,6,30,58,86],
+    20: [1085,861,224,6,34,62,90], 21: [1156,932,224,6,28,50,72,94],
+    22: [1258,1006,252,6,26,50,74,98], 23: [1364,1094,270,6,30,54,78,102],
+    24: [1474,1174,300,6,28,54,80,106], 25: [1588,1276,312,6,32,58,84,110],
+    26: [1706,1370,336,6,30,58,86,114], 27: [1828,1468,360,6,34,62,90,118],
+    28: [1921,1531,390,6,26,50,74,98,122], 29: [2051,1631,420,6,30,54,78,102,126],
+    30: [2185,1735,450,6,26,52,78,104,130], 31: [2323,1843,480,6,30,56,82,108,134],
+    32: [2465,1955,510,6,34,60,86,112,138], 33: [2611,2071,540,6,30,58,86,114,142],
+    34: [2761,2191,570,6,34,62,90,118,146], 35: [2876,2306,570,6,30,54,78,102,126,150],
+    36: [3034,2434,600,6,24,50,76,102,128,154], 37: [3196,2566,630,6,28,54,80,106,132,158],
+    38: [3362,2702,660,6,32,58,84,110,136,162], 39: [3532,2812,720,6,26,54,82,110,138,166],
+    40: [3706,2956,750,6,30,58,86,114,142,170]
+  };
+
+  function getCenters(v) { const t = QR_TABLE[v]; return t ? t.slice(3) : []; }
+  function getSize(v) { return 17 + 4 * v; }
+  function getCap(v) { return QR_TABLE[v] ? QR_TABLE[v][1] * 8 : 0; }
+  function getEC(v) { return QR_TABLE[v] ? QR_TABLE[v][2] : 0; }
+  function getTotal(v) { return QR_TABLE[v] ? QR_TABLE[v][0] : 0; }
+
+  function formatBits(ecLevel, mask) {
+    const ec = { L: 1, M: 0, Q: 3, H: 2 }[ecLevel] || 1;
+    let data = (ec << 3) | mask, g = 0x537, rem = data << 10;
+    for (let i = 4; i >= 0; i--) { if (rem & (1 << (i + 10))) rem ^= g << i; }
+    return ((data << 10) | rem) ^ 0x5412;
+  }
+
+  function encodeQR(text) {
+    const bytes = new TextEncoder().encode(text);
+    let version = 1;
+    for (; version <= 40; version++) {
+      if ((4 + (version <= 9 ? 8 : 16) + bytes.length * 8 + 4) <= getCap(version)) break;
+    }
+    if (version > 40) version = 40;
+    const size = getSize(version);
+    const m = Array(size).fill(0).map(function() { return Array(size).fill(null); });
+    function set(x, y, v) { if (x >= 0 && x < size && y >= 0 && y < size) m[y][x] = v; }
+    function get(x, y) { return m[y][x]; }
+
+    // Finder patterns
+    [[0,0],[size-7,0],[0,size-7]].forEach(function(pos) {
+      const fx = pos[0], fy = pos[1];
+      for (let y = -1; y < 8; y++) for (let x = -1; x < 8; x++) {
+        const px = fx + x, py = fy + y;
+        if (px < 0 || px >= size || py < 0 || py >= size) continue;
+        if (x >= 0 && x < 7 && y >= 0 && y < 7) {
+          set(px, py, (x === 0 || x === 6 || y === 0 || y === 6 || (x >= 2 && x <= 4 && y >= 2 && y <= 4)) ? 1 : 0);
+        }
+      }
+    });
+
+    // Separators
+    for (let i = 0; i < 8; i++) {
+      set(i, 7, 0); set(7, i, 0);
+      set(size - 8 + i, 7, 0); set(size - 8, i, 0);
+      set(i, size - 8, 0); set(7, size - 8 + i, 0);
+    }
+
+    // Timing
+    for (let i = 8; i < size - 8; i++) { set(i, 6, i % 2 === 0 ? 1 : 0); set(6, i, i % 2 === 0 ? 1 : 0); }
+
+    // Dark module
+    set(8, size - 8, 1);
+
+    // Alignment patterns
+    const centers = getCenters(version);
+    for (let i = 0; i < centers.length; i++) for (let j = 0; j < centers.length; j++) {
+      const cx = centers[i], cy = centers[j];
+      if ((cx < 9 && cy < 9) || (cx > size - 10 && cy < 9) || (cx < 9 && cy > size - 10)) continue;
+      for (let y = -2; y <= 2; y++) for (let x = -2; x <= 2; x++) {
+        set(cx + x, cy + y, (Math.abs(x) === 2 || Math.abs(y) === 2 || (x === 0 && y === 0)) ? 1 : 0);
+      }
+    }
+
+    // Reserve format info
+    for (let i = 0; i < 9; i++) { if (get(i, 8) === null) set(i, 8, 0); if (get(8, i) === null) set(8, i, 0); }
+    for (let i = 0; i < 8; i++) { if (get(size - 1 - i, 8) === null) set(size - 1 - i, 8, 0); if (get(8, size - 1 - i) === null) set(8, size - 1 - i, 0); }
+
+    // Bit stream
+    const bits = [0, 1, 0, 0];
+    const cb = version <= 9 ? 8 : 16;
+    for (let i = cb - 1; i >= 0; i--) bits.push((bytes.length >> i) & 1);
+    for (const b of bytes) for (let i = 7; i >= 0; i--) bits.push((b >> i) & 1);
+    const totalBits = getTotal(version) * 8;
+    const tl = Math.min(4, totalBits - bits.length);
+    for (let i = 0; i < tl; i++) bits.push(0);
+    while (bits.length % 8 !== 0 && bits.length < totalBits) bits.push(0);
+    const pad = [0b11101100, 0b00010001]; let pi = 0;
+    while (bits.length < totalBits) { for (let i = 7; i >= 0; i--) bits.push((pad[pi] >> i) & 1); pi = (pi + 1) % 2; }
+
+    // Codewords
+    const dataCW = [];
+    for (let i = 0; i < bits.length; i += 8) { let b = 0; for (let j = 0; j < 8; j++) if (bits[i + j]) b |= (1 << (7 - j)); dataCW.push(b); }
+
+    // Error correction
+    const ecCount = getEC(version);
+    const genPoly = rsGenPoly(ecCount);
+    const ec = new Uint8Array(ecCount);
+    for (const d of dataCW) {
+      const coef = d ^ ec[0];
+      for (let i = 0; i < ecCount - 1; i++) ec[i] = GF256.mul(coef, genPoly[i + 1]) ^ ec[i + 1];
+      ec[ecCount - 1] = GF256.mul(coef, genPoly[ecCount]);
+    }
+    const allCW = dataCW.concat(Array.from(ec));
+
+    // Place data
+    let up = true, col = size - 1, bi = 0;
+    while (col > 0) {
+      if (col === 6) col--;
+      for (let row = 0; row < size; row++) {
+        const y = up ? size - 1 - row : row;
+        for (let c = 0; c < 2; c++) {
+          const x = col - c;
+          if (get(x, y) === null && bi < allCW.length * 8) {
+            set(x, y, (allCW[bi >> 3] >> (7 - (bi & 7))) & 1);
+            bi++;
+          }
+        }
+      }
+      up = !up; col -= 2;
+    }
+
+    // Mask 0
+    for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) if (get(x, y) !== null && ((x + y) % 2 === 0)) set(x, y, 1 - get(x, y));
+
+    // Format info
+    const fb = formatBits('L', 0);
+    for (let i = 0; i < 15; i++) {
+      const bit = (fb >> i) & 1;
+      if (i < 6) set(i, 8, bit); else if (i < 8) set(i + 1, 8, bit); else if (i === 8) set(8, size - 7, bit); else set(8, size - 15 + i, bit);
+    }
+    for (let i = 0; i < 15; i++) {
+      const bit = (fb >> i) & 1;
+      if (i < 6) set(8, size - 1 - i, bit); else if (i < 8) set(8, 15 - i, bit); else if (i === 8) set(size - 7, 8, bit); else set(size - 15 + i, bit);
+    }
+
+    return { size, modules: m };
+  }
+
+  function drawToCanvas(canvas, text, opts) {
+    opts = opts || {};
+    const qr = encodeQR(text);
+    const cell = opts.cell || 4, margin = opts.margin || 4;
+    const total = qr.size + margin * 2;
+    canvas.width = total * cell; canvas.height = total * cell;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = opts.bg || '#FFFFFF';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = opts.fg || '#000000';
+    for (let y = 0; y < qr.size; y++) for (let x = 0; x < qr.size; x++) if (qr.modules[y][x]) ctx.fillRect((x + margin) * cell, (y + margin) * cell, cell, cell);
+  }
+
+  return { encode: encodeQR, draw: drawToCanvas };
+})();
+
+/* ---------- Utilities ---------- */
+function base64UrlEncode(str) { return btoa(str).replace(/[+]/g, '-').replace(/[/]/g, '_').replace(/=+$/, ''); }
+function base64UrlDecode(str) { str = str.replace(/-/g, '+').replace(/_/g, '/'); while (str.length % 4) str += '='; try { return atob(str); } catch (e) { return null; } }
+function sanitizeHTML(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+function truncateAddress(addr, s, e) { s = s || 6; e = e || 4; if (!addr || addr.length < s + e + 3) return addr; return addr.slice(0, s) + '...' + addr.slice(-e); }
+
+/* ---------- Address Validation ---------- */
+const VALIDATORS = {
+  SOL: {
+    regex: /^[1-9A-HJ-NP-Za-km-z]{32,44}$/,
+    test(addr) {
+      if (!this.regex.test(addr)) return false;
+      const chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+      for (const c of addr) if (!chars.includes(c)) return false;
+      return true;
+    }
+  },
+  BTC: {
+    regex: /^(bc1q[ac-hj-np-z02-9]{38,58}|bc1p[ac-hj-np-z02-9]{38,58}|1[a-km-zA-HJ-NP-Z1-9]{25,34}|3[a-km-zA-HJ-NP-Z1-9]{25,34}|xpub[a-zA-Z0-9]{100,112}|zpub[a-zA-Z0-9]{100,112})$/,
+    test(addr) {
+      if (addr.length === 64 || addr.length === 51 || addr.length === 52) {
+        if (/^[5KL][1-9A-HJ-NP-Za-km-z]{50,51}$/.test(addr)) return { error: 'This appears to be a private key (WIF). Never share private keys.' };
+        if (/^[0-9a-fA-F]{64}$/.test(addr)) return { error: 'This appears to be a private key (hex). Never share private keys.' };
+      }
+      return this.regex.test(addr);
+    }
+  },
+  XMR: {
+    regex: /^[48][0-9AB][1-9A-HJ-NP-Za-km-z]{93}$/,
+    test(addr) { return this.regex.test(addr); }
+  }
+};
+
+function validateAddress(coin, addr) {
+  const v = VALIDATORS[coin];
+  if (!v) return false;
+  const r = v.test(addr);
+  if (r && typeof r === 'object' && r.error) return r;
+  return !!r;
+}
+
+function buildURI(coin, addr, amount, title, desc) {
+  const params = new URLSearchParams();
+  if (amount) params.set(coin === 'XMR' ? 'tx_amount' : 'amount', amount);
+  if (title) params.set('message', title);
+  if (desc) params.set('memo', desc);
+  const q = params.toString();
+  if (coin === 'SOL') return 'solana:' + addr + (q ? '?' + q : '');
+  if (coin === 'BTC') return 'bitcoin:' + addr + (q ? '?' + q : '');
+  if (coin === 'XMR') return 'monero:' + addr + (q ? '?' + q : '');
+  return '';
+}
+
+/* ---------- Theme ---------- */
+const themeToggle = document.getElementById('themeToggle');
+function setTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('aurex-theme', theme);
+  themeToggle.textContent = theme === 'dark' ? 'light_mode' : 'dark_mode';
+}
+function initTheme() {
+  const saved = localStorage.getItem('aurex-theme');
+  if (saved) { setTheme(saved); return; }
+  setTheme(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+}
+themeToggle.addEventListener('click', function() {
+  setTheme((document.documentElement.getAttribute('data-theme') || 'dark') === 'dark' ? 'light' : 'dark');
+});
+initTheme();
+
+/* ---------- Toast ---------- */
+function showToast(message, type) {
+  type = type || 'success';
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = 'toast' + (type === 'error' ? ' error' : '');
+  toast.innerHTML = '<span class="toast-icon">' + (type === 'error' ? 'error' : 'check_circle') + '</span><span>' + sanitizeHTML(message) + '</span>';
+  container.appendChild(toast);
+  setTimeout(function() {
+    toast.style.animation = 'toastOut 0.3s var(--md-easing-standard) both';
+    setTimeout(function() { toast.remove(); }, 300);
+  }, 3000);
+}
+
+/* ---------- Clipboard ---------- */
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast('Copied to clipboard');
+    return true;
+  } catch (e) {
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    showToast('Copied to clipboard');
+    return true;
+  }
+}
+
+/* ---------- Modal ---------- */
+const receiveModal = document.getElementById('receiveModal');
+function openModal() { receiveModal.classList.add('active'); document.body.style.overflow = 'hidden'; }
+function closeModal() { receiveModal.classList.remove('active'); document.body.style.overflow = ''; }
+document.getElementById('openReceiveBtn').addEventListener('click', openModal);
+document.getElementById('closeModalBtn').addEventListener('click', closeModal);
+receiveModal.addEventListener('click', function(e) { if (e.target === receiveModal) closeModal(); });
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape' && receiveModal.classList.contains('active')) closeModal(); });
+
+/* ---------- Coin Selection ---------- */
+let selectedCoin = 'SOL';
+const amountUnit = document.getElementById('amountUnit');
+const viewKeyGroup = document.getElementById('viewKeyGroup');
+document.getElementById('coinSelector').addEventListener('click', function(e) {
+  if (!e.target.classList.contains('segmented-btn')) return;
+  document.querySelectorAll('.segmented-btn').forEach(function(b) { b.classList.remove('active'); });
+  e.target.classList.add('active');
+  selectedCoin = e.target.dataset.coin;
+  amountUnit.innerHTML = '<option value="crypto">' + selectedCoin + '</option>';
+  viewKeyGroup.style.display = selectedCoin === 'XMR' ? 'block' : 'none';
+});
+
+/* ---------- Fiat Toggle ---------- */
+const fiatToggle = document.getElementById('fiatToggle');
+const fiatFields = document.getElementById('fiatFields');
+fiatToggle.addEventListener('click', function() {
+  fiatToggle.classList.toggle('active');
+  fiatFields.style.display = fiatToggle.classList.contains('active') ? 'block' : 'none';
+});
+
+/* ---------- Address Validation ---------- */
+const recipientInput = document.getElementById('recipientInput');
+const addressError = document.getElementById('addressError');
+recipientInput.addEventListener('input', function() {
+  const val = recipientInput.value.trim();
+  if (!val) { recipientInput.classList.remove('error'); addressError.style.display = 'none'; return; }
+  const result = validateAddress(selectedCoin, val);
+  if (result && typeof result === 'object' && result.error) {
+    recipientInput.classList.add('error');
+    addressError.textContent = result.error;
+    addressError.style.display = 'block';
+  } else if (!result) {
+    recipientInput.classList.add('error');
+    addressError.textContent = 'Invalid address format for selected currency.';
+    addressError.style.display = 'block';
+  } else {
+    recipientInput.classList.remove('error');
+    addressError.style.display = 'none';
+  }
+});
+
+/* ---------- Generate Payment Request ---------- */
+let currentPayload = null;
+document.getElementById('generateBtn').addEventListener('click', function() {
+  const addr = recipientInput.value.trim();
+  const amount = document.getElementById('amountInput').value.trim();
+  const title = document.getElementById('titleInput').value.trim();
+  const desc = document.getElementById('descInput').value.trim();
+
+  const validation = validateAddress(selectedCoin, addr);
+  if (!validation || typeof validation === 'object') {
+    recipientInput.classList.add('error');
+    addressError.textContent = typeof validation === 'object' ? validation.error : 'Invalid address.';
+    addressError.style.display = 'block';
+    showToast('Please fix the address error', 'error');
+    return;
+  }
+
+  const payload = {
+    version: CONFIG.VERSION,
+    recipient: addr,
+    currency: selectedCoin,
+    amount: amount || undefined,
+    title: title || undefined,
+    description: desc || undefined,
+    created: Date.now(),
+    expiresAt: Date.now() + 24 * 60 * 60 * 1000
+  };
+
+  if (fiatToggle.classList.contains('active')) {
+    const fiatAmt = document.getElementById('fiatAmountInput').value.trim();
+    const fiatCur = document.getElementById('fiatCurrency').value;
+    if (fiatAmt) { payload.fiatAmount = fiatAmt; payload.fiatCurrency = fiatCur; }
+  }
+
+  if (selectedCoin === 'XMR') {
+    const vk = document.getElementById('viewKeyInput').value.trim();
+    if (vk) payload.viewKey = vk;
+  }
+
+  Object.keys(payload).forEach(function(k) { if (payload[k] === undefined) delete payload[k]; });
+
+  currentPayload = payload;
+  const json = JSON.stringify(payload);
+  const b64 = base64UrlEncode(json);
+  const baseUrl = window.location.origin + window.location.pathname;
+  const shareLink = baseUrl + '#data=' + b64;
+  const uri = buildURI(selectedCoin, addr, amount, title, desc);
+
+  document.getElementById('shareLinkText').textContent = shareLink;
+  document.getElementById('uriText').textContent = uri;
+  document.getElementById('resultSection').classList.remove('hidden');
+
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  QRCodeLib.draw(document.getElementById('resultQrCanvas'), shareLink, {
+    cell: 6, margin: 2,
+    fg: isDark ? '#E3E2D3' : '#1A1C17',
+    bg: isDark ? '#1A1C17' : '#FFFFFF'
+  });
+
+  document.getElementById('shareLinkCopy').onclick = function() { copyText(shareLink); };
+  document.getElementById('uriCopy').onclick = function() { copyText(uri); };
+  showToast('Payment request generated!');
+});
+
+/* ---------- Parse URL ---------- */
+function parseSendURL() {
+  const hash = window.location.hash;
+  if (!hash.startsWith('#data=')) return null;
+  const json = base64UrlDecode(hash.slice(6));
+  if (!json) return null;
+  try { return JSON.parse(json); } catch (e) { return null; }
+}
+
+/* ---------- Send View ---------- */
+const homeView = document.getElementById('homeView');
+const sendView = document.getElementById('sendView');
+const homeFooter = document.getElementById('homeFooter');
+const statusBadge = document.getElementById('statusBadge');
+const txResult = document.getElementById('txResult');
+const txHashEl = document.getElementById('txHash');
+const txCopyBlock = document.getElementById('txCopyBlock');
+let monitorInterval = null;
+let wsConnection = null;
+
+function stopMonitoring() {
+  if (monitorInterval) { clearInterval(monitorInterval); monitorInterval = null; }
+  if (wsConnection) { wsConnection.close(); wsConnection = null; }
+}
+
+function setStatus(status, text) {
+  statusBadge.className = 'status-badge status-' + status;
+  statusBadge.textContent = text;
+}
+
+function renderSendView(payload) {
+  homeView.classList.add('hidden');
+  homeFooter.classList.add('hidden');
+  sendView.classList.remove('hidden');
+
+  document.getElementById('sendCoinBadge').textContent = payload.currency;
+  document.getElementById('sendAmount').textContent = (payload.amount ? payload.amount : '0') + ' ' + payload.currency;
+
+  const sendFiat = document.getElementById('sendFiat');
+  if (payload.fiatAmount && payload.fiatCurrency) {
+    sendFiat.textContent = '\u2248 ' + payload.fiatAmount + ' ' + payload.fiatCurrency;
+    sendFiat.classList.remove('hidden');
+  } else sendFiat.classList.add('hidden');
+
+  const sendTitle = document.getElementById('sendTitle');
+  if (payload.title) { sendTitle.textContent = sanitizeHTML(payload.title); sendTitle.classList.remove('hidden'); }
+  else sendTitle.classList.add('hidden');
+
+  const sendDesc = document.getElementById('sendDesc');
+  if (payload.description) { sendDesc.textContent = sanitizeHTML(payload.description); sendDesc.classList.remove('hidden'); }
+  else sendDesc.classList.add('hidden');
+
+  const sendRecipient = document.getElementById('sendRecipient');
+  sendRecipient.textContent = truncateAddress(payload.recipient);
+  sendRecipient.title = payload.recipient;
+
+  const uri = buildURI(payload.currency, payload.recipient, payload.amount, payload.title, payload.description);
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  QRCodeLib.draw(document.getElementById('qrCanvas'), uri, {
+    cell: 6, margin: 2,
+    fg: isDark ? '#E3E2D3' : '#1A1C17',
+    bg: isDark ? '#1A1C17' : '#FFFFFF'
+  });
+
+  document.getElementById('copyUriBtn').onclick = function() { copyText(uri); };
+  document.getElementById('copyLinkBtn').onclick = function() { copyText(window.location.href); };
+
+  const walletActions = document.getElementById('walletActions');
+  walletActions.innerHTML = '';
+
+  if (payload.currency === 'SOL') {
+    const hasPhantom = !!window.solana;
+    const hasSolflare = !!window.solflare;
+    walletActions.innerHTML = '<div class="wallet-list">' +
+      '<div class="wallet-item" id="phantomPay">' +
+        '<div class="wallet-icon">account_balance_wallet</div>' +
+        '<div class="wallet-info">' +
+          '<div class="wallet-name">Phantom</div>' +
+          '<div class="wallet-status ' + (hasPhantom ? 'detected' : '') + '">' + (hasPhantom ? 'Detected' : 'Not installed') + '</div>' +
+        '</div>' +
+        '<span class="btn-icon" style="color:var(--md-on-surface-variant);">arrow_forward</span>' +
+      '</div>' +
+      '<div class="wallet-item" id="solflarePay">' +
+        '<div class="wallet-icon">flare</div>' +
+        '<div class="wallet-info">' +
+          '<div class="wallet-name">Solflare</div>' +
+          '<div class="wallet-status ' + (hasSolflare ? 'detected' : '') + '">' + (hasSolflare ? 'Detected' : 'Not installed') + '</div>' +
+        '</div>' +
+        '<span class="btn-icon" style="color:var(--md-on-surface-variant);">arrow_forward</span>' +
+      '</div>' +
+    '</div>';
+
+    document.getElementById('phantomPay').addEventListener('click', function() {
+      if (window.solana) {
+        window.solana.connect().then(function() {
+          const tx = new window.solana.Transaction().add(
+            window.solana.SystemProgram.transfer({
+              fromPubkey: window.solana.publicKey,
+              toPubkey: new window.solana.PublicKey(payload.recipient),
+              lamports: payload.amount ? Math.floor(parseFloat(payload.amount) * 1e9) : 0
+            })
+          );
+          window.solana.signAndSendTransaction(tx).then(function(sig) {
+            showToast('Transaction sent: ' + truncateAddress(sig.signature));
+            setStatus('detected', 'Transaction Sent');
+          }).catch(function(err) { showToast(err.message, 'error'); });
+        });
+      } else { window.open(uri, '_blank'); }
+    });
+
+    document.getElementById('solflarePay').addEventListener('click', function() {
+      if (window.solflare) { window.solflare.connect().then(function() { showToast('Connected to Solflare'); }); }
+      else { window.open(uri, '_blank'); }
+    });
+
+    startSolanaMonitor(payload.recipient);
+
+  } else if (payload.currency === 'BTC') {
+    const hasAlby = !!window.webln;
+    walletActions.innerHTML = '<div class="wallet-list">' +
+      '<div class="wallet-item" id="albyPay">' +
+        '<div class="wallet-icon">bolt</div>' +
+        '<div class="wallet-info">' +
+          '<div class="wallet-name">Alby / WebLN</div>' +
+          '<div class="wallet-status ' + (hasAlby ? 'detected' : '') + '">' + (hasAlby ? 'Detected' : 'Not installed') + '</div>' +
+        '</div>' +
+        '<span class="btn-icon" style="color:var(--md-on-surface-variant);">arrow_forward</span>' +
+      '</div>' +
+      '<div class="wallet-item" id="openBtcWallet">' +
+        '<div class="wallet-icon">open_in_new</div>' +
+        '<div class="wallet-info">' +
+          '<div class="wallet-name">Open in Wallet App</div>' +
+          '<div class="wallet-status">Bitcoin URI protocol</div>' +
+        '</div>' +
+        '<span class="btn-icon" style="color:var(--md-on-surface-variant);">arrow_forward</span>' +
+      '</div>' +
+    '</div>';
+
+    document.getElementById('albyPay').addEventListener('click', function() {
+      if (window.webln) { window.webln.enable().then(function() { window.webln.sendPayment(uri); }); }
+      else { window.open(uri, '_blank'); }
+    });
+    document.getElementById('openBtcWallet').addEventListener('click', function() { window.open(uri, '_blank'); });
+    startBitcoinMonitor(payload.recipient);
+
+  } else if (payload.currency === 'XMR') {
+    walletActions.innerHTML = '<div class="wallet-list">' +
+      '<div class="wallet-item" id="openXmrWallet">' +
+        '<div class="wallet-icon">open_in_new</div>' +
+        '<div class="wallet-info">' +
+          '<div class="wallet-name">Open Monero Wallet</div>' +
+          '<div class="wallet-status">Monero URI protocol</div>' +
+        '</div>' +
+        '<span class="btn-icon" style="color:var(--md-on-surface-variant);">arrow_forward</span>' +
+      '</div>' +
+    '</div>' +
+    '<div style="margin-top:12px;">' +
+      '<div class="label" style="margin-bottom:8px;">Manual Transfer</div>' +
+      '<div class="copy-block" id="xmrAddrCopy" style="margin-bottom:8px;">' +
+        '<span>' + payload.recipient + '</span>' +
+        '<span class="btn-icon">content_copy</span>' +
+      '</div>' +
+      (payload.amount ? '<div class="copy-block" id="xmrAmtCopy">' +
+        '<span>' + payload.amount + ' XMR</span>' +
+        '<span class="btn-icon">content_copy</span>' +
+      '</div>' : '') +
+    '</div>';
+
+    document.getElementById('openXmrWallet').addEventListener('click', function() { window.open(uri, '_blank'); });
+    document.getElementById('xmrAddrCopy').addEventListener('click', function() { copyText(payload.recipient); });
+    if (payload.amount) document.getElementById('xmrAmtCopy').addEventListener('click', function() { copyText(payload.amount); });
+    startMoneroMonitor(payload.recipient, payload.viewKey);
+  }
+
+  setStatus('awaiting', 'Awaiting Payment...');
+}
+
+/* ---------- Monitoring ---------- */
+function startSolanaMonitor(pubkey) {
+  stopMonitoring();
+  try {
+    wsConnection = new WebSocket(CONFIG.SOLANA_RPC_WS);
+    wsConnection.onopen = function() {
+      wsConnection.send(JSON.stringify({
+        jsonrpc: '2.0', id: 1, method: 'accountSubscribe',
+        params: [pubkey, { encoding: 'base64', commitment: 'confirmed' }]
+      }));
+    };
+    wsConnection.onmessage = function(e) {
+      const data = JSON.parse(e.data);
+      if (data.method === 'accountNotification') {
+        setStatus('detected', 'Transaction Detected');
+        showToast('Incoming transaction detected!');
+        setTimeout(function() { setStatus('confirmed', 'Payment Confirmed'); }, 3000);
+        stopMonitoring();
+      }
+    };
+    wsConnection.onerror = function() { startSolanaHttpPoll(pubkey); };
+  } catch (e) { startSolanaHttpPoll(pubkey); }
+}
+
+function startSolanaHttpPoll(pubkey) {
+  let lastLamports = null;
+  monitorInterval = setInterval(async function() {
+    try {
+      const res = await fetch(CONFIG.SOLANA_RPC_HTTP, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getBalance', params: [pubkey] })
+      });
+      const data = await res.json();
+      if (data.result && data.result.value !== undefined) {
+        if (lastLamports !== null && data.result.value > lastLamports) {
+          setStatus('detected', 'Transaction Detected');
+          showToast('Incoming SOL detected!');
+          setTimeout(function() { setStatus('confirmed', 'Payment Confirmed'); }, 3000);
+          stopMonitoring();
+        }
+        lastLamports = data.result.value;
+      }
+    } catch (e) { }
+  }, 8000);
+}
+
+function startBitcoinMonitor(address) {
+  stopMonitoring();
+  let lastTxCount = 0;
+  monitorInterval = setInterval(async function() {
+    try {
+      const res = await fetch(CONFIG.MEMPOOL_API + '/address/' + address);
+      const data = await res.json();
+      if (data.chain_stats) {
+        const txCount = data.chain_stats.tx_count;
+        if (lastTxCount > 0 && txCount > lastTxCount) {
+          setStatus('detected', 'Transaction Detected');
+          showToast('Incoming BTC detected!');
+          const txRes = await fetch(CONFIG.MEMPOOL_API + '/address/' + address + '/txs');
+          const txs = await txRes.json();
+          if (txs && txs.length > 0) {
+            txHashEl.textContent = txs[0].txid;
+            txCopyBlock.onclick = function() { copyText(txs[0].txid); };
+            txResult.classList.remove('hidden');
+          }
+          setTimeout(function() { setStatus('confirmed', 'Payment Confirmed'); }, 3000);
+          stopMonitoring();
+        }
+        lastTxCount = txCount;
+      }
+    } catch (e) { }
+  }, 12000);
+}
+
+function startMoneroMonitor(address, viewKey) {
+  stopMonitoring();
+  setStatus('awaiting', 'Awaiting Payment...');
+}
+
+/* ---------- Paste Link ---------- */
+document.getElementById('pasteLinkBtn').addEventListener('click', async function() {
+  try {
+    const text = await navigator.clipboard.readText();
+    if (text.includes('#data=')) { window.location.href = text; }
+    else { showToast('No valid payment link found in clipboard', 'error'); }
+  } catch (e) { showToast('Unable to read clipboard', 'error'); }
+});
+
+/* ---------- License Modal ---------- */
+document.getElementById('licenseLink').addEventListener('click', function(e) {
+  e.preventDefault();
+  const licenseText = 'MIT License\n\nCopyright (c) 2026 Aurex Labs\n\nPermission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.';
+  showToast('License copied to clipboard');
+  copyText(licenseText);
+});
+
+/* ---------- Init ---------- */
+function init() {
+  const payload = parseSendURL();
+  if (payload) renderSendView(payload);
+}
+
+window.addEventListener('DOMContentLoaded', init);
+window.addEventListener('hashchange', function() {
+  stopMonitoring();
+  const payload = parseSendURL();
+  if (payload) renderSendView(payload);
+  else { sendView.classList.add('hidden'); homeView.classList.remove('hidden'); homeFooter.classList.remove('hidden'); }
+});
+</script>
+</body>
+</html>

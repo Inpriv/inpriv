@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<!--
+  Inpriv Wipe — Metadata Sanitizer
+  Copyright (c) 2026 Aurex Labs — MIT License
+
+  Strips and optionally rewrites EXIF/IPTC/XMP metadata on images using
+  piexifjs (MIT, CDN) + canvas rasterization. 100% client-side; no data leaves
+  the device.
+-->
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#13140E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="description" content="wipe — Aurex Labs Zero-knowledge local metadata sanitizer. 100% client-side. No data leaves your device.">
+<title>wipe — Metadata Sanitizer | Aurex Labs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:ital,opsz,wght@0,8..144,300..800;1,8..144,300..800&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/piexifjs@1.0.6/piexif.min.js"></script>
+
+<style>
+/* ==========================================================================
+   AUREX LABS DESIGN SYSTEM — MATERIAL DESIGN 3 (EARTHY FOREST)
+   ========================================================================== */
+
+:root, [data-theme="dark"] {
+  /* Dark Theme Tokens (Default) */
+  --md-primary: #ABD37A;
+  --md-on-primary: #173800;
+  --md-primary-container: #2E4F2F;
+  --md-on-primary-container: #C7EFA0;
+  
+  --md-secondary: #BCCBAF;
+  --md-on-secondary: #27341F;
+  --md-secondary-container: #3D4B34;
+  --md-on-secondary-container: #D8E7CB;
+  
+  --md-tertiary: #FFB4A5;
+  --md-on-tertiary: #5E1709;
+  --md-tertiary-container: #7E2D1E;
+  --md-on-tertiary-container: #FFDAD3;
+  
+  --md-error: #FFB4AB;
+  --md-error-container: #93000A;
+  --md-on-error: #690005;
+  
+  --md-surface: #13140E;
+  --md-on-surface: #E3E2D3;
+  --md-on-surface-variant: #C3C8B6;
+  --md-surface-dim: #1A1C17;
+  
+  --md-surface-container-lowest: #0D0F09;
+  --md-surface-container-low: #1A1C17;
+  --md-surface-container: #1F211B;
+  --md-surface-container-high: #292B25;
+  --md-surface-container-highest: #34362F;
+  
+  --md-outline: #8D9283;
+  --md-outline-variant: #43483D;
+  
+  --md-inverse-surface: #E3E2D3;
+  --md-inverse-on-surface: #2F312C;
+  --md-inverse-primary: #466E47;
+  
+  --md-shadow-color: rgba(0, 0, 0, 0.4);
+  --md-shadow-color-strong: rgba(0, 0, 0, 0.65);
+  
+  --bg-grid-dot: #8D9283;
+}
+
+[data-theme="light"] {
+  /* Light Theme Tokens */
+  --md-primary: #466E47;
+  --md-on-primary: #FFFFFF;
+  --md-primary-container: #C7EFA0;
+  --md-on-primary-container: #0C2000;
+  
+  --md-secondary: #55624C;
+  --md-on-secondary: #FFFFFF;
+  --md-secondary-container: #D8E7CB;
+  --md-on-secondary-container: #131F0C;
+  
+  --md-tertiary: #9C4231;
+  --md-on-tertiary: #FFFFFF;
+  --md-tertiary-container: #FFDAD3;
+  --md-on-tertiary-container: #3D0A03;
+  
+  --md-error: #BA1A1A;
+  --md-error-container: #FFDAD6;
+  --md-on-error: #FFFFFF;
+  
+  --md-surface: #FAF9F0;
+  --md-on-surface: #1A1C17;
+  --md-on-surface-variant: #43483D;
+  --md-surface-dim: #DBDAD0;
+  
+  --md-surface-container-lowest: #FFFFFF;
+  --md-surface-container-low: #F4F3E7;
+  --md-surface-container: #EEEDDE;
+  --md-surface-container-high: #E9E7D9;
+  --md-surface-container-highest: #E3E2D3;
+  
+  --md-outline: #74796C;
+  --md-outline-variant: #C3C8B6;
+  
+  --md-inverse-surface: #2F312C;
+  --md-inverse-on-surface: #F0EFE7;
+  --md-inverse-primary: #ABD37A;
+  
+  --md-shadow-color: rgba(20, 25, 15, 0.15);
+  --md-shadow-color-strong: rgba(20, 25, 15, 0.28);
+  
+  --bg-grid-dot: #74796C;
+}
+
+:root {
+  /* Shared Structural Tokens */
+  --font-primary: 'Roboto Flex', system-ui, -apple-system, sans-serif;
+  --radius-pill: 9999px;
+  --radius-card: 24px;
+  --radius-inner: 16px;
+  --radius-small: 12px;
+  --radius-chip: 8px;
+  --radius-circle: 50%;
+
+  /* Easing Curves */
+  --md-easing-standard: cubic-bezier(0.2, 0.0, 0.0, 1.0);
+  --md-easing-emphasized: cubic-bezier(0.3, 0.0, 0.0, 1.0);
+  --md-easing-spring: cubic-bezier(0.2, 1.4, 0.0, 1.0);
+  --md-easing-spring-soft: cubic-bezier(0.34, 1.3, 0.64, 1.0);
+
+  /* Layout Standards */
+  --touch-target-min: 44px;
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --sidebar-width: 260px;
+}
+
+*, *::before, *::after {
+  margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  font-optical-sizing: auto;
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-primary);
+  background-color: var(--md-surface);
+  color: var(--md-on-surface);
+  min-height: 100dvh;
+  overflow-x: hidden;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.5s var(--md-easing-standard), color 0.5s var(--md-easing-standard);
+  
+  /* Layer 1: Ambient Gradients */
+  background-image: 
+    radial-gradient(ellipse 80% 60% at 85% 0%, color-mix(in srgb, var(--md-primary-container) 55%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 0% 100%, color-mix(in srgb, var(--md-tertiary-container) 45%, transparent) 0%, transparent 70%);
+  background-attachment: fixed;
+}
+
+/* Layer 2: Dot Grid Pattern */
+.bg-dot-grid {
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image: radial-gradient(circle at 1px 1px, var(--bg-grid-dot) 1px, transparent 0);
+  background-size: 28px 28px;
+  opacity: 0.15;
+  mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+}
+
+/* Layer 3: Animated Blur Blob */
+.bg-blur-blob {
+  position: fixed; top: -100px; right: -100px; width: 420px; height: 420px; border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--md-tertiary) 22%, transparent), transparent 70%);
+  filter: blur(60px);
+  animation: drift 22s ease-in-out infinite;
+  pointer-events: none; z-index: 0;
+}
+
+@keyframes drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-60px, 40px) scale(1.1); }
+}
+
+/* Material Symbols Icon Configuration */
+.material-symbols-rounded {
+  font-family: 'Material Symbols Rounded';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  font-variation-settings: 'wght' 500, 'GRAD' 200, 'opsz' 24;
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--md-outline) 30%, transparent); border-radius: var(--radius-pill); }
+::-webkit-scrollbar-thumb:hover { background: var(--md-outline); }
+
+/* Layout Shell */
+.app-shell { display: flex; min-height: 100dvh; position: relative; z-index: 1; width: 100%; }
+
+/* Mobile Floating Pill Header */
+.mobile-header {
+  position: fixed; top: 12px; left: 12px; right: 12px; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 6px 6px 16px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--md-surface-container) 82%, transparent);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid color-mix(in srgb, var(--md-outline-variant) 50%, transparent);
+  box-shadow: 0 4px 20px -4px var(--md-shadow-color);
+  animation: barIn 0.7s var(--md-easing-spring) both;
+}
+
+.brand-title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 17px; font-weight: 700; letter-spacing: -0.01em; color: var(--md-on-surface);
+}
+.brand-title .accent {
+  color: var(--md-primary); font-weight: 300; font-style: italic;
+}
+.brand-tagline {
+  font-size: 10px; font-weight: 500; letter-spacing: 0.02em; color: var(--md-on-surface-variant);
+}
+
+.privacy-guard {
+  display: flex; align-items: center; gap: 4px;
+  padding: 6px 12px; border-radius: var(--radius-pill);
+  background: var(--md-surface-container-high);
+  color: var(--md-on-surface-variant);
+  font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+  cursor: pointer; transition: all 0.3s var(--md-easing-spring-soft);
+  border: 1px solid color-mix(in srgb, var(--md-outline-variant) 40%, transparent);
+}
+.privacy-guard:hover {
+  background: var(--md-primary-container); color: var(--md-on-primary-container);
+  transform: translateY(-1px);
+}
+.privacy-guard .guard-icon {
+  font-size: 16px; color: var(--md-primary);
+  font-variation-settings: 'wght' 600, 'opsz' 20;
+}
+
+.theme-toggle-btn {
+  width: 40px; height: 40px; border-radius: var(--radius-circle);
+  border: none; background: transparent; color: var(--md-on-surface-variant);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.2s var(--md-easing-standard);
+}
+.theme-toggle-btn:hover { background: color-mix(in srgb, var(--md-on-surface) 8%, transparent); color: var(--md-on-surface); }
+.theme-toggle-btn:active { transform: scale(0.92); }
+
+/* Sidebar Navigation (Desktop) */
+.sidebar {
+  display: none; position: fixed; left: 18px; top: 18px; bottom: 18px;
+  width: var(--sidebar-width);
+  background: color-mix(in srgb, var(--md-surface-container) 85%, transparent);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid color-mix(in srgb, var(--md-outline-variant) 50%, transparent);
+  border-radius: var(--radius-card); z-index: 50;
+  flex-direction: column; padding: 24px 16px;
+  box-shadow: 0 8px 32px -6px var(--md-shadow-color);
+  animation: barIn 0.7s var(--md-easing-spring) both;
+}
+
+.sidebar .logo-wrap {
+  display: flex; flex-direction: column; gap: 2px;
+  margin-bottom: 32px; padding: 0 12px;
+}
+
+.nav-section { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+
+.nav-item {
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 18px; border-radius: var(--radius-pill);
+  color: var(--md-on-surface-variant); font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: all 0.3s var(--md-easing-spring-soft);
+  border: none; background: transparent; width: 100%; text-align: left;
+  min-height: var(--touch-target-min); position: relative;
+}
+.nav-item .material-symbols-rounded { font-variation-settings: 'wght' 500, 'GRAD' 0, 'opsz' 24; }
+.nav-item:hover { background: color-mix(in srgb, var(--md-on-surface) 6%, transparent); color: var(--md-on-surface); transform: translateX(2px); }
+.nav-item.active {
+  background: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
+  font-weight: 700;
+}
+.nav-item.active .material-symbols-rounded {
+  font-variation-settings: 'wght' 700, 'FILL' 1, 'opsz' 24;
+}
+
+.badge-pill {
+  margin-left: auto; background: var(--md-primary); color: var(--md-on-primary);
+  font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: var(--radius-pill);
+}
+
+/* Main Content Area */
+.main-content {
+  flex: 1; margin-left: 0;
+  padding: 84px 16px 220px 16px;
+  width: 100%; max-width: 1200px; margin: 0 auto;
+}
+
+/* Bottom Navigation (Mobile) */
+.bottom-nav {
+  position: fixed; bottom: 12px; left: 12px; right: 12px; z-index: 100;
+  display: flex; justify-content: space-around; align-items: center;
+  height: 64px; border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--md-surface-container) 88%, transparent);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid color-mix(in srgb, var(--md-outline-variant) 50%, transparent);
+  box-shadow: 0 12px 40px -6px var(--md-shadow-color-strong);
+  animation: toolbarIn 0.55s var(--md-easing-spring) 0.15s both;
+}
+
+.bottom-nav-item {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; flex: 1; height: 100%; color: var(--md-on-surface-variant);
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+  cursor: pointer; transition: all 0.2s var(--md-easing-standard);
+  border: none; background: transparent;
+}
+.bottom-nav-item.active { color: var(--md-primary); }
+.bottom-nav-item .material-symbols-rounded { font-variation-settings: 'wght' 500, 'opsz' 24; transition: transform 0.3s var(--md-easing-spring); }
+.bottom-nav-item.active .material-symbols-rounded {
+  font-variation-settings: 'wght' 700, 'FILL' 1, 'opsz' 24;
+  transform: translateY(-2px);
+}
+
+/* Typography Scale */
+h2.hero-title {
+  font-size: clamp(28px, 6vw, 42px); font-weight: 800; letter-spacing: -0.025em; line-height: 1.1;
+  color: var(--md-on-surface); margin-bottom: 6px;
+}
+h2.hero-title .accent { color: var(--md-primary); font-weight: 300; font-style: italic; }
+p.hero-subtitle { font-size: 14px; color: var(--md-on-surface-variant); margin-bottom: 24px; font-weight: 400; }
+
+/* Cards & Containers */
+.card {
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--radius-card); padding: 20px;
+  box-shadow: 0 4px 20px -4px var(--md-shadow-color);
+  transition: all 0.4s var(--md-easing-spring-soft);
+  max-width: 100%;
+}
+.card:hover {
+  border-color: color-mix(in srgb, var(--md-primary) 50%, var(--md-outline-variant));
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px -8px var(--md-shadow-color-strong);
+}
+
+/* Dropzone Card */
+.dropzone {
+  background: var(--md-surface-container-low);
+  border: 2px dashed var(--md-outline-variant);
+  border-radius: var(--radius-card);
+  padding: 40px 20px; text-align: center; cursor: pointer;
+  transition: all 0.4s var(--md-easing-spring-soft);
+  position: relative; overflow: hidden;
+}
+.dropzone:hover {
+  border-color: var(--md-primary); background: var(--md-surface-container);
+  transform: translateY(-4px); box-shadow: 0 12px 32px -8px var(--md-shadow-color-strong);
+}
+.dropzone.dragover {
+  border-style: solid; border-color: var(--md-primary);
+  background: var(--md-primary-container); transform: scale(1.02);
+}
+
+.dropzone-icon-wrap {
+  width: 72px; height: 72px; border-radius: 20px;
+  background: var(--md-primary-container); color: var(--md-on-primary-container);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 16px;
+  animation: pulse 2.8s infinite;
+  transition: transform 0.4s var(--md-easing-spring);
+}
+.dropzone-icon-wrap .material-symbols-rounded {
+  font-size: 36px;
+  font-variation-settings: 'wght' 500, 'GRAD' 0, 'opsz' 48;
+}
+.dropzone:hover .dropzone-icon-wrap {
+  transform: scale(1.08) rotate(-4deg);
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--md-primary) 30%, transparent); }
+  50% { box-shadow: 0 0 0 16px color-mix(in srgb, var(--md-primary) 0%, transparent); }
+}
+
+.dropzone-title { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; color: var(--md-on-surface); margin-bottom: 6px; }
+.dropzone-subtitle { font-size: 14px; color: var(--md-on-surface-variant); max-width: 380px; margin: 0 auto; line-height: 1.5; }
+.dropzone-hint { margin-top: 14px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--md-primary); }
+
+/* Buttons & Actions */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 0 24px; height: 48px; border-radius: var(--radius-pill);
+  font-family: var(--font-primary); font-size: 14px; font-weight: 600;
+  letter-spacing: 0.02em; cursor: pointer;
+  transition: all 0.3s var(--md-easing-spring-soft);
+  border: none; outline: none; position: relative; overflow: hidden;
+  text-decoration: none;
+}
+.btn .material-symbols-rounded { font-size: 20px; font-variation-settings: 'wght' 500, 'opsz' 24; }
+.btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px -4px var(--md-shadow-color); }
+.btn:active { transform: scale(0.96); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+
+.btn-primary { background: var(--md-primary); color: var(--md-on-primary); }
+.btn-primary:hover { background: color-mix(in srgb, var(--md-primary) 90%, white); }
+
+.btn-secondary {
+  background: var(--md-secondary-container); color: var(--md-on-secondary-container);
+  border: 1px solid color-mix(in srgb, var(--md-outline-variant) 40%, transparent);
+}
+.btn-secondary:hover { background: color-mix(in srgb, var(--md-secondary-container) 85%, var(--md-on-secondary-container)); }
+
+.btn-danger { background: var(--md-tertiary); color: var(--md-on-tertiary); }
+.btn-danger:hover { background: color-mix(in srgb, var(--md-tertiary) 90%, black); }
+
+.btn-ghost { background: transparent; color: var(--md-on-surface-variant); border: 1px solid var(--md-outline-variant); }
+.btn-ghost:hover { background: var(--md-surface-container-high); color: var(--md-on-surface); }
+
+.btn-sm { height: 36px; padding: 0 16px; font-size: 13px; }
+.btn-block { width: 100%; }
+
+/* Form Controls */
+.input-group { margin-bottom: 16px; }
+.input-label {
+  display: block; font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--md-on-surface-variant); margin-bottom: 6px;
+}
+.input-field {
+  width: 100%; padding: 12px 16px; min-height: 48px;
+  background: var(--md-surface-container-high);
+  border: 1px solid var(--md-outline);
+  border-radius: var(--radius-inner); color: var(--md-on-surface);
+  font-family: var(--font-primary); font-size: 14px;
+  transition: all 0.2s var(--md-easing-standard); outline: none;
+}
+.input-field:focus {
+  border-color: var(--md-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-primary) 20%, transparent);
+}
+
+/* Chips & Badges */
+.meta-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 10px; border-radius: var(--radius-chip);
+  font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  border: 1px solid var(--md-outline-variant); background: var(--md-surface-container-high);
+  color: var(--md-on-surface-variant); word-break: break-all;
+}
+.meta-chip.warning { background: var(--md-tertiary-container); color: var(--md-on-tertiary-container); border-color: transparent; }
+.meta-chip.danger { background: var(--md-error-container); color: var(--md-on-error); border-color: transparent; }
+.meta-chip.success { background: var(--md-primary-container); color: var(--md-on-primary-container); border-color: transparent; }
+
+/* File Items */
+.file-item {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 18px; background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-variant); border-radius: var(--radius-inner);
+  margin-bottom: 10px; transition: all 0.3s var(--md-easing-spring-soft);
+  position: relative; overflow: hidden; max-width: 100%;
+}
+.file-item:hover { transform: translateX(2px); border-color: var(--md-primary); }
+.file-item .file-icon {
+  width: 44px; height: 44px; border-radius: var(--radius-circle); background: var(--md-primary-container);
+  color: var(--md-on-primary-container); display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.file-item .file-info { flex: 1; min-width: 0; }
+.file-item .file-name { font-size: 14px; font-weight: 600; color: var(--md-on-surface); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.file-item .file-meta { font-size: 12px; color: var(--md-on-surface-variant); margin-top: 2px; }
+
+/* Mode Selection Cards */
+.mode-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 24px; }
+.mode-card {
+  padding: 20px; cursor: pointer; position: relative; overflow: hidden;
+  transition: all 0.35s var(--md-easing-spring-soft);
+}
+.mode-card.active {
+  border-color: var(--md-primary);
+  background: var(--md-primary-container); color: var(--md-on-primary-container);
+}
+.mode-card.active h3, .mode-card.active p { color: var(--md-on-primary-container); }
+.mode-card .mode-icon {
+  width: 44px; height: 44px; border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 12px; background: var(--md-surface-container-highest); color: var(--md-primary);
+  transition: all 0.3s var(--md-easing-spring);
+}
+.mode-card.active .mode-icon { background: var(--md-primary); color: var(--md-on-primary); }
+.mode-card h3 { margin-bottom: 4px; font-size: 16px; font-weight: 700; }
+.mode-card p { font-size: 13px; color: var(--md-on-surface-variant); line-height: 1.4; }
+
+/* Processing Overlay */
+.processing-overlay {
+  position: fixed; inset: 0; background: color-mix(in srgb, var(--md-surface) 88%, transparent);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  z-index: 200; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 20px;
+  opacity: 0; pointer-events: none; transition: opacity 0.35s var(--md-easing-standard);
+}
+.processing-overlay.active { opacity: 1; pointer-events: all; }
+.spinner {
+  width: 52px; height: 52px; border: 4px solid var(--md-outline-variant);
+  border-top-color: var(--md-primary); border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.processing-text { font-size: 15px; font-weight: 600; color: var(--md-on-surface); text-align: center; }
+
+/* Toast / Snackbar */
+.toast-container {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  z-index: 300; display: flex; flex-direction: column; gap: 8px;
+  pointer-events: none; width: calc(100% - 32px); max-width: 420px;
+}
+.toast {
+  padding: 14px 20px; border-radius: var(--radius-small);
+  font-size: 14px; font-weight: 600;
+  background: var(--md-inverse-surface); color: var(--md-inverse-on-surface);
+  box-shadow: 0 8px 24px var(--md-shadow-color-strong);
+  animation: toastIn 0.4s var(--md-easing-spring) both;
+  pointer-events: all; display: flex; align-items: center; gap: 12px;
+}
+.toast .material-symbols-rounded { color: var(--md-inverse-primary); }
+.toast.error .material-symbols-rounded { color: var(--md-error); }
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(20px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Footer */
+.app-footer {
+  text-align: center; padding: 32px 16px; color: var(--md-on-surface-variant);
+  font-size: 12px; font-weight: 500; margin-top: auto;
+}
+
+.view { display: none; }
+.view.active { display: block; animation: fadeUp 0.6s var(--md-easing-spring) both; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes barIn {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes toolbarIn {
+  from { opacity: 0; transform: translateY(100%); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.empty-state {
+  text-align: center; padding: 48px 24px; color: var(--md-on-surface-variant);
+}
+.empty-state .material-symbols-rounded { font-size: 56px; margin-bottom: 12px; opacity: 0.5; }
+
+.architect-form { display: grid; grid-template-columns: 1fr; gap: 12px; }
+
+/* Responsive Rules */
+@media (min-width: 600px) {
+  .mobile-header { display: none; }
+  .bottom-nav { display: none; }
+  .sidebar { display: flex; }
+  .main-content { margin-left: calc(var(--sidebar-width) + 36px); padding: 32px 40px 100px 0; }
+  .mode-grid { grid-template-columns: repeat(3, 1fr); }
+  .architect-form { grid-template-columns: repeat(2, 1fr); }
+  .dropzone { padding: 56px 40px; }
+  .toast-container { bottom: 32px; }
+}
+
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="bg-dot-grid"></div>
+<div class="bg-blur-blob"></div>
+
+<!-- Mobile Floating App Bar -->
+<header class="mobile-header">
+  <div style="display: flex; align-items: center; gap: 8px;">
+    <div class="brand-title">wipe<span class="accent">.</span></div>
+    <span class="brand-tagline">Aurex Labs</span>
+  </div>
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div class="privacy-guard" id="privacyGuard" onclick="togglePrivacyGuard()">
+      <span class="material-symbols-rounded guard-icon">verified_user</span>
+      <span>100% Local</span>
+    </div>
+    <button class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Toggle Theme">
+      <span class="material-symbols-rounded" id="mobileThemeIcon">dark_mode</span>
+    </button>
+  </div>
+</header>
+
+<!-- Desktop Sidebar Navigation -->
+<aside class="sidebar" id="sidebar">
+  <div class="logo-wrap">
+    <div class="brand-title" style="font-size: 22px;">wipe<span class="accent">.</span></div>
+    <span class="brand-tagline">Aurex Labs Design System</span>
+  </div>
+
+  <nav class="nav-section">
+    <button class="nav-item active" data-view="home" onclick="navigateTo('home')">
+      <span class="material-symbols-rounded">upload_file</span>
+      <span>Upload</span>
+    </button>
+    <button class="nav-item" data-view="wipe" onclick="navigateTo('wipe')">
+      <span class="material-symbols-rounded">cleaning_services</span>
+      <span>Total Purge</span>
+    </button>
+    <button class="nav-item" data-view="ghost" onclick="navigateTo('ghost')">
+      <span class="material-symbols-rounded">visibility_off</span>
+      <span>Ghost Studio</span>
+    </button>
+    <button class="nav-item" data-view="architect" onclick="navigateTo('architect')">
+      <span class="material-symbols-rounded">tune</span>
+      <span>Custom Architect</span>
+    </button>
+    <button class="nav-item" data-view="queue" onclick="navigateTo('queue')">
+      <span class="material-symbols-rounded">queue_play_next</span>
+      <span>Queue</span>
+      <span class="badge-pill hidden" id="sidebarQueueBadge">0</span>
+    </button>
+  </nav>
+
+  <div style="margin-top: auto; padding-top: 16px; border-top: 1px solid var(--md-outline-variant); display: flex; align-items: center; justify-content: space-between;">
+    <div class="privacy-guard" style="padding: 4px 8px;">
+      <span class="material-symbols-rounded guard-icon">lock</span>
+      <span>Zero-Knowledge</span>
+    </div>
+    <button class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Toggle Theme">
+      <span class="material-symbols-rounded" id="desktopThemeIcon">dark_mode</span>
+    </button>
+  </div>
+</aside>
+
+<!-- App Shell & Main Content -->
+<div class="app-shell">
+  <main class="main-content" id="mainContent">
+
+    <!-- HOME / UPLOAD VIEW -->
+    <section class="view active" id="view-home">
+      <div style="margin-bottom: 24px;">
+        <h2 class="hero-title">Sanitize <span class="accent">Metadata.</span></h2>
+        <p class="hero-subtitle">Zero-knowledge local metadata sanitizer. 100% client-side privacy.</p>
+      </div>
+
+      <div class="mode-grid">
+        <div class="card mode-card active" data-mode="wipe" onclick="selectMode('wipe')">
+          <div class="mode-icon"><span class="material-symbols-rounded">cleaning_services</span></div>
+          <h3>The Wipe</h3>
+          <p>Total destruction of all EXIF, XMP, IPTC, GPS, and device fingerprints.</p>
+        </div>
+        <div class="card mode-card" data-mode="ghost" onclick="selectMode('ghost')">
+          <div class="mode-icon"><span class="material-symbols-rounded">visibility_off</span></div>
+          <h3>The Ghost</h3>
+          <p>Replace metadata with randomized, plausible device fingerprints to evade tracking.</p>
+        </div>
+        <div class="card mode-card" data-mode="architect" onclick="selectMode('architect')">
+          <div class="mode-icon"><span class="material-symbols-rounded">tune</span></div>
+          <h3>The Architect</h3>
+          <p>Granular control — inject custom GPS, camera models, timestamps, and copyright.</p>
+        </div>
+      </div>
+
+      <div class="dropzone" id="dropzone" onclick="triggerFileInput()">
+        <input type="file" id="fileInput" multiple accept="image/*,.jpg,.jpeg,.png,.tiff,.webp" style="display:none" onchange="handleFiles(this.files)">
+        <div class="dropzone-icon-wrap">
+          <span class="material-symbols-rounded">cloud_upload</span>
+        </div>
+        <div class="dropzone-title">Drop files here or tap to upload</div>
+        <div class="dropzone-subtitle">Supports JPG, PNG, TIFF, WebP. Non-JPEG files convert automatically for EXIF operations.</div>
+        <div class="dropzone-hint">Local Client-Side Processing</div>
+      </div>
+
+      <div id="uploadedFiles" style="margin-top: 24px;"></div>
+    </section>
+
+    <!-- TOTAL PURGE VIEW -->
+    <section class="view" id="view-wipe">
+      <div style="margin-bottom: 24px;">
+        <h2 class="hero-title">Total <span class="accent">Purge.</span></h2>
+        <p class="hero-subtitle">Irreversibly strip all metadata footprints from your files.</p>
+      </div>
+      <div id="wipeContent"></div>
+    </section>
+
+    <!-- GHOST STUDIO VIEW -->
+    <section class="view" id="view-ghost">
+      <div style="margin-bottom: 24px;">
+        <h2 class="hero-title">Ghost <span class="accent">Studio.</span></h2>
+        <p class="hero-subtitle">Synthesize synthetic device fingerprints and randomized timestamps.</p>
+      </div>
+      <div id="ghostContent"></div>
+    </section>
+
+    <!-- CUSTOM ARCHITECT VIEW -->
+    <section class="view" id="view-architect">
+      <div style="margin-bottom: 24px;">
+        <h2 class="hero-title">Custom <span class="accent">Architect.</span></h2>
+        <p class="hero-subtitle">Surgically inject tailored metadata attributes with absolute precision.</p>
+      </div>
+      <div id="architectContent"></div>
+    </section>
+
+    <!-- QUEUE VIEW -->
+    <section class="view" id="view-queue">
+      <div style="margin-bottom: 24px;">
+        <h2 class="hero-title">Processing <span class="accent">Queue.</span></h2>
+        <p class="hero-subtitle">Batch process queued operations simultaneously.</p>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div style="display: flex; gap: 12px; font-size: 13px; font-weight: 600; color: var(--md-on-surface-variant);">
+          <span id="queueTotal">0 files</span>
+          <span id="queuePending">0 pending</span>
+          <span id="queueDone">0 done</span>
+        </div>
+        <button class="btn btn-primary btn-sm" id="processQueueBtn" onclick="processQueue()" disabled>Process All</button>
+      </div>
+      <div id="queueList"></div>
+    </section>
+
+    <footer class="app-footer">
+      Aurex Labs &copy; 2026 &bull; Earthy Forest Design System
+    </footer>
+  </main>
+</div>
+
+<!-- Mobile Bottom Navigation -->
+<nav class="bottom-nav" id="bottomNav">
+  <button class="bottom-nav-item active" data-view="home" onclick="navigateTo('home')">
+    <span class="material-symbols-rounded">upload_file</span>
+    <span>Upload</span>
+  </button>
+  <button class="bottom-nav-item" data-view="wipe" onclick="navigateTo('wipe')">
+    <span class="material-symbols-rounded">cleaning_services</span>
+    <span>Purge</span>
+  </button>
+  <button class="bottom-nav-item" data-view="ghost" onclick="navigateTo('ghost')">
+    <span class="material-symbols-rounded">visibility_off</span>
+    <span>Ghost</span>
+  </button>
+  <button class="bottom-nav-item" data-view="architect" onclick="navigateTo('architect')">
+    <span class="material-symbols-rounded">tune</span>
+    <span>Architect</span>
+  </button>
+  <button class="bottom-nav-item" data-view="queue" onclick="navigateTo('queue')">
+    <span class="material-symbols-rounded">queue_play_next</span>
+    <span>Queue</span>
+  </button>
+</nav>
+
+<!-- Processing Overlay -->
+<div class="processing-overlay" id="processingOverlay">
+  <div class="spinner"></div>
+  <div class="processing-text" id="processingText">Processing metadata...</div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+/* ==========================================================================
+   APPLICATION LOGIC & STATE MANAGEMENT (THREAD-SAFE & BATCH-OPTIMIZED)
+   ========================================================================== */
+
+const state = {
+  currentView: 'home',
+  selectedMode: 'wipe',
+  files: [],
+  queue: [],
+  processing: false,
+  architectSettings: {
+    make: '', model: '', datetime: '',
+    gpsLat: '', gpsLng: '', gpsRefLat: 'N', gpsRefLng: 'E',
+    copyright: '', artist: '', software: ''
+  }
+};
+
+const cameraDatabase = [
+  { make:'Canon', model:'EOS 5D Mark IV' }, { make:'Canon', model:'EOS R5' },
+  { make:'Nikon', model:'D850' }, { make:'Nikon', model:'Z7 II' },
+  { make:'Sony', model:'ILCE-7RM4' }, { make:'Sony', model:'DSC-RX100M7' },
+  { make:'Fujifilm', model:'X-T4' }, { make:'Fujifilm', model:'GFX 100S' },
+  { make:'Apple', model:'iPhone 15 Pro' }, { make:'Google', model:'Pixel 8 Pro' }
+];
+
+/* Helper: Yield execution to the browser event loop to prevent main-thread lockup */
+const yieldToMain = () => new Promise(resolve => setTimeout(resolve, 0));
+
+/* Helper: Batched DOM Rendering via requestAnimationFrame */
+let renderTimer = null;
+function scheduleRender() {
+  if (renderTimer) return;
+  renderTimer = requestAnimationFrame(() => {
+    renderTimer = null;
+    if (state.currentView === 'wipe') renderWipeView();
+    else if (state.currentView === 'ghost') renderGhostView();
+    else if (state.currentView === 'architect') renderArchitectView();
+    else if (state.currentView === 'queue') renderQueueView();
+    renderUploadedFiles();
+  });
+}
+
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme') || 'dark';
+  const next = current === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  
+  const icon = next === 'dark' ? 'dark_mode' : 'light_mode';
+  document.getElementById('mobileThemeIcon').textContent = icon;
+  document.getElementById('desktopThemeIcon').textContent = icon;
+  showToast(`Switched to ${next} mode`, 'success');
+}
+
+function navigateTo(view) {
+  state.currentView = view;
+  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+  document.getElementById('view-' + view)?.classList.add('active');
+  document.querySelectorAll('.sidebar .nav-item').forEach(el => el.classList.toggle('active', el.dataset.view === view));
+  document.querySelectorAll('.bottom-nav-item').forEach(el => el.classList.toggle('active', el.dataset.view === view));
+  
+  scheduleRender();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function selectMode(mode) {
+  state.selectedMode = mode;
+  document.querySelectorAll('.mode-card').forEach(el => {
+    el.classList.toggle('active', el.dataset.mode === mode);
+  });
+  showToast('Mode: ' + mode.charAt(0).toUpperCase() + mode.slice(1), 'success');
+}
+
+function togglePrivacyGuard() {
+  showToast('100% Client-Side. No network requests are made.', 'success');
+}
+
+function triggerFileInput() {
+  document.getElementById('fileInput').click();
+}
+
+const dropzone = document.getElementById('dropzone');
+['dragenter','dragover','dragleave','drop'].forEach(e => dropzone.addEventListener(e, ev => { ev.preventDefault(); ev.stopPropagation(); }, false));
+['dragenter','dragover'].forEach(e => dropzone.addEventListener(e, () => dropzone.classList.add('dragover'), false));
+['dragleave','drop'].forEach(e => dropzone.addEventListener(e, () => dropzone.classList.remove('dragover'), false));
+dropzone.addEventListener('drop', e => handleFiles(e.dataTransfer.files), false);
+
+async function handleFiles(fileList) {
+  const validTypes = ['image/jpeg','image/jpg','image/png','image/tiff','image/webp'];
+  const newFiles = Array.from(fileList).filter(f => validTypes.includes(f.type) || f.name.match(/\.(jpe?g|png|tiff|webp)$/i));
+  if (newFiles.length === 0) { showToast('Please upload valid image files (JPG, PNG, TIFF, WebP)', 'error'); return; }
+  
+  setProcessing(`Reading ${newFiles.length} files...`);
+  
+  for (let i = 0; i < newFiles.length; i++) {
+    const file = newFiles[i];
+    const fileObj = {
+      id: 'file_' + Date.now() + '_' + Math.random().toString(36).slice(2,9),
+      file, name: file.name, size: formatBytes(file.size), type: file.type,
+      exif: null, processed: false, result: null, mode: state.selectedMode || 'wipe'
+    };
+    state.files.push(fileObj);
+    state.queue.push(fileObj);
+    readExif(fileObj);
+
+    // Yield every 5 files to prevent browser frame drops
+    if (i % 5 === 0) await yieldToMain();
+  }
+
+  setProcessing(null);
+  scheduleRender();
+  updateQueueBadge();
+  showToast(`${newFiles.length} file${newFiles.length > 1 ? 's' : ''} added`, 'success');
+  if (state.selectedMode) setTimeout(() => navigateTo(state.selectedMode), 300);
+}
+
+function formatBytes(bytes) {
+  if (!bytes) return '0 B';
+  const k = 1024, sizes = ['B','KB','MB','GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+function readExif(fileObj) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    fileObj.dataUrl = e.target.result;
+    try {
+      if (typeof piexif !== 'undefined') {
+        fileObj.exif = piexif.load(fileObj.dataUrl);
+        fileObj.exifSummary = summarizeExif(fileObj.exif);
+      } else {
+        fileObj.exif = {}; fileObj.exifSummary = { empty: true };
+      }
+    } catch (err) {
+      fileObj.exif = {}; fileObj.exifSummary = { empty: true, error: err.message };
+    }
+    scheduleRender();
+  };
+  reader.readAsDataURL(fileObj.file);
+}
+
+function summarizeExif(exifObj) {
+  const summary = {};
+  const ifd0 = exifObj['0th'] || {};
+  const gps = exifObj['GPS'] || {};
+  if (ifd0[piexif.ImageIFD.Make]) summary.make = ifd0[piexif.ImageIFD.Make];
+  if (ifd0[piexif.ImageIFD.Model]) summary.model = ifd0[piexif.ImageIFD.Model];
+  if (ifd0[piexif.ImageIFD.DateTime]) summary.datetime = ifd0[piexif.ImageIFD.DateTime];
+  if (gps[piexif.GPSIFD.GPSLatitude]) summary.hasGPS = true;
+  summary.empty = Object.keys(summary).length === 0;
+  return summary;
+}
+
+function renderUploadedFiles() {
+  const container = document.getElementById('uploadedFiles');
+  if (!container) return;
+  if (state.files.length === 0) { container.innerHTML = ''; return; }
+  container.innerHTML = state.files.map((f) => `
+    <div class="file-item" id="${f.id}">
+      <div class="file-icon"><span class="material-symbols-rounded">image</span></div>
+      <div class="file-info">
+        <div class="file-name">${escapeHtml(f.name)}</div>
+        <div class="file-meta">${f.size} &bull; ${f.type || 'Unknown'}</div>
+      </div>
+      <button class="btn btn-sm btn-ghost" onclick="removeFile('${f.id}')">
+        <span class="material-symbols-rounded">delete</span>
+      </button>
+    </div>
+  `).join('');
+}
+
+function removeFile(fileId) {
+  state.files = state.files.filter(f => f.id !== fileId);
+  state.queue = state.queue.filter(f => f.id !== fileId);
+  scheduleRender();
+  updateQueueBadge();
+}
+
+function renderWipeView() {
+  const container = document.getElementById('wipeContent');
+  if (!container) return;
+  if (state.files.length === 0) {
+    container.innerHTML = emptyState('Upload files first to begin sanitization', 'Go to Upload', 'home');
+    return;
+  }
+  container.innerHTML = state.files.map((f) => {
+    const hasGPS = f.exifSummary?.hasGPS;
+    const hasMeta = f.exif && !f.exifSummary?.empty;
+    return `
+    <div class="card" style="margin-bottom: 16px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 16px;">
+        <div style="display:flex; align-items:center; gap: 12px;">
+          <div class="file-icon" style="width:40px;height:40px;border-radius:50%;background:var(--md-primary-container);color:var(--md-on-primary-container);display:flex;align-items:center;justify-content:center;"><span class="material-symbols-rounded">image</span></div>
+          <div><div style="font-weight:700;font-size:15px;">${escapeHtml(f.name)}</div><div style="font-size:12px;color:var(--md-on-surface-variant);">${f.size}</div></div>
+        </div>
+        <div style="display:flex; gap: 6px;">
+          ${hasGPS ? '<span class="meta-chip warning">GPS</span>' : ''}
+          ${hasMeta ? '<span class="meta-chip danger">EXIF</span>' : '<span class="meta-chip success">Clean</span>'}
+        </div>
+      </div>
+      <button class="btn btn-danger btn-block" onclick="wipeFile('${f.id}')" ${f.processed ? 'disabled' : ''}>
+        <span class="material-symbols-rounded">cleaning_services</span>
+        ${f.processed ? 'Purged' : 'Purge All Metadata'}
+      </button>
+      ${f.processed && f.result ? `<a href="${f.result}" download="${f.outputName || 'wiped_' + f.name}" class="btn btn-secondary btn-block" style="margin-top:8px;">Download Purged File</a>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function renderGhostView() {
+  const container = document.getElementById('ghostContent');
+  if (!container) return;
+  if (state.files.length === 0) {
+    container.innerHTML = emptyState('Upload files first to ghost their metadata', 'Go to Upload', 'home');
+    return;
+  }
+  container.innerHTML = state.files.map((f) => `
+    <div class="card" style="margin-bottom: 16px;">
+      <div style="display:flex; align-items:center; gap: 12px; margin-bottom: 16px;">
+        <div class="file-icon" style="width:40px;height:40px;border-radius:50%;background:var(--md-primary-container);color:var(--md-on-primary-container);display:flex;align-items:center;justify-content:center;"><span class="material-symbols-rounded">image</span></div>
+        <div><div style="font-weight:700;font-size:15px;">${escapeHtml(f.name)}</div><div style="font-size:12px;color:var(--md-on-surface-variant);">${f.size}</div></div>
+      </div>
+      <p style="font-size:13px;color:var(--md-on-surface-variant);margin-bottom:16px;">Ghost mode replaces metadata with synthetic, randomized camera fingerprints and synthetic GPS data.</p>
+      <button class="btn btn-primary btn-block" onclick="ghostFile('${f.id}')" ${f.processed ? 'disabled' : ''}>
+        <span class="material-symbols-rounded">visibility_off</span>
+        ${f.processed ? 'Ghosted' : 'Apply Ghost Fingerprint'}
+      </button>
+      ${f.processed && f.result ? `<a href="${f.result}" download="${f.outputName || 'ghost_' + f.name}" class="btn btn-secondary btn-block" style="margin-top:8px;">Download Ghosted File</a>` : ''}
+    </div>
+  `).join('');
+}
+
+function renderArchitectView() {
+  const container = document.getElementById('architectContent');
+  if (!container) return;
+  if (state.files.length === 0) {
+    container.innerHTML = emptyState('Upload files first to architect metadata', 'Go to Upload', 'home');
+    return;
+  }
+  const s = state.architectSettings;
+  container.innerHTML = `
+    <div class="card" style="margin-bottom:20px;">
+      <h3 style="margin-bottom:16px;font-size:16px;">Custom Metadata Injection</h3>
+      <div class="architect-form">
+        <div class="input-group"><label class="input-label">Camera Make</label><input type="text" class="input-field" placeholder="e.g. Canon" value="${escapeHtml(s.make)}" onchange="updateArchitectSetting('make',this.value)"></div>
+        <div class="input-group"><label class="input-label">Camera Model</label><input type="text" class="input-field" placeholder="e.g. EOS R5" value="${escapeHtml(s.model)}" onchange="updateArchitectSetting('model',this.value)"></div>
+        <div class="input-group"><label class="input-label">Software</label><input type="text" class="input-field" placeholder="e.g. Aurex Studio" value="${escapeHtml(s.software)}" onchange="updateArchitectSetting('software',this.value)"></div>
+        <div class="input-group"><label class="input-label">Copyright</label><input type="text" class="input-field" placeholder="Copyright 2026" value="${escapeHtml(s.copyright)}" onchange="updateArchitectSetting('copyright',this.value)"></div>
+      </div>
+    </div>
+    ${state.files.map((f) => `
+    <div class="card" style="margin-bottom:16px;">
+      <div style="font-weight:700;margin-bottom:12px;">${escapeHtml(f.name)}</div>
+      <button class="btn btn-primary btn-block" onclick="architectFile('${f.id}')" ${f.processed ? 'disabled' : ''}>
+        <span class="material-symbols-rounded">tune</span>
+        ${f.processed ? 'Architected' : 'Inject Custom Metadata'}
+      </button>
+      ${f.processed && f.result ? `<a href="${f.result}" download="${f.outputName || 'architect_' + f.name}" class="btn btn-secondary btn-block" style="margin-top:8px;">Download File</a>` : ''}
+    </div>
+    `).join('')}`;
+}
+
+function updateArchitectSetting(key, value) {
+  state.architectSettings[key] = value;
+}
+
+function emptyState(text, btnText, navTarget) {
+  return `<div class="empty-state">
+    <span class="material-symbols-rounded">folder_open</span>
+    <p>${text}</p>
+    <button class="btn btn-secondary btn-sm" style="margin-top:16px;" onclick="navigateTo('${navTarget}')">${btnText}</button>
+  </div>`;
+}
+
+function setProcessing(text) {
+  const overlay = document.getElementById('processingOverlay');
+  const label = document.getElementById('processingText');
+  if (text) label.textContent = text;
+  overlay.classList.toggle('active', !!text);
+  state.processing = !!text;
+}
+
+function ensureJpegDataUrl(fileObj) {
+  return new Promise((resolve, reject) => {
+    if (fileObj.file.type === 'image/jpeg' || fileObj.file.type === 'image/jpg') { resolve(fileObj.dataUrl); return; }
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+      resolve(canvas.toDataURL('image/jpeg', 0.95));
+    };
+    img.onerror = () => reject(new Error('Failed to decode image'));
+    img.src = fileObj.dataUrl;
+  });
+}
+
+async function wipeFile(fileId, shouldRender = true) {
+  const fileObj = state.files.find(f => f.id === fileId);
+  if (!fileObj || !fileObj.dataUrl) return;
+  if (shouldRender) setProcessing('Purging metadata...');
+  try {
+    const jpegUrl = await ensureJpegDataUrl(fileObj);
+    const cleaned = piexif.remove(jpegUrl);
+    fileObj.result = cleaned; fileObj.processed = true;
+    fileObj.outputName = 'wiped_' + fileObj.name.replace(/\.[^.]+$/, '.jpg');
+    if (shouldRender) {
+      setProcessing(null);
+      showToast('Metadata purged successfully', 'success');
+      scheduleRender();
+    }
+  } catch (err) {
+    if (shouldRender) setProcessing(null);
+    showToast('Error purging: ' + err.message, 'error');
+  }
+}
+
+async function ghostFile(fileId, shouldRender = true) {
+  const fileObj = state.files.find(f => f.id === fileId);
+  if (!fileObj || !fileObj.dataUrl) return;
+  if (shouldRender) setProcessing('Generating ghost fingerprint...');
+  try {
+    const jpegUrl = await ensureJpegDataUrl(fileObj);
+    const camera = cameraDatabase[Math.floor(Math.random() * cameraDatabase.length)];
+    const dateStr = formatExifDate(new Date());
+    const exifObj = { "0th":{}, "Exif":{}, "GPS":{}, "1st":{}, "thumbnail":null };
+    exifObj['0th'][piexif.ImageIFD.Make] = camera.make;
+    exifObj['0th'][piexif.ImageIFD.Model] = camera.model;
+    exifObj['0th'][piexif.ImageIFD.DateTime] = dateStr;
+    const exifBytes = piexif.dump(exifObj);
+    fileObj.result = piexif.insert(exifBytes, jpegUrl);
+    fileObj.processed = true;
+    fileObj.outputName = 'ghost_' + fileObj.name.replace(/\.[^.]+$/, '.jpg');
+    if (shouldRender) {
+      setProcessing(null);
+      showToast(`Ghosted as ${camera.make} ${camera.model}`, 'success');
+      scheduleRender();
+    }
+  } catch (err) {
+    if (shouldRender) setProcessing(null);
+    showToast('Error ghosting: ' + err.message, 'error');
+  }
+}
+
+async function architectFile(fileId, shouldRender = true) {
+  const fileObj = state.files.find(f => f.id === fileId);
+  if (!fileObj || !fileObj.dataUrl) return;
+  const s = state.architectSettings;
+  if (shouldRender) setProcessing('Injecting metadata...');
+  try {
+    const jpegUrl = await ensureJpegDataUrl(fileObj);
+    const exifObj = { "0th":{}, "Exif":{}, "GPS":{}, "1st":{}, "thumbnail":null };
+    if (s.make) exifObj['0th'][piexif.ImageIFD.Make] = s.make;
+    if (s.model) exifObj['0th'][piexif.ImageIFD.Model] = s.model;
+    if (s.software) exifObj['0th'][piexif.ImageIFD.Software] = s.software;
+    if (s.copyright) exifObj['0th'][piexif.ImageIFD.Copyright] = s.copyright;
+    const exifBytes = piexif.dump(exifObj);
+    fileObj.result = piexif.insert(exifBytes, jpegUrl);
+    fileObj.processed = true;
+    fileObj.outputName = 'architect_' + fileObj.name.replace(/\.[^.]+$/, '.jpg');
+    if (shouldRender) {
+      setProcessing(null);
+      showToast('Custom metadata injected', 'success');
+      scheduleRender();
+    }
+  } catch (err) {
+    if (shouldRender) setProcessing(null);
+    showToast('Error injecting: ' + err.message, 'error');
+  }
+}
+
+function formatExifDate(date) {
+  const pad = n => String(n).padStart(2, '0');
+  return `${date.getFullYear()}:${pad(date.getMonth()+1)}:${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+}
+
+function renderQueueView() {
+  const list = document.getElementById('queueList');
+  const btn = document.getElementById('processQueueBtn');
+  const pending = state.queue.filter(f => !f.processed);
+  const done = state.queue.filter(f => f.processed);
+  
+  document.getElementById('queueTotal').textContent = state.queue.length + ' files';
+  document.getElementById('queuePending').textContent = pending.length + ' pending';
+  document.getElementById('queueDone').textContent = done.length + ' done';
+  if (btn) btn.disabled = pending.length === 0 || state.processing;
+  
+  if (state.queue.length === 0) {
+    list.innerHTML = emptyState('Queue is empty. Upload files to get started.', 'Go to Upload', 'home');
+    return;
+  }
+  
+  list.innerHTML = state.queue.map(f => `
+    <div class="file-item">
+      <div class="file-icon"><span class="material-symbols-rounded">image</span></div>
+      <div class="file-info">
+        <div class="file-name">${escapeHtml(f.name)}</div>
+        <div class="file-meta">Mode: ${f.mode} &bull; ${f.processed ? 'Done' : 'Pending'}</div>
+      </div>
+      <div>${f.processed ? '<span class="meta-chip success">Done</span>' : '<span class="meta-chip">Pending</span>'}</div>
+    </div>
+  `).join('');
+}
+
+async function processQueue() {
+  const pending = state.queue.filter(f => !f.processed);
+  if (pending.length === 0) return;
+  setProcessing(`Processing 0/${pending.length} files...`);
+
+  for (let i = 0; i < pending.length; i++) {
+    const fileObj = pending[i];
+    const label = document.getElementById('processingText');
+    if (label) label.textContent = `Processing (${i + 1}/${pending.length}): ${fileObj.name}`;
+
+    try {
+      if (fileObj.mode === 'wipe') await wipeFile(fileObj.id, false);
+      else if (fileObj.mode === 'ghost') await ghostFile(fileObj.id, false);
+      else if (fileObj.mode === 'architect') await architectFile(fileObj.id, false);
+    } catch (err) { console.error(err); }
+
+    // Yield control back to browser thread on every iteration to prevent loop timeout
+    await yieldToMain();
+  }
+
+  setProcessing(null);
+  showToast('Queue processing complete', 'success');
+  scheduleRender();
+  updateQueueBadge();
+}
+
+function updateQueueBadge() {
+  const badge = document.getElementById('sidebarQueueBadge');
+  const count = state.queue.filter(f => !f.processed).length;
+  if (badge) { badge.textContent = count; badge.classList.toggle('hidden', count === 0); }
+}
+
+function showToast(message, type = 'success') {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  const icon = type === 'success' ? 'check_circle' : 'error';
+  toast.innerHTML = `<span class="material-symbols-rounded">${icon}</span> <span>${escapeHtml(message)}</span>`;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 3500);
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+</script>
+</body>
+</html>

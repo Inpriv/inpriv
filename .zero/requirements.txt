@@ -1,0 +1,5 @@
+# Zero Wallet — server (thin trustless relay)
+# Python 3.10+
+flask>=3.0,<4.0
+flask-limiter>=3.5,<5.0
+httpx>=0.27,<1.0

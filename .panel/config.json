@@ -1,0 +1,71 @@
+{
+  "global": {
+    "block_eu_ips": true,
+    "blocked_title": "Access Restricted",
+    "blocked_message": "Due to the European Union's Chat Control 2.0 regulation — which mandates mass surveillance of private communications — Inpriv cannot provide services to visitors from the European Union. This regulation fundamentally violates the right to privacy and anonymous communication.",
+    "blocked_show_privacy_stance": true
+  },
+  "services": {
+    "mail": {
+      "enabled": true,
+      "domain": "mail.inpriv.xyz",
+      "port": 3000,
+      "options": {
+        "block_eu_override": false,
+        "max_recipients": 100,
+        "allow_registration": true
+      }
+    },
+    "totp": {
+      "enabled": true,
+      "domain": "totp.inpriv.xyz",
+      "port": 3010,
+      "options": {
+        "block_eu_override": false,
+        "max_accounts_per_user": 50,
+        "rate_limit_login": "5/5min"
+      }
+    },
+    "pay": {
+      "enabled": true,
+      "domain": "pay.inpriv.xyz",
+      "port": null,
+      "options": {
+        "block_eu_override": false,
+        "merchant_address": "",
+        "webhook_url": ""
+      }
+    },
+    "zero": {
+      "enabled": true,
+      "domain": "zero.inpriv.xyz",
+      "port": 5000,
+      "options": {
+        "block_eu_override": false,
+        "network": "mainnet",
+        "rpc_url": "https://api.mainnet-beta.solana.com",
+        "auto_lock_minutes": 5
+      }
+    },
+    "hush": {
+      "enabled": true,
+      "domain": "hush.inpriv.xyz",
+      "port": 8000,
+      "options": {
+        "block_eu_override": false,
+        "default_model": "meta-llama/llama-3-8b-instruct:free",
+        "searxng_url": "http://localhost:8080"
+      }
+    },
+    "osint": {
+      "enabled": true,
+      "domain": "osint.inpriv.xyz",
+      "port": 8001,
+      "options": {
+        "block_eu_override": false,
+        "default_model": "meta-llama/llama-3-8b-instruct:free",
+        "searxng_url": "http://localhost:8080"
+      }
+    }
+  }
+}

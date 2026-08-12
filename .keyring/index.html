@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<!--
+  Inpriv Keyring — Zero-Knowledge Encrypted Secret Vault
+  Copyright (c) 2026 Aurex Labs — MIT License
+
+  Stores SSH keys, API tokens, passwords and notes under AES-256-GCM with a
+  PBKDF2-derived key (Web Crypto). The master password never leaves the device
+  and cannot be recovered.
+-->
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Inpriv Keyring — Zero-Knowledge Encrypted Secret Vault</title>
+  <meta name="description" content="A client-side encrypted vault for SSH keys, API tokens, passwords and notes. AES-256-GCM with PBKDF2. Your master password never leaves your device and cannot be recovered." />
+
+  <link rel="icon" type="image/png" href="https://hush.best/icon.png" />
+  <link rel="apple-touch-icon" href="https://hush.best/icon.png" />
+  <link rel="shortcut icon" href="https://hush.best/icon.png" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:ital,opsz,wght@0,8..144,100..1000;1,8..144,100..1000&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+
+  <style>
+    /* ===== Tokens — Aurex Labs M3 Earthy Forest ===== */
+    :root {
+      --md-easing-standard: cubic-bezier(0.2, 0.0, 0.0, 1.0);
+      --md-easing-emphasized: cubic-bezier(0.3, 0.0, 0.0, 1.0);
+      --md-easing-spring: cubic-bezier(0.2, 1.4, 0.0, 1.0);
+      --md-easing-spring-soft: cubic-bezier(0.34, 1.3, 0.64, 1.0);
+      --font-primary: 'Roboto Flex', system-ui, -apple-system, sans-serif;
+    }
+    [data-theme="light"] {
+      --md-primary: #466E47; --md-on-primary: #FFFFFF; --md-primary-container: #C7EFA0; --md-on-primary-container: #0C2000;
+      --md-secondary: #55624C; --md-on-secondary: #FFFFFF; --md-secondary-container: #D8E7CB; --md-on-secondary-container: #131F0C;
+      --md-tertiary: #9C4231; --md-on-tertiary: #FFFFFF; --md-tertiary-container: #FFDAD3; --md-on-tertiary-container: #3D0A03;
+      --md-error: #BA1A1A;
+      --md-surface: #FAF9F0; --md-on-surface: #1A1C17; --md-on-surface-variant: #43483D;
+      --md-surface-dim: #DBDAD0;
+      --md-surface-container-lowest: #FFFFFF; --md-surface-container-low: #F4F3E7;
+      --md-surface-container: #EEEDDE; --md-surface-container-high: #E9E7D9; --md-surface-container-highest: #E3E2D3;
+      --md-outline: #74796C; --md-outline-variant: #C3C8B6;
+      --md-inverse-surface: #2F312C; --md-inverse-on-surface: #F0EFE7; --md-inverse-primary: #ABD37A;
+      --md-shadow-color: rgba(20, 25, 15, 0.15); --md-shadow-color-strong: rgba(20, 25, 15, 0.28);
+    }
+    [data-theme="dark"] {
+      --md-primary: #ABD37A; --md-on-primary: #173800; --md-primary-container: #2E4F2F; --md-on-primary-container: #C7EFA0;
+      --md-secondary: #BCCBAF; --md-on-secondary: #27341F; --md-secondary-container: #3D4B34; --md-on-secondary-container: #D8E7CB;
+      --md-tertiary: #FFB4A5; --md-on-tertiary: #5E1709; --md-tertiary-container: #7E2D1E; --md-on-tertiary-container: #FFDAD3;
+      --md-error: #FFB4AB;
+      --md-surface: #13140E; --md-on-surface: #E3E2D3; --md-on-surface-variant: #C3C8B6;
+      --md-surface-dim: #13140E;
+      --md-surface-container-lowest: #0D0F09; --md-surface-container-low: #1A1C17;
+      --md-surface-container: #1F211B; --md-surface-container-high: #292B25; --md-surface-container-highest: #34362F;
+      --md-outline: #8D9283; --md-outline-variant: #43483D;
+      --md-inverse-surface: #E3E2D3; --md-inverse-on-surface: #2F312C; --md-inverse-primary: #466E47;
+      --md-shadow-color: rgba(0, 0, 0, 0.4); --md-shadow-color-strong: rgba(0, 0, 0, 0.65);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--font-primary); background-color: var(--md-surface); color: var(--md-on-surface); min-height: 100vh; padding: 24px 16px 140px 16px; position: relative; overflow-x: hidden; transition: background-color 0.5s var(--md-easing-standard), color 0.5s var(--md-easing-standard); font-optical-sizing: auto; -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
+    @media (min-width: 600px) { body { padding: 32px 24px 160px 24px; } }
+    body::before { content: ""; position: fixed; inset: 0; background: radial-gradient(ellipse 80% 60% at 85% 0%, color-mix(in srgb, var(--md-primary-container) 55%, transparent) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 0% 100%, color-mix(in srgb, var(--md-tertiary-container) 45%, transparent) 0%, transparent 70%); pointer-events: none; z-index: 0; }
+    .bg-grid { position: fixed; inset: 0; background-image: radial-gradient(circle at 1px 1px, var(--md-outline-variant) 1px, transparent 0); background-size: 28px 28px; opacity: 0.18; mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%); -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%); pointer-events: none; z-index: 0; }
+    .bg-blob { position: fixed; top: -100px; right: -100px; width: 420px; height: 420px; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--md-tertiary) 22%, transparent), transparent 70%); filter: blur(60px); animation: drift 22s ease-in-out infinite; pointer-events: none; z-index: 0; }
+    .app-wrapper { max-width: 860px; margin: 0 auto; position: relative; z-index: 1; }
+    .material-symbols-rounded { font-family: 'Material Symbols Rounded'; font-weight: normal; font-style: normal; font-size: 24px; line-height: 1; display: inline-block; white-space: nowrap; word-wrap: normal; direction: ltr; -webkit-font-smoothing: antialiased; font-variation-settings: 'wght' 500, 'GRAD' 0, 'opsz' 24; }
+    @keyframes barIn { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--md-primary) 35%, transparent); } 50% { box-shadow: 0 0 0 18px color-mix(in srgb, var(--md-primary) 0%, transparent); } }
+    @keyframes drift { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-60px, 40px) scale(1.1); } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .app-bar { display: flex; align-items: center; justify-content: space-between; height: 54px; padding: 6px 8px 6px 18px; border-radius: 9999px; background: color-mix(in srgb, var(--md-surface-container) 80%, transparent); backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%); border: 1px solid color-mix(in srgb, var(--md-outline-variant) 50%, transparent); box-shadow: 0 4px 20px -4px var(--md-shadow-color); animation: barIn 0.7s var(--md-easing-spring); margin-bottom: 28px; }
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .brand-icon { width: 36px; height: 36px; border-radius: 50%; background: var(--md-primary-container); color: var(--md-on-primary-container); display: flex; align-items: center; justify-content: center; flex-shrink: 0; text-decoration: none; }
+    .brand-text { min-width: 0; overflow: hidden; }
+    .brand-h1 { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.1; color: var(--md-on-surface); display: flex; align-items: center; gap: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .brand-h1 span { color: var(--md-primary); }
+    .open-source-badge { font-size: 9px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; background: var(--md-surface-container-high); color: var(--md-on-surface-variant); border: 1px solid var(--md-outline-variant); }
+    .brand-tagline { font-size: 10px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--md-on-surface-variant); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .app-bar-actions { display: flex; align-items: center; gap: 4px; }
+    .icon-btn { width: 40px; height: 40px; border-radius: 50%; border: none; background: transparent; color: var(--md-on-surface); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background-color 0.2s var(--md-easing-standard), transform 0.15s var(--md-easing-spring); }
+    .icon-btn:hover { background-color: color-mix(in srgb, var(--md-on-surface) 8%, transparent); }
+    .icon-btn:active { transform: scale(0.92); }
+
+    .hero { text-align: center; margin-bottom: 24px; animation: fadeUp 0.8s var(--md-easing-spring); }
+    .hero-h2 { font-size: clamp(32px, 7vw, 52px); font-weight: 800; letter-spacing: -0.025em; line-height: 1.05; margin-bottom: 12px; }
+    .hero-h2 .accent { font-style: italic; font-weight: 300; color: var(--md-primary); }
+    .hero-desc { font-size: clamp(14px, 2vw, 15px); color: var(--md-on-surface-variant); max-width: 640px; margin: 0 auto; line-height: 1.5; }
+    .privacy-pill { display: inline-flex; align-items: center; gap: 6px; margin-top: 14px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 6px 12px; border-radius: 9999px; background: var(--md-primary-container); color: var(--md-on-primary-container); }
+    .privacy-pill .material-symbols-rounded { font-size: 14px; }
+
+    .card { background: var(--md-surface-container-low); border: 1px solid var(--md-outline-variant); border-radius: 24px; padding: 24px; display: flex; flex-direction: column; position: relative; transition: all 0.4s var(--md-easing-spring-soft); animation: fadeUp 0.8s var(--md-easing-spring) 0.1s backwards; margin-bottom: 16px; }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; gap: 12px; }
+    .card-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--md-on-surface-variant); display: flex; align-items: center; gap: 6px; }
+    .card-label .material-symbols-rounded { font-size: 18px; }
+
+    /* Status / gate card (big icon + text) */
+    .gate-card { align-items: center; text-align: center; }
+    .gate-icon { width: 84px; height: 84px; border-radius: 28px; background: var(--md-primary-container); color: var(--md-on-primary-container); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto; animation: pulse 2.8s infinite; }
+    .gate-icon .material-symbols-rounded { font-size: 44px; font-variation-settings: 'wght' 400, 'GRAD' 0, 'opsz' 48; }
+    .gate-title { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 8px; }
+    .gate-sub { font-size: 14px; color: var(--md-on-surface-variant); max-width: 480px; line-height: 1.5; margin-bottom: 20px; }
+
+    /* Inputs */
+    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; text-align: left; }
+    .field-label { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--md-on-surface-variant); }
+    .text-input, .select-input { width: 100%; font-family: var(--font-primary); font-size: 14px; color: var(--md-on-surface); background: var(--md-surface-container); border: 1px solid var(--md-outline-variant); border-radius: 14px; padding: 12px 14px; outline: none; transition: border-color 0.2s var(--md-easing-standard), box-shadow 0.2s var(--md-easing-standard); }
+    .text-input:focus, .select-input:focus { border-color: var(--md-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-primary) 18%, transparent); }
+    textarea.text-input { min-height: 90px; resize: vertical; line-height: 1.5; font-family: 'Roboto Flex', monospace; }
+    .text-input.mono { font-family: 'Roboto Flex', monospace; }
+    .text-input::placeholder { color: var(--md-on-surface-variant); opacity: 0.7; }
+    .pw-wrap { position: relative; }
+    .pw-wrap .text-input { padding-right: 46px; }
+    .pw-toggle { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 36px; height: 36px; border: none; background: transparent; color: var(--md-on-surface-variant); cursor: pointer; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+    .pw-toggle:hover { color: var(--md-primary); }
+    .pw-strength { height: 4px; border-radius: 2px; background: var(--md-surface-container-high); overflow: hidden; margin-top: 4px; }
+    .pw-strength > div { height: 100%; width: 0%; transition: width 0.3s var(--md-easing-standard), background 0.3s; border-radius: 2px; }
+    .pw-hint { font-size: 11px; color: var(--md-on-surface-variant); margin-top: 4px; }
+
+    /* Buttons */
+    .btn { height: 48px; border-radius: 9999px; border: none; background: var(--md-primary); color: var(--md-on-primary); font-family: inherit; font-size: 14px; font-weight: 600; letter-spacing: 0.02em; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; box-shadow: 0 4px 16px -2px var(--md-shadow-color); transition: all 0.3s var(--md-easing-spring-soft); white-space: nowrap; padding: 0 22px; }
+    .btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 24px -2px var(--md-shadow-color-strong); }
+    .btn:active:not(:disabled) { transform: scale(0.96); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+    .btn.secondary { background: var(--md-surface-container-high); color: var(--md-on-surface); border: 1px solid var(--md-outline-variant); box-shadow: none; }
+    .btn.danger { background: var(--md-tertiary-container); color: var(--md-on-tertiary-container); box-shadow: none; }
+    .btn.full { width: 100%; }
+    .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn-row .btn { flex: 1; min-width: 140px; }
+
+    .copy-btn { background: transparent; border: none; color: var(--md-on-surface-variant); cursor: pointer; border-radius: 50%; width: 34px; height: 34px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.2s var(--md-easing-standard); }
+    .copy-btn:hover { background: var(--md-surface-container-high); color: var(--md-primary); }
+    .copy-btn:active { transform: scale(0.9); }
+    .copy-btn .material-symbols-rounded { font-size: 18px; }
+
+    /* Toolbar / search */
+    .vault-toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; animation: fadeUp 0.6s var(--md-easing-spring) 0.15s backwards; }
+    .search-box { flex: 1; min-width: 200px; position: relative; }
+    .search-box .material-symbols-rounded { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--md-on-surface-variant); font-size: 20px; pointer-events: none; }
+    .search-box input { padding-left: 40px; }
+    .filter-chip { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 8px 12px; border-radius: 9999px; background: var(--md-surface-container-high); color: var(--md-on-surface-variant); border: 1px solid transparent; cursor: pointer; transition: all 0.2s var(--md-easing-standard); }
+    .filter-chip.active { background: var(--md-secondary-container); color: var(--md-on-secondary-container); border-color: color-mix(in srgb, var(--md-primary) 40%, transparent); }
+
+    /* Entry list */
+    .entry-list { display: flex; flex-direction: column; gap: 10px; }
+    .entry-card { background: var(--md-surface-container); border: 1px solid color-mix(in srgb, var(--md-outline-variant) 50%, transparent); border-radius: 18px; padding: 14px 16px; display: flex; align-items: center; gap: 14px; transition: all 0.25s var(--md-easing-spring-soft); animation: fadeUp 0.5s var(--md-easing-spring) backwards; }
+    .entry-card:hover { border-color: var(--md-primary); transform: translateY(-2px); box-shadow: 0 6px 18px -6px var(--md-shadow-color); }
+    .entry-icon { width: 44px; height: 44px; border-radius: 14px; flex-shrink: 0; background: var(--md-primary-container); color: var(--md-on-primary-container); display: flex; align-items: center; justify-content: center; }
+    .entry-icon.t-token { background: var(--md-secondary-container); color: var(--md-on-secondary-container); }
+    .entry-icon.t-ssh { background: var(--md-tertiary-container); color: var(--md-on-tertiary-container); }
+    .entry-icon.t-note { background: var(--md-surface-container-highest); color: var(--md-on-surface-variant); }
+    .entry-icon .material-symbols-rounded { font-size: 24px; }
+    .entry-body { flex: 1; min-width: 0; }
+    .entry-name { font-size: 15px; font-weight: 700; color: var(--md-on-surface); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .entry-meta { font-size: 12px; color: var(--md-on-surface-variant); margin-top: 2px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .entry-value { font-family: 'Roboto Flex', monospace; font-variant-numeric: tabular-nums; }
+    .entry-type-chip { font-size: 9px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; background: var(--md-surface-container-highest); color: var(--md-on-surface-variant); }
+    .entry-actions { display: flex; gap: 2px; flex-shrink: 0; }
+
+    .empty-state { text-align: center; padding: 40px 20px; color: var(--md-on-surface-variant); }
+    .empty-state .material-symbols-rounded { font-size: 48px; opacity: 0.5; margin-bottom: 12px; }
+    .empty-state p { font-size: 14px; }
+
+    /* Modal */
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.55); backdrop-filter: blur(4px); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 16px; opacity: 0; pointer-events: none; transition: opacity 0.3s var(--md-easing-standard); }
+    .modal-backdrop.open { opacity: 1; pointer-events: auto; }
+    .modal { width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; background: var(--md-surface-container-low); border: 1px solid var(--md-outline-variant); border-radius: 24px; padding: 24px; box-shadow: 0 24px 60px var(--md-shadow-color-strong); transform: translateY(20px) scale(0.97); transition: transform 0.35s var(--md-easing-spring); }
+    .modal-backdrop.open .modal { transform: translateY(0) scale(1); }
+    .modal-title { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+    .modal-sub { font-size: 13px; color: var(--md-on-surface-variant); margin-bottom: 20px; }
+
+    .spinner { width: 18px; height: 18px; border: 2px solid color-mix(in srgb, currentColor 30%, transparent); border-top-color: currentColor; border-radius: 50%; animation: spin 0.8s linear infinite; }
+
+    /* Floating Toolbar */
+    .floating-toolbar { position: fixed; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); width: calc(100% - 32px); max-width: 680px; background: color-mix(in srgb, var(--md-surface-container) 85%, transparent); backdrop-filter: blur(28px) saturate(180%); -webkit-backdrop-filter: blur(28px) saturate(180%); border: 1px solid color-mix(in srgb, var(--md-outline-variant) 50%, transparent); box-shadow: 0 12px 40px -6px var(--md-shadow-color-strong); border-radius: 9999px; padding: 8px 12px; display: flex; align-items: center; gap: 12px; z-index: 40; animation: barIn 0.7s var(--md-easing-spring) 0.15s backwards; }
+    .fab-btn { flex: 1; height: 48px; border-radius: 9999px; border: none; background: var(--md-primary); color: var(--md-on-primary); font-family: inherit; font-size: 14px; font-weight: 600; letter-spacing: 0.02em; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; box-shadow: 0 4px 16px -2px var(--md-shadow-color); transition: all 0.3s var(--md-easing-spring-soft); white-space: nowrap; }
+    .fab-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 24px -2px var(--md-shadow-color-strong); }
+    .fab-btn:active:not(:disabled) { transform: scale(0.96); }
+    .fab-btn.secondary-fab { background: var(--md-surface-container-high); color: var(--md-on-surface); border: 1px solid var(--md-outline-variant); box-shadow: none; }
+    .fab-btn:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
+
+    .app-footer { text-align: center; margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--md-outline-variant); color: var(--md-on-surface-variant); font-size: 12px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .footer-links { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; justify-content: center; }
+    .footer-links a { color: var(--md-primary); text-decoration: none; font-weight: 600; }
+    .footer-links a:hover { text-decoration: underline; }
+
+    .toast-container { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); z-index: 300; pointer-events: none; }
+    .toast { background: var(--md-inverse-surface); color: var(--md-inverse-on-surface); border-radius: 14px; padding: 12px 20px; display: flex; align-items: center; gap: 12px; box-shadow: 0 8px 24px var(--md-shadow-color-strong); opacity: 0; transform: translateY(20px) scale(0.95); transition: all 0.35s var(--md-easing-spring); pointer-events: auto; }
+    .toast.show { opacity: 1; transform: translateY(0) scale(1); }
+    .toast-icon { color: var(--md-inverse-primary); }
+    .toast-text { font-size: 14px; font-weight: 600; }
+
+    .warn-banner { display: flex; gap: 10px; align-items: flex-start; background: var(--md-tertiary-container); color: var(--md-on-tertiary-container); border-radius: 14px; padding: 12px 14px; font-size: 12px; line-height: 1.45; margin-bottom: 16px; }
+    .warn-banner .material-symbols-rounded { font-size: 18px; flex-shrink: 0; }
+
+    @media (max-width: 600px) {
+      body { padding: 16px 12px 140px 12px; }
+      .app-bar { padding: 6px 8px 6px 12px; margin-bottom: 22px; }
+      .brand { gap: 8px; } .brand-h1 { font-size: 15px; } .open-source-badge { display: none; }
+      .hero { margin-bottom: 20px; }
+      .card { padding: 20px 16px; border-radius: 20px; }
+      .entry-card { flex-wrap: wrap; }
+      .entry-actions { width: 100%; justify-content: flex-end; }
+      .toast-container { bottom: calc(96px + env(safe-area-inset-bottom, 0px)); width: calc(100% - 24px); }
+      .toast { padding: 10px 16px; justify-content: center; text-align: center; }
+      .toast-text { font-size: 13px; }
+      .floating-toolbar { padding: 6px 8px; gap: 8px; } .fab-btn { font-size: 13px; }
+    }
+    @media (max-width: 380px) { .fab-btn span:last-child { display: none; } .fab-btn { padding: 0; } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; } }
+  </style>
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-blob"></div>
+
+  <div class="app-wrapper">
+    <header class="app-bar">
+      <div class="brand">
+        <a href="https://inpriv.xyz" class="brand-icon" aria-label="Inpriv Homepage"><span class="material-symbols-rounded">key</span></a>
+        <div class="brand-text">
+          <span class="brand-h1">Inpriv<span>.</span> <span class="open-source-badge">Keyring</span></span>
+          <span class="brand-tagline">Zero-Knowledge Secret Vault</span>
+        </div>
+      </div>
+      <div class="app-bar-actions">
+        <button class="icon-btn" id="themeToggleBtn" aria-label="Toggle Dark/Light Theme" type="button"><span class="material-symbols-rounded" id="themeIcon">light_mode</span></button>
+      </div>
+    </header>
+
+    <section class="hero">
+      <h2 class="hero-h2">Encrypted <span class="accent">keyring</span></h2>
+      <p class="hero-desc">Store SSH keys, API tokens, passwords and notes in a vault encrypted on your device. AES-256-GCM with a PBKDF2-derived key. Your master password is never sent anywhere — and cannot be recovered.</p>
+      <div class="privacy-pill"><span class="material-symbols-rounded">lock</span> End-to-end · zero-knowledge · client-side only</div>
+    </section>
+
+    <!-- ===== LOCKED / SETUP VIEW ===== -->
+    <div id="gateView">
+      <div class="card gate-card">
+        <div class="gate-icon" id="gateIcon"><span class="material-symbols-rounded">lock</span></div>
+        <h3 class="gate-title" id="gateTitle">Create your vault</h3>
+        <p class="gate-sub" id="gateSub">Choose a strong master password. It encrypts everything and is stored only in encrypted form on this device. There is no recovery — if you forget it, your data is gone.</p>
+
+        <div style="width:100%;max-width:380px;margin:0 auto;">
+          <div class="field">
+            <label class="field-label" id="pwLabel">Master password</label>
+            <div class="pw-wrap">
+              <input class="text-input" id="pwInput" type="password" autocomplete="new-password" placeholder="Enter a strong master password" />
+              <button class="pw-toggle" id="pwToggle" type="button" aria-label="Show password"><span class="material-symbols-rounded">visibility</span></button>
+            </div>
+            <div class="pw-strength" id="pwStrength"><div></div></div>
+            <div class="pw-hint" id="pwHint">Use 12+ characters with mixed case, numbers and symbols.</div>
+          </div>
+          <div class="field" id="confirmField">
+            <label class="field-label">Confirm master password</label>
+            <div class="pw-wrap">
+              <input class="text-input" id="pwConfirm" type="password" autocomplete="new-password" placeholder="Re-enter your master password" />
+              <button class="pw-toggle" id="pwConfirmToggle" type="button" aria-label="Show password"><span class="material-symbols-rounded">visibility</span></button>
+            </div>
+            <div class="pw-hint" id="matchHint"></div>
+          </div>
+          <button class="btn full" id="gateBtn" type="button"><span class="material-symbols-rounded">lock_open</span><span id="gateBtnText">Create &amp; unlock vault</span></button>
+          <p class="pw-hint" style="text-align:center;margin-top:14px;" id="gateFoot">Your data is encrypted with <strong>AES-256-GCM</strong> and a key derived via <strong>PBKDF2-SHA256 (600,000 iterations)</strong>.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== UNLOCKED VIEW ===== -->
+    <div id="vaultView" style="display:none;">
+      <div class="vault-toolbar">
+        <div class="search-box">
+          <span class="material-symbols-rounded">search</span>
+          <input class="text-input" id="searchInput" type="search" placeholder="Search entries…" autocomplete="off" />
+        </div>
+        <button class="filter-chip active" data-filter="all" type="button">All</button>
+        <button class="filter-chip" data-filter="password" type="button">Passwords</button>
+        <button class="filter-chip" data-filter="token" type="button">Tokens</button>
+        <button class="filter-chip" data-filter="ssh" type="button">SSH</button>
+        <button class="filter-chip" data-filter="note" type="button">Notes</button>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-label"><span class="material-symbols-rounded">vpn_key</span> Your entries <span id="entryCount" style="margin-left:6px;color:var(--md-primary);"></span></span>
+          <span class="card-label" id="autoLockHint" style="text-transform:none;letter-spacing:0;opacity:0.7;"><span class="material-symbols-rounded" style="font-size:15px;">schedule</span> Auto-lock 5m</span>
+        </div>
+        <div class="entry-list" id="entryList"></div>
+      </div>
+    </div>
+
+    <footer class="app-footer">
+      <div>Inpriv Keyring · Open Source Privacy Suite</div>
+      <div class="footer-links">
+        <a href="https://inpriv.xyz" rel="noopener">Inpriv</a>
+        <span>•</span>
+        <a href="https://hush.best" target="_blank" rel="noopener">Hush</a>
+        <span>•</span>
+        <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener">MIT License</a>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Toolbar (unlocked) -->
+  <div class="floating-toolbar" id="vaultToolbar" style="display:none;">
+    <button class="fab-btn" id="addBtn" type="button"><span class="material-symbols-rounded">add</span><span>Add entry</span></button>
+    <button class="fab-btn secondary-fab" id="exportBtn" type="button"><span class="material-symbols-rounded">download</span><span>Export</span></button>
+    <button class="fab-btn secondary-fab" id="lockBtn" type="button"><span class="material-symbols-rounded">lock</span><span>Lock</span></button>
+  </div>
+
+  <!-- Entry editor modal -->
+  <div class="modal-backdrop" id="entryModal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="entryModalTitle">
+      <h3 class="modal-title" id="entryModalTitle">Add entry</h3>
+      <p class="modal-sub">Secrets are encrypted before they touch storage.</p>
+      <div class="field">
+        <label class="field-label">Name</label>
+        <input class="text-input" id="eName" type="text" placeholder="e.g. GitHub PAT, prod SSH key" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label class="field-label">Type</label>
+        <select class="select-input" id="eType">
+          <option value="password">Password</option>
+          <option value="token">API token</option>
+          <option value="ssh">SSH key</option>
+          <option value="note">Secure note</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="field-label">Secret</label>
+        <div class="pw-wrap">
+          <textarea class="text-input mono" id="eValue" placeholder="Paste or type the secret…" autocomplete="off" spellcheck="false"></textarea>
+        </div>
+      </div>
+      <div class="field">
+        <label class="field-label">Notes (optional)</label>
+        <textarea class="text-input" id="eNotes" placeholder="Any context — scopes, expiry, which env…" autocomplete="off"></textarea>
+      </div>
+      <div class="btn-row" style="margin-top:8px;">
+        <button class="btn secondary" id="entryCancel" type="button">Cancel</button>
+        <button class="btn" id="entrySave" type="button"><span class="material-symbols-rounded">save</span> Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Export modal -->
+  <div class="modal-backdrop" id="exportModal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="exportModalTitle">
+      <h3 class="modal-title" id="exportModalTitle">Export vault</h3>
+      <p class="modal-sub">Choose how to back up your entries.</p>
+      <div class="warn-banner"><span class="material-symbols-rounded">warning</span><span>A plaintext export contains your secrets in readable form. Store it somewhere safe and delete it when done.</span></div>
+      <div class="btn-row" style="flex-direction:column;">
+        <button class="btn full" id="expEncrypted" type="button"><span class="material-symbols-rounded">lock</span> Encrypted backup (recommended)</button>
+        <button class="btn secondary full" id="expPlain" type="button"><span class="material-symbols-rounded">description</span> Plaintext JSON</button>
+        <button class="btn secondary full" id="expImport" type="button"><span class="material-symbols-rounded">upload</span> Import encrypted backup…</button>
+        <button class="btn danger full" id="expWipe" type="button"><span class="material-symbols-rounded">delete_forever</span> Wipe vault permanently</button>
+      </div>
+      <div class="btn-row" style="margin-top:14px;"><button class="btn secondary full" id="exportClose" type="button">Close</button></div>
+      <input type="file" id="importFile" accept="application/json,.json" style="display:none;" />
+    </div>
+  </div>
+
+  <!-- Wipe confirm modal -->
+  <div class="modal-backdrop" id="wipeModal">
+    <div class="modal" role="dialog" aria-modal="true">
+      <h3 class="modal-title">Wipe vault?</h3>
+      <p class="modal-sub">This permanently deletes the encrypted vault and all entries from this browser. Type your master password to confirm.</p>
+      <div class="field"><div class="pw-wrap"><input class="text-input" id="wipePw" type="password" placeholder="Master password" autocomplete="off" /><button class="pw-toggle" id="wipeToggle" type="button"><span class="material-symbols-rounded">visibility</span></button></div></div>
+      <div class="btn-row"><button class="btn secondary" id="wipeCancel" type="button">Cancel</button><button class="btn danger" id="wipeConfirm" type="button">Wipe forever</button></div>
+    </div>
+  </div>
+
+  <div class="toast-container">
+    <div class="toast" id="toast" role="status" aria-live="polite">
+      <span class="material-symbols-rounded toast-icon" id="toastIcon">check_circle</span>
+      <span class="toast-text" id="toastText">Done</span>
+    </div>
+  </div>
+
+  <script>
+    /* ===================== Theme ===================== */
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    const themeIcon = document.getElementById('themeIcon');
+    const htmlElem = document.documentElement;
+    function setTheme(theme) { htmlElem.setAttribute('data-theme', theme); localStorage.setItem('aurex_theme', theme); themeIcon.textContent = theme === 'dark' ? 'light_mode' : 'dark_mode'; }
+    const savedTheme = localStorage.getItem('aurex_theme') || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    setTheme(savedTheme);
+    themeToggleBtn.addEventListener('click', () => setTheme(htmlElem.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
+
+    /* Toast */
+    const toast = document.getElementById('toast');
+    const toastText = document.getElementById('toastText');
+    const toastIcon = document.getElementById('toastIcon');
+    let toastTimeout;
+    function showToast(msg, icon) { icon = icon || 'check_circle'; clearTimeout(toastTimeout); toastText.textContent = msg; toastIcon.textContent = icon; toast.classList.add('show'); toastTimeout = setTimeout(() => toast.classList.remove('show'), 2800); }
+
+    /* ===================== Crypto helpers (crypto.subtle) ===================== */
+    const enc = new TextEncoder();
+    const dec = new TextDecoder();
+    const PBKDF2_ITERS = 600000;
+    const SALT_LEN = 16, IV_LEN = 12;
+
+    function bytesToB64(bytes) { let bin = ''; const chunk = 0x8000; for (let i = 0; i < bytes.length; i += chunk) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk)); return btoa(bin); }
+    function b64ToBytes(b64) { const bin = atob(b64); const out = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i); return out; }
+
+    function randomBytes(n) { const b = new Uint8Array(n); crypto.getRandomValues(b); return b; }
+
+    async function deriveKey(password, salt) {
+      const baseKey = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
+      return crypto.subtle.deriveKey(
+        { name: 'PBKDF2', salt, iterations: PBKDF2_ITERS, hash: 'SHA-256' },
+        baseKey,
+        { name: 'AES-GCM', length: 256 },
+        false,
+        ['encrypt', 'decrypt']
+      );
+    }
+
+    async function encryptJSON(obj, key) {
+      const iv = randomBytes(IV_LEN);
+      const plaintext = enc.encode(JSON.stringify(obj));
+      const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, plaintext);
+      return { iv: bytesToB64(iv), ct: bytesToB64(new Uint8Array(ct)) };
+    }
+    async function decryptJSON(payload, key) {
+      const iv = b64ToBytes(payload.iv);
+      const ct = b64ToBytes(payload.ct);
+      const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
+      return JSON.parse(dec.decode(pt));
+    }
+
+    /* ===================== Vault model ===================== */
+    const STORE_KEY = 'inpriv_keyring_v1';
+    // Stored shape: { salt:b64, verifier:{iv,ct} , blob:{iv,ct} , created:iso }
+    // verifier encrypts a known constant so we can validate the password without storing it.
+
+    const VERIFIER_PLAINTEXT = 'inpriv-keyring-v1-verifier';
+    let session = { key: null, entries: [], filter: 'all', query: '', editId: null, locked: true };
+
+    function readStore() { try { return JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); } catch (e) { return null; } }
+    function writeStore(obj) { localStorage.setItem(STORE_KEY, JSON.stringify(obj)); }
+
+    function hasVault() { return !!readStore(); }
+
+    async function createVault(password) {
+      const salt = randomBytes(SALT_LEN);
+      const key = await deriveKey(password, salt);
+      const verifier = await encryptJSON({ v: VERIFIER_PLAINTEXT }, key);
+      const blob = await encryptJSON({ entries: [] }, key);
+      writeStore({ salt: bytesToB64(salt), verifier, blob, created: new Date().toISOString(), v: 1 });
+      return key;
+    }
+
+    async function unlockVault(password) {
+      const store = readStore(); if (!store) return false;
+      const salt = b64ToBytes(store.salt);
+      const key = await deriveKey(password, salt);
+      try {
+        const v = await decryptJSON(store.verifier, key);
+        if (!v || v.v !== VERIFIER_PLAINTEXT) return false;
+      } catch (e) { return false; }
+      try {
+        const data = await decryptJSON(store.blob, key);
+        session.entries = (data && data.entries) ? data.entries : [];
+      } catch (e) { session.entries = []; }
+      return key;
+    }
+
+    async function persist() {
+      if (!session.key) return;
+      const store = readStore(); if (!store) return;
+      const blob = await encryptJSON({ entries: session.entries }, session.key);
+      store.blob = blob;
+      writeStore(store);
+    }
+
+    /* ===================== Password strength ===================== */
+    function scorePassword(pw) {
+      if (!pw) return 0;
+      let score = 0;
+      const sets = [/[a-z]/, /[A-Z]/, /[0-9]/, /[^A-Za-z0-9]/].filter(r => r.test(pw)).length;
+      score += Math.min(pw.length, 24) * 4;
+      score += sets * 8;
+      if (pw.length >= 12) score += 15;
+      if (pw.length >= 16) score += 15;
+      // penalties
+      if (/(.)\1\1\1/.test(pw)) score -= 15;
+      return Math.max(0, Math.min(100, score));
+    }
+    function strengthColor(s) { if (s < 35) return 'var(--md-error)'; if (s < 65) return 'var(--md-tertiary)'; return 'var(--md-primary)'; }
+    function strengthLabel(s) { if (s < 35) return 'Weak'; if (s < 65) return 'Fair'; return 'Strong'; }
+
+    /* ===================== UI: gate view ===================== */
+    const gateView = document.getElementById('gateView');
+    const vaultView = document.getElementById('vaultView');
+    const vaultToolbar = document.getElementById('vaultToolbar');
+    const gateIcon = document.getElementById('gateIcon');
+    const gateTitle = document.getElementById('gateTitle');
+    const gateSub = document.getElementById('gateSub');
+    const gateBtn = document.getElementById('gateBtn');
+    const gateBtnText = document.getElementById('gateBtnText');
+    const pwLabel = document.getElementById('pwLabel');
+    const pwInput = document.getElementById('pwInput');
+    const pwConfirm = document.getElementById('pwConfirm');
+    const confirmField = document.getElementById('confirmField');
+    const pwStrengthFill = document.querySelector('#pwStrength > div');
+    const pwHint = document.getElementById('pwHint');
+    const matchHint = document.getElementById('matchHint');
+    const gateFoot = document.getElementById('gateFoot');
+
+    let gateMode = 'create'; // 'create' | 'unlock'
+
+    function renderGate() {
+      const exists = hasVault();
+      gateMode = exists ? 'unlock' : 'create';
+      if (exists) {
+        gateIcon.querySelector('.material-symbols-rounded').textContent = 'lock';
+        gateTitle.textContent = 'Unlock your vault';
+        gateSub.textContent = 'Enter your master password to decrypt your entries. The password is never stored or transmitted — and cannot be recovered.';
+        gateBtnText.textContent = 'Unlock vault';
+        pwLabel.textContent = 'Master password';
+        confirmField.style.display = 'none';
+        pwInput.autocomplete = 'current-password';
+        pwInput.placeholder = 'Enter your master password';
+        gateFoot.innerHTML = 'No vault? <a href="javascript:void(0)" id="resetLink" style="color:var(--md-tertiary);font-weight:700;">Wipe &amp; start fresh</a>';
+        const rl = document.getElementById('resetLink'); if (rl) rl.onclick = () => openWipeFromGate();
+      } else {
+        gateIcon.querySelector('.material-symbols-rounded').textContent = 'lock';
+        gateTitle.textContent = 'Create your vault';
+        gateSub.textContent = 'Choose a strong master password. It encrypts everything and is stored only in encrypted form on this device. There is no recovery — if you forget it, your data is gone.';
+        gateBtnText.textContent = 'Create & unlock vault';
+        pwLabel.textContent = 'Master password';
+        confirmField.style.display = '';
+        pwInput.autocomplete = 'new-password';
+        pwInput.placeholder = 'Enter a strong master password';
+        gateFoot.innerHTML = 'Your data is encrypted with <strong>AES-256-GCM</strong> and a key derived via <strong>PBKDF2-SHA256 (600,000 iterations)</strong>.';
+      }
+      pwInput.value = ''; pwConfirm.value = '';
+      updateStrength(); updateMatch();
+    }
+
+    function updateStrength() {
+      const s = scorePassword(pwInput.value);
+      pwStrengthFill.style.width = gateMode === 'unlock' ? '0%' : (s + '%');
+      pwStrengthFill.style.background = strengthColor(s);
+      if (gateMode === 'create' && pwInput.value) pwHint.textContent = 'Strength: ' + strengthLabel(s) + ' (' + s + '/100)';
+      else pwHint.textContent = 'Use 12+ characters with mixed case, numbers and symbols.';
+    }
+    function updateMatch() {
+      if (gateMode !== 'create' || !pwConfirm.value) { matchHint.textContent = ''; return; }
+      if (pwInput.value === pwConfirm.value) { matchHint.textContent = 'Passwords match'; matchHint.style.color = 'var(--md-primary)'; }
+      else { matchHint.textContent = 'Passwords do not match'; matchHint.style.color = 'var(--md-tertiary)'; }
+    }
+    pwInput.addEventListener('input', () => { updateStrength(); updateMatch(); });
+    pwConfirm.addEventListener('input', updateMatch);
+    document.getElementById('pwToggle').onclick = () => togglePw(pwInput, document.getElementById('pwToggle'));
+    document.getElementById('pwConfirmToggle').onclick = () => togglePw(pwConfirm, document.getElementById('pwConfirmToggle'));
+    function togglePw(input, btn) { input.type = input.type === 'password' ? 'text' : 'password'; btn.querySelector('.material-symbols-rounded').textContent = input.type === 'password' ? 'visibility' : 'visibility_off'; }
+
+    gateBtn.addEventListener('click', async () => {
+      const pw = pwInput.value;
+      if (!pw) { showToast('Enter a master password', 'info'); return; }
+      gateBtn.disabled = true;
+      gateBtn.innerHTML = '<div class="spinner"></div><span>' + (gateMode === 'create' ? 'Creating…' : 'Unlocking…') + '</span>';
+      try {
+        if (gateMode === 'create') {
+          if (pw !== pwConfirm.value) { showToast('Passwords do not match', 'cancel'); gateBtn.disabled = false; gateBtn.innerHTML = '<span class="material-symbols-rounded">lock_open</span><span>' + gateBtnText.textContent + '</span>'; return; }
+          if (scorePassword(pw) < 35) { if (!confirm('This is a weak master password. Anyone who guesses it can decrypt your vault. Continue anyway?')) { gateBtn.disabled = false; gateBtn.innerHTML = '<span class="material-symbols-rounded">lock_open</span><span>' + gateBtnText.textContent + '</span>'; return; } }
+          session.key = await createVault(pw);
+          session.entries = [];
+        } else {
+          const key = await unlockVault(pw);
+          if (!key) { showToast('Incorrect master password', 'cancel'); gateBtn.disabled = false; gateBtn.innerHTML = '<span class="material-symbols-rounded">lock_open</span><span>' + gateBtnText.textContent + '</span>'; return; }
+          session.key = key;
+        }
+        session.locked = false;
+        enterVault();
+        showToast(gateMode === 'create' ? 'Vault created' : 'Vault unlocked', 'lock_open');
+      } catch (e) {
+        showToast('Operation failed: ' + (e.message || e), 'error');
+      } finally {
+        gateBtn.disabled = false;
+        gateBtn.innerHTML = '<span class="material-symbols-rounded">lock_open</span><span id="gateBtnText">' + (gateMode === 'create' ? 'Create & unlock vault' : 'Unlock vault') + '</span>';
+      }
+    });
+    pwInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); if (gateMode === 'unlock' || document.activeElement === pwConfirm) gateBtn.click(); else pwConfirm.focus(); } });
+    pwConfirm.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); gateBtn.click(); } });
+
+    /* ===================== UI: vault view ===================== */
+    const entryList = document.getElementById('entryList');
+    const entryCount = document.getElementById('entryCount');
+    const searchInput = document.getElementById('searchInput');
+
+    function enterVault() {
+      gateView.style.display = 'none';
+      vaultView.style.display = '';
+      vaultToolbar.style.display = '';
+      resetIdleTimer();
+      renderEntries();
+    }
+    function lockVault() {
+      session.key = null; session.entries = []; session.locked = true; session.editId = null;
+      vaultView.style.display = 'none'; vaultToolbar.style.display = 'none';
+      gateView.style.display = '';
+      renderGate();
+      showToast('Vault locked', 'lock');
+    }
+    document.getElementById('lockBtn').onclick = lockVault;
+
+    const TYPE_META = {
+      password: { icon: 'password', cls: '', label: 'Password' },
+      token: { icon: 'token', cls: 't-token', label: 'API token' },
+      ssh: { icon: 'key', cls: 't-ssh', label: 'SSH key' },
+      note: { icon: 'note', cls: 't-note', label: 'Note' }
+    };
+    function typeIcon(t) { return (TYPE_META[t] && TYPE_META[t].icon) || 'key'; }
+    function typeClass(t) { return (TYPE_META[t] && TYPE_META[t].cls) || ''; }
+    function typeLabel(t) { return (TYPE_META[t] && TYPE_META[t].label) || 'Secret'; }
+
+    function maskValue(v) {
+      if (!v) return '';
+      if (v.length <= 8) return '•'.repeat(v.length);
+      return v.slice(0, 3) + '•'.repeat(Math.min(v.length - 6, 18)) + v.slice(-3);
+    }
+
+    function renderEntries() {
+      const q = session.query.toLowerCase().trim();
+      let list = session.entries.slice();
+      if (session.filter !== 'all') list = list.filter(e => e.type === session.filter);
+      if (q) list = list.filter(e => (e.name + ' ' + (e.notes || '') + ' ' + typeLabel(e.type)).toLowerCase().includes(q));
+      list.sort((a, b) => (b.updated || '').localeCompare(a.updated || ''));
+      entryCount.textContent = '(' + list.length + ')';
+      if (!list.length) {
+        entryList.innerHTML = '<div class="empty-state"><span class="material-symbols-rounded">vpn_key_off</span><p>' + (session.entries.length ? 'No entries match your search.' : 'No entries yet. Tap <strong>Add entry</strong> to store your first secret.') + '</p></div>';
+        return;
+      }
+      entryList.innerHTML = list.map(e => entryHtml(e)).join('');
+      // bind actions
+      entryList.querySelectorAll('[data-copy]').forEach(b => b.onclick = (ev) => { ev.stopPropagation(); copyEntryValue(b.getAttribute('data-copy')); });
+      entryList.querySelectorAll('[data-reveal]').forEach(b => b.onclick = (ev) => { ev.stopPropagation(); toggleReveal(b.getAttribute('data-reveal')); });
+      entryList.querySelectorAll('[data-edit]').forEach(b => b.onclick = (ev) => { ev.stopPropagation(); openEditor(b.getAttribute('data-edit')); });
+      entryList.querySelectorAll('[data-del]').forEach(b => b.onclick = (ev) => { ev.stopPropagation(); deleteEntry(b.getAttribute('data-del')); });
+    }
+
+    function entryHtml(e) {
+      const meta = [];
+      meta.push('<span class="entry-type-chip">' + typeLabel(e.type) + '</span>');
+      if (e.updated) meta.push(new Date(e.updated).toLocaleDateString());
+      if (e.notes) meta.push('<span style="opacity:0.8;">' + esc(e.notes.slice(0, 40)) + (e.notes.length > 40 ? '…' : '') + '</span>');
+      const showValue = e.type !== 'note';
+      return '<div class="entry-card">' +
+        '<div class="entry-icon ' + typeClass(e.type) + '"><span class="material-symbols-rounded">' + typeIcon(e.type) + '</span></div>' +
+        '<div class="entry-body">' +
+          '<div class="entry-name">' + esc(e.name || 'Untitled') + '</div>' +
+          (showValue ? '<div class="entry-meta"><span class="entry-value" data-val="' + esc(e.id) + '">' + maskValue(e.value) + '</span></div>' : '') +
+          '<div class="entry-meta">' + meta.join(' ') + '</div>' +
+        '</div>' +
+        '<div class="entry-actions">' +
+          (showValue ? '<button class="copy-btn" data-reveal="' + esc(e.id) + '" title="Show/hide" aria-label="Show/hide"><span class="material-symbols-rounded">visibility</span></button>' : '') +
+          (e.value ? '<button class="copy-btn" data-copy="' + esc(e.id) + '" title="Copy" aria-label="Copy"><span class="material-symbols-rounded">content_copy</span></button>' : '') +
+          '<button class="copy-btn" data-edit="' + esc(e.id) + '" title="Edit" aria-label="Edit"><span class="material-symbols-rounded">edit</span></button>' +
+          '<button class="copy-btn" data-del="' + esc(e.id) + '" title="Delete" aria-label="Delete"><span class="material-symbols-rounded">delete</span></button>' +
+        '</div>' +
+      '</div>';
+    }
+    function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+    function toggleReveal(id) {
+      const el = entryList.querySelector('[data-val="' + id + '"]'); if (!el) return;
+      const e = session.entries.find(x => x.id === id); if (!e) return;
+      const shown = el.dataset.shown === '1';
+      if (shown) { el.textContent = maskValue(e.value); el.dataset.shown = '0'; }
+      else { el.textContent = e.value; el.dataset.shown = '1'; }
+    }
+    async function copyEntryValue(id) {
+      const e = session.entries.find(x => x.id === id); if (!e || !e.value) return;
+      try { await navigator.clipboard.writeText(e.value); } catch (err) { showToast('Clipboard blocked by browser', 'error'); return; }
+      showToast('Copied — clipboard auto-clears in 30s', 'content_copy');
+      clearTimeout((window.__clipTimer)); window.__clipTimer = setTimeout(() => { navigator.clipboard.writeText('').catch(() => {}); }, 30000);
+      touchActivity();
+    }
+    async function deleteEntry(id) {
+      const e = session.entries.find(x => x.id === id); if (!e) return;
+      if (!confirm('Delete "' + (e.name || 'this entry') + '"? This cannot be undone.')) return;
+      session.entries = session.entries.filter(x => x.id !== id);
+      await persist(); renderEntries(); showToast('Entry deleted', 'delete');
+    }
+
+    /* Search + filter */
+    searchInput.addEventListener('input', () => { session.query = searchInput.value; touchActivity(); renderEntries(); });
+    document.querySelectorAll('.filter-chip').forEach(c => c.onclick = () => {
+      document.querySelectorAll('.filter-chip').forEach(x => x.classList.remove('active'));
+      c.classList.add('active'); session.filter = c.getAttribute('data-filter'); touchActivity(); renderEntries();
+    });
+
+    /* ===================== Entry editor modal ===================== */
+    const entryModal = document.getElementById('entryModal');
+    const eName = document.getElementById('eName');
+    const eType = document.getElementById('eType');
+    const eValue = document.getElementById('eValue');
+    const eNotes = document.getElementById('eNotes');
+    document.getElementById('addBtn').onclick = () => openEditor(null);
+    document.getElementById('entryCancel').onclick = () => closeEditor();
+    entryModal.addEventListener('click', e => { if (e.target === entryModal) closeEditor(); });
+    function openEditor(id) {
+      session.editId = id || null;
+      document.getElementById('entryModalTitle').textContent = id ? 'Edit entry' : 'Add entry';
+      if (id) { const e = session.entries.find(x => x.id === id); if (e) { eName.value = e.name; eType.value = e.type; eValue.value = e.value || ''; eNotes.value = e.notes || ''; } }
+      else { eName.value = ''; eType.value = 'password'; eValue.value = ''; eNotes.value = ''; }
+      entryModal.classList.add('open'); touchActivity();
+      setTimeout(() => eName.focus(), 200);
+    }
+    function closeEditor() { entryModal.classList.remove('open'); session.editId = null; }
+    document.getElementById('entrySave').onclick = async () => {
+      const name = eName.value.trim(); if (!name) { showToast('Give the entry a name', 'info'); return; }
+      const now = new Date().toISOString();
+      if (session.editId) {
+        const e = session.entries.find(x => x.id === session.editId);
+        if (e) { e.name = name; e.type = eType.value; e.value = eValue.value; e.notes = eNotes.value; e.updated = now; }
+      } else {
+        session.entries.push({ id: crypto.randomUUID ? crypto.randomUUID() : (Date.now() + '-' + Math.random().toString(36).slice(2)), name, type: eType.value, value: eValue.value, notes: eNotes.value, created: now, updated: now });
+      }
+      await persist(); closeEditor(); renderEntries(); showToast('Entry saved', 'save');
+    };
+
+    /* ===================== Export / Import / Wipe ===================== */
+    const exportModal = document.getElementById('exportModal');
+    document.getElementById('exportBtn').onclick = () => { exportModal.classList.add('open'); touchActivity(); };
+    document.getElementById('exportClose').onclick = () => exportModal.classList.remove('open');
+    exportModal.addEventListener('click', e => { if (e.target === exportModal) exportModal.classList.remove('open'); });
+
+    function download(filename, text, type) {
+      const blob = new Blob([text], { type: type || 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+    document.getElementById('expEncrypted').onclick = async () => {
+      // Re-encrypt current entries into a portable, self-contained backup blob.
+      const salt = b64ToBytes(readStore().salt);
+      // We can't re-derive without the password; instead export the existing stored blob + salt as a portable file.
+      // The portable file stays encrypted with the user's current key.
+      const store = readStore();
+      const backup = { app: 'Inpriv Keyring', kind: 'encrypted-backup', v: 1, exported: new Date().toISOString(), salt: store.salt, verifier: store.verifier, blob: store.blob };
+      download('inpriv-keyring-backup-' + new Date().toISOString().slice(0, 10) + '.json', JSON.stringify(backup, null, 2), 'application/json');
+      showToast('Encrypted backup downloaded', 'download');
+    };
+    document.getElementById('expPlain').onclick = async () => {
+      if (!confirm('Export ALL entries as readable plaintext JSON? Anyone with this file can read every secret.')) return;
+      const plain = { app: 'Inpriv Keyring', kind: 'plaintext', exported: new Date().toISOString(), entries: session.entries };
+      download('inpriv-keyring-plaintext-' + new Date().toISOString().slice(0, 10) + '.json', JSON.stringify(plain, null, 2), 'application/json');
+      showToast('Plaintext export downloaded — store safely', 'download');
+    };
+    const importFile = document.getElementById('importFile');
+    document.getElementById('expImport').onclick = () => importFile.click();
+    importFile.addEventListener('change', e => {
+      const f = e.target.files[0]; if (!f) return;
+      const reader = new FileReader();
+      reader.onload = async ev => {
+        try {
+          const data = JSON.parse(ev.target.result);
+          if (data.kind !== 'encrypted-backup' || !data.blob) throw new Error('Not an Inpriv encrypted backup');
+          // Replace current store; user must unlock with the backup's master password.
+          writeStore({ salt: data.salt, verifier: data.verifier, blob: data.blob, created: data.created || new Date().toISOString(), v: 1 });
+          exportModal.classList.remove('open');
+          lockVault();
+          showToast('Backup imported — unlock with its master password', 'upload');
+        } catch (err) { showToast('Invalid backup file', 'error'); }
+      };
+      reader.readAsText(f);
+      importFile.value = '';
+    });
+
+    /* Wipe */
+    const wipeModal = document.getElementById('wipeModal');
+    document.getElementById('wipeConfirm').onclick = async () => {
+      const pw = document.getElementById('wipePw').value;
+      if (!pw) { showToast('Enter master password to confirm', 'info'); return; }
+      const key = await unlockVault(pw);
+      if (!key) { showToast('Incorrect password — wipe cancelled', 'cancel'); return; }
+      localStorage.removeItem(STORE_KEY);
+      document.getElementById('wipePw').value = '';
+      wipeModal.classList.remove('open');
+      exportModal.classList.remove('open');
+      session.key = null; session.entries = []; session.locked = true;
+      vaultView.style.display = 'none'; vaultToolbar.style.display = 'none'; gateView.style.display = '';
+      renderGate();
+      showToast('Vault wiped permanently', 'delete');
+    };
+    document.getElementById('wipeCancel').onclick = () => { wipeModal.classList.remove('open'); document.getElementById('wipePw').value = ''; };
+    document.getElementById('wipeToggle').onclick = () => togglePw(document.getElementById('wipePw'), document.getElementById('wipeToggle'));
+    wipeModal.addEventListener('click', e => { if (e.target === wipeModal) { wipeModal.classList.remove('open'); document.getElementById('wipePw').value = ''; } });
+
+    function openWipeFromGate() {
+      // When wiping from the locked gate, we just remove storage (cannot verify password without unlock attempt).
+      if (confirm('Wipe the encrypted vault from this browser? You will need a new master password to start over. Entries cannot be recovered.')) {
+        localStorage.removeItem(STORE_KEY);
+        renderGate();
+        showToast('Vault wiped — create a new one', 'delete');
+      }
+    }
+
+    /* ===================== Auto-lock (5 min idle) ===================== */
+    const IDLE_MS = 5 * 60 * 1000;
+    let idleTimer = null;
+    function resetIdleTimer() { clearTimeout(idleTimer); idleTimer = setTimeout(() => { if (!session.locked) { showToast('Auto-locked after inactivity', 'lock'); lockVault(); } }, IDLE_MS); }
+    function touchActivity() { if (!session.locked) resetIdleTimer(); }
+    ['mousemove', 'keydown', 'click', 'touchstart', 'scroll'].forEach(ev => window.addEventListener(ev, touchActivity, { passive: true }));
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && !session.locked) { /* keep unlocked; idle timer continues */ } });
+
+    /* ===================== Init ===================== */
+    renderGate();
+    pwInput.focus();
+  </script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+﻿# ─── Backups ───
+Inpriv-backup-DO-NOT-TOUCH/
+**/backup-*/
+
+# ─── Old / archived ───
+.mail/old/
+
+# ─── Python ───
+__pycache__/
+*.pyc
+.venv/
+**/.venv/
+
+# ─── Node ───
+node_modules/
+.next/
+
+# ─── Rust build artifacts ───
+target/
+**/target/
+
+# ─── Large data / wordlists ───
+.brute/rockyou.txt
+
+# ─── AI session plans ───
+.zcode/
+**/.zcode/
+
+# ─── Nested repositories ───
+.cftcfg/github/
+
+# ─── Test artifacts ───
+.zero/gui-test-screenshots/
+
+# ─── OS ───
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── Secrets ───
+**/.env
+!.env.example
+

@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<!--
+  Inpriv Mail — Zero-Knowledge Mail
+  Copyright (c) 2026 Aurex Labs — MIT License
+
+  Client-side encrypted mailbox UI. Messages are encrypted/decrypted in the
+  browser; the server stores only ciphertext.
+-->
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#13140E" />
+<title>Inpriv — Zero-Knowledge Mail</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,400;8..144,500;8..144,600;8..144,700;8..144,800&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-200..200&display=swap" rel="stylesheet">
+<style>
+/* ============================================================================
+   AUREX LABS DESIGN SYSTEM — Earthy Forest M3
+   ========================================================================== */
+:root {
+  --md-primary: #ABD37A;
+  --md-on-primary: #173800;
+  --md-primary-container: #2E4F2F;
+  --md-on-primary-container: #C7EFA0;
+  --md-secondary: #BCCBAF;
+  --md-on-secondary: #27341F;
+  --md-secondary-container: #3D4B34;
+  --md-on-secondary-container: #D8E7CB;
+  --md-tertiary: #FFB4A5;
+  --md-on-tertiary: #5E1709;
+  --md-tertiary-container: #7E2D1E;
+  --md-on-tertiary-container: #FFDAD3;
+  --md-error: #FFB4AB;
+  --md-on-error: #690005;
+  --md-surface: #13140E;
+  --md-on-surface: #E3E2D3;
+  --md-on-surface-variant: #C3C8B6;
+  --md-surface-dim: #0D0F09;
+  --md-surface-container-lowest: #0D0F09;
+  --md-surface-container-low: #1A1C17;
+  --md-surface-container: #1F211B;
+  --md-surface-container-high: #292B25;
+  --md-surface-container-highest: #34362F;
+  --md-outline: #8D9283;
+  --md-outline-variant: #43483D;
+  --md-inverse-surface: #E3E2D3;
+  --md-inverse-on-surface: #2F312C;
+  --md-inverse-primary: #466E47;
+  --md-shadow-color: rgba(0,0,0,0.4);
+  --md-shadow-color-strong: rgba(0,0,0,0.65);
+}
+:root[data-theme="light"] {
+  --md-primary: #466E47;
+  --md-on-primary: #FFFFFF;
+  --md-primary-container: #C7EFA0;
+  --md-on-primary-container: #0C2000;
+  --md-secondary: #55624C;
+  --md-on-secondary: #FFFFFF;
+  --md-secondary-container: #D8E7CB;
+  --md-on-secondary-container: #131F0C;
+  --md-tertiary: #9C4231;
+  --md-on-tertiary: #FFFFFF;
+  --md-tertiary-container: #FFDAD3;
+  --md-on-tertiary-container: #3D0A03;
+  --md-error: #BA1A1A;
+  --md-on-error: #FFFFFF;
+  --md-surface: #FAF9F0;
+  --md-on-surface: #1A1C17;
+  --md-on-surface-variant: #43483D;
+  --md-surface-dim: #DBDAD0;
+  --md-surface-container-lowest: #FFFFFF;
+  --md-surface-container-low: #F4F3E7;
+  --md-surface-container: #EEEDDE;
+  --md-surface-container-high: #E9E7D9;
+  --md-surface-container-highest: #E3E2D3;
+  --md-outline: #74796C;
+  --md-outline-variant: #C3C8B6;
+  --md-inverse-surface: #2F312C;
+  --md-inverse-on-surface: #F0EFE7;
+  --md-inverse-primary: #ABD37A;
+  --md-shadow-color: rgba(20,25,15,0.15);
+  --md-shadow-color-strong: rgba(20,25,15,0.28);
+}
+/* ---------- Reset ---------- */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:'Roboto Flex',system-ui,-apple-system,sans-serif;
+  font-optical-sizing:auto;
+  font-size:15px;
+  font-weight:400;
+  line-height:1.5;
+  color:var(--md-on-surface);
+  background:var(--md-surface);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  overflow-x:hidden;
+  min-height:100vh;
+  position:relative;
+}
+/* ---------- Background layers ---------- */
+.bg-layer{position:fixed;inset:0;z-index:0;pointer-events:none}
+.bg-ambient{
+  background:
+    radial-gradient(ellipse 80% 60% at 85% 0%, color-mix(in srgb, var(--md-primary-container) 55%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 0% 100%, color-mix(in srgb, var(--md-tertiary-container) 45%, transparent) 0%, transparent 70%),
+    var(--md-surface);
+  background-attachment:fixed;
+}
+.bg-dots{
+  background-image:radial-gradient(circle at 1px 1px, var(--md-outline-variant) 1px, transparent 0);
+  background-size:28px 28px;
+  opacity:.18;
+  -webkit-mask-image:radial-gradient(ellipse at center, black 30%, transparent 80%);
+          mask-image:radial-gradient(ellipse at center, black 30%, transparent 80%);
+}
+.bg-blob{
+  width:420px;height:420px;border-radius:50%;
+  background:radial-gradient(circle, color-mix(in srgb, var(--md-tertiary) 22%, transparent), transparent 70%);
+  filter:blur(60px);
+  animation:drift 22s ease-in-out infinite;
+  top:30%;left:60%;
+}
+@keyframes drift{
+  0%,100%{transform:translate(0,0) scale(1)}
+  50%{transform:translate(-60px,40px) scale(1.1)}
+}
+/* ---------- Layout ---------- */
+#app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column}
+.app-bar{
+  position:fixed;top:12px;left:12px;right:12px;height:54px;z-index:50;
+  display:flex;align-items:center;gap:10px;padding:0 8px 0 14px;
+  background:color-mix(in srgb, var(--md-surface-container) 80%, transparent);
+  backdrop-filter:blur(24px) saturate(180%);
+  -webkit-backdrop-filter:blur(24px) saturate(180%);
+  border:1px solid color-mix(in srgb, var(--md-outline-variant) 50%, transparent);
+  border-radius:9999px;
+  box-shadow:0 4px 20px -4px var(--md-shadow-color);
+  animation:barIn .55s cubic-bezier(0.2,1.4,0,1) both;
+}
+@keyframes barIn{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.brand-icon{
+  width:34px;height:34px;border-radius:50%;flex-shrink:0;
+  display:grid;place-items:center;
+  background:var(--md-primary-container);color:var(--md-on-primary-container);
+}
+.brand-icon .material-symbols-rounded{
+  font-variation-settings:'wght' 500,'GRAD' 200,'opsz' 24;font-size:20px;
+}
+.brand-text{display:flex;flex-direction:column;min-width:0}
+.brand-h1{font-size:19px;font-weight:700;letter-spacing:-.01em;line-height:1.1;color:var(--md-on-surface)}
+.brand-tag{font-size:11px;font-weight:500;letter-spacing:.02em;line-height:1.2;color:var(--md-on-surface-variant);opacity:.85}
+.app-bar .spacer{flex:1}
+.icon-btn{
+  width:40px;height:40px;border-radius:50%;border:none;background:transparent;
+  color:var(--md-on-surface-variant);cursor:pointer;
+  display:grid;place-items:center;flex-shrink:0;
+  transition:background .2s cubic-bezier(0.2,1.4,0,1), transform .15s cubic-bezier(0.2,1.4,0,1);
+  position:relative;overflow:hidden;
+}
+.icon-btn:hover{background:color-mix(in srgb, var(--md-on-surface) 8%, transparent)}
+.icon-btn:active{transform:scale(.92)}
+.icon-btn .material-symbols-rounded{
+  font-variation-settings:'wght' 500,'GRAD' 0,'opsz' 24;font-size:22px;
+}
+.avatar{
+  width:36px;height:36px;border-radius:50%;
+  background:var(--md-primary);color:var(--md-on-primary);
+  display:grid;place-items:center;font-weight:700;font-size:14px;
+  cursor:pointer;flex-shrink:0;
+  transition:transform .15s cubic-bezier(0.2,1.4,0,1);
+}
+.avatar:hover{transform:scale(1.05)}
+/* ---------- Main content ---------- */
+.main{
+  flex:1;width:100%;max-width:1200px;margin:0 auto;
+  padding:90px 16px 160px;
+  display:flex;flex-direction:column;gap:18px;
+}
+.hero{
+  display:flex;flex-direction:column;gap:14px;padding:8px 4px 12px;
+  animation:fadeUp .55s cubic-bezier(0.2,1.4,0,1) both;
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+.hero h2{
+  font-size:clamp(32px, 9vw, 44px);font-weight:800;letter-spacing:-.025em;line-height:1.05;
+}
+.hero p{font-size:15px;color:var(--md-on-surface-variant);max-width:640px}
+@media(min-width:600px){
+  .app-bar{top:18px;left:22px;right:22px;height:54px}
+  .main{padding:96px 24px 200px}
+  .hero h2{font-size:clamp(40px, 6.5vw, 68px)}
+  .hero p{font-size:16px}
+}
+/* ---------- Cards ---------- */
+.card{
+  background:var(--md-surface-container-low);
+  border:1px solid var(--md-outline-variant);
+  border-radius:24px;padding:24px;
+  box-shadow:0 4px 24px -8px var(--md-shadow-color);
+  animation:fadeUp .6s cubic-bezier(0.2,1.4,0,1) both;
+}
+@media(min-width:600px){.card{border-radius:28px;padding:32px}}
+.card+.card{animation-delay:.06s}
+.card-title{
+  font-size:11px;font-weight:700;letter-spacing:.08em;line-height:1.2;
+  text-transform:uppercase;color:var(--md-on-surface-variant);margin-bottom:16px;
+}
+/* ---------- Forms ---------- */
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.field label{
+  font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--md-on-surface-variant);
+}
+.field input, .field textarea{
+  font-family:inherit;font-size:15px;color:var(--md-on-surface);
+  background:var(--md-surface-container);
+  border:1px solid var(--md-outline-variant);border-radius:14px;
+  padding:13px 14px;outline:none;
+  transition:border-color .2s cubic-bezier(0.2,1.4,0,1), background .2s, box-shadow .2s;
+  width:100%;
+}
+.field input:focus, .field textarea:focus{
+  border-color:var(--md-primary);
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--md-primary) 18%, transparent);
+}
+.field .hint{font-size:12px;color:var(--md-on-surface-variant);opacity:.75}
+.field.has-error input{border-color:var(--md-error)}
+.field-error{font-size:12px;color:var(--md-error);font-weight:500}
+.input-wrap{position:relative;display:flex;align-items:center}
+.input-wrap .material-symbols-rounded.eye{
+  position:absolute;right:10px;font-size:20px;cursor:pointer;color:var(--md-on-surface-variant);
+  font-variation-settings:'wght' 400,'GRAD' 0,'opsz' 20;
+  padding:6px;border-radius:50%;
+}
+.input-wrap .material-symbols-rounded.eye:hover{background:color-mix(in srgb, var(--md-on-surface) 8%, transparent)}
+/* ---------- Buttons ---------- */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  height:46px;padding:0 22px;border:none;cursor:pointer;
+  font-family:inherit;font-size:14px;font-weight:600;letter-spacing:.02em;line-height:1;
+  border-radius:9999px;
+  transition:transform .15s cubic-bezier(0.2,1.4,0,1), box-shadow .2s, background .2s;
+  position:relative;overflow:hidden;
+}
+.btn .material-symbols-rounded{font-variation-settings:'wght' 500,'GRAD' 0,'opsz' 24;font-size:18px}
+.btn-primary{background:var(--md-primary);color:var(--md-on-primary);box-shadow:0 4px 14px -4px color-mix(in srgb, var(--md-primary) 50%, transparent)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 20px -4px color-mix(in srgb, var(--md-primary) 60%, transparent)}
+.btn-primary:active{transform:scale(.97)}
+.btn-tonal{background:var(--md-secondary-container);color:var(--md-on-secondary-container)}
+.btn-tonal:hover{transform:translateY(-2px)}
+.btn-tonal:active{transform:scale(.97)}
+.btn-text{background:transparent;color:var(--md-primary);padding:0 12px;height:40px}
+.btn-text:hover{background:color-mix(in srgb, var(--md-primary) 10%, transparent)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important}
+.btn-block{width:100%}
+.ripple{
+  position:absolute;border-radius:50%;transform:scale(0);
+  background:currentColor;opacity:.25;pointer-events:none;
+  animation:rippleAnim .6s cubic-bezier(0.2,1.4,0,1) forwards;
+}
+@keyframes rippleAnim{to{transform:scale(4);opacity:0}}
+/* ---------- Auth shell ---------- */
+.auth-shell{
+  min-height:calc(100vh - 110px);
+  display:grid;place-items:center;padding:20px 0 60px;
+}
+.auth-card{
+  width:100%;max-width:440px;
+  background:var(--md-surface-container-low);
+  border:1px solid var(--md-outline-variant);
+  border-radius:28px;padding:32px 26px;
+  box-shadow:0 10px 40px -10px var(--md-shadow-color-strong);
+  animation:editorIn .55s cubic-bezier(0.2,1.4,0,1) both;
+}
+@keyframes editorIn{from{opacity:0;transform:translateY(24px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+.auth-toggle{
+  display:flex;background:var(--md-surface-container-high);
+  border-radius:9999px;padding:4px;margin-bottom:24px;
+}
+.auth-toggle button{
+  flex:1;height:38px;border:none;background:transparent;cursor:pointer;
+  font-family:inherit;font-size:13px;font-weight:600;letter-spacing:.02em;
+  color:var(--md-on-surface-variant);border-radius:9999px;
+  transition:background .25s cubic-bezier(0.2,1.4,0,1), color .25s;
+}
+.auth-toggle button.active{
+  background:var(--md-secondary-container);color:var(--md-on-secondary-container);
+}
+.auth-title{font-size:24px;font-weight:700;letter-spacing:-.01em;margin-bottom:6px}
+.auth-sub{font-size:14px;color:var(--md-on-surface-variant);margin-bottom:22px}
+/* ---------- Dashboard ---------- */
+.dash-head{
+  display:flex;align-items:center;justify-content:space-between;gap:14px;
+  flex-wrap:wrap;margin-bottom:8px;
+}
+.seg{
+  display:inline-flex;background:var(--md-surface-container-high);
+  border-radius:9999px;padding:4px;
+}
+.seg button{
+  height:38px;padding:0 16px;border:none;background:transparent;cursor:pointer;
+  font-family:inherit;font-size:13px;font-weight:600;letter-spacing:.02em;
+  color:var(--md-on-surface-variant);border-radius:9999px;
+  display:inline-flex;align-items:center;gap:6px;
+  transition:background .25s cubic-bezier(0.2,1.4,0,1), color .25s;
+}
+.seg button .material-symbols-rounded{font-size:18px;font-variation-settings:'wght' 500,'GRAD' 0,'opsz' 24}
+.seg button.active{background:var(--md-secondary-container);color:var(--md-on-secondary-container)}
+.seg .count{
+  font-size:11px;font-weight:700;padding:2px 8px;border-radius:9999px;
+  background:color-mix(in srgb, var(--md-on-surface) 10%, transparent);
+}
+.stat-row{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px;
+}
+.stat{
+  background:var(--md-surface-container-low);
+  border:1px solid var(--md-outline-variant);
+  border-radius:18px;padding:14px 16px;
+}
+.stat-label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--md-on-surface-variant);margin-bottom:6px}
+.stat-value{font-size:13px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;color:var(--md-on-surface)}
+/* ---------- Message list ---------- */
+.msg-list{display:flex;flex-direction:column;gap:8px}
+.msg-item{
+  display:flex;align-items:center;gap:14px;padding:14px 16px;
+  background:var(--md-surface-container-low);
+  border:1px solid var(--md-outline-variant);
+  border-radius:18px;cursor:pointer;
+  transition:transform .2s cubic-bezier(0.2,1.4,0,1), border-color .2s, box-shadow .2s, background .2s;
+  animation:fadeUp .4s cubic-bezier(0.2,1.4,0,1) both;
+}
+.msg-item:hover{transform:translateY(-3px);border-color:var(--md-primary);box-shadow:0 8px 22px -10px var(--md-shadow-color-strong)}
+.msg-item.unread{background:color-mix(in srgb, var(--md-primary-container) 12%, var(--md-surface-container-low))}
+.msg-avatar{
+  width:42px;height:42px;border-radius:50%;flex-shrink:0;
+  background:var(--md-primary-container);color:var(--md-on-primary-container);
+  display:grid;place-items:center;font-weight:700;font-size:15px;text-transform:uppercase;
+}
+.msg-meta{flex:1;min-width:0}
+.msg-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.msg-peer{font-size:14px;font-weight:600;color:var(--md-on-surface);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.msg-time{font-size:11px;color:var(--md-on-surface-variant);flex-shrink:0;font-variant-numeric:tabular-nums}
+.msg-subject{font-size:13px;color:var(--md-on-surface-variant);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.msg-subject.unread-text{color:var(--md-on-surface);font-weight:600}
+.msg-dot{width:8px;height:8px;border-radius:50%;background:var(--md-primary);flex-shrink:0;opacity:0;transition:opacity .2s}
+.msg-item.unread .msg-dot{opacity:1;animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb, var(--md-primary) 30%, transparent)}50%{box-shadow:0 0 0 12px color-mix(in srgb, var(--md-primary) 0%, transparent)}}
+.empty{
+  text-align:center;padding:60px 20px;color:var(--md-on-surface-variant);
+  display:flex;flex-direction:column;align-items:center;gap:14px;
+}
+.empty .material-symbols-rounded{font-size:48px;opacity:.5;font-variation-settings:'wght' 400,'GRAD' 0,'opsz' 48}
+/* ---------- FAB ---------- */
+.fab{
+  position:fixed;right:20px;bottom:24px;z-index:40;
+  height:60px;padding:0 22px 0 18px;border:none;cursor:pointer;
+  background:var(--md-primary);color:var(--md-on-primary);
+  border-radius:9999px;
+  display:inline-flex;align-items:center;gap:10px;
+  font-family:inherit;font-size:14px;font-weight:600;letter-spacing:.02em;
+  box-shadow:0 10px 30px -6px color-mix(in srgb, var(--md-primary) 50%, transparent);
+  animation:toolbarIn .55s cubic-bezier(0.2,1.4,0,1) both;
+  transition:transform .2s cubic-bezier(0.2,1.4,0,1), box-shadow .2s;
+}
+@keyframes toolbarIn{from{opacity:0;transform:translateY(100%)}to{opacity:1;transform:translateY(0)}}
+.fab:hover{transform:translateY(-3px) scale(1.02);box-shadow:0 14px 36px -6px color-mix(in srgb, var(--md-primary) 65%, transparent)}
+.fab:active{animation:fabPop .4s cubic-bezier(0.2,1.4,0,1)}
+@keyframes fabPop{0%{transform:scale(1)}40%{transform:scale(.92)}70%{transform:scale(1.05)}100%{transform:scale(1)}}
+.fab .material-symbols-rounded{font-variation-settings:'wght' 600,'GRAD' 200,'opsz' 24;font-size:24px}
+@media(min-width:600px){.fab{right:32px;bottom:32px}}
+/* ---------- Modal ---------- */
+.modal-backdrop{
+  position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.55);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  display:grid;place-items:center;padding:16px;
+  opacity:0;pointer-events:none;
+  transition:opacity .3s cubic-bezier(0.2,1.4,0,1);
+}
+.modal-backdrop.open{opacity:1;pointer-events:auto}
+.modal{
+  width:100%;max-width:680px;max-height:90vh;overflow:auto;
+  background:var(--md-surface-container-low);
+  border:1px solid var(--md-outline-variant);
+  border-radius:24px;padding:24px;
+  box-shadow:0 24px 60px -10px var(--md-shadow-color-strong);
+  transform:translateY(24px) scale(.985);opacity:0;
+  transition:transform .4s cubic-bezier(0.2,1.4,0,1), opacity .3s;
+}
+.modal-backdrop.open .modal{transform:translateY(0) scale(1);opacity:1}
+@media(min-width:600px){.modal{border-radius:28px;padding:30px}}
+.modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:18px}
+.modal-title{font-size:20px;font-weight:700;letter-spacing:-.01em;line-height:1.2}
+.modal-sub{font-size:13px;color:var(--md-on-surface-variant);margin-top:4px}
+.modal-body{display:flex;flex-direction:column;gap:14px}
+.msg-view-meta{display:flex;flex-direction:column;gap:4px;padding:14px 16px;background:var(--md-surface-container);border-radius:18px;margin-bottom:14px}
+.msg-view-meta-row{display:flex;gap:10px;font-size:13px}
+.msg-view-meta-row span:first-child{color:var(--md-on-surface-variant);min-width:64px;font-weight:600}
+.msg-view-meta-row span:last-child{color:var(--md-on-surface);word-break:break-all}
+.msg-view-body{
+  font-family:inherit;font-size:14px;line-height:1.6;color:var(--md-on-surface);
+  white-space:pre-wrap;word-break:break-word;
+  background:var(--md-surface-container);border-radius:18px;padding:18px;
+  min-height:120px;
+}
+.msg-view-body.placeholder{color:var(--md-on-surface-variant);font-style:italic}
+.spinner{
+  width:20px;height:20px;border-radius:50%;
+  border:2px solid color-mix(in srgb, var(--md-on-surface) 20%, transparent);
+  border-top-color:var(--md-primary);
+  animation:spin .8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* ---------- Toast ---------- */
+#toasts{
+  position:fixed;left:50%;bottom:24px;transform:translateX(-50%);
+  z-index:100;display:flex;flex-direction:column;gap:10px;
+  pointer-events:none;width:calc(100% - 32px);max-width:420px;
+}
+.toast{
+  pointer-events:auto;
+  background:var(--md-inverse-surface);color:var(--md-inverse-on-surface);
+  border-radius:14px;padding:12px 16px;
+  display:flex;align-items:center;gap:12px;
+  box-shadow:0 8px 24px var(--md-shadow-color-strong);
+  animation:fadeUp .4s cubic-bezier(0.2,1.4,0,1) both;
+}
+.toast .material-symbols-rounded{color:var(--md-inverse-primary);font-variation-settings:'wght' 600,'GRAD' 0,'opsz' 24;font-size:22px}
+.toast-text{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.toast-title{font-size:14px;font-weight:600;line-height:1.2}
+.toast-sub{font-size:12px;font-weight:400;line-height:1.2;opacity:.7}
+.toast.error .material-symbols-rounded{color:var(--md-error)}
+/* ---------- Misc ---------- */
+.hidden{display:none!important}
+.skeleton{background:linear-gradient(90deg, var(--md-surface-container) 0%, var(--md-surface-container-high) 50%, var(--md-surface-container) 100%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:14px}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.muted{color:var(--md-on-surface-variant);opacity:.7;font-size:13px}
+.divider{height:1px;background:var(--md-outline-variant);margin:14px 0;opacity:.5}
+.pill-tag{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  padding:5px 10px;border-radius:8px;
+  background:var(--md-primary-container);color:var(--md-on-primary-container);
+}
+.pill-tag .material-symbols-rounded{font-size:13px}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+<div class="bg-layer bg-ambient"></div>
+<div class="bg-layer bg-dots"></div>
+<div class="bg-layer bg-blob"></div>
+
+<div id="app"></div>
+<div id="toasts"></div>
+
+<script>
+/* ============================================================================
+   INPRIV — Frontend SPA + WebCrypto E2EE
+   ========================================================================== */
+(() => {
+'use strict';
+
+/* ---------- Config ---------- */
+const API = '/api/v1';
+const PBKDF2_ITER = 210000;  // OWASP 2023 recommendation for SHA-256
+
+/* ---------- State ---------- */
+const state = {
+  token: localStorage.getItem('inpriv_token'),
+  user: null,
+  privKey: null,         // CryptoKey (RSA private) — unlocked after login
+  messages: [],
+  filter: 'inbound',
+  view: 'auth',          // 'auth' | 'dash'
+};
+
+/* ---------- Utils ---------- */
+const $ = (sel, root=document) => root.querySelector(sel);
+const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+
+const b64 = {
+  enc(buf){ const b = new Uint8Array(buf); let s=''; for(let i=0;i<b.length;i++) s+=String.fromCharCode(b[i]); return btoa(s); },
+  dec(str){ const bin = atob(str); const out = new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) out[i]=bin.charCodeAt(i); return out.buffer; }
+};
+const utf8 = {
+  enc(s){ return new TextEncoder().encode(s); },
+  dec(b){ return new TextDecoder().decode(b); }
+};
+
+function mkIcon(name, cls=''){ return `<span class="material-symbols-rounded ${cls}">${name}</span>`; }
+
+function fmtTime(iso){
+  const d = new Date(iso); const now = new Date();
+  const sameDay = d.toDateString() === now.toDateString();
+  if(sameDay) return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  const sameYear = d.getFullYear() === now.getFullYear();
+  return d.toLocaleDateString([], sameYear ? {month:'short', day:'numeric'} : {month:'short', day:'numeric', year:'numeric'});
+}
+
+function initials(name){
+  if(!name) return '?';
+  const cleaned = name.replace(/<[^>]+>/g,'').trim();
+  const parts = cleaned.split(/[\s@._-]+/).filter(Boolean);
+  if(parts.length === 0) return '?';
+  if(parts.length === 1) return parts[0].slice(0,2).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
+}
+
+function toast(title, sub='', type='ok'){
+  const el = document.createElement('div');
+  el.className = `toast ${type==='error'?'error':''}`;
+  el.innerHTML = `
+    ${mkIcon(type==='error'?'error':'check_circle')}
+    <div class="toast-text">
+      <div class="toast-title"></div>
+      ${sub?`<div class="toast-sub"></div>`:''}
+    </div>`;
+  el.querySelector('.toast-title').textContent = title;
+  if(sub) el.querySelector('.toast-sub').textContent = sub;
+  $('#toasts').appendChild(el);
+  setTimeout(()=>{ el.style.transition='opacity .3s, transform .3s'; el.style.opacity='0'; el.style.transform='translateY(12px)'; setTimeout(()=>el.remove(), 320); }, 3600);
+}
+
+async function api(path, opts={}){
+  const headers = { 'Content-Type':'application/json', ...(opts.headers||{}) };
+  if(state.token) headers['Authorization'] = `Bearer ${state.token}`;
+  const res = await fetch(API+path, { ...opts, headers });
+  let data = null;
+  try { data = await res.json(); } catch(_){}
+  if(!res.ok){
+    const msg = (data && (data.detail?.message || (typeof data.detail==='string'?data.detail:null))) || `HTTP ${res.status}`;
+    const err = new Error(msg); err.status = res.status; err.data = data; throw err;
+  }
+  return data;
+}
+
+function ripple(e){
+  const btn = e.currentTarget;
+  const r = document.createElement('span');
+  r.className = 'ripple';
+  const rect = btn.getBoundingClientRect();
+  const size = Math.max(rect.width, rect.height);
+  r.style.width = r.style.height = size + 'px';
+  r.style.left = (e.clientX - rect.left - size/2) + 'px';
+  r.style.top  = (e.clientY - rect.top - size/2) + 'px';
+  btn.appendChild(r);
+  setTimeout(()=>r.remove(), 600);
+}
+document.addEventListener('click', e=>{
+  const b = e.target.closest('.btn, .icon-btn, .fab, .seg button, .auth-toggle button');
+  if(b) ripple({currentTarget:b, clientX:e.clientX, clientY:e.clientY});
+});
+
+/* ============================================================================
+   WEB CRYPTO — Key generation, wrapping, hybrid encryption
+   ========================================================================== */
+async function generateKeyPair(){
+  return crypto.subtle.generateKey(
+    { name:'RSA-OAEP', modulusLength:2048, publicExponent:new Uint8Array([1,0,1]), hash:'SHA-256' },
+    true, ['encrypt','decrypt']
+  );
+}
+
+async function deriveAesFromPassword(password, saltB64, iterations){
+  const baseKey = await crypto.subtle.importKey('raw', utf8.enc(password), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name:'PBKDF2', salt:new Uint8Array(b64.dec(saltB64)), iterations, hash:'SHA-256' },
+    baseKey,
+    { name:'AES-GCM', length:256 },
+    false,
+    ['encrypt','decrypt']
+  );
+}
+
+async function exportPublicKey(pubKey){
+  const spki = await crypto.subtle.exportKey('spki', pubKey);
+  return b64.enc(spki);
+}
+
+async function wrapPrivateKey(privKey, aesKey){
+  const pkcs8 = await crypto.subtle.exportKey('pkcs8', privKey);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv}, aesKey, pkcs8);
+  return { wrapped: b64.enc(ct), iv: b64.enc(iv.buffer) };
+}
+
+async function unwrapPrivateKey(wrappedB64, ivB64, aesKey){
+  const pkcs8 = await crypto.subtle.decrypt(
+    { name:'AES-GCM', iv:new Uint8Array(b64.dec(ivB64)) },
+    aesKey,
+    b64.dec(wrappedB64)
+  );
+  return crypto.subtle.importKey('pkcs8', pkcs8, {name:'RSA-OAEP', hash:'SHA-256'}, true, ['decrypt']);
+}
+
+async function hybridEncrypt(pubKey, plaintextStr){
+  // Generate ephemeral AES-GCM key, encrypt message, wrap AES key with RSA-OAEP
+  const aesKey = await crypto.subtle.generateKey({name:'AES-GCM', length:256}, true, ['encrypt','wrapKey']);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv}, aesKey, utf8.enc(plaintextStr));
+  // ct buffer = ciphertext || 16-byte tag
+  const ctBytes = new Uint8Array(ct);
+  const ciphertext = ctBytes.slice(0, ctBytes.length - 16);
+  const tag = ctBytes.slice(ctBytes.length - 16);
+  // Wrap AES key with RSA public
+  const rawAes = await crypto.subtle.exportKey('raw', aesKey);
+  const wrapped = await crypto.subtle.encrypt({name:'RSA-OAEP'}, pubKey, rawAes);
+  return {
+    encrypted_aes_key: b64.enc(wrapped),
+    iv: b64.enc(iv.buffer),
+    ciphertext: b64.enc(ciphertext.buffer),
+    auth_tag: b64.enc(tag.buffer)
+  };
+}
+
+async function hybridDecrypt(privKey, enc){
+  // Unwrap AES key
+  const rawAes = await crypto.subtle.decrypt({name:'RSA-OAEP'}, privKey, b64.dec(enc.encrypted_aes_key));
+  const aesKey = await crypto.subtle.importKey('raw', rawAes, {name:'AES-GCM'}, false, ['decrypt']);
+  // Re-join ciphertext + tag
+  const ct = new Uint8Array(b64.dec(enc.ciphertext));
+  const tag = new Uint8Array(b64.dec(enc.auth_tag));
+  const merged = new Uint8Array(ct.length + tag.length);
+  merged.set(ct, 0); merged.set(tag, ct.length);
+  const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv:new Uint8Array(b64.dec(enc.iv))}, aesKey, merged.buffer);
+  return utf8.dec(pt);
+}
+
+/* ============================================================================
+   AUTH VIEWS
+   ========================================================================== */
+function renderShell(){
+  const app = $('#app');
+  app.innerHTML = `
+    <header class="app-bar">
+      <div class="brand">
+        <div class="brand-icon">${mkIcon('mail_lock')}</div>
+        <div class="brand-text">
+          <div class="brand-h1">Inpriv</div>
+          <div class="brand-tag">ZERO-KNOWLEDGE MAIL · @inpriv.xyz</div>
+        </div>
+      </div>
+      <div class="spacer"></div>
+      <button class="icon-btn" id="themeToggle" title="Toggle theme">${mkIcon('dark_mode')}</button>
+    </header>
+    <main class="main" id="main"></main>
+    <div id="dashExtra"></div>
+  `;
+  $('#themeToggle').addEventListener('click', toggleTheme);
+  applyTheme();
+}
+
+function applyTheme(){
+  const saved = localStorage.getItem('inpriv_theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', saved);
+  const ic = $('#themeToggle')?.querySelector('.material-symbols-rounded');
+  if(ic) ic.textContent = saved === 'dark' ? 'light_mode' : 'dark_mode';
+}
+function toggleTheme(){
+  const cur = document.documentElement.getAttribute('data-theme');
+  const next = cur === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('inpriv_theme', next);
+  applyTheme();
+}
+
+function renderAuth(){
+  state.view = 'auth';
+  $('#main').innerHTML = `
+    <div class="auth-shell">
+      <div class="auth-card">
+        <div class="auth-toggle" id="authToggle">
+          <button data-mode="login" class="active">Sign In</button>
+          <button data-mode="register">Create Account</button>
+        </div>
+        <div id="authForm"></div>
+      </div>
+    </div>
+  `;
+  $$$('#authToggle button').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      $$('#authToggle button').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      renderAuthForm(b.dataset.mode);
+    });
+  });
+  renderAuthForm('login');
+}
+
+function renderAuthForm(mode){
+  const f = $('#authForm');
+  if(mode === 'login'){
+    f.innerHTML = `
+      <div class="auth-title">Welcome back</div>
+      <div class="auth-sub">Decrypt your mailbox locally. Your password never leaves this device unencrypted.</div>
+      <form id="loginForm">
+        <div class="field">
+          <label>Username</label>
+          <div class="input-wrap">
+            <input type="text" id="lu" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+          </div>
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <div class="input-wrap">
+            <input type="password" id="lp" autocomplete="current-password" required>
+            <span class="material-symbols-rounded eye" data-target="lp">${mkIcon('visibility')}</span>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block" id="loginBtn">Sign In ${mkIcon('arrow_forward')}</button>
+      </form>
+    `;
+    bindEye();
+    $('#loginForm').addEventListener('submit', e=>{
+      e.preventDefault();
+      handleLogin($('#lu').value.trim().toLowerCase(), $('#lp').value);
+    });
+  } else {
+    f.innerHTML = `
+      <div class="auth-title">Create your private mailbox</div>
+      <div class="auth-sub">Pick a username — that becomes <strong>&lt;you&gt;@inpriv.xyz</strong>. An RSA-2048 keypair is generated in your browser; the private key is encrypted with your password before upload.</div>
+      <form id="regForm">
+        <div class="field">
+          <label>Username</label>
+          <div class="input-wrap">
+            <input type="text" id="ru" autocomplete="username" autocapitalize="none" spellcheck="false" required pattern="[a-zA-Z0-9._-]{2,32}">
+          </div>
+          <div class="hint" id="emailPreview"></div>
+        </div>
+        <div class="field">
+          <label>Password <span class="muted">(min 10 chars)</span></label>
+          <div class="input-wrap">
+            <input type="password" id="rp" autocomplete="new-password" required minlength="10">
+            <span class="material-symbols-rounded eye" data-target="rp">${mkIcon('visibility')}</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>Confirm password</label>
+          <div class="input-wrap">
+            <input type="password" id="rpc" autocomplete="new-password" required minlength="10">
+            <span class="material-symbols-rounded eye" data-target="rpc">${mkIcon('visibility')}</span>
+          </div>
+        </div>
+        <div class="muted" id="regStatus" style="margin-bottom:12px"></div>
+        <button type="submit" class="btn btn-primary btn-block" id="regBtn">Generate Keys & Create ${mkIcon('key')}</button>
+      </form>
+    `;
+    bindEye();
+    $('#ru').addEventListener('input', e=>{
+      const u = e.target.value.trim().toLowerCase();
+      $('#emailPreview').textContent = u ? `Your mailbox: ${u}@inpriv.xyz` : '';
+    });
+    $('#regForm').addEventListener('submit', e=>{
+      e.preventDefault();
+      handleRegister($('#ru').value.trim().toLowerCase(), $('#rp').value, $('#rpc').value);
+    });
+  }
+}
+
+function bindEye(){
+  $$('.eye').forEach(eye=>{
+    eye.addEventListener('click', ()=>{
+      const t = $('#'+eye.dataset.target);
+      if(t.type === 'password'){ t.type='text'; eye.textContent='visibility_off'; }
+      else { t.type='password'; eye.textContent='visibility'; }
+    });
+  });
+}
+
+async function handleRegister(username, password, confirm){
+  if(password !== confirm){ toast('Passwords do not match', 'Please re-type them identically.', 'error'); return; }
+  if(password.length < 10){ toast('Password too short', 'Use at least 10 characters.', 'error'); return; }
+  if(!/^[a-z0-9](?:[a-z0-9._-]{1,30}[a-z0-9])?$/.test(username)){
+    toast('Invalid username', '2-32 chars: a-z 0-9 . _ -', 'error'); return;
+  }
+  const btn = $('#regBtn'); btn.disabled = true;
+  const status = $('#regStatus');
+  try {
+    status.innerHTML = '<span class="spinner" style="display:inline-block;vertical-align:middle"></span> Generating RSA-2048 keypair…';
+    const kp = await generateKeyPair();
+    status.textContent = 'Deriving AES key from password (PBKDF2, 210k iterations)…';
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const saltB64 = b64.enc(salt.buffer);
+    const aesKey = await deriveAesFromPassword(password, saltB64, PBKDF2_ITER);
+    status.textContent = 'Wrapping private key (AES-GCM)…';
+    const pubB64 = await exportPublicKey(kp.publicKey);
+    const { wrapped, iv } = await wrapPrivateKey(kp.privateKey, aesKey);
+    status.textContent = 'Publishing public key & encrypted private key to server…';
+    const data = await api('/register', {
+      method:'POST',
+      body: JSON.stringify({
+        username,
+        password,
+        password_confirm: confirm,
+        public_key: pubB64,
+        encrypted_private_key: wrapped,
+        priv_iv: iv,
+        priv_salt: saltB64,
+        priv_iter: PBKDF2_ITER
+      })
+    });
+    state.token = data.token;
+    state.user = data.user;
+    localStorage.setItem('inpriv_token', data.token);
+    state.privKey = kp.privateKey;  // keep in memory; no need to re-unlock
+    toast('Mailbox created', `${data.user.email} is live.`);
+    renderDashboard();
+  } catch(e){
+    toast('Registration failed', e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    if(status) status.textContent = '';
+  }
+}
+
+async function handleLogin(username, password){
+  const btn = $('#loginBtn'); btn.disabled = true;
+  try {
+    const data = await api('/login', {
+      method:'POST',
+      body: JSON.stringify({ username, password })
+    });
+    state.token = data.token;
+    state.user = data.user;
+    localStorage.setItem('inpriv_token', data.token);
+    // Unlock private key
+    const aesKey = await deriveAesFromPassword(password, data.user.priv_salt, data.user.priv_iter);
+    state.privKey = await unwrapPrivateKey(data.user.encrypted_private_key, data.user.priv_iv, aesKey);
+    toast('Signed in', 'Private key unlocked in browser memory.');
+    renderDashboard();
+  } catch(e){
+    toast('Login failed', e.message, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function logout(){
+  state.token = null; state.user = null; state.privKey = null;
+  localStorage.removeItem('inpriv_token');
+  renderAuth();
+}
+
+/* ============================================================================
+   DASHBOARD
+   ========================================================================== */
+async function renderDashboard(){
+  state.view = 'dash';
+  $('#main').innerHTML = `
+    <section class="hero">
+      <h2>Your private inbox.</h2>
+      <p>End-to-end encrypted with RSA-2048 + AES-GCM. Internal mail is encrypted in your browser; inbound external mail is encrypted at the gateway with your public key. The server cannot read any message body.</p>
+    </section>
+
+    <div class="stat-row">
+      <div class="stat"><div class="stat-label">Your Address</div><div class="stat-value" id="statEmail"></div></div>
+      <div class="stat"><div class="stat-label">Inbox</div><div class="stat-value" id="statIn">—</div></div>
+      <div class="stat"><div class="stat-label">Unread</div><div class="stat-value" id="statUnread">—</div></div>
+    </div>
+
+    <div class="card">
+      <div class="dash-head">
+        <div class="seg" id="seg">
+          <button data-f="inbound" class="active">${mkIcon('inbox')} <span>Inbox</span> <span class="count" id="cIn">0</span></button>
+          <button data-f="outbound">${mkIcon('send')} <span>Sent</span> <span class="count" id="cOut">0</span></button>
+        </div>
+        <button class="btn btn-tonal" id="refreshBtn">${mkIcon('refresh')} Refresh</button>
+      </div>
+      <div class="msg-list" id="msgList">
+        <div class="empty">${mkIcon('hourglass_empty')}<div>Loading messages…</div></div>
+      </div>
+    </div>
+  `;
+  $('#statEmail').textContent = state.user.email;
+  $('#dashExtra').innerHTML = `
+    <button class="fab" id="composeFab">${mkIcon('edit')} Compose</button>
+  `;
+  $$('#seg button').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      $$('#seg button').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      state.filter = b.dataset.f;
+      renderMessageList();
+    });
+  });
+  $('#refreshBtn').addEventListener('click', loadMessages);
+  $('#composeFab').addEventListener('click', openCompose);
+  await loadMessages();
+}
+
+async function loadMessages(){
+  try{
+    const data = await api('/messages');
+    state.messages = data.items || [];
+    const inbound = state.messages.filter(m=>m.direction==='inbound');
+    const outbound = state.messages.filter(m=>m.direction==='outbound');
+    const unread = inbound.filter(m=>!m.is_read).length;
+    $('#cIn').textContent = inbound.length;
+    $('#cOut').textContent = outbound.length;
+    $('#statIn').textContent = inbound.length;
+    $('#statUnread').textContent = unread;
+    renderMessageList();
+  }catch(e){
+    if(e.status === 401){ logout(); return; }
+    toast('Failed to load', e.message, 'error');
+  }
+}
+
+function renderMessageList(){
+  const list = $('#msgList');
+  const items = state.messages.filter(m=>m.direction === state.filter);
+  if(items.length === 0){
+    list.innerHTML = `
+      <div class="empty">
+        ${mkIcon(state.filter==='inbound'?'inbox':'outbox')}
+        <div>${state.filter==='inbound'?'No messages in your inbox yet':'You haven\'t sent any internal mail yet'}</div>
+        <div class="muted" style="font-size:13px;max-width:340px">${state.filter==='inbound'?'Share your address with external services — inbound mail is encrypted at the gateway with your public key.':'Tap Compose to send an end-to-end encrypted message to another inpriv.xyz user.'}</div>
+      </div>`;
+    return;
+  }
+  list.innerHTML = items.map((m, i)=>`
+    <div class="msg-item ${m.is_read?'':'unread'}" data-id="${m.id}" style="animation-delay:${i*40}ms">
+      <div class="msg-avatar">${initials(m.peer_label || m.peer_address)}</div>
+      <div class="msg-meta">
+        <div class="msg-row">
+          <div class="msg-peer">${escapeHtml(m.peer_label || m.peer_address)}</div>
+          <div class="msg-time">${fmtTime(m.created_at)}</div>
+        </div>
+        <div class="msg-subject ${m.is_read?'':'unread-text'}">${escapeHtml(m.subject || '(no subject)')}</div>
+      </div>
+      <div class="msg-dot"></div>
+    </div>
+  `).join('');
+  $$('.msg-item').forEach(el=>{
+    el.addEventListener('click', ()=>openMessage(parseInt(el.dataset.id, 10)));
+  });
+}
+
+function escapeHtml(s){
+  return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ============================================================================
+   MESSAGE VIEW MODAL
+   ========================================================================== */
+async function openMessage(id){
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.innerHTML = `
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-head">
+        <div>
+          <div class="modal-title" id="mvTitle">Loading…</div>
+          <div class="modal-sub" id="mvSub"></div>
+        </div>
+        <button class="icon-btn" data-close>${mkIcon('close')}</button>
+      </div>
+      <div class="modal-body">
+        <div class="msg-view-meta">
+          <div class="msg-view-meta-row"><span>From</span><span id="mvFrom">—</span></div>
+          <div class="msg-view-meta-row"><span>To</span><span id="mvTo">—</span></div>
+          <div class="msg-view-meta-row"><span>Date</span><span id="mvDate">—</span></div>
+        </div>
+        <div class="msg-view-body placeholder" id="mvBody"><span class="spinner" style="display:inline-block;vertical-align:middle"></span> Decrypting in browser…</div>
+      </div>
+    </div>`;
+  document.body.appendChild(backdrop);
+  requestAnimationFrame(()=>backdrop.classList.add('open'));
+  const close = ()=>{ backdrop.classList.remove('open'); setTimeout(()=>backdrop.remove(), 320); };
+  backdrop.addEventListener('click', e=>{ if(e.target===backdrop || e.target.closest('[data-close]')) close(); });
+  const esc = e=>{ if(e.key==='Escape'){ close(); document.removeEventListener('keydown', esc); } };
+  document.addEventListener('keydown', esc);
+
+  try {
+    const m = await api(`/messages/${id}`);
+    $('#mvTitle').textContent = m.subject || '(no subject)';
+    $('#mvSub').textContent = m.direction === 'inbound' ? 'Inbound · encrypted with your public key' : 'Sent · encrypted with recipient\'s public key';
+    $('#mvFrom').textContent = m.direction==='inbound' ? (m.peer_label || m.peer_address) : `${state.user.username}@inpriv.xyz`;
+    $('#mvTo').textContent   = m.direction==='inbound' ? state.user.email : (m.peer_label || m.peer_address);
+    $('#mvDate').textContent = new Date(m.created_at).toLocaleString();
+    if(!state.privKey) throw new Error('Private key not unlocked');
+    const plaintext = await hybridDecrypt(state.privKey, m);
+    const body = $('#mvBody');
+    body.classList.remove('placeholder');
+    body.textContent = plaintext;
+    // Mark read in UI
+    const local = state.messages.find(x=>x.id===id);
+    if(local){ local.is_read = true; renderMessageList(); }
+  } catch(e){
+    const body = $('#mvBody');
+    body.classList.remove('placeholder');
+    body.textContent = '⚠️ Decryption failed: ' + e.message;
+    body.style.color = 'var(--md-error)';
+  }
+}
+
+/* ============================================================================
+   COMPOSE MODAL
+   ========================================================================== */
+function openCompose(){
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.innerHTML = `
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-head">
+        <div>
+          <div class="modal-title">New encrypted message</div>
+          <div class="modal-sub">Internal only · recipient must be an inpriv.xyz user</div>
+        </div>
+        <button class="icon-btn" data-close>${mkIcon('close')}</button>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <label>To (username)</label>
+          <div class="input-wrap">
+            <input type="text" id="cmpTo" placeholder="e.g. jan" autocapitalize="none" spellcheck="false">
+            <span style="position:absolute;right:14px;color:var(--md-on-surface-variant);font-size:13px">@inpriv.xyz</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>Subject</label>
+          <input type="text" id="cmpSubject" placeholder="Subject" maxlength="240">
+        </div>
+        <div class="field">
+          <label>Message</label>
+          <textarea id="cmpBody" rows="8" placeholder="Type your message — it will be encrypted in your browser before sending."></textarea>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end">
+          <button class="btn btn-text" data-close>Cancel</button>
+          <button class="btn btn-primary" id="cmpSend">${mkIcon('lock')} Encrypt & Send</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(backdrop);
+  requestAnimationFrame(()=>backdrop.classList.add('open'));
+  const close = ()=>{ backdrop.classList.remove('open'); setTimeout(()=>backdrop.remove(), 320); };
+  backdrop.addEventListener('click', e=>{ if(e.target===backdrop || e.target.closest('[data-close]')) close(); });
+  const esc = e=>{ if(e.key==='Escape'){ close(); document.removeEventListener('keydown', esc); } };
+  document.addEventListener('keydown', esc);
+
+  $('#cmpSend').addEventListener('click', async ()=>{
+    const to = $('#cmpTo').value.trim().toLowerCase();
+    const subject = $('#cmpSubject').value.trim();
+    const body = $('#cmpBody').value;
+    if(!to){ toast('Recipient required', 'Enter a username.', 'error'); return; }
+    if(!body){ toast('Empty message', 'Type something first.', 'error'); return; }
+    const btn = $('#cmpSend'); btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Encrypting…';
+    try {
+      const keyData = await api(`/users/${encodeURIComponent(to)}/pubkey`);
+      const pubKey = await crypto.subtle.importKey('spki', b64.dec(keyData.public_key), {name:'RSA-OAEP', hash:'SHA-256'}, true, ['encrypt']);
+      const enc = await hybridEncrypt(pubKey, body);
+      await api('/messages/send', {
+        method:'POST',
+        body: JSON.stringify({
+          to_username: to,
+          subject,
+          encrypted_aes_key: enc.encrypted_aes_key,
+          iv: enc.iv,
+          ciphertext: enc.ciphertext,
+          auth_tag: enc.auth_tag
+        })
+      });
+      toast('Sent', `Encrypted message delivered to ${to}@inpriv.xyz`);
+      close();
+      await loadMessages();
+    } catch(e){
+      toast('Send failed', e.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = `${mkIcon('lock')} Encrypt & Send`;
+    }
+  });
+}
+
+/* ============================================================================
+   BOOTSTRAP
+   ========================================================================== */
+async function bootstrap(){
+  renderShell();
+  if(state.token){
+    try {
+      const me = await api('/me');
+      state.user = me;
+      // We still need the password to unlock the private key. We don't have it.
+      // → Prompt user to re-enter password to unlock the private key.
+      promptUnlock();
+    } catch(e){
+      localStorage.removeItem('inpriv_token');
+      state.token = null;
+      renderAuth();
+    }
+  } else {
+    renderAuth();
+  }
+}
+
+function promptUnlock(){
+  $('#main').innerHTML = `
+    <div class="auth-shell">
+      <div class="auth-card">
+        <div class="auth-title">Unlock your private key</div>
+        <div class="auth-sub">You're signed in as <strong>${state.user.email}</strong>. Re-enter your password to derive the AES key and decrypt your private key locally.</div>
+        <form id="unlockForm">
+          <div class="field">
+            <label>Password</label>
+            <div class="input-wrap">
+              <input type="password" id="up" autocomplete="current-password" required>
+              <span class="material-symbols-rounded eye" data-target="up">${mkIcon('visibility')}</span>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block">Unlock ${mkIcon('lock_open')}</button>
+        </form>
+        <div style="margin-top:14px;text-align:center">
+          <button class="btn btn-text" id="unlockLogout">Sign out instead</button>
+        </div>
+      </div>
+    </div>`;
+  bindEye();
+  $('#unlockLogout').addEventListener('click', logout);
+  $('#unlockForm').addEventListener('submit', async e=>{
+    e.preventDefault();
+    try {
+      const aesKey = await deriveAesFromPassword($('#up').value, state.user.priv_salt, state.user.priv_iter);
+      state.privKey = await unwrapPrivateKey(state.user.encrypted_private_key, state.user.priv_iv, aesKey);
+      toast('Unlocked', 'Private key decrypted in browser memory.');
+      renderDashboard();
+    } catch(err){
+      toast('Wrong password', 'Could not decrypt private key.', 'error');
+    }
+  });
+}
+
+// helper: querySelectorAll but scoped to current DOM
+function $$(sel, root=document){ return Array.from(root.querySelectorAll(sel)); }
+function $$$(sel, root=document){ return Array.from(root.querySelectorAll(sel)); }
+
+document.addEventListener('DOMContentLoaded', bootstrap);
+})();
+</script>
+</body>
+</html>

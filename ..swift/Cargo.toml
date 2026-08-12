@@ -1,0 +1,42 @@
+[package]
+name = "inpriv-swift"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.80"
+description = "Ultra-fast, minimal, dark-themed text editor/viewer for massive files"
+license = "MIT OR Apache-2.0"
+
+[lib]
+name = "inpriv_swift"
+path = "src/lib.rs"
+
+[[bin]]
+name = "inpriv-swift"
+path = "src/main.rs"
+
+[dependencies]
+# --- Core: zero-copy I/O + SIMD line scanning (used this batch) ---
+memmap2 = "0.9"   # read-only memory mapping
+memchr  = "2.7"   # SIMD-accelerated `\n` scanning
+# --- GUI stack (declared now; consumed by the UI layer in the next batch) ---
+eframe = "0.29"   # immediate-mode GUI app shell
+egui   = "0.29"   # immediate-mode widgets
+rfd    = "0.15"   # native file dialogs / drag-and-drop
+# --- Window icon (PNG → RGBA decode) ---
+image  = { version = "0.25", default-features = false, features = ["png"] }
+
+# Keep debug builds usable for GUI iteration. Non-zero opt avoids the
+# ~10x slowdown of pure opt-level-0, while staying fast to compile.
+[profile.dev]
+opt-level = 1
+
+# Maximum-performance release. Whole-program LTO, a single codegen unit, no
+# unwinding tables, and stripped symbols. Note: `panic = "abort"` makes
+# `cargo test --release` unable to run the default test harness — run tests
+# under the default (dev) profile instead, which keeps unwinding.
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = "symbols"

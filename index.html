@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<!--
+  Inpriv — Privacy-First Tools
+  Copyright (c) 2026 Aurex Labs — MIT License
+
+  Suite landing page. Curates a set of zero-knowledge, fully client-side
+  web utilities (encrypted chat, metadata wipe, WebRTC audit, hashing, QR,
+  brute force, and more). No trackers, no server logs — everything runs in the browser.
+-->
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  
+  <!-- Primary SEO Meta Tags -->
+  <title>Inpriv — Privacy-First Tools | Zero-Knowledge & Client-Side</title>
+  <meta name="title" content="Inpriv — Privacy-First Tools | Zero-Knowledge & Client-Side">
+  <meta name="description" content="A suite of zero-knowledge, client-side web utilities engineered for total digital privacy. Encrypted chat, EXIF wipe, WebRTC leak test, hash brute force, client-side compression, and more.">
+  <meta name="keywords" content="privacy tools, zero knowledge, client side encryption, hush chat, metadata sanitizer, image compression, webrtc leak test, open source privacy">
+  <meta name="author" content="Aurex Labs">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <link rel="canonical" href="https://inpriv.xyz/">
+
+  <!-- Color Scheme & PWA -->
+  <meta name="theme-color" content="#13140E" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#FAF9F0" media="(prefers-color-scheme: light)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Inpriv">
+
+  <!-- Open Graph / Facebook / LinkedIn -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://inpriv.xyz/">
+  <meta property="og:site_name" content="Inpriv">
+  <meta property="og:title" content="Inpriv — Privacy-First Tools | Zero-Knowledge & Client-Side">
+  <meta property="og:description" content="A suite of zero-knowledge, client-side web utilities engineered for total digital privacy. No trackers, no server logs.">
+  <meta property="og:image" content="https://hush.best/icon.png">
+  <meta property="og:image:alt" content="Inpriv Logo">
+  <meta property="og:locale" content="en_US">
+
+  <!-- Twitter Cards -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="https://inpriv.xyz/">
+  <meta name="twitter:title" content="Inpriv — Privacy-First Tools | Zero-Knowledge & Client-Side">
+  <meta name="twitter:description" content="A suite of zero-knowledge, client-side web utilities engineered for total digital privacy. No trackers, no server logs.">
+  <meta name="twitter:image" content="https://hush.best/icon.png">
+
+  <!-- Favicons & App Icons -->
+  <link rel="icon" type="image/png" sizes="32x32" href="https://hush.best/icon.png">
+  <link rel="shortcut icon" href="https://hush.best/icon.png">
+  <link rel="apple-touch-icon" href="https://hush.best/icon.png">
+
+  <!-- Preconnect and Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:ital,opsz,wght@0,8..144,300..800;1,8..144,300..800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+  <!-- Structured Data (JSON-LD) for SEO Rich Snippets -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://inpriv.xyz/#website",
+        "url": "https://inpriv.xyz/",
+        "name": "Inpriv",
+        "description": "Privacy-first tools. Zero-knowledge. Client-side only.",
+        "publisher": {
+          "@type": "Organization",
+          "name": "Aurex Labs",
+          "url": "https://inpriv.xyz"
+        }
+      },
+      {
+        "@type": "ItemList",
+        "name": "Inpriv Privacy Tools Suite",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "item": {
+              "@type": "SoftwareApplication",
+              "name": "Hush",
+              "description": "End-to-end encrypted chat. No logs, no servers.",
+              "url": "https://hush.best",
+              "applicationCategory": "SecurityApplication",
+              "operatingSystem": "All"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "item": {
+              "@type": "SoftwareApplication",
+              "name": "Wipe",
+              "description": "Zero-knowledge metadata sanitizer for images.",
+              "url": "https://wipe.inpriv.xyz",
+              "applicationCategory": "SecurityApplication",
+              "operatingSystem": "All"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 3,
+            "item": {
+              "@type": "SoftwareApplication",
+              "name": "WebRTC Leak Check",
+              "description": "Check if your real IP address is leaked via WebRTC.",
+              "url": "https://webrtc.inpriv.xyz",
+              "applicationCategory": "SecurityApplication",
+              "operatingSystem": "All"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 4,
+            "item": {
+              "@type": "SoftwareApplication",
+              "name": "Pay",
+              "description": "Crypto payment bridge for accepting payments.",
+              "url": "https://pay.inpriv.xyz",
+              "applicationCategory": "FinanceApplication",
+              "operatingSystem": "All"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 5,
+            "item": {
+              "@type": "SoftwareApplication",
+              "name": "Compress",
+              "description": "Client-side image compression. No server uploads.",
+              "url": "https://compress.inpriv.xyz",
+              "applicationCategory": "UtilitiesApplication",
+              "operatingSystem": "All"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 6,
+            "item": {
+              "@type": "SoftwareApplication",
+              "name": "Hash",
+              "description": "Client-side SHA and MD5 checksum generator for text and files.",
+              "url": "https://hash.inpriv.xyz",
+              "applicationCategory": "SecurityApplication",
+              "operatingSystem": "All"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 7,
+            "item": {
+              "@type": "SoftwareApplication",
+              "name": "DNS Leak Test",
+              "description": "Browser-side DNS resolution audit against multiple DoH resolvers.",
+              "url": "https://dns.inpriv.xyz",
+              "applicationCategory": "SecurityApplication",
+              "operatingSystem": "All"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 8,
+            "item": {
+              "@type": "SoftwareApplication",
+              "name": "QR",
+              "description": "Generate and read QR codes entirely in your browser.",
+              "url": "https://qr.inpriv.xyz",
+              "applicationCategory": "UtilitiesApplication",
+              "operatingSystem": "All"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 9,
+            "item": {
+              "@type": "SoftwareApplication",
+              "name": "Keyring",
+              "description": "Zero-knowledge encrypted vault for SSH keys, tokens and passwords.",
+              "url": "https://keyring.inpriv.xyz",
+              "applicationCategory": "SecurityApplication",
+              "operatingSystem": "All"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 10,
+            "item": {
+              "@type": "SoftwareApplication",
+              "name": "IP Info",
+              "description": "See what your browser reveals: public IP, ISP and device fingerprint.",
+              "url": "https://ipinfo.inpriv.xyz",
+              "applicationCategory": "SecurityApplication",
+              "operatingSystem": "All"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 11,
+            "item": {
+              "@type": "SoftwareApplication",
+              "name": "Pass",
+              "description": "Offline cryptographic password generator.",
+              "url": "https://inpriv.xyz#pass",
+              "applicationCategory": "SecurityApplication",
+              "operatingSystem": "All"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 12,
+            "item": {
+              "@type": "SoftwareApplication",
+              "name": "Base64",
+              "description": "Client-side Base64, URL, and HTML encoder/decoder.",
+              "url": "https://inpriv.xyz#base64",
+              "applicationCategory": "UtilitiesApplication",
+              "operatingSystem": "All"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 13,
+            "item": {
+              "@type": "SoftwareApplication",
+              "name": "Burn",
+              "description": "Ephemeral encrypted notes. Read once, then destroyed.",
+              "url": "https://inpriv.xyz#burn",
+              "applicationCategory": "SecurityApplication",
+              "operatingSystem": "All"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 14,
+            "item": {
+              "@type": "SoftwareApplication",
+              "name": "Brute",
+              "description": "Client-side hash brute force matcher. MD5, SHA-1, SHA-256, SHA-384, SHA-512.",
+              "url": "https://brute.inpriv.xyz",
+              "applicationCategory": "SecurityApplication",
+              "operatingSystem": "All"
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    :root {
+      --md-easing-standard: cubic-bezier(0.2, 0.0, 0.0, 1.0);
+      --md-easing-emphasized: cubic-bezier(0.3, 0.0, 0.0, 1.0);
+      --md-easing-spring: cubic-bezier(0.2, 1.4, 0.0, 1.0);
+      --md-easing-spring-soft: cubic-bezier(0.34, 1.3, 0.64, 1.0);
+
+      --font-sans: 'Roboto Flex', system-ui, -apple-system, sans-serif;
+      --font-icon: 'Material Symbols Rounded';
+      --touch-target-min: 48px;
+    }
+
+    [data-theme="dark"], :root {
+      --md-primary: #ABD37A;
+      --md-on-primary: #173800;
+      --md-primary-container: #2E4F2F;
+      --md-on-primary-container: #C7EFA0;
+      --md-secondary: #BCCBAF;
+      --md-on-secondary: #27341F;
+      --md-secondary-container: #3D4B34;
+      --md-on-secondary-container: #D8E7CB;
+      --md-tertiary: #FFB4A5;
+      --md-on-tertiary: #5E1709;
+      --md-tertiary-container: #7E2D1E;
+      --md-on-tertiary-container: #FFDAD3;
+      --md-error: #FFB4AB;
+      --md-surface: #13140E;
+      --md-on-surface: #E3E2D3;
+      --md-on-surface-variant: #C3C8B6;
+      --md-surface-container-lowest: #0D0F09;
+      --md-surface-container-low: #1A1C17;
+      --md-surface-container: #1F211B;
+      --md-surface-container-high: #292B25;
+      --md-surface-container-highest: #34362F;
+      --md-outline: #8D9283;
+      --md-outline-variant: #43483D;
+      --md-shadow-color: rgba(0, 0, 0, 0.4);
+      --md-shadow-color-strong: rgba(0, 0, 0, 0.65);
+    }
+
+    [data-theme="light"] {
+      --md-primary: #466E47;
+      --md-on-primary: #FFFFFF;
+      --md-primary-container: #C7EFA0;
+      --md-on-primary-container: #0C2000;
+      --md-secondary: #55624C;
+      --md-on-secondary: #FFFFFF;
+      --md-secondary-container: #D8E7CB;
+      --md-on-secondary-container: #131F0C;
+      --md-tertiary: #9C4231;
+      --md-on-tertiary: #FFFFFF;
+      --md-tertiary-container: #FFDAD3;
+      --md-on-tertiary-container: #3D0A03;
+      --md-error: #BA1A1A;
+      --md-surface: #FAF9F0;
+      --md-on-surface: #1A1C17;
+      --md-on-surface-variant: #43483D;
+      --md-surface-container-lowest: #FFFFFF;
+      --md-surface-container-low: #F4F3E7;
+      --md-surface-container: #EEEDDE;
+      --md-surface-container-high: #E9E7D9;
+      --md-surface-container-highest: #E3E2D3;
+      --md-outline: #74796C;
+      --md-outline-variant: #C3C8B6;
+      --md-shadow-color: rgba(20, 25, 15, 0.15);
+      --md-shadow-color-strong: rgba(20, 25, 15, 0.28);
+    }
+
+    *, *::before, *::after {
+      margin: 0; padding: 0; box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      font-optical-sizing: auto;
+      background:
+        radial-gradient(ellipse 80% 60% at 85% 0%, color-mix(in srgb, var(--md-primary-container) 55%, transparent) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 0% 100%, color-mix(in srgb, var(--md-tertiary-container) 45%, transparent) 0%, transparent 70%),
+        var(--md-surface);
+      background-attachment: fixed;
+      color: var(--md-on-surface);
+      min-height: 100dvh;
+      overflow-x: hidden;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      transition: background-color 0.5s var(--md-easing-standard), color 0.5s var(--md-easing-standard);
+    }
+
+    /* Accessibility Focus Rings */
+    a:focus-visible, button:focus-visible {
+      outline: 2px solid var(--md-primary);
+      outline-offset: 3px;
+    }
+
+    .dot-grid {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background-image: radial-gradient(circle at 1px 1px, var(--md-outline-variant) 1px, transparent 0);
+      background-size: 28px 28px;
+      opacity: 0.18;
+      mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+      -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+    }
+
+    .blur-blob {
+      position: fixed; top: -100px; right: -100px;
+      width: 420px; height: 420px; border-radius: 50%;
+      background: radial-gradient(circle, color-mix(in srgb, var(--md-tertiary) 22%, transparent), transparent 70%);
+      filter: blur(60px);
+      animation: drift 22s ease-in-out infinite;
+      pointer-events: none; z-index: 0;
+    }
+
+    .icon {
+      font-family: var(--font-icon);
+      font-weight: normal; font-style: normal;
+      display: inline-block; line-height: 1;
+      text-transform: none; letter-spacing: normal; word-wrap: normal;
+      white-space: nowrap; direction: ltr;
+      -webkit-font-smoothing: antialiased;
+      font-variation-settings: 'wght' 500, 'GRAD' 0, 'opsz' 24;
+    }
+
+    .container {
+      width: 100%; max-width: 680px; margin: 0 auto;
+      padding: 16px 16px calc(48px + env(safe-area-inset-bottom, 0px)) 16px;
+      position: relative; z-index: 1;
+      display: flex; flex-direction: column; min-height: 100dvh;
+    }
+
+    .app-bar {
+      position: sticky; top: 12px; z-index: 50;
+      width: 100%; height: 48px; padding: 6px 6px 6px 18px;
+      margin-bottom: 20px;
+      border-radius: 9999px;
+      background: color-mix(in srgb, var(--md-surface-container) 80%, transparent);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 1px solid color-mix(in srgb, var(--md-outline-variant) 50%, transparent);
+      box-shadow: 0 4px 20px -4px var(--md-shadow-color);
+      display: flex; align-items: center; justify-content: space-between;
+      animation: barIn 0.7s var(--md-easing-spring) both;
+    }
+
+    .app-bar-brand {
+      font-size: 17px; font-weight: 700; letter-spacing: -0.01em;
+      color: var(--md-on-surface); text-decoration: none;
+      display: flex; align-items: center; gap: 4px;
+    }
+
+    .app-bar-brand span { color: var(--md-primary); }
+
+    .icon-btn {
+      width: 40px; height: 40px; border-radius: 50%; border: none;
+      background: transparent; color: var(--md-on-surface-variant);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; position: relative; overflow: hidden;
+      transition: color 0.2s var(--md-easing-standard), transform 0.15s var(--md-easing-spring);
+    }
+
+    .icon-btn:hover { color: var(--md-on-surface); }
+    .icon-btn:hover::before { content: ''; position: absolute; inset: 0; background: currentColor; opacity: 0.08; }
+    .icon-btn:active { transform: scale(0.92); }
+
+    header {
+      text-align: center; margin-bottom: 16px;
+      opacity: 0; animation: fadeUp 0.8s var(--md-easing-spring) 0.1s both;
+    }
+
+    .hero-title {
+      font-size: clamp(32px, 8vw, 44px); font-weight: 800; letter-spacing: -0.025em;
+      line-height: 1.05; color: var(--md-on-surface); margin-bottom: 12px;
+    }
+
+    .hero-title .accent {
+      font-style: italic; font-weight: 300; color: var(--md-primary);
+    }
+
+    .tagline {
+      font-size: 15px; color: var(--md-on-surface-variant); font-weight: 500;
+      max-width: 380px; margin: 0 auto 12px auto; line-height: 1.4;
+    }
+
+    .description {
+      font-size: 14px; color: var(--md-on-surface-variant); line-height: 1.5;
+      max-width: 440px; margin: 0 auto; opacity: 0.85;
+    }
+
+    .grid {
+      display: grid; grid-template-columns: 1fr; gap: 9px; margin-bottom: auto;
+    }
+
+    .service-card {
+      display: flex; align-items: center; gap: 14px;
+      padding: 12px 16px;
+      background: var(--md-surface-container-low);
+      border: 1px solid var(--md-outline-variant);
+      border-radius: 20px;
+      text-decoration: none; color: inherit;
+      position: relative; overflow: hidden;
+      min-height: var(--touch-target-min);
+      transition: all 0.4s var(--md-easing-spring-soft);
+      opacity: 0; animation: fadeUp 0.7s var(--md-easing-spring) both;
+    }
+
+    .service-card:hover {
+      transform: translateY(-4px);
+      background: var(--md-surface-container);
+      border-color: var(--md-primary);
+      box-shadow: 0 12px 32px -6px var(--md-shadow-color-strong);
+    }
+
+    .service-card.coming-soon {
+      cursor: default; opacity: 0.75;
+    }
+
+    .service-card.coming-soon:hover {
+      transform: none; background: var(--md-surface-container-low);
+      border-color: var(--md-outline-variant); box-shadow: none;
+    }
+
+    .service-card.placeholder {
+      cursor: default; opacity: 0.55;
+      border: 1px dashed var(--md-outline-variant);
+      background: transparent;
+    }
+
+    .service-card.placeholder:hover {
+      transform: none; background: transparent;
+      border-color: var(--md-outline-variant); box-shadow: none;
+    }
+
+    .service-icon-box {
+      width: 40px; height: 40px; border-radius: 13px;
+      background: var(--md-primary-container); color: var(--md-on-primary-container);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: transform 0.3s var(--md-easing-spring);
+    }
+
+    .service-icon-box .icon { font-size: 20px; }
+
+    .service-card:hover .service-icon-box {
+      transform: scale(1.08) rotate(-3deg);
+    }
+
+    .service-card.coming-soon .service-icon-box,
+    .service-card.placeholder .service-icon-box {
+      background: var(--md-surface-container-highest);
+      color: var(--md-on-surface-variant);
+      transform: none !important;
+    }
+
+    .service-info { flex: 1; min-width: 0; }
+    .service-name { font-size: 16px; font-weight: 700; color: var(--md-on-surface); margin-bottom: 2px; }
+    .service-desc { font-size: 13px; color: var(--md-on-surface-variant); line-height: 1.4; }
+
+    .status-badge {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+      padding: 4px 10px; border-radius: 9999px; flex-shrink: 0;
+      text-transform: uppercase;
+    }
+
+    .status-badge.live {
+      background: var(--md-primary-container); color: var(--md-on-primary-container);
+    }
+
+    .status-badge.soon {
+      background: var(--md-surface-container-highest); color: var(--md-on-surface-variant);
+    }
+
+    .arrow-icon {
+      font-size: 20px; color: var(--md-on-surface-variant); opacity: 0.5;
+      transition: all 0.25s var(--md-easing-standard); flex-shrink: 0;
+    }
+
+    .service-card:hover .arrow-icon {
+      transform: translateX(4px); opacity: 1; color: var(--md-primary);
+    }
+
+    .section-divider {
+      display: flex; align-items: center; gap: 16px;
+      margin: 10px 0 2px 0;
+      opacity: 0; animation: fadeUp 0.5s var(--md-easing-standard) both;
+    }
+
+    .section-divider::before, .section-divider::after {
+      content: ''; flex: 1; height: 1px; background: var(--md-outline-variant); opacity: 0.6;
+    }
+
+    .section-divider span {
+      font-size: 10px; font-weight: 700; color: var(--md-on-surface-variant);
+      letter-spacing: 0.12em; text-transform: uppercase; white-space: nowrap;
+    }
+
+    .ripple-span {
+      position: absolute; border-radius: 50%;
+      background: currentColor; opacity: 0.2;
+      transform: scale(0); animation: rippleAnim 0.6s var(--md-easing-standard) forwards;
+      pointer-events: none;
+    }
+
+    footer {
+      text-align: center; padding-top: 24px;
+    }
+
+    footer .copyright {
+      font-size: 12px; color: var(--md-on-surface-variant); margin-bottom: 4px; opacity: 0.8;
+    }
+
+    footer .byline {
+      font-size: 13px; font-weight: 600; color: var(--md-on-surface);
+    }
+
+    footer .byline span {
+      color: var(--md-primary); font-weight: 700;
+    }
+
+    @keyframes barIn {
+      from { opacity: 0; transform: translateY(-12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes drift {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(-60px, 40px) scale(1.1); }
+    }
+
+    @keyframes rippleAnim {
+      to { transform: scale(4); opacity: 0; }
+    }
+
+    @media(min-width: 600px) {
+      .container { max-width: 720px; padding-top: 20px; }
+      .app-bar { height: 52px; margin-bottom: 22px; }
+      .app-bar-brand { font-size: 19px; }
+      .hero-title { font-size: clamp(40px, 6.5vw, 56px); }
+      .tagline { font-size: 16px; max-width: 440px; }
+      .grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .service-card { border-radius: 22px; padding: 14px 18px; }
+      .section-divider { grid-column: span 2; margin: 12px 0 4px 0; }
+    }
+
+    @media(min-width: 1024px) {
+      .container { max-width: 840px; }
+      .grid { gap: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="dot-grid" aria-hidden="true"></div>
+<div class="blur-blob" aria-hidden="true"></div>
+
+<div class="container">
+  <nav class="app-bar" aria-label="Main Navigation">
+    <a href="https://inpriv.xyz" class="app-bar-brand" aria-label="Inpriv Homepage">
+      Inpriv<span>.</span>
+    </a>
+    <button class="icon-btn" id="theme-toggle" aria-label="Toggle light or dark theme" type="button">
+      <span class="icon" id="theme-icon" aria-hidden="true">light_mode</span>
+    </button>
+  </nav>
+
+  <header>
+    <h1 class="hero-title">Zero-knowledge. <br><span class="accent">Client-side only.</span></h1>
+    <p class="tagline">Privacy-first web utilities designed for your peace of mind.</p>
+    <p class="description">
+      A suite of tools engineered to keep your sensitive data exclusively on your device.
+      No trackers, no remote logs, zero compromises.
+    </p>
+  </header>
+
+  <main class="grid" id="grid">
+    <!-- Live Services -->
+    <a href="https://hush.best" class="service-card" style="animation-delay: 0.15s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">chat</span></div>
+      <div class="service-info">
+        <h2 class="service-name">Hush</h2>
+        <p class="service-desc">End-to-end encrypted chat. No logs, no servers.</p>
+      </div>
+      <span class="status-badge live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
+    <a href="https://wipe.inpriv.xyz" class="service-card" style="animation-delay: 0.21s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">auto_fix_high</span></div>
+      <div class="service-info">
+        <h2 class="service-name">Wipe</h2>
+        <p class="service-desc">Zero-knowledge metadata sanitizer for images.</p>
+      </div>
+      <span class="status-badge live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
+    <a href="https://compress.inpriv.xyz" class="service-card" style="animation-delay: 0.27s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">compress</span></div>
+      <div class="service-info">
+        <h2 class="service-name">Compress</h2>
+        <p class="service-desc">Client-side image compression. No upload needed.</p>
+      </div>
+      <span class="status-badge live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
+    <a href="https://webrtc.inpriv.xyz" class="service-card" style="animation-delay: 0.33s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">security</span></div>
+      <div class="service-info">
+        <h2 class="service-name">WebRTC Leak</h2>
+        <p class="service-desc">Check if your real IP address is leaked via WebRTC.</p>
+      </div>
+      <span class="status-badge live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
+    <a href="https://pay.inpriv.xyz" class="service-card" style="animation-delay: 0.39s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">payments</span></div>
+      <div class="service-info">
+        <h2 class="service-name">Pay</h2>
+        <p class="service-desc">Crypto payment bridge for accepting payments.</p>
+      </div>
+      <span class="status-badge live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
+    <a href="https://hash.inpriv.xyz" class="service-card" style="animation-delay: 0.45s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">fingerprint</span></div>
+      <div class="service-info">
+        <h2 class="service-name">Hash</h2>
+        <p class="service-desc">SHA &amp; MD5 checksums for any text or file, in-browser.</p>
+      </div>
+      <span class="status-badge live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
+    <a href="https://dns.inpriv.xyz" class="service-card" style="animation-delay: 0.51s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">dns</span></div>
+      <div class="service-info">
+        <h2 class="service-name">DNS Leak</h2>
+        <p class="service-desc">Browser-side DNS resolution audit over DoH.</p>
+      </div>
+      <span class="status-badge live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
+    <a href="https://qr.inpriv.xyz" class="service-card" style="animation-delay: 0.57s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">qr_code</span></div>
+      <div class="service-info">
+        <h2 class="service-name">QR</h2>
+        <p class="service-desc">Generate &amp; read QR codes. Camera or image, fully offline.</p>
+      </div>
+      <span class="status-badge live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
+    <a href="https://keyring.inpriv.xyz" class="service-card" style="animation-delay: 0.63s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">key</span></div>
+      <div class="service-info">
+        <h2 class="service-name">Keyring</h2>
+        <p class="service-desc">Zero-knowledge encrypted vault for keys &amp; tokens.</p>
+      </div>
+      <span class="status-badge live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
+    <a href="https://ipinfo.inpriv.xyz" class="service-card" style="animation-delay: 0.69s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">my_location</span></div>
+      <div class="service-info">
+        <h2 class="service-name">IP Info</h2>
+        <p class="service-desc">What your browser reveals — IP, ISP &amp; fingerprint.</p>
+      </div>
+      <span class="status-badge live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
+    <a href="https://brute.inpriv.xyz" class="service-card" style="animation-delay: 0.75s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">lock_open</span></div>
+      <div class="service-info">
+        <h2 class="service-name">Brute</h2>
+        <p class="service-desc">Hash brute force matcher — MD5, SHA-1, SHA-256, SHA-384, SHA-512.</p>
+      </div>
+      <span class="status-badge live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
+    <div class="service-card coming-soon" style="animation-delay: 0.81s;">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">auto_awesome</span></div>
+      <div class="service-info">
+        <h2 class="service-name">Soon</h2>
+        <p class="service-desc">Something new is coming.</p>
+      </div>
+      <span class="status-badge soon">Soon</span>
+    </div>
+
+    <!-- Divider -->
+    <div class="section-divider" style="animation-delay: 0.51s;">
+      <span>Coming Soon</span>
+    </div>
+
+    <!-- Upcoming Services -->
+    <div class="service-card coming-soon" style="animation-delay: 0.57s;">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">mail</span></div>
+      <div class="service-info">
+        <h2 class="service-name">Mail</h2>
+        <p class="service-desc">Encrypted, disposable email forwarding.</p>
+      </div>
+      <span class="status-badge soon">Soon</span>
+    </div>
+
+    <div class="service-card coming-soon" style="animation-delay: 0.63s;">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">account_balance_wallet</span></div>
+      <div class="service-info">
+        <h2 class="service-name">Zero</h2>
+        <p class="service-desc">Private crypto wallet. Self-custodial.</p>
+      </div>
+      <span class="status-badge soon">Soon</span>
+    </div>
+
+    <div class="service-card coming-soon" style="animation-delay: 0.69s;">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">manage_search</span></div>
+      <div class="service-info">
+        <h2 class="service-name">OSINT</h2>
+        <p class="service-desc">AI-powered open-source intelligence on anything.</p>
+      </div>
+      <span class="status-badge soon">Soon</span>
+    </div>
+
+    <div class="service-card coming-soon" style="animation-delay: 0.75s;">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">timer</span></div>
+      <div class="service-info">
+        <h2 class="service-name">TOTP</h2>
+        <p class="service-desc">Time-based one-time password generator.</p>
+      </div>
+      <span class="status-badge soon">Soon</span>
+    </div>
+
+    <!-- Newly Added Functions -->
+    <div class="service-card coming-soon" style="animation-delay: 0.81s;" id="pass">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">password</span></div>
+      <div class="service-info">
+        <h2 class="service-name">Pass</h2>
+        <p class="service-desc">Offline cryptographic password generator.</p>
+      </div>
+      <span class="status-badge soon">Soon</span>
+    </div>
+
+    <div class="service-card coming-soon" style="animation-delay: 0.87s;" id="base64">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">code</span></div>
+      <div class="service-info">
+        <h2 class="service-name">Base64</h2>
+        <p class="service-desc">Client-side Base64, URL, and HTML encoder/decoder.</p>
+      </div>
+      <span class="status-badge soon">Soon</span>
+    </div>
+
+    <div class="service-card coming-soon" style="animation-delay: 0.93s;" id="burn">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">local_fire_department</span></div>
+      <div class="service-info">
+        <h2 class="service-name">Burn</h2>
+        <p class="service-desc">Ephemeral encrypted notes. Read once, then destroyed.</p>
+      </div>
+      <span class="status-badge soon">Soon</span>
+    </div>
+
+    <div class="service-card placeholder" style="animation-delay: 0.99s;">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">add</span></div>
+      <div class="service-info">
+        <h2 class="service-name" style="color:var(--md-on-surface-variant)">More Soon</h2>
+        <p class="service-desc">New utilities currently in active development.</p>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="copyright">Copyright 2026, Inpriv</div>
+    <div class="byline">by <span>Aurex Labs</span></div>
+  </footer>
+</div>
+
+<script>
+  // Light / Dark Theme Logic
+  const themeToggleBtn = document.getElementById('theme-toggle');
+  const themeIcon = document.getElementById('theme-icon');
+
+  function setTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('aurex_theme', theme);
+    themeIcon.textContent = theme === 'dark' ? 'light_mode' : 'dark_mode';
+  }
+
+  const savedTheme = localStorage.getItem('aurex_theme') || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  setTheme(savedTheme);
+
+  themeToggleBtn.addEventListener('click', () => {
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    setTheme(currentTheme === 'dark' ? 'light' : 'dark');
+  });
+
+  // Material Design Wave Ripple Effect
+  document.addEventListener('click', (e) => {
+    const target = e.target.closest('.service-card, .icon-btn');
+    if (!target || target.classList.contains('coming-soon') || target.classList.contains('placeholder')) return;
+    
+    const rect = target.getBoundingClientRect();
+    const circle = document.createElement('span');
+    const diameter = Math.max(rect.width, rect.height);
+    const radius = diameter / 2;
+
+    circle.style.width = circle.style.height = `${diameter}px`;
+    circle.style.left = `${e.clientX - rect.left - radius}px`;
+    circle.style.top = `${e.clientY - rect.top - radius}px`;
+    circle.classList.add('ripple-span');
+
+    const existingRipple = target.querySelector('.ripple-span');
+    if (existingRipple) existingRipple.remove();
+
+    target.appendChild(circle);
+    setTimeout(() => circle.remove(), 600);
+  });
+</script>
+</body>
+</html>
