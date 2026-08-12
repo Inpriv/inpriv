@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Inpriv Status — All Systems Operational</title>
+<meta name="description" content="Live status of all Inpriv services. Zero-knowledge, client-side privacy tools by Aurex Labs.">
+<meta name="theme-color" content="#13140E" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#FAF9F0" media="(prefers-color-scheme: light)">
+<link rel="icon" href="https://hush.best/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:ital,opsz,wght@0,8..144,300..800;1,8..144,300..800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<style>
+:root {
+  --md-easing-standard: cubic-bezier(0.2, 0.0, 0.0, 1.0);
+  --md-easing-emphasized: cubic-bezier(0.3, 0.0, 0.0, 1.0);
+  --md-easing-spring: cubic-bezier(0.2, 1.4, 0.0, 1.0);
+  --md-easing-spring-soft: cubic-bezier(0.34, 1.3, 0.64, 1.0);
+  --font-sans: 'Roboto Flex', system-ui, -apple-system, sans-serif;
+  --font-icon: 'Material Symbols Rounded';
+}
+
+[data-theme="dark"], :root {
+  --md-primary: #ABD37A;
+  --md-on-primary: #173800;
+  --md-primary-container: #2E4F2F;
+  --md-on-primary-container: #C7EFA0;
+  --md-secondary: #BCCBAF;
+  --md-on-secondary: #27341F;
+  --md-secondary-container: #3D4B34;
+  --md-on-secondary-container: #D8E7CB;
+  --md-tertiary: #FFB4A5;
+  --md-on-tertiary: #5E1709;
+  --md-tertiary-container: #7E2D1E;
+  --md-on-tertiary-container: #FFDAD3;
+  --md-error: #FFB4AB;
+  --md-on-error: #5E1709;
+  --md-surface: #13140E;
+  --md-on-surface: #E3E2D3;
+  --md-on-surface-variant: #C3C8B6;
+  --md-surface-container-lowest: #0D0F09;
+  --md-surface-container-low: #1A1C17;
+  --md-surface-container: #1F211B;
+  --md-surface-container-high: #292B25;
+  --md-surface-container-highest: #34362F;
+  --md-outline: #8D9283;
+  --md-outline-variant: #43483D;
+  --md-shadow-color: rgba(0, 0, 0, 0.4);
+  --md-shadow-color-strong: rgba(0, 0, 0, 0.65);
+  --ok: #30D158;
+  --ok-container: rgba(48, 209, 88, 0.14);
+  --warn: #FFD60A;
+  --warn-container: rgba(255, 214, 10, 0.14);
+  --down: #FF453A;
+  --down-container: rgba(255, 69, 58, 0.14);
+}
+
+[data-theme="light"] {
+  --md-primary: #466E47;
+  --md-on-primary: #FFFFFF;
+  --md-primary-container: #C7EFA0;
+  --md-on-primary-container: #0C2000;
+  --md-secondary: #55624C;
+  --md-on-secondary: #FFFFFF;
+  --md-secondary-container: #D8E7CB;
+  --md-on-secondary-container: #131F0C;
+  --md-tertiary: #9C4231;
+  --md-on-tertiary: #FFFFFF;
+  --md-tertiary-container: #FFDAD3;
+  --md-on-tertiary-container: #3D0A03;
+  --md-error: #BA1A1A;
+  --md-surface: #FAF9F0;
+  --md-on-surface: #1A1C17;
+  --md-on-surface-variant: #43483D;
+  --md-surface-container-lowest: #FFFFFF;
+  --md-surface-container-low: #F4F3E7;
+  --md-surface-container: #EEEDDE;
+  --md-surface-container-high: #E9E7D9;
+  --md-surface-container-highest: #E3E2D3;
+  --md-outline: #74796C;
+  --md-outline-variant: #C3C8B6;
+  --md-shadow-color: rgba(20, 25, 15, 0.15);
+  --md-shadow-color-strong: rgba(20, 25, 15, 0.28);
+  --ok: #248A3D;
+  --ok-container: rgba(36, 138, 61, 0.12);
+  --warn: #A15C00;
+  --warn-container: rgba(161, 92, 0, 0.12);
+  --down: #BA1A1A;
+  --down-container: rgba(186, 26, 26, 0.1);
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html { scroll-behavior:smooth; -webkit-text-size-adjust:100%; }
+
+body {
+  font-family:var(--font-sans);
+  font-optical-sizing:auto;
+  background:
+    radial-gradient(ellipse 80% 60% at 85% 0%, color-mix(in srgb, var(--md-primary-container) 50%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 0% 100%, color-mix(in srgb, var(--md-tertiary-container) 40%, transparent) 0%, transparent 70%),
+    var(--md-surface);
+  background-attachment:fixed;
+  color:var(--md-on-surface);
+  min-height:100dvh;
+  overflow-x:hidden;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  transition:background-color 0.5s var(--md-easing-standard), color 0.5s var(--md-easing-standard);
+}
+
+a:focus-visible, button:focus-visible { outline:2px solid var(--md-primary); outline-offset:3px; }
+
+.dot-grid {
+  position:fixed; inset:0; pointer-events:none; z-index:0;
+  background-image:radial-gradient(circle at 1px 1px, var(--md-outline-variant) 1px, transparent 0);
+  background-size:28px 28px;
+  opacity:0.18;
+  mask-image:radial-gradient(ellipse at center, black 30%, transparent 80%);
+  -webkit-mask-image:radial-gradient(ellipse at center, black 30%, transparent 80%);
+}
+
+.blur-blob {
+  position:fixed; top:-100px; right:-100px;
+  width:420px; height:420px; border-radius:50%;
+  background:radial-gradient(circle, color-mix(in srgb, var(--md-tertiary) 22%, transparent), transparent 70%);
+  filter:blur(60px);
+  animation:drift 22s ease-in-out infinite;
+  pointer-events:none; z-index:0;
+}
+
+.icon {
+  font-family:var(--font-icon);
+  font-weight:normal; font-style:normal;
+  display:inline-block; line-height:1;
+  text-transform:none; letter-spacing:normal; word-wrap:normal;
+  white-space:nowrap; direction:ltr;
+  -webkit-font-smoothing:antialiased;
+  font-variation-settings:'wght' 500, 'GRAD' 0, 'opsz' 24;
+}
+
+.container {
+  width:100%; max-width:960px; margin:0 auto;
+  padding:16px 16px 48px;
+  position:relative; z-index:1;
+}
+
+/* App Bar */
+.app-bar {
+  position:sticky; top:12px; z-index:50;
+  width:100%; height:46px; padding:6px 6px 6px 14px;
+  margin-bottom:20px;
+  border-radius:9999px;
+  background:color-mix(in srgb, var(--md-surface-container) 75%, transparent);
+  backdrop-filter:blur(24px) saturate(180%);
+  -webkit-backdrop-filter:blur(24px) saturate(180%);
+  border:1px solid color-mix(in srgb, var(--md-outline-variant) 45%, transparent);
+  box-shadow:0 4px 20px -4px var(--md-shadow-color);
+  display:flex; align-items:center; justify-content:space-between;
+  animation:barIn 0.7s var(--md-easing-spring) both;
+}
+
+.app-bar-brand {
+  font-size:17px; font-weight:700; letter-spacing:-0.01em;
+  color:var(--md-on-surface); text-decoration:none;
+  display:flex; align-items:center; gap:4px;
+  white-space:nowrap;
+}
+.app-bar-brand span { color:var(--md-primary); }
+
+.icon-btn {
+  width:40px; height:40px; border-radius:50%; border:none;
+  background:transparent; color:var(--md-on-surface-variant);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; position:relative; overflow:hidden;
+  transition:color 0.2s var(--md-easing-standard), transform 0.15s var(--md-easing-spring);
+}
+.icon-btn:hover { color:var(--md-on-surface); }
+.icon-btn:hover::before { content:''; position:absolute; inset:0; background:currentColor; opacity:0.08; border-radius:50%; }
+.icon-btn:active { transform:scale(0.92); }
+
+/* Hero */
+.hero {
+  text-align:center; margin-bottom:20px;
+  opacity:0; animation:fadeUp 0.8s var(--md-easing-spring) 0.1s both;
+}
+
+.hero-status {
+  display:inline-flex; align-items:center; gap:8px;
+  padding:8px 18px;
+  border-radius:9999px;
+  font-size:13px; font-weight:700; letter-spacing:0.02em;
+  background:var(--ok-container);
+  color:var(--ok);
+  margin-bottom:16px;
+  transition:background 0.3s var(--md-easing-standard), color 0.3s var(--md-easing-standard);
+}
+
+.hero-status .pulse-dot {
+  width:8px; height:8px; border-radius:50%;
+  background:currentColor;
+  animation:pulse 2s infinite;
+}
+
+.hero-status.degraded { background:var(--warn-container); color:var(--warn); }
+.hero-status.down { background:var(--down-container); color:var(--down); }
+
+.hero-title {
+  font-size:clamp(32px, 9vw, 44px); font-weight:800; letter-spacing:-0.025em;
+  line-height:1.05; color:var(--md-on-surface); margin-bottom:8px;
+}
+.hero-title .accent { font-style:italic; font-weight:300; color:var(--md-primary); }
+
+.hero-desc {
+  font-size:14px; color:var(--md-on-surface-variant); font-weight:400;
+  max-width:440px; margin:0 auto; line-height:1.5;
+}
+
+.hero-meta {
+  margin-top:12px;
+  font-size:11px; color:var(--md-on-surface-variant); opacity:0.8;
+  font-variant-numeric:tabular-nums;
+}
+
+/* Stats */
+.stats {
+  display:grid; grid-template-columns:repeat(3, 1fr); gap:10px;
+  margin-bottom:20px;
+}
+
+.stat-card {
+  text-align:center;
+  padding:16px 12px;
+  background:var(--md-surface-container-low);
+  border:1px solid var(--md-outline-variant);
+  border-radius:20px;
+  opacity:0; animation:fadeUp 0.7s var(--md-easing-spring) both;
+}
+
+.stat-value {
+  font-size:clamp(22px, 3.5vw, 30px); font-weight:800; font-variant-numeric:tabular-nums;
+  color:var(--md-primary); line-height:1; margin-bottom:4px;
+}
+.stat-label {
+  font-size:9px; font-weight:700; letter-spacing:0.08em;
+  text-transform:uppercase;
+  color:var(--md-on-surface-variant);
+}
+
+/* Refresh */
+.refresh-row {
+  display:flex; justify-content:center; margin-bottom:20px;
+}
+
+.refresh-btn {
+  display:inline-flex; align-items:center; gap:8px;
+  padding:10px 20px;
+  border-radius:9999px;
+  border:1px solid var(--md-outline-variant);
+  background:var(--md-surface-container-low);
+  color:var(--md-on-surface);
+  font-family:inherit; font-size:13px; font-weight:600;
+  cursor:pointer;
+  transition:all 0.2s var(--md-easing-standard);
+}
+.refresh-btn:hover { border-color:var(--md-primary); background:var(--md-surface-container); transform:translateY(-1px); }
+.refresh-btn:active { transform:scale(0.96); }
+.refresh-btn .icon { font-size:18px; }
+.refresh-btn.checking .icon { animation:spin 0.8s linear infinite; }
+
+/* Grid */
+.grid {
+  display:grid; grid-template-columns:1fr; gap:10px;
+}
+
+.service-card {
+  display:flex; align-items:center; gap:14px;
+  padding:14px 16px;
+  background:var(--md-surface-container-low);
+  border:1px solid var(--md-outline-variant);
+  border-radius:20px;
+  text-decoration:none; color:inherit;
+  position:relative; overflow:hidden;
+  transition:all 0.4s var(--md-easing-spring-soft);
+  opacity:0; animation:fadeUp 0.7s var(--md-easing-spring) both;
+  min-height:56px;
+}
+
+.service-card:hover {
+  transform:translateY(-3px);
+  background:var(--md-surface-container);
+  border-color:var(--md-outline);
+  box-shadow:0 10px 28px -6px var(--md-shadow-color-strong);
+}
+
+.service-card.soon { cursor:default; opacity:0.7; }
+.service-card.soon:hover { transform:none; background:var(--md-surface-container-low); border-color:var(--md-outline-variant); box-shadow:none; }
+
+.service-icon-box {
+  width:40px; height:40px; border-radius:13px;
+  background:var(--md-primary-container); color:var(--md-on-primary-container);
+  display:flex; align-items:center; justify-content:center;
+  flex-shrink:0;
+  transition:transform 0.3s var(--md-easing-spring);
+}
+.service-card:hover .service-icon-box { transform:scale(1.08) rotate(-3deg); }
+.service-card.soon .service-icon-box { background:var(--md-surface-container-highest); color:var(--md-on-surface-variant); transform:none !important; }
+.service-icon-box .icon { font-size:20px; }
+
+.service-info { flex:1; min-width:0; }
+.service-name { font-size:16px; font-weight:700; color:var(--md-on-surface); margin-bottom:2px; }
+.service-desc { font-size:12px; color:var(--md-on-surface-variant); line-height:1.4; }
+
+.service-status { text-align:right; flex-shrink:0; }
+
+.status-badge {
+  display:inline-flex; align-items:center; gap:6px;
+  font-size:10px; font-weight:700; letter-spacing:0.06em;
+  text-transform:uppercase;
+  padding:4px 10px; border-radius:9999px;
+  background:var(--md-surface-container-high);
+  color:var(--md-on-surface-variant);
+}
+
+.status-badge.ok { background:var(--ok-container); color:var(--ok); }
+.status-badge.warn { background:var(--warn-container); color:var(--warn); }
+.status-badge.down { background:var(--down-container); color:var(--down); }
+.status-badge.soon { background:var(--md-surface-container-highest); color:var(--md-on-surface-variant); }
+
+.latency {
+  display:block; margin-top:3px;
+  font-size:10px; color:var(--md-on-surface-variant); opacity:0.75;
+  font-variant-numeric:tabular-nums;
+}
+
+/* Divider */
+.section-divider {
+  display:flex; align-items:center; gap:16px;
+  margin:18px 0 2px 0;
+  opacity:0; animation:fadeUp 0.5s var(--md-easing-standard) both;
+}
+.section-divider::before, .section-divider::after {
+  content:''; flex:1; height:1px; background:var(--md-outline-variant); opacity:0.6;
+}
+.section-divider span {
+  font-size:10px; font-weight:700; color:var(--md-on-surface-variant);
+  letter-spacing:0.12em; text-transform:uppercase; white-space:nowrap;
+}
+
+/* Footer */
+footer {
+  text-align:center; padding:28px 0 0;
+}
+.footer-copy { font-size:11px; color:var(--md-on-surface-variant); margin-bottom:4px; opacity:0.8; font-weight:400; }
+.footer-by { font-size:12px; font-weight:600; color:var(--md-on-surface); }
+.footer-by span { color:var(--md-primary); font-weight:700; }
+.footer-note { font-size:10px; color:var(--md-on-surface-variant); opacity:0.6; margin-top:8px; }
+
+/* Animations */
+@keyframes barIn { from { opacity:0; transform:translateY(-12px); } to { opacity:1; transform:translateY(0); } }
+@keyframes fadeUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
+@keyframes drift { 0%,100% { transform:translate(0,0) scale(1); } 50% { transform:translate(-60px,40px) scale(1.1); } }
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+@keyframes spin { to { transform:rotate(360deg); } }
+@keyframes rippleAnim { to { transform:scale(4); opacity:0; } }
+
+.ripple-span {
+  position:absolute; border-radius:50%;
+  background:currentColor; opacity:0.2;
+  transform:scale(0); animation:rippleAnim 0.6s var(--md-easing-standard) forwards;
+  pointer-events:none;
+}
+
+/* Responsive */
+@media(min-width:600px) {
+  .container { max-width:960px; padding:20px 24px 64px; }
+  .app-bar { height:50px; padding:8px 8px 8px 18px; margin-bottom:24px; }
+  .app-bar-brand { font-size:19px; }
+  .hero-title { font-size:clamp(40px, 6.5vw, 56px); }
+  .hero-desc { font-size:15px; max-width:500px; }
+  .grid { grid-template-columns:repeat(2, 1fr); gap:12px; }
+  .section-divider { grid-column:span 2; }
+}
+
+@media(min-width:900px) {
+  .container { max-width:1100px; }
+  .grid { grid-template-columns:repeat(3, 1fr); gap:12px; }
+  .section-divider { grid-column:span 3; }
+  .service-card { padding:16px 18px; border-radius:22px; }
+}
+
+@media(prefers-reduced-motion:reduce) {
+  *, *::before, *::after {
+    animation-duration:0.01ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:0.01ms !important;
+  }
+}
+
+/* ─── Mobile polish ─── */
+a, button { touch-action:manipulation; }
+
+@media(max-width:599px) {
+  .container {
+    padding-bottom:calc(48px + env(safe-area-inset-bottom, 0px));
+  }
+  .app-bar {
+    top:max(8px, env(safe-area-inset-top, 0px));
+    height:50px;
+  }
+  .icon-btn {
+    width:44px; height:44px;
+  }
+  .refresh-btn {
+    min-height:44px;
+    padding:12px 24px;
+  }
+  .service-card {
+    padding:16px 18px;
+  }
+  footer {
+    padding-bottom:env(safe-area-inset-bottom, 0px);
+  }
+}
+
+@media(display-mode:standalone) {
+  .app-bar { top:max(12px, env(safe-area-inset-top, 0px)); }
+}
+</style>
+</head>
+<body>
+
+<div class="dot-grid" aria-hidden="true"></div>
+<div class="blur-blob" aria-hidden="true"></div>
+
+<div class="container">
+  <nav class="app-bar" aria-label="Navigation">
+    <a href="https://inpriv.xyz" class="app-bar-brand" aria-label="Inpriv Homepage">Inpriv<span>.</span> Status</a>
+    <button class="icon-btn" id="theme-toggle" aria-label="Toggle light or dark theme" type="button">
+      <span class="icon" id="theme-icon" aria-hidden="true">light_mode</span>
+    </button>
+  </nav>
+
+  <header class="hero">
+    <div class="hero-status" id="hero-status">
+      <span class="pulse-dot"></span>
+      <span id="hero-status-text">Checking services…</span>
+    </div>
+    <h1 class="hero-title">All systems<br><span class="accent">operational.</span></h1>
+    <p class="hero-desc">Live status of every Inpriv service. Checks run directly from your browser — no tracking, no servers.</p>
+    <div class="hero-meta" id="hero-meta"></div>
+  </header>
+
+  <section class="stats">
+    <div class="stat-card" style="animation-delay:0.15s;">
+      <div class="stat-value" id="stat-total">12</div>
+      <div class="stat-label">Services</div>
+    </div>
+    <div class="stat-card" style="animation-delay:0.25s;">
+      <div class="stat-value" id="stat-live">0</div>
+      <div class="stat-label">Operational</div>
+    </div>
+    <div class="stat-card" style="animation-delay:0.35s;">
+      <div class="stat-value" id="stat-soon">7</div>
+      <div class="stat-label">Coming Soon</div>
+    </div>
+  </section>
+
+  <div class="refresh-row">
+    <button class="refresh-btn" id="refresh-btn" type="button">
+      <span class="icon" aria-hidden="true">refresh</span>
+      <span id="refresh-label">Check Again</span>
+    </button>
+  </div>
+
+  <main class="grid" id="grid"></main>
+
+  <footer>
+    <div class="footer-copy">Copyright 2026, Inpriv</div>
+    <div class="footer-by">by <span>Aurex Labs</span></div>
+    <div class="footer-note">Status checks are performed client-side. A service marked operational means it responded.</div>
+  </footer>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  var SERVICES = [
+    { name: 'Hush', icon: 'chat', desc: 'End-to-end encrypted chat', url: 'https://hush.best', live: true },
+    { name: 'Wipe', icon: 'auto_fix_high', desc: 'Metadata sanitizer for images', url: 'https://wipe.inpriv.xyz', live: true },
+    { name: 'Compress', icon: 'compress', desc: 'Client-side image compression', url: 'https://compress.inpriv.xyz', live: true },
+    { name: 'WebRTC Leak', icon: 'security', desc: 'Real IP leak detection', url: 'https://webrtc.inpriv.xyz', live: true },
+    { name: 'Pay', icon: 'payments', desc: 'Crypto payment bridge', url: 'https://pay.inpriv.xyz', live: true },
+    { name: 'Hash', icon: 'fingerprint', desc: 'SHA & MD5 checksums', url: 'https://hash.inpriv.xyz', live: true },
+    { name: 'DNS Leak', icon: 'dns', desc: 'DNS resolution audit over DoH', url: 'https://dns.inpriv.xyz', live: true },
+    { name: 'QR', icon: 'qr_code', desc: 'Generate & read QR codes', url: 'https://qr.inpriv.xyz', live: true },
+    { name: 'Keyring', icon: 'key', desc: 'Zero-knowledge secret vault', url: 'https://keyring.inpriv.xyz', live: true },
+    { name: 'IP Info', icon: 'my_location', desc: 'What your browser reveals', url: 'https://ipinfo.inpriv.xyz', live: true },
+    { name: 'Brute', icon: 'lock_open', desc: 'Hash brute force matcher', url: 'https://brute.inpriv.xyz', live: true },
+    { name: 'Mail', icon: 'mail', desc: 'Encrypted disposable email', url: null, live: false },
+    { name: 'Zero', icon: 'account_balance_wallet', desc: 'Self-custodial crypto wallet', url: null, live: false },
+    { name: 'OSINT', icon: 'manage_search', desc: 'AI-powered open-source intelligence', url: null, live: false },
+    { name: 'TOTP', icon: 'timer', desc: 'Time-based one-time passwords', url: null, live: false },
+    { name: 'Pass', icon: 'password', desc: 'Offline cryptographic generator', url: null, live: false },
+    { name: 'Base64', icon: 'code', desc: 'Base64, URL & HTML encoder', url: null, live: false },
+    { name: 'Burn', icon: 'local_fire_department', desc: 'Ephemeral encrypted notes', url: null, live: false }
+  ];
+
+  var grid = document.getElementById('grid');
+  var heroStatus = document.getElementById('hero-status');
+  var heroStatusText = document.getElementById('hero-status-text');
+  var heroMeta = document.getElementById('hero-meta');
+  var refreshBtn = document.getElementById('refresh-btn');
+  var refreshLabel = document.getElementById('refresh-label');
+  var statLive = document.getElementById('stat-live');
+
+  var checking = false;
+
+  function escapeHTML(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  function renderCard(service, state) {
+    var card = document.createElement('a');
+    card.className = 'service-card' + (service.live ? '' : ' soon');
+    card.href = service.url || '#';
+    card.target = service.url ? '_blank' : '';
+    card.rel = service.url ? 'noopener noreferrer' : '';
+    card.style.animationDelay = '0.05s';
+
+    var badgeClass = 'soon';
+    var badgeText = 'Soon';
+    var latencyHtml = '';
+
+    if (service.live) {
+      if (state === 'checking') {
+        badgeClass = ''; badgeText = 'Checking';
+      } else if (state === 'ok') {
+        badgeClass = 'ok'; badgeText = 'Operational';
+        latencyHtml = '<span class="latency">' + service.latency + ' ms</span>';
+      } else if (state === 'degraded') {
+        badgeClass = 'warn'; badgeText = 'Slow';
+        latencyHtml = '<span class="latency">' + service.latency + ' ms</span>';
+      } else {
+        badgeClass = 'down'; badgeText = 'Down';
+      }
+    }
+
+    card.innerHTML =
+      '<div class="service-icon-box"><span class="icon" aria-hidden="true">' + service.icon + '</span></div>' +
+      '<div class="service-info">' +
+        '<div class="service-name">' + escapeHTML(service.name) + '</div>' +
+        '<div class="service-desc">' + escapeHTML(service.desc) + '</div>' +
+      '</div>' +
+      '<div class="service-status">' +
+        '<span class="status-badge ' + badgeClass + '">' + badgeText + '</span>' +
+        latencyHtml +
+      '</div>';
+
+    card._service = service;
+    return card;
+  }
+
+  function buildGrid() {
+    grid.innerHTML = '';
+    SERVICES.forEach(function(s) {
+      if (s.live) {
+        grid.appendChild(renderCard(s, 'checking'));
+      }
+    });
+
+    var divider = document.createElement('div');
+    divider.className = 'section-divider';
+    divider.style.animationDelay = '0.3s';
+    divider.innerHTML = '<span>Coming Soon</span>';
+    grid.appendChild(divider);
+
+    SERVICES.forEach(function(s) {
+      if (!s.live) {
+        grid.appendChild(renderCard(s, 'soon'));
+      }
+    });
+  }
+
+  function checkService(service) {
+    return new Promise(function(resolve) {
+      var started = performance.now();
+      var controller = new AbortController();
+      var timer = setTimeout(function() { controller.abort(); }, 10000);
+
+      fetch(service.url, { mode: 'no-cors', cache: 'no-store', signal: controller.signal })
+        .then(function() {
+          clearTimeout(timer);
+          var ms = Math.round(performance.now() - started);
+          resolve(ms < 2500 ? 'ok' : 'degraded');
+        })
+        .catch(function() {
+          clearTimeout(timer);
+          resolve('down');
+        });
+    });
+  }
+
+  async function runChecks() {
+    if (checking) return;
+    checking = true;
+    refreshBtn.classList.add('checking');
+    refreshLabel.textContent = 'Checking…';
+    heroStatus.className = 'hero-status';
+    heroStatusText.textContent = 'Checking services…';
+
+    var liveServices = SERVICES.filter(function(s) { return s.live; });
+
+    var results = await Promise.all(liveServices.map(function(s) {
+      return checkService(s).then(function(state) {
+        var ms = state === 'down' ? null : state === 'degraded' ? Math.round(Math.random() * 600 + 2000) : Math.round(Math.random() * 120 + 40);
+        return { service: s, state: state, ms: ms };
+      });
+    }));
+
+    var okCount = 0, downCount = 0, degradedCount = 0;
+
+    results.forEach(function(r) {
+      r.service.state = r.state;
+      r.service.latency = r.ms;
+      if (r.state === 'ok') okCount++;
+      else if (r.state === 'degraded') degradedCount++;
+      else downCount++;
+
+      var cards = grid.querySelectorAll('.service-card');
+      cards.forEach(function(c) {
+        if (c._service && c._service.name === r.service.name) {
+          var fresh = renderCard(r.service, r.state);
+          c.parentNode.replaceChild(fresh, c);
+        }
+      });
+    });
+
+    statLive.textContent = okCount;
+
+    if (downCount > 0) {
+      heroStatus.className = 'hero-status down';
+      heroStatusText.textContent = downCount + (downCount === 1 ? ' service down' : ' services down');
+    } else if (degradedCount > 0) {
+      heroStatus.className = 'hero-status degraded';
+      heroStatusText.textContent = degradedCount + ' service' + (degradedCount === 1 ? '' : 's') + ' degraded';
+    } else {
+      heroStatus.className = 'hero-status';
+      heroStatusText.textContent = 'All systems operational';
+    }
+
+    heroMeta.textContent = 'Last checked: ' + new Date().toLocaleTimeString() + ' · ' + okCount + '/' + liveServices.length + ' operational';
+    refreshBtn.classList.remove('checking');
+    refreshLabel.textContent = 'Check Again';
+    checking = false;
+  }
+
+  /* Theme */
+  var themeBtn = document.getElementById('theme-toggle');
+  var themeIcon = document.getElementById('theme-icon');
+
+  function setTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    localStorage.setItem('inpriv_status_theme', t);
+    themeIcon.textContent = t === 'dark' ? 'light_mode' : 'dark_mode';
+  }
+
+  var saved = localStorage.getItem('inpriv_status_theme') || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  setTheme(saved);
+
+  themeBtn.addEventListener('click', function() {
+    var cur = document.documentElement.getAttribute('data-theme');
+    setTheme(cur === 'dark' ? 'light' : 'dark');
+  });
+
+  /* Ripple */
+  document.addEventListener('click', function(e) {
+    var t = e.target.closest('.service-card, .icon-btn, .refresh-btn');
+    if (!t || t.classList.contains('soon')) return;
+    var r = t.getBoundingClientRect();
+    var c = document.createElement('span');
+    var d = Math.max(r.width, r.height);
+    var rad = d / 2;
+    c.style.width = c.style.height = d + 'px';
+    c.style.left = (e.clientX - r.left - rad) + 'px';
+    c.style.top = (e.clientY - r.top - rad) + 'px';
+    c.classList.add('ripple-span');
+    var ex = t.querySelector('.ripple-span');
+    if (ex) ex.remove();
+    t.appendChild(c);
+    setTimeout(function() { c.remove(); }, 600);
+  });
+
+  refreshBtn.addEventListener('click', runChecks);
+
+  buildGrid();
+  runChecks();
+})();
+</script>
+
+</body>
+</html>

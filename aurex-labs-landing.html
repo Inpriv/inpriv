@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Aurex Labs &mdash; Privacy, Performance, Precision</title>
+<meta name="description" content="Aurex Labs crafts privacy-first tools, high-performance launchers, and advanced network security toolkits. Independent studio. Open source. Zero telemetry.">
+<meta name="theme-color" content="#13140E" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#FAF9F0" media="(prefers-color-scheme: light)">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Aurex Labs &mdash; Privacy, Performance, Precision">
+<meta property="og:description" content="Privacy-first tools, launchers, and network security toolkits. Independent studio.">
+<meta property="og:site_name" content="Aurex Labs">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="https://hush.best/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:ital,opsz,wght@0,8..144,300..800;1,8..144,300..800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<style>
+:root {
+  --md-easing-standard: cubic-bezier(0.2, 0.0, 0.0, 1.0);
+  --md-easing-emphasized: cubic-bezier(0.3, 0.0, 0.0, 1.0);
+  --md-easing-spring: cubic-bezier(0.2, 1.4, 0.0, 1.0);
+  --md-easing-spring-soft: cubic-bezier(0.34, 1.3, 0.64, 1.0);
+  --font-sans: 'Roboto Flex', system-ui, -apple-system, sans-serif;
+  --font-icon: 'Material Symbols Rounded';
+}
+
+[data-theme="dark"], :root {
+  --md-primary: #ABD37A;
+  --md-on-primary: #173800;
+  --md-primary-container: #2E4F2F;
+  --md-on-primary-container: #C7EFA0;
+  --md-secondary: #BCCBAF;
+  --md-on-secondary: #27341F;
+  --md-secondary-container: #3D4B34;
+  --md-on-secondary-container: #D8E7CB;
+  --md-tertiary: #FFB4A5;
+  --md-on-tertiary: #5E1709;
+  --md-tertiary-container: #7E2D1E;
+  --md-on-tertiary-container: #FFDAD3;
+  --md-error: #FFB4AB;
+  --md-surface: #13140E;
+  --md-on-surface: #E3E2D3;
+  --md-on-surface-variant: #C3C8B6;
+  --md-surface-container-lowest: #0D0F09;
+  --md-surface-container-low: #1A1C17;
+  --md-surface-container: #1F211B;
+  --md-surface-container-high: #292B25;
+  --md-surface-container-highest: #34362F;
+  --md-outline: #8D9283;
+  --md-outline-variant: #43483D;
+  --md-shadow-color: rgba(0, 0, 0, 0.4);
+  --md-shadow-color-strong: rgba(0, 0, 0, 0.65);
+}
+
+[data-theme="light"] {
+  --md-primary: #466E47;
+  --md-on-primary: #FFFFFF;
+  --md-primary-container: #C7EFA0;
+  --md-on-primary-container: #0C2000;
+  --md-secondary: #55624C;
+  --md-on-secondary: #FFFFFF;
+  --md-secondary-container: #D8E7CB;
+  --md-on-secondary-container: #131F0C;
+  --md-tertiary: #9C4231;
+  --md-on-tertiary: #FFFFFF;
+  --md-tertiary-container: #FFDAD3;
+  --md-on-tertiary-container: #3D0A03;
+  --md-error: #BA1A1A;
+  --md-surface: #FAF9F0;
+  --md-on-surface: #1A1C17;
+  --md-on-surface-variant: #43483D;
+  --md-surface-container-lowest: #FFFFFF;
+  --md-surface-container-low: #F4F3E7;
+  --md-surface-container: #EEEDDE;
+  --md-surface-container-high: #E9E7D9;
+  --md-surface-container-highest: #E3E2D3;
+  --md-outline: #74796C;
+  --md-outline-variant: #C3C8B6;
+  --md-shadow-color: rgba(20, 25, 15, 0.15);
+  --md-shadow-color-strong: rgba(20, 25, 15, 0.28);
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html { scroll-behavior:smooth; -webkit-text-size-adjust:100%; }
+
+body {
+  font-family:var(--font-sans);
+  font-optical-sizing:auto;
+  background:
+    radial-gradient(ellipse 80% 60% at 85% 0%, color-mix(in srgb, var(--md-primary-container) 55%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 0% 100%, color-mix(in srgb, var(--md-tertiary-container) 45%, transparent) 0%, transparent 70%),
+    var(--md-surface);
+  background-attachment:fixed;
+  color:var(--md-on-surface);
+  min-height:100dvh;
+  overflow-x:hidden;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  transition:background-color 0.5s var(--md-easing-standard), color 0.5s var(--md-easing-standard);
+}
+
+a:focus-visible, button:focus-visible { outline:2px solid var(--md-primary); outline-offset:3px; }
+
+.dot-grid {
+  position:fixed; inset:0; pointer-events:none; z-index:0;
+  background-image:radial-gradient(circle at 1px 1px, var(--md-outline-variant) 1px, transparent 0);
+  background-size:28px 28px;
+  opacity:0.18;
+  mask-image:radial-gradient(ellipse at center, black 30%, transparent 80%);
+  -webkit-mask-image:radial-gradient(ellipse at center, black 30%, transparent 80%);
+}
+
+.blur-blob {
+  position:fixed; top:-100px; right:-100px;
+  width:420px; height:420px; border-radius:50%;
+  background:radial-gradient(circle, color-mix(in srgb, var(--md-tertiary) 22%, transparent), transparent 70%);
+  filter:blur(60px);
+  animation:drift 22s ease-in-out infinite;
+  pointer-events:none; z-index:0;
+}
+
+.icon {
+  font-family:var(--font-icon);
+  font-weight:normal; font-style:normal;
+  display:inline-block; line-height:1;
+  text-transform:none; letter-spacing:normal; word-wrap:normal;
+  white-space:nowrap; direction:ltr;
+  -webkit-font-smoothing:antialiased;
+  font-variation-settings:'wght' 500, 'GRAD' 0, 'opsz' 24;
+}
+
+.container {
+  width:100%; max-width:960px; margin:0 auto;
+  padding:16px 16px 48px;
+  position:relative; z-index:1;
+}
+
+/* App Bar */
+.app-bar {
+  position:sticky; top:12px; z-index:50;
+  width:100%; height:46px; padding:6px 6px 6px 14px;
+  margin-bottom:20px;
+  border-radius:9999px;
+  background:color-mix(in srgb, var(--md-surface-container) 75%, transparent);
+  backdrop-filter:blur(24px) saturate(180%);
+  -webkit-backdrop-filter:blur(24px) saturate(180%);
+  border:1px solid color-mix(in srgb, var(--md-outline-variant) 45%, transparent);
+  box-shadow:0 4px 20px -4px var(--md-shadow-color);
+  display:flex; align-items:center; justify-content:space-between;
+  animation:barIn 0.7s var(--md-easing-spring) both;
+}
+
+.app-bar-brand {
+  font-size:17px; font-weight:700; letter-spacing:-0.01em;
+  color:var(--md-on-surface); text-decoration:none;
+  display:flex; align-items:center; gap:4px;
+  white-space:nowrap;
+}
+.app-bar-brand span { color:var(--md-primary); }
+
+.icon-btn {
+  width:40px; height:40px; border-radius:50%; border:none;
+  background:transparent; color:var(--md-on-surface-variant);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; position:relative; overflow:hidden;
+  transition:color 0.2s var(--md-easing-standard), transform 0.15s var(--md-easing-spring);
+}
+.icon-btn:hover { color:var(--md-on-surface); }
+.icon-btn:hover::before { content:''; position:absolute; inset:0; background:currentColor; opacity:0.08; border-radius:50%; }
+.icon-btn:active { transform:scale(0.92); }
+
+/* Hero */
+.hero {
+  text-align:center; margin-bottom:32px;
+  opacity:0; animation:fadeUp 0.8s var(--md-easing-spring) 0.1s both;
+}
+
+.hero-badge {
+  display:inline-flex; align-items:center; gap:6px;
+  padding:6px 14px;
+  background:var(--md-primary-container);
+  color:var(--md-on-primary-container);
+  border-radius:9999px;
+  font-size:11px; font-weight:700; letter-spacing:0.08em;
+  text-transform:uppercase;
+  margin-bottom:16px;
+}
+.hero-badge .dot {
+  width:6px; height:6px; border-radius:50%;
+  background:var(--md-primary);
+  animation:pulse 2s infinite;
+}
+
+.hero-title {
+  font-size:clamp(32px, 9vw, 44px); font-weight:800; letter-spacing:-0.025em;
+  line-height:1.05; color:var(--md-on-surface); margin-bottom:12px;
+}
+.hero-title .accent { font-style:italic; font-weight:300; color:var(--md-primary); }
+
+.hero-desc {
+  font-size:14px; color:var(--md-on-surface-variant); font-weight:400;
+  max-width:440px; margin:0 auto; line-height:1.5;
+}
+
+/* Products */
+.products {
+  display:flex; flex-direction:column; gap:12px;
+  margin-bottom:40px;
+}
+
+.product-card {
+  display:flex; flex-direction:column; gap:14px;
+  padding:20px;
+  background:var(--md-surface-container-low);
+  border:1px solid var(--md-outline-variant);
+  border-radius:24px;
+  text-decoration:none; color:inherit;
+  position:relative; overflow:hidden;
+  transition:all 0.4s var(--md-easing-spring-soft);
+  opacity:0; animation:fadeUp 0.7s var(--md-easing-spring) both;
+}
+
+.product-card:hover {
+  transform:translateY(-4px);
+  background:var(--md-surface-container);
+  border-color:var(--md-primary);
+  box-shadow:0 12px 32px -6px var(--md-shadow-color-strong);
+}
+
+.product-header { display:flex; align-items:center; gap:14px; }
+
+.product-icon {
+  width:44px; height:44px; border-radius:12px;
+  display:flex; align-items:center; justify-content:center;
+  flex-shrink:0;
+  transition:transform 0.3s var(--md-easing-spring);
+}
+.product-card:hover .product-icon { transform:scale(1.08) rotate(-3deg); }
+
+.product-icon.inpriv { background:var(--md-primary-container); color:var(--md-on-primary-container); }
+.product-icon.vanta { background:rgba(10,132,255,0.15); color:#0A84FF; }
+.product-icon.pulsar { background:rgba(5,150,105,0.15); color:#059669; }
+
+.product-icon .icon { font-size:22px; }
+
+.product-name-group { flex:1; min-width:0; }
+.product-name { font-size:17px; font-weight:700; color:var(--md-on-surface); margin-bottom:1px; }
+.product-subtitle { font-size:12px; color:var(--md-on-surface-variant); font-weight:400; }
+
+.product-desc { font-size:13px; color:var(--md-on-surface-variant); line-height:1.5; }
+
+.product-tags { display:flex; flex-wrap:wrap; gap:6px; }
+
+.tag {
+  font-size:9px; font-weight:700; letter-spacing:0.08em;
+  text-transform:uppercase;
+  padding:4px 10px; border-radius:9999px;
+  background:var(--md-surface-container-high);
+  color:var(--md-on-surface-variant);
+}
+
+.product-footer {
+  display:flex; align-items:center; justify-content:space-between;
+  gap:12px; margin-top:auto;
+}
+
+.product-links { display:flex; gap:8px; }
+
+.product-link {
+  display:inline-flex; align-items:center; gap:6px;
+  padding:8px 16px; border-radius:9999px;
+  font-size:12px; font-weight:600; letter-spacing:0.02em;
+  text-decoration:none;
+  transition:all 0.2s var(--md-easing-standard);
+}
+
+.product-link.primary { background:var(--md-primary-container); color:var(--md-on-primary-container); }
+.product-link.primary:hover { filter:brightness(1.15); transform:translateY(-1px); }
+.product-link.secondary {
+  background:transparent; color:var(--md-on-surface-variant);
+  border:1px solid var(--md-outline-variant);
+}
+.product-link.secondary:hover { border-color:var(--md-outline); background:var(--md-surface-container-high); }
+
+.product-link .icon { font-size:18px; }
+.product-arrow {
+  font-size:20px; color:var(--md-on-surface-variant); opacity:0.5;
+  transition:all 0.25s var(--md-easing-standard); flex-shrink:0;
+}
+.product-card:hover .product-arrow { transform:translateX(4px); opacity:1; color:var(--md-primary); }
+
+/* Stats */
+.stats {
+  display:grid; grid-template-columns:repeat(3, 1fr); gap:10px;
+  margin-bottom:40px;
+}
+
+.stat-card {
+  text-align:center;
+  padding:20px 12px;
+  background:var(--md-surface-container-low);
+  border:1px solid var(--md-outline-variant);
+  border-radius:20px;
+  opacity:0; animation:fadeUp 0.7s var(--md-easing-spring) both;
+}
+
+.stat-value {
+  font-size:clamp(20px, 3.5vw, 28px); font-weight:700; font-variant-numeric:tabular-nums;
+  color:var(--md-primary); line-height:1; margin-bottom:4px;
+}
+.stat-label {
+  font-size:9px; font-weight:700; letter-spacing:0.08em;
+  text-transform:uppercase;
+  color:var(--md-on-surface-variant);
+}
+
+/* About */
+.about {
+  text-align:center; padding:24px 0 16px;
+  opacity:0; animation:fadeUp 0.7s var(--md-easing-spring) 0.4s both;
+}
+
+.about-title {
+  font-size:20px; font-weight:700; letter-spacing:-0.01em;
+  color:var(--md-on-surface); margin-bottom:8px;
+  line-height:1.2;
+}
+
+.about-text {
+  font-size:14px; color:var(--md-on-surface-variant);
+  max-width:480px; margin:0 auto; line-height:1.5;
+}
+
+.about-text em { font-style:italic; color:var(--md-primary); }
+
+/* Footer */
+footer {
+  text-align:center; padding:24px 0 0;
+  border-top:1px solid var(--md-outline-variant);
+}
+
+.footer-copy { font-size:11px; color:var(--md-on-surface-variant); margin-bottom:4px; opacity:0.8; font-weight:400; }
+.footer-by { font-size:12px; font-weight:600; color:var(--md-on-surface); }
+.footer-by span { color:var(--md-primary); font-weight:700; }
+
+/* Animations */
+@keyframes barIn {
+  from { opacity:0; transform:translateY(-12px); }
+  to { opacity:1; transform:translateY(0); }
+}
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(24px); }
+  to { opacity:1; transform:translateY(0); }
+}
+@keyframes drift {
+  0%, 100% { transform:translate(0, 0) scale(1); }
+  50% { transform:translate(-60px, 40px) scale(1.1); }
+}
+@keyframes pulse {
+  0%, 100% { opacity:1; }
+  50% { opacity:0.4; }
+}
+@keyframes rippleAnim {
+  to { transform:scale(4); opacity:0; }
+}
+
+.ripple-span {
+  position:absolute; border-radius:50%;
+  background:currentColor; opacity:0.2;
+  transform:scale(0); animation:rippleAnim 0.6s var(--md-easing-standard) forwards;
+  pointer-events:none;
+}
+
+/* Responsive */
+@media(min-width:600px) {
+  .container { max-width:960px; padding:20px 24px 64px; }
+  .app-bar { height:50px; padding:8px 8px 8px 18px; margin-bottom:24px; }
+  .app-bar-brand { font-size:19px; }
+  .hero { margin-bottom:40px; }
+  .hero-title { font-size:clamp(40px, 6.5vw, 68px); }
+  .hero-desc { font-size:15px; max-width:520px; }
+  .products { gap:14px; }
+  .product-card { padding:24px; border-radius:28px; }
+  .product-name { font-size:19px; }
+  .product-desc { font-size:14px; }
+  .tag { font-size:10px; }
+  .product-link { font-size:13px; padding:10px 18px; }
+  .stats { gap:14px; }
+  .stat-card { padding:24px 16px; border-radius:24px; }
+  .stat-label { font-size:10px; }
+  .about-title { font-size:24px; }
+}
+
+@media(min-width:900px) {
+  .products { display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; }
+}
+
+@media(prefers-reduced-motion:reduce) {
+  *, *::before, *::after {
+    animation-duration:0.01ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:0.01ms !important;
+  }
+}
+
+/* ─── Mobile polish ─── */
+a, button { touch-action:manipulation; }
+
+@media(max-width:599px) {
+  .container {
+    padding-bottom:calc(48px + env(safe-area-inset-bottom, 0px));
+  }
+  .app-bar {
+    top:max(8px, env(safe-area-inset-top, 0px));
+    height:50px;
+  }
+  .icon-btn {
+    width:44px; height:44px;
+  }
+  .product-link {
+    padding:10px 20px;
+    min-height:40px;
+  }
+  footer {
+    padding-bottom:env(safe-area-inset-bottom, 0px);
+  }
+}
+
+@media(display-mode:standalone) {
+  .app-bar { top:max(12px, env(safe-area-inset-top, 0px)); }
+}
+</style>
+</head>
+<body>
+
+<div class="dot-grid" aria-hidden="true"></div>
+<div class="blur-blob" aria-hidden="true"></div>
+
+<div class="container">
+  <nav class="app-bar" aria-label="Navigation">
+    <a href="#" class="app-bar-brand" aria-label="Aurex Labs Home">Aurex<span>.</span> Labs</a>
+    <button class="icon-btn" id="theme-toggle" aria-label="Toggle light or dark theme" type="button">
+      <span class="icon" id="theme-icon" aria-hidden="true">light_mode</span>
+    </button>
+  </nav>
+
+  <header class="hero">
+    <div class="hero-badge">
+      <span class="dot"></span> Independent Studio
+    </div>
+    <h1 class="hero-title">Tools that<br><span class="accent">respect you.</span></h1>
+    <p class="hero-desc">Privacy-first utilities, high-performance launchers, and advanced network toolkits. No telemetry, no nonsense &mdash; software that works for you.</p>
+  </header>
+
+  <section class="products">
+    <!-- Inpriv -->
+    <a href="https://inpriv.xyz" class="product-card" style="animation-delay:0.15s;" target="_blank" rel="noopener noreferrer">
+      <div class="product-header">
+        <div class="product-icon inpriv"><span class="icon">shield_lock</span></div>
+        <div class="product-name-group">
+          <div class="product-name">Inpriv</div>
+          <div class="product-subtitle">Privacy-First Tools Suite</div>
+        </div>
+      </div>
+      <p class="product-desc">Zero-knowledge, fully client-side web utilities. Encrypted chat, metadata sanitizer, crypto payments, DNS audit, QR tools. Nothing leaves your device.</p>
+      <div class="product-tags">
+        <span class="tag">Zero-Knowledge</span>
+        <span class="tag">E2E Chat</span>
+        <span class="tag">Client-Side</span>
+        <span class="tag">11 Tools</span>
+      </div>
+      <div class="product-footer">
+        <div class="product-links">
+          <span class="product-link primary">Open Suite</span>
+          <span class="product-link secondary">inpriv.xyz</span>
+        </div>
+        <span class="icon product-arrow" aria-hidden="true">arrow_forward</span>
+      </div>
+    </a>
+
+    <!-- Vanta -->
+    <a href="https://getvanta.xyz" class="product-card" style="animation-delay:0.25s;" target="_blank" rel="noopener noreferrer">
+      <div class="product-header">
+        <div class="product-icon vanta"><span class="icon">sports_esports</span></div>
+        <div class="product-name-group">
+          <div class="product-name">Vanta</div>
+          <div class="product-subtitle">Free Minecraft Launcher</div>
+        </div>
+      </div>
+      <p class="product-desc">Lightweight, no-premium launcher with performance optimization, instant Modrinth integration, and auto Java runtime. Pick any nickname, any version &mdash; just play.</p>
+      <div class="product-tags">
+        <span class="tag">No Premium</span>
+        <span class="tag">Modrinth</span>
+        <span class="tag">Offline Mode</span>
+        <span class="tag">1.3K+ DLs</span>
+      </div>
+      <div class="product-footer">
+        <div class="product-links">
+          <span class="product-link primary">Download</span>
+          <span class="product-link secondary">getvanta.xyz</span>
+        </div>
+        <span class="icon product-arrow" aria-hidden="true">arrow_forward</span>
+      </div>
+    </a>
+
+    <!-- PULSAR -->
+    <a href="https://pulsarapp.eu" class="product-card" style="animation-delay:0.35s;" target="_blank" rel="noopener noreferrer">
+      <div class="product-header">
+        <div class="product-icon pulsar"><span class="icon">radar</span></div>
+        <div class="product-name-group">
+          <div class="product-name">PULSAR</div>
+          <div class="product-subtitle">Network Security Toolkit</div>
+        </div>
+      </div>
+      <p class="product-desc">Modular C# toolkit for network reconnaissance, web app testing, proxy management, distributed ops, and post-exploitation auditing. Cross-platform, open source.</p>
+      <div class="product-tags">
+        <span class="tag">Network Recon</span>
+        <span class="tag">OSINT</span>
+        <span class="tag">Cluster C&C</span>
+        <span class="tag">26 Modules</span>
+      </div>
+      <div class="product-footer">
+        <div class="product-links">
+          <span class="product-link primary">Get Tool</span>
+          <span class="product-link secondary">pulsarapp.eu</span>
+        </div>
+        <span class="icon product-arrow" aria-hidden="true">arrow_forward</span>
+      </div>
+    </a>
+  </section>
+
+  <section class="stats">
+    <div class="stat-card" style="animation-delay:0.3s;">
+      <div class="stat-value">3</div>
+      <div class="stat-label">Products</div>
+    </div>
+    <div class="stat-card" style="animation-delay:0.4s;">
+      <div class="stat-value">37+</div>
+      <div class="stat-label">Modules &amp; Tools</div>
+    </div>
+    <div class="stat-card" style="animation-delay:0.5s;">
+      <div class="stat-value">100%</div>
+      <div class="stat-label">Open Source</div>
+    </div>
+  </section>
+
+  <section class="about">
+    <h2 class="about-title">Built by one. <em>Engineered for everyone.</em></h2>
+    <p class="about-text">
+      Aurex Labs is an independent studio crafting tools at the intersection of <em>privacy</em>, <em>performance</em>, and <em>precision</em>. Every project is open source, transparent, and driven by the belief that great software doesn&rsquo;t need to spy on you.
+    </p>
+  </section>
+
+  <footer>
+    <div class="footer-copy">Copyright 2026, Aurex Labs</div>
+    <div class="footer-by">Built with <span>integrity</span></div>
+  </footer>
+</div>
+
+<script>
+(function() {
+  'use strict';
+  var themeBtn = document.getElementById('theme-toggle');
+  var themeIcon = document.getElementById('theme-icon');
+
+  function setTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    localStorage.setItem('aurex_theme', t);
+    themeIcon.textContent = t === 'dark' ? 'light_mode' : 'dark_mode';
+  }
+
+  var saved = localStorage.getItem('aurex_theme') || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  setTheme(saved);
+
+  themeBtn.addEventListener('click', function() {
+    var cur = document.documentElement.getAttribute('data-theme');
+    setTheme(cur === 'dark' ? 'light' : 'dark');
+  });
+
+  document.addEventListener('click', function(e) {
+    var t = e.target.closest('.product-card, .icon-btn');
+    if (!t) return;
+    var r = t.getBoundingClientRect();
+    var c = document.createElement('span');
+    var d = Math.max(r.width, r.height);
+    var rad = d / 2;
+    c.style.width = c.style.height = d + 'px';
+    c.style.left = (e.clientX - r.left - rad) + 'px';
+    c.style.top = (e.clientY - r.top - rad) + 'px';
+    c.classList.add('ripple-span');
+    var ex = t.querySelector('.ripple-span');
+    if (ex) ex.remove();
+    t.appendChild(c);
+    setTimeout(function() { c.remove(); }, 600);
+  });
+})();
+</script>
+
+</body>
+</html>
