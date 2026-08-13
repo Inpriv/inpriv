@@ -1,81 +1,62 @@
 # Inpriv Hexa
 
-> Copyright (c) 2026 Aurex Labs — MIT License
+> Privacy-focused hexagonal code generator — turn any text into a one-of-a-kind honeycomb pattern.
 
-A privacy-focused **hexagon art generator**. Type any text and it becomes a
-one-of-a-kind honeycomb pattern — a pure hexagon design (no QR pixels, no
-square grid). Built on Material Design 3 with the **Earthy Forest** aesthetic
-(glassmorphism, warm off-whites, deep moss greens).
+Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Aurex Labs](https://aurexlabs.xyz).
 
-Everything runs locally in your browser. Nothing is uploaded.
+## What it does
 
-> **Note:** This is decorative generative art, not a scannable code. Your text
-> is hashed into a deterministic seed that paints a symmetric honeycomb inside a
-> big hexagon silhouette — the same input always yields the same artwork.
+Hexa is an aesthetic generative-art tool that hashes your text into a deterministic seed and renders a symmetric honeycomb pattern inside a single large hexagon silhouette. It supports URL, Wi-Fi, plain text, vCard, and AES-GCM encrypted note content types, with extensive customization (pattern style, colors, size, rounding, logo). Export to SVG, high-res PNG, or print-ready PDF. Everything runs locally — nothing is uploaded.
+
+> **Note:** This produces decorative generative art, not a scannable QR/barcode. The same input always yields the same artwork.
 
 ## Features
 
-- **Content presets**: URL, Wi-Fi, plain Text, vCard (contact), Encrypted Note
-  - Encrypted notes use **AES-GCM** (PBKDF2 key derivation, 100k iterations).
-- **Pattern styles**: Crystal, Spiral, Rings, Cluster — four distinct ways your
-  text maps onto the honeycomb.
-- **Customizer**:
-  - Hexagon size slider (Small / Medium / Large)
-  - Hexagon outline width, cell fill ratio, corner rounding
-  - Primary / Accent / Surface color pickers with curated Earthy Forest palettes
-  - Center logo toggle + SVG/PNG upload
-- **Hex canvas**: a single large hexagon silhouette filled with pointy-top
-  honeycomb cells, left/right symmetric, with a bouncy entrance animation.
-- **Export**: SVG (vector), PNG (high-res 4×), PDF (print-ready, JPEG-embedded).
-- **Copy to clipboard** (SVG), **Share** (Web Share API with fallback).
-- **Light / dark theme** — defaults to dark, persists choice, honors
-  `prefers-color-scheme` until you pick one.
-- **Responsive** — vertical stack on mobile, side-by-side on desktop.
-- **Accessible** — ARIA roles, focus-visible rings, `prefers-reduced-motion`
-  support, 40px+ touch targets.
+- **Five content presets**: URL, Wi-Fi (ZXing grammar), plain Text, vCard 3.0, Encrypted Note (AES-GCM, PBKDF2 100k iterations)
+- **Four pattern styles**: Crystal (radial falloff), Spiral (angular arms), Rings (concentric), Cluster (organic blobs)
+- **Full customizer**: hexagon size (Small/Medium/Large → 61/127/217 cells), outline width, cell fill ratio, corner rounding
+- **Color system**: 6 curated Earthy Forest palettes + individual primary/accent/surface color pickers
+- **Center logo**: toggle on/off, upload SVG or PNG (max 1.5 MB)
+- **Live preview** with cell count, size, style, and character count metadata
+- **Export**: SVG (vector), PNG (4× high-res), PDF (print-ready, JPEG-embedded, hand-assembled)
+- **Copy SVG** to clipboard, **Share** via Web Share API (with clipboard fallback)
+- **Light/dark theme** — defaults to dark (privacy-first), persists choice, honors `prefers-color-scheme` until you pick one
+- **Accessible**: ARIA roles, focus-visible rings, `prefers-reduced-motion` support, 40px+ touch targets
+- **Responsive**: vertical stack on mobile, side-by-side workspace on desktop
 
-## How the pattern is made
+## How it works
 
-1. Your text seeds a deterministic PRNG (xmur3 → sfc32), so identical input
-   always paints identical art.
-2. A big hexagonal grid ("hex of hexes") is generated — 61, 127, or 217 cells
-   depending on the size setting.
-3. The chosen style decides which cells light up, computed on one half and
-   mirrored to the other for guaranteed symmetry.
-4. A few seed-picked cells use the accent color so the primary dominates but
-   the piece feels alive.
+1. **Seeded PRNG** (`makeRng()`): Your text seeds an `xmur3` hash function, which seeds an `sfc32` PRNG — so identical input always produces identical random values.
+2. **Hexagon grid** (`bigHexCellList()`): An axial-coordinate (q,r) honeycomb is generated. The density slider maps to a hexagon "radius" of 4, 6, or 8 cells, yielding 61, 127, or 217 total cells.
+3. **Pattern generation**: Each style decides which cells are "on." Patterns are computed on one half (q ≥ 0) and **mirrored** to the other half for guaranteed left/right symmetry.
+4. **Accent coloring**: A few seed-picked "on" cells (away from center) use the accent color so the primary dominates but the piece has visual life.
+5. **SVG rendering**: Rounded-hexagon polygons are emitted as SVG `<path>` or `<use>` elements with per-cell animation delays (when cell count ≤ 600).
+6. **Encrypted notes** (`Presets.note()`): Passphrase derives a 256-bit AES-GCM key via PBKDF2-SHA256 (100k iterations); the note is encrypted and encoded as `INAES1:` + base64(salt|iv|ciphertext).
+7. **Export pipeline** (`export.js`): SVG is serialized; PNG rasters via canvas at 4× scale; PDF is hand-assembled (no library) embedding a JPEG via DCTDecode stream.
 
-## Run it
-
-Static site, no build step:
+## Run locally
 
 ```bash
-# Python 3
-python -m http.server 5173
-
-# or Node
-npx serve .
+python -m http.server 8080
+# Open http://localhost:8080/.hexa/index.html
 ```
 
-Then open <http://localhost:5173/>.
+> A local server (not `file://`) is recommended so Web Crypto, clipboard, and export APIs are available.
 
-> A local server (rather than `file://`) is recommended so Web Crypto and the
-> clipboard APIs are available.
+## Security
 
-## Project layout
+- ✅ Client-side only — all generation, encryption, and rendering happen in-browser; nothing is transmitted
+- ✅ Encrypted notes use AES-256-GCM with PBKDF2 key derivation; passphrase never leaves the device
+- ✅ No `eval()`, no user input in `innerHTML` without escaping
+- ✅ Logo uploads validated to SVG/PNG only, capped at 1.5 MB
+- ℹ️ PDF export uses a hand-written PDF assembler (no external PDF library)
+- ℹ️ External dependencies: Google Fonts (Roboto Flex, Material Symbols Rounded) only — no JS CDNs
+- ℹ️ `localStorage` used only for theme preference
 
-```
-index.html            App shell + markup
-styles.css            M3 Earthy Forest design system
-js/
-  theme.js            Light/dark theme manager
-  presets.js          Content formatters + AES-GCM encryption
-  hex-renderer.js     Hexagon art engine (text → honeycomb SVG)
-  export.js           SVG/PNG/PDF export + clipboard
-  app.js              Controller / state / wiring
-```
+## Tech
 
-## Privacy
-
-All generation, encryption, and rendering happen client-side. The passphrase for
-encrypted notes never leaves your device.
+- Vanilla HTML/CSS/JS (modular `js/` directory, no build step)
+- Web Crypto API (`crypto.subtle`) for encrypted notes
+- Deterministic PRNG (xmur3 → sfc32)
+- SVG-based rendering (no canvas for the art itself)
+- Material Design 3 (Aurex Labs Design System — Earthy Forest)

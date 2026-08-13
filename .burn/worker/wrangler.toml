@@ -3,11 +3,15 @@ main = "src/index.js"
 compatibility_date = "2025-08-01"
 workers_dev = true
 
-# Static frontend served from ./public (index.html goes here after deploy prep)
+# Static frontend served from ./public
 [assets]
 directory = "./public"
 binding = "ASSETS"
 
+# KV namespace for ephemeral encrypted note storage
+# Create your own: npx wrangler kv namespace create BURN_KV
+# Then paste the returned ID below or set it via:
+#   CLOUDFLARE_KV_BURN_ID=<id> npx wrangler deploy
 [[kv_namespaces]]
 binding = "BURN_KV"
 id = "e0bf863f6dd748aa90f8799ab1bccc42"

@@ -1,6 +1,23 @@
-﻿# ─── Backups ───
+﻿# ─── Secrets & credentials ───
+**/.env
+**/.env.local
+**/.env.production
+**/.env.staging
+**/.env.dev
+!.env.example
+!.env.local.example
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+.env
+
+# ─── Backups ───
 Inpriv-backup-DO-NOT-TOUCH/
 **/backup-*/
+*.bak
+*.backup
 
 # ─── Old / archived ───
 .mail/old/
@@ -8,12 +25,20 @@ Inpriv-backup-DO-NOT-TOUCH/
 # ─── Python ───
 __pycache__/
 *.pyc
+*.pyo
 .venv/
 **/.venv/
+venv/
+**/venv/
+*.egg-info/
+dist/
+build/
 
 # ─── Node ───
 node_modules/
 .next/
+.npm/
+.pnpm-store/
 
 # ─── Rust build artifacts ───
 target/
@@ -21,6 +46,8 @@ target/
 
 # ─── Large data / wordlists ───
 .brute/rockyou.txt
+*.wordlist
+*.dictionary
 
 # ─── AI session plans ───
 .zcode/
@@ -31,13 +58,34 @@ target/
 
 # ─── Test artifacts ───
 .zero/gui-test-screenshots/
+**/screenshots/
 
-# ─── OS ───
+# ─── Databases ───
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# ─── Cloudflare ───
+.wrangler/
+.dev.vars
+
+# ─── IDE / Editor ───
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
 .DS_Store
 Thumbs.db
 desktop.ini
 
-# ─── Secrets ───
-**/.env
-!.env.example
+# ─── Logs ───
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
+# ─── Lockfiles that shouldn't be shared ───
+# (Cargo.lock IS tracked for binary crates, package-lock.json IS tracked)

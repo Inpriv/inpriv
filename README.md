@@ -12,11 +12,11 @@ No trackers. No remote logs. No compromises — everything runs in your browser.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Website](https://img.shields.io/badge/website-inpriv.xyz-466E47)](https://inpriv.xyz)
-[![Tools](https://img.shields.io/badge/tools-11%20live%20%2B%209%20coming%20soon-ABD37A)](https://inpriv.xyz)
+[![Tools](https://img.shields.io/badge/tools-13%20live%20%2B%207%20in%20dev-ABD37A)](https://inpriv.xyz)
 [![Zero-Knowledge](https://img.shields.io/badge/zero--knowledge-%E2%9C%93-C7EFA0)]()
 [![By Aurex Labs](https://img.shields.io/badge/by-Aurex%20Labs-9C4231)]()
 
-<img src="assets/icons/link.svg" width="14" height="14" alt=""> Quick links: [Website](https://inpriv.xyz) · [License](LICENSE)
+<img src="assets/icons/link.svg" width="14" height="14" alt=""> Quick links: [Website](https://inpriv.xyz) · [License](LICENSE) · [Security](SECURITY.md) · [Contributing](CONTRIBUTING.md)
 
 </div>
 
@@ -48,7 +48,7 @@ Inpriv is an ecosystem of **zero-knowledge, fully client-side web utilities** �
 
 ## <img src="assets/icons/clock.svg" width="18" height="18" align="center" alt=""> In Development
 
-- **Mail** · **Zero** (wallet) · **OSINT** · **Pass** · **Base64** · **Hexa** · **Verdant**
+- **Mail** · **Zero** (wallet) · **OSINT** · **Hexa** · **Verdant**
 
 ---
 
@@ -132,10 +132,8 @@ inpriv/
 
 ## <img src="assets/icons/map.svg" width="18" height="18" align="center" alt=""> Roadmap
 
-- [x] 11 core tools live on production
+- [x] 13 core tools live on production
 - [ ] PWA + offline support
-- [ ] TOTP, Pass, Base64 — quick wins
-- [ ] Burn — ephemeral encrypted notes
 - [ ] Zero wallet — security audit before release
 - [ ] Mail — encrypted disposable email
 - [ ] OSINT — AI-powered intelligence engine
@@ -146,10 +144,14 @@ inpriv/
 
 ## <img src="assets/icons/users.svg" width="18" height="18" align="center" alt=""> Contributing
 
+See **[CONTRIBUTING.md](CONTRIBUTING.md)** for full guidelines.
+
 1. **No malicious features** — modules enabling unauthorized access will be rejected
 2. **Privacy by design** — nothing may ever phone home
 3. Open an issue first for big changes
 4. Follow the existing M3 design tokens
+
+Found a security issue? See **[SECURITY.md](SECURITY.md)**.
 
 ---
 
