@@ -1373,7 +1373,7 @@
                 displayResults(data, selectedModelId);
             } catch (error) {
                 const reviewEl = document.getElementById('aiReviewContent');
-                reviewEl.innerHTML = "⚠️ " + error.message;
+                reviewEl.innerHTML = '<i class="fas fa-triangle-exclamation" style="color:#f59e0b"></i> ' + error.message;
                 document.getElementById('aiReviewCard').classList.remove('hidden');
                 document.getElementById('usageFooter').classList.add('hidden');
                 console.error("Search error:", error);

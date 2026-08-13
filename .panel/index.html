@@ -15,8 +15,9 @@
   <title>Inpriv Panel</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
   <style>
+    .material-symbols-rounded { font-family: 'Material Symbols Rounded'; font-weight: normal; font-style: normal; font-size: 24px; line-height: 1; display: inline-block; -webkit-font-smoothing: antialiased; }
     :root {
       --bg-primary: #0f1119;
       --bg-secondary: rgba(22, 24, 34, 0.55);
@@ -827,7 +828,7 @@
         state.loading = false;
         document.getElementById('mainContent').innerHTML = `
           <div class="empty-state">
-            <div class="empty-state-icon">⚠️</div>
+            <div class="empty-state-icon"><span class="material-symbols-rounded" style="font-size:48px;color:var(--status-error)">cloud_off</span></div>
             <h2 style="color:var(--status-error);margin-bottom:8px;">Connection Error</h2>
             <p style="color:var(--text-secondary);">Could not reach the panel API. Make sure the server is running.</p>
             <button class="btn btn-secondary" style="margin-top:16px;" onclick="loadData()">Retry</button>
@@ -946,7 +947,7 @@
           <div class="service-domain">${svc.domain || '—'}</div>
           <div class="service-meta">
             <span class="service-tag">${key}</span>
-            ${euEffective ? '<span class="service-tag eu-blocked">🚫 EU Blocked</span>' : '<span class="service-tag eu-safe">✓ EU Allowed</span>'}
+            ${euEffective ? '<span class="service-tag eu-blocked"><span class="material-symbols-rounded" style="font-size:12px;vertical-align:-2px">block</span> EU Blocked</span>' : '<span class="service-tag eu-safe"><span class="material-symbols-rounded" style="font-size:12px;vertical-align:-2px">check</span> EU Allowed</span>'}
             ${svc.port ? `<span class="service-tag">Port ${svc.port}</span>` : ''}
           </div>
         `;

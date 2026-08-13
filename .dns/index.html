@@ -422,7 +422,7 @@
       const dotClassFinal = result.ok ? 'ok' : 'warn';
       let detail = '';
       if (!result.ok) {
-        detail = '<span style="color:var(--md-tertiary);">⚠ ' + (result.err || 'Failed') + ' — resolver unreachable from this browser.</span>';
+        detail = '<span style="color:var(--md-tertiary);"><span class="material-symbols-rounded" style="font-size:16px;vertical-align:-3px">warning</span> ' + (result.err || 'Failed') + ' — resolver unreachable from this browser.</span>';
       } else {
         const loc = result.intel ? [result.intel.city, result.intel.country].filter(Boolean).join(', ') : 'Unknown';
         const isp = result.intel ? result.intel.isp : 'Unknown';

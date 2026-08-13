@@ -427,7 +427,7 @@
     function renderLocation(d) {
       const list = document.getElementById('locationList');
       if (!d) { list.innerHTML = row('Location', 'Unavailable'); return; }
-      const maps = (d.lat && d.lon) ? '<a href="https://www.openstreetmap.org/?mlat=' + d.lat + '&mlon=' + d.lon + '#map=10/' + d.lat + '/' + d.lon + '" target="_blank" rel="noopener" style="color:var(--md-primary);text-decoration:none;font-weight:700;">Open in maps ↗</a>' : '';
+      const maps = (d.lat && d.lon) ? '<a href="https://www.openstreetmap.org/?mlat=' + d.lat + '&mlon=' + d.lon + '#map=10/' + d.lat + '/' + d.lon + '" target="_blank" rel="noopener" style="color:var(--md-primary);text-decoration:none;font-weight:700;">Open in maps <span class="material-symbols-rounded" style="font-size:14px;vertical-align:-2px">open_in_new</span></a>' : '';
       list.innerHTML =
         row('City', d.city) +
         row('Region', d.region) +

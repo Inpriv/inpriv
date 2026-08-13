@@ -996,7 +996,7 @@ async function openMessage(id){
   } catch(e){
     const body = $('#mvBody');
     body.classList.remove('placeholder');
-    body.textContent = '⚠️ Decryption failed: ' + e.message;
+    body.innerHTML = '<span class="material-symbols-rounded" style="font-size:18px;vertical-align:-4px;color:var(--md-error)">error</span> Decryption failed: ' + escapeHtml(e.message);
     body.style.color = 'var(--md-error)';
   }
 }
