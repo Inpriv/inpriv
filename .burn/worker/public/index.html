@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Inpriv Burn — Ephemeral Encrypted Notes</title>
+<meta name="description" content="Burn is a zero-knowledge ephemeral note. AES-256-GCM encrypted in your browser — the server never sees your text. Read once, then it's gone.">
+<meta name="theme-color" content="#13140E" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#FAF9F0" media="(prefers-color-scheme: light)">
+<meta name="robots" content="noindex, nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Inpriv Burn">
+<link rel="icon" href="https://hush.best/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:ital,opsz,wght@0,8..144,300..800;1,8..144,300..800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<style>
+:root {
+  --ease-standard: cubic-bezier(0.2, 0.0, 0.0, 1.0);
+  --ease-spring: cubic-bezier(0.2, 1.3, 0.0, 1.0);
+  --ease-spring-soft: cubic-bezier(0.34, 1.3, 0.64, 1.0);
+  --font-sans: 'Roboto Flex', system-ui, -apple-system, sans-serif;
+  --font-icon: 'Material Symbols Rounded';
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+[data-theme="dark"], :root {
+  --md-primary: #ABD37A;
+  --md-on-primary: #173800;
+  --md-primary-container: #2E4F2F;
+  --md-on-primary-container: #C7EFA0;
+  --md-secondary: #BCCBAF;
+  --md-secondary-container: #3D4B34;
+  --md-on-secondary-container: #D8E7CB;
+  --md-tertiary: #FFB4A5;
+  --md-tertiary-container: #7E2D1E;
+  --md-on-tertiary-container: #FFDAD3;
+  --md-error: #FFB4AB;
+  --md-surface: #13140E;
+  --md-on-surface: #E3E2D3;
+  --md-on-surface-variant: #C3C8B6;
+  --md-surface-container-lowest: #0D0F09;
+  --md-surface-container-low: #1A1C17;
+  --md-surface-container: #1F211B;
+  --md-surface-container-high: #292B25;
+  --md-surface-container-highest: #34362F;
+  --md-outline: #8D9283;
+  --md-outline-variant: #43483D;
+  --md-shadow: rgba(0,0,0,0.4);
+  --md-shadow-strong: rgba(0,0,0,0.65);
+  --md-inverse-surface: #E3E2D3;
+  --md-inverse-on-surface: #2F312C;
+}
+
+[data-theme="light"] {
+  --md-primary: #466E47;
+  --md-on-primary: #FFFFFF;
+  --md-primary-container: #C7EFA0;
+  --md-on-primary-container: #0C2000;
+  --md-secondary: #55624C;
+  --md-secondary-container: #D8E7CB;
+  --md-on-secondary-container: #131F0C;
+  --md-tertiary: #9C4231;
+  --md-tertiary-container: #FFDAD3;
+  --md-on-tertiary-container: #3D0A03;
+  --md-error: #BA1A1A;
+  --md-surface: #FAF9F0;
+  --md-on-surface: #1A1C17;
+  --md-on-surface-variant: #43483D;
+  --md-surface-container-lowest: #FFFFFF;
+  --md-surface-container-low: #F4F3E7;
+  --md-surface-container: #EEEDDE;
+  --md-surface-container-high: #E9E7D9;
+  --md-surface-container-highest: #E3E2D3;
+  --md-outline: #74796C;
+  --md-outline-variant: #C3C8B6;
+  --md-shadow: rgba(20,25,15,0.15);
+  --md-shadow-strong: rgba(20,25,15,0.28);
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html { scroll-behavior:smooth; -webkit-text-size-adjust:100%; }
+
+body {
+  font-family:var(--font-sans);
+  font-optical-sizing:auto;
+  background:
+    radial-gradient(ellipse 80% 60% at 85% 0%, color-mix(in srgb, var(--md-tertiary-container) 45%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 0% 100%, color-mix(in srgb, var(--md-primary-container) 45%, transparent) 0%, transparent 70%),
+    var(--md-surface);
+  background-attachment:fixed;
+  color:var(--md-on-surface);
+  min-height:100dvh;
+  overflow-x:hidden;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  transition:background-color 0.5s var(--ease-standard), color 0.5s var(--ease-standard);
+}
+
+a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline:2px solid var(--md-primary); outline-offset:2px; }
+button, select { font-family:inherit; }
+a, button, input, textarea, select { touch-action:manipulation; }
+
+.dot-grid {
+  position:fixed; inset:0; pointer-events:none; z-index:0;
+  background-image:radial-gradient(circle at 1px 1px, var(--md-outline-variant) 1px, transparent 0);
+  background-size:28px 28px;
+  opacity:0.18;
+  mask-image:radial-gradient(ellipse at center, black 30%, transparent 80%);
+  -webkit-mask-image:radial-gradient(ellipse at center, black 30%, transparent 80%);
+}
+
+.icon {
+  font-family:var(--font-icon);
+  font-weight:normal; font-style:normal;
+  display:inline-block; line-height:1;
+  text-transform:none; letter-spacing:normal; word-wrap:normal;
+  white-space:nowrap; direction:ltr;
+  -webkit-font-smoothing:antialiased;
+  font-variation-settings:'wght' 500, 'GRAD' 0, 'opsz' 24;
+}
+
+.container {
+  width:100%; max-width:640px; margin:0 auto;
+  padding:16px 16px calc(48px + env(safe-area-inset-bottom, 0px));
+  position:relative; z-index:1;
+  min-height:100dvh;
+  display:flex; flex-direction:column;
+}
+
+/* App Bar */
+.app-bar {
+  position:sticky; top:max(12px, env(safe-area-inset-top, 0px)); z-index:50;
+  width:100%; height:48px; padding:6px 6px 6px 16px;
+  margin-bottom:16px;
+  border-radius:9999px;
+  background:color-mix(in srgb, var(--md-surface-container) 75%, transparent);
+  backdrop-filter:blur(24px) saturate(180%);
+  -webkit-backdrop-filter:blur(24px) saturate(180%);
+  border:1px solid color-mix(in srgb, var(--md-outline-variant) 45%, transparent);
+  box-shadow:0 4px 20px -4px var(--md-shadow);
+  display:flex; align-items:center; justify-content:space-between;
+  animation:barIn 0.7s var(--ease-spring) both;
+}
+.app-bar-brand {
+  font-size:16px; font-weight:700; letter-spacing:-0.01em;
+  color:var(--md-on-surface); text-decoration:none;
+  display:flex; align-items:center; gap:6px; white-space:nowrap;
+}
+.app-bar-brand span { color:var(--md-tertiary); }
+.app-logo { width:26px; height:26px; border-radius:7px; object-fit:contain; }
+.bar-actions { display:flex; gap:2px; }
+
+.icon-btn {
+  width:40px; height:44px; border-radius:50%; border:none;
+  background:transparent; color:var(--md-on-surface-variant);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; position:relative; overflow:hidden;
+  transition:color 0.2s var(--ease-standard), transform 0.15s var(--ease-spring);
+}
+.icon-btn:hover { color:var(--md-on-surface); }
+.icon-btn:hover::before { content:''; position:absolute; inset:0; background:currentColor; opacity:0.08; border-radius:50%; }
+.icon-btn:active { transform:scale(0.92); }
+.icon-btn .icon { font-size:20px; }
+
+/* Hero */
+.hero { text-align:center; margin-bottom:16px; opacity:0; animation:fadeUp 0.8s var(--ease-spring) 0.1s both; }
+.hero-title { font-size:clamp(26px, 7vw, 36px); font-weight:800; letter-spacing:-0.025em; line-height:1.1; color:var(--md-on-surface); margin-bottom:6px; }
+.hero-title .accent { font-style:italic; font-weight:300; color:var(--md-tertiary); }
+.hero-desc { font-size:13px; color:var(--md-on-surface-variant); max-width:400px; margin:0 auto; }
+
+/* Cards */
+.card {
+  background:var(--md-surface-container-low);
+  border:1px solid var(--md-outline-variant);
+  border-radius:20px;
+  padding:16px;
+  opacity:0; animation:fadeUp 0.6s var(--ease-spring) 0.15s both;
+}
+.card + .card { margin-top:10px; }
+
+/* Create form */
+.field { margin-bottom:12px; }
+.field label { display:block; font-size:10px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--md-on-surface-variant); margin-bottom:6px; }
+
+.note-input {
+  width:100%; min-height:180px; padding:14px;
+  border-radius:16px;
+  border:1px solid var(--md-outline-variant);
+  background:var(--md-surface-container-lowest);
+  color:var(--md-on-surface);
+  font-family:var(--font-mono); font-size:14px; line-height:1.6;
+  resize:vertical;
+  transition:border-color 0.2s var(--ease-standard);
+}
+.note-input:focus { border-color:var(--md-primary); }
+.note-input::placeholder { color:var(--md-on-surface-variant); opacity:0.5; }
+
+.input-meta { display:flex; justify-content:space-between; align-items:center; margin-top:6px; font-size:11px; color:var(--md-on-surface-variant); }
+.input-meta.warn { color:var(--md-error); }
+
+.options-row { display:flex; gap:8px; margin-top:4px; }
+.select-wrap { position:relative; flex:1; }
+.select-wrap .icon {
+  position:absolute; right:10px; top:50%; transform:translateY(-50%);
+  font-size:18px; color:var(--md-on-surface-variant); pointer-events:none;
+}
+.select-input {
+  width:100%; padding:12px 34px 12px 14px;
+  border-radius:14px;
+  border:1px solid var(--md-outline-variant);
+  background:var(--md-surface-container-low);
+  color:var(--md-on-surface);
+  font-size:13px; font-weight:600; cursor:pointer;
+  appearance:none; -webkit-appearance:none;
+}
+.select-input:focus { border-color:var(--md-primary); }
+
+.check-row {
+  display:flex; align-items:center; gap:10px;
+  padding:12px 14px;
+  border-radius:14px;
+  border:1px solid var(--md-outline-variant);
+  background:var(--md-surface-container-low);
+  cursor:pointer;
+}
+.check-row input { width:18px; height:18px; accent-color:var(--md-primary); cursor:pointer; }
+.check-row span { font-size:13px; font-weight:600; color:var(--md-on-surface); }
+.check-row small { display:block; font-size:11px; font-weight:400; color:var(--md-on-surface-variant); }
+
+/* Buttons */
+.btn {
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  padding:12px 20px; border-radius:9999px;
+  font-size:14px; font-weight:600; cursor:pointer; border:none;
+  transition:all 0.2s var(--ease-standard);
+  width:100%; position:relative; overflow:hidden;
+}
+.btn:active { transform:scale(0.97); }
+.btn.primary { background:var(--md-primary-container); color:var(--md-on-primary-container); }
+.btn.primary:hover { filter:brightness(1.15); }
+.btn.danger { background:color-mix(in srgb, var(--md-error) 18%, transparent); color:var(--md-error); border:1px solid color-mix(in srgb, var(--md-error) 40%, transparent); }
+.btn.danger:hover { background:color-mix(in srgb, var(--md-error) 28%, transparent); }
+.btn.secondary { background:transparent; color:var(--md-on-surface-variant); border:1px solid var(--md-outline-variant); }
+.btn.secondary:hover { background:var(--md-surface-container-high); }
+.btn:disabled { opacity:0.5; cursor:not-allowed; }
+.btn-row { display:flex; gap:8px; }
+.btn-row .btn { flex:1; }
+
+/* Link result */
+.link-box { display:flex; gap:8px; margin-top:4px; }
+.link-input {
+  flex:1; min-width:0;
+  padding:12px 14px;
+  border-radius:14px;
+  border:1px solid var(--md-primary);
+  background:var(--md-surface-container-lowest);
+  color:var(--md-primary);
+  font-family:var(--font-mono); font-size:11px;
+}
+.copy-btn {
+  flex-shrink:0; width:48px; border-radius:14px;
+  border:1px solid var(--md-outline-variant);
+  background:var(--md-surface-container-high);
+  color:var(--md-on-surface);
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+}
+.copy-btn:active { transform:scale(0.92); }
+
+/* Read view */
+.note-view {
+  white-space:pre-wrap; word-break:break-word;
+  font-family:var(--font-mono); font-size:13px; line-height:1.7;
+  max-height:50vh; overflow-y:auto;
+  padding:16px; border-radius:16px;
+  background:var(--md-surface-container-lowest);
+  border:1px solid var(--md-outline-variant);
+}
+
+.status-pill {
+  display:inline-flex; align-items:center; gap:6px;
+  padding:6px 12px; border-radius:9999px;
+  font-size:11px; font-weight:700;
+}
+.status-pill.burned { background:color-mix(in srgb, var(--md-error) 18%, transparent); color:var(--md-error); }
+.status-pill.ok { background:color-mix(in srgb, var(--md-primary) 18%, transparent); color:var(--md-primary); }
+.status-pill.info { background:var(--md-surface-container-high); color:var(--md-on-surface-variant); }
+
+/* States */
+.state { display:none; }
+.state.visible { display:block; }
+
+.center-state {
+  text-align:center; padding:48px 16px; margin:auto;
+  display:none; flex-direction:column; align-items:center; gap:14px;
+}
+.center-state.visible { display:flex; }
+.state-icon {
+  width:64px; height:64px; border-radius:20px;
+  background:var(--md-primary-container); color:var(--md-on-primary-container);
+  display:flex; align-items:center; justify-content:center;
+}
+.state-icon.error { background:color-mix(in srgb, var(--md-error) 18%, transparent); color:var(--md-error); }
+.state-icon .icon { font-size:32px; }
+.state-title { font-size:17px; font-weight:700; color:var(--md-on-surface); }
+.state-sub { font-size:13px; color:var(--md-on-surface-variant); max-width:320px; }
+
+/* Toast */
+.toast {
+  position:fixed; left:50%; transform:translateX(-50%) translateY(20px);
+  bottom:calc(96px + env(safe-area-inset-bottom, 0px));
+  z-index:200;
+  background:var(--md-inverse-surface); color:var(--md-inverse-on-surface);
+  padding:12px 18px; border-radius:12px;
+  font-size:13px; font-weight:600;
+  box-shadow:0 8px 24px var(--md-shadow-strong);
+  opacity:0; pointer-events:none;
+  transition:all 0.3s var(--ease-spring);
+  display:flex; align-items:center; gap:8px;
+}
+.toast.visible { opacity:1; transform:translateX(-50%) translateY(0); }
+.toast .icon { font-size:18px; }
+
+.spinner {
+  width:36px; height:36px; border-radius:50%;
+  border:3px solid var(--md-outline-variant);
+  border-top-color:var(--md-primary);
+  animation:spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+
+@keyframes barIn { from { opacity:0; transform:translateY(-12px); } to { opacity:1; transform:translateY(0); } }
+@keyframes fadeUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
+@keyframes rippleAnim { to { transform:scale(4); opacity:0; } }
+
+.ripple-span {
+  position:absolute; border-radius:50%;
+  background:currentColor; opacity:0.2;
+  transform:scale(0); animation:rippleAnim 0.6s var(--ease-standard) forwards;
+  pointer-events:none;
+}
+
+.hint { font-size:11px; color:var(--md-on-surface-variant); margin-top:8px; line-height:1.5; text-align:center; }
+.hint b { color:var(--md-on-surface); }
+
+@media(min-width:600px) {
+  .container { max-width:640px; padding:20px 20px 64px; }
+  .app-bar { height:52px; margin-bottom:20px; }
+}
+
+@media(prefers-reduced-motion:reduce) {
+  *, *::before, *::after { animation-duration:0.01ms !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important; }
+}
+
+@media(display-mode:standalone) {
+  .app-bar { top:max(8px, env(safe-area-inset-top, 0px)); }
+}
+</style>
+</head>
+<body>
+
+<div class="dot-grid" aria-hidden="true"></div>
+
+<div class="container">
+  <nav class="app-bar" aria-label="Navigation">
+    <a href="https://inpriv.xyz" class="app-bar-brand">
+      <img src="https://hush.best/icon.png" alt="" class="app-logo"> Inpriv<span>.</span> Burn
+    </a>
+    <div class="bar-actions">
+      <button class="icon-btn" id="theme-toggle" aria-label="Toggle theme" type="button">
+        <span class="icon" id="theme-icon" aria-hidden="true">light_mode</span>
+      </button>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <h1 class="hero-title">Read once.<br><span class="accent">Then it burns.</span></h1>
+    <p class="hero-desc">Zero-knowledge ephemeral notes. AES-256-GCM in your browser — the server never sees your text.</p>
+  </header>
+
+  <!-- ═══ CREATE MODE ═══ -->
+  <div id="create-mode">
+    <div class="card">
+      <div class="field">
+        <label for="note-input">Your note</label>
+        <textarea class="note-input" id="note-input" placeholder="Type anything — a password, a secret, a confession...&#10;&#10;It will be encrypted in your browser before it ever leaves this page." maxlength="50000"></textarea>
+        <div class="input-meta"><span id="char-count">0 / 50000</span><span id="zk-badge">🔐 encrypted before upload</span></div>
+      </div>
+      <div class="options-row">
+        <div class="select-wrap">
+          <select class="select-input" id="expiry-select">
+            <option value="3600">Expires in 1 hour</option>
+            <option value="86400" selected>Expires in 24 hours</option>
+            <option value="604800">Expires in 7 days</option>
+          </select>
+          <span class="icon" aria-hidden="true">schedule</span>
+        </div>
+      </div>
+      <div style="height:8px"></div>
+      <label class="check-row">
+        <input type="checkbox" id="burn-check">
+        <span>Burn after reading<small>Server destroys the note after the first view. Even the encrypted blob won't survive.</small></span>
+      </label>
+      <div style="height:12px"></div>
+      <button class="btn primary" id="create-btn" type="button">
+        <span class="icon" aria-hidden="true">local_fire_department</span> Create secret link
+      </button>
+    </div>
+
+    <!-- Result -->
+    <div class="card" id="result-card" style="display:none">
+      <div class="field">
+        <label>Share this link — it contains the decryption key</label>
+        <div class="link-box">
+          <input class="link-input" id="link-input" readonly>
+          <button class="copy-btn" id="copy-link" type="button" aria-label="Copy link"><span class="icon" aria-hidden="true">content_copy</span></button>
+        </div>
+        <div class="hint"><b>Zero-knowledge:</b> the key lives in the URL fragment (<code>#…</code>) — it never touches the server. Anyone with this link can read the note.</div>
+      </div>
+      <div class="btn-row">
+        <button class="btn secondary" id="new-note-btn" type="button">New note</button>
+        <button class="btn primary" id="open-link-btn" type="button">Open in new tab</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ READ MODE ═══ -->
+  <div id="read-mode">
+    <div class="center-state visible" id="read-loading">
+      <div class="spinner"></div>
+      <div class="state-title">Fetching encrypted blob…</div>
+      <div class="state-sub">Decryption happens locally. The server only stores ciphertext.</div>
+    </div>
+
+    <div class="center-state" id="read-error">
+      <div class="state-icon error"><span class="icon" aria-hidden="true">gpp_bad</span></div>
+      <div class="state-title" id="error-title">Note not found</div>
+      <div class="state-sub" id="error-sub">It may have expired, been burned, or never existed.</div>
+      <button class="btn primary" id="error-new-btn" type="button" style="max-width:220px">Write a note</button>
+    </div>
+
+    <div id="read-content" style="display:none">
+      <div class="card">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+          <span class="status-pill ok" id="status-pill"><span class="icon" aria-hidden="true" style="font-size:14px">lock</span> Decrypted locally</span>
+          <span style="flex:1"></span>
+          <button class="icon-btn" id="copy-text" type="button" aria-label="Copy text" title="Copy text"><span class="icon" aria-hidden="true">content_copy</span></button>
+        </div>
+        <div class="note-view" id="note-view"></div>
+        <div style="height:12px"></div>
+        <div class="btn-row">
+          <button class="btn danger" id="burn-now-btn" type="button">
+            <span class="icon" aria-hidden="true">local_fire_department</span> Burn now
+          </button>
+          <button class="btn secondary" id="read-new-btn" type="button">New note</button>
+        </div>
+        <div class="hint" id="burn-hint">This note will be destroyed on the server when you close it or press Burn now.</div>
+      </div>
+    </div>
+
+    <div class="center-state" id="read-burned">
+      <div class="state-icon"><span class="icon" aria-hidden="true">local_fire_department</span></div>
+      <div class="state-title">Burned.</div>
+      <div class="state-sub">The encrypted blob has been destroyed on the server. Nothing left to recover.</div>
+      <button class="btn primary" id="burned-new-btn" type="button" style="max-width:220px">Write a note</button>
+    </div>
+  </div>
+
+  <footer style="margin-top:auto; padding-top:24px;">
+    <p class="hint">Inpriv Burn · part of <b>Inpriv</b> by Aurex Labs — zero-knowledge, client-side only.</p>
+  </footer>
+</div>
+
+<div class="toast" id="toast"><span class="icon" id="toast-icon" aria-hidden="true">check_circle</span><span id="toast-text"></span></div>
+
+<script>
+(function() {
+  'use strict';
+
+  var API = '/api/notes';
+
+  /* ─── helpers ─── */
+  var $ = function(id) { return document.getElementById(id); };
+
+  function b64url(buf) {
+    var s = '';
+    for (var i = 0; i < buf.length; i++) s += String.fromCharCode(buf[i]);
+    return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  function b64urlDecode(str) {
+    var s = str.replace(/-/g, '+').replace(/_/g, '/');
+    while (s.length % 4 !== 0) s += '=';
+    var bin = atob(s), out = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+  function randomBytes(n) {
+    var b = new Uint8Array(n);
+    crypto.getRandomValues(b);
+    return b;
+  }
+  function escapeHTML(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  function showToast(text, icon) {
+    var t = $('toast');
+    $('toast-text').textContent = text;
+    $('toast-icon').textContent = icon || 'check_circle';
+    t.classList.add('visible');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(function() { t.classList.remove('visible'); }, 2200);
+  }
+  function copyText(text) {
+    return navigator.clipboard.writeText(text);
+  }
+
+  /* ─── crypto ─── */
+  async function encryptNote(plaintext, keyBytes, id) {
+    var iv = randomBytes(12);
+    var key = await crypto.subtle.importKey('raw', keyBytes, { name: 'AES-GCM' }, false, ['encrypt']);
+    var ct = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv: iv, additionalData: new TextEncoder().encode(id) },
+      key, new TextEncoder().encode(plaintext)
+    );
+    var bundle = new Uint8Array(12 + ct.byteLength);
+    bundle.set(iv, 0);
+    bundle.set(new Uint8Array(ct), 12);
+    return b64url(bundle);
+  }
+
+  async function decryptNote(bundleB64, keyBytes, id) {
+    var bundle = b64urlDecode(bundleB64);
+    var iv = bundle.slice(0, 12);
+    var ct = bundle.slice(12);
+    var key = await crypto.subtle.importKey('raw', keyBytes, { name: 'AES-GCM' }, false, ['decrypt']);
+    var pt = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv: iv, additionalData: new TextEncoder().encode(id) },
+      key, ct
+    );
+    return new TextDecoder().decode(pt);
+  }
+
+  /* ─── fragment format: #<id>.<keyB64> ─── */
+  function parseFragment() {
+    var h = location.hash;
+    if (!h || h.length < 4) return null;
+    var body = h.slice(1);
+    var dot = body.indexOf('.');
+    if (dot < 16) return null;
+    var id = body.slice(0, dot);
+    var key = body.slice(dot + 1);
+    if (!/^[A-Za-z0-9_-]{16,64}$/.test(id)) return null;
+    if (!/^[A-Za-z0-9_-]{40,64}$/.test(key)) return null;
+    return { id: id, key: key };
+  }
+
+  function makeLink(id, key) {
+    return location.origin + location.pathname + '#' + id + '.' + key;
+  }
+
+  /* ─── mode switching ─── */
+  function showCreate() {
+    $('create-mode').style.display = 'block';
+    $('read-mode').style.display = 'none';
+    history.replaceState(null, '', location.pathname);
+  }
+  function showRead() {
+    $('create-mode').style.display = 'none';
+    $('read-mode').style.display = 'block';
+  }
+
+  /* ─── create flow ─── */
+  var currentId = null, currentKey = null;
+
+  $('note-input').addEventListener('input', function() {
+    var len = this.value.length;
+    var el = $('char-count');
+    el.textContent = len + ' / 50000';
+    el.classList.toggle('warn', len > 45000);
+  });
+
+  $('create-btn').addEventListener('click', async function() {
+    var text = $('note-input').value;
+    if (!text.trim()) { showToast('Write something first', 'error'); return; }
+
+    var btn = $('create-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner" style="width:18px;height:18px;border-width:2px"></span> Encrypting…';
+
+    try {
+      var id = b64url(randomBytes(16));
+      var key = randomBytes(32);
+      var ciphertext = await encryptNote(text, key, id);
+      var ttl = parseInt($('expiry-select').value, 10) || 86400;
+      var burn = $('burn-check').checked;
+
+      var res = await fetch(API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: id, ciphertext: ciphertext, ttlSeconds: ttl, burnAfterRead: burn })
+      });
+
+      if (!res.ok) {
+        var err = await res.json().catch(function() { return {}; });
+        throw new Error(err.error || ('HTTP ' + res.status));
+      }
+
+      currentId = id;
+      currentKey = b64url(key);
+      var link = makeLink(id, currentKey);
+      $('link-input').value = link;
+      $('result-card').style.display = 'block';
+      $('result-card').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      showToast('Secret link created', 'local_fire_department');
+    } catch (e) {
+      showToast('Failed: ' + (e.message || 'network error'), 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<span class="icon" aria-hidden="true">local_fire_department</span> Create secret link';
+    }
+  });
+
+  $('copy-link').addEventListener('click', function() {
+    var v = $('link-input').value;
+    if (!v) return;
+    copyText(v).then(function() { showToast('Link copied', 'content_copy'); }, function() { showToast('Copy failed', 'error'); });
+  });
+
+  $('open-link-btn').addEventListener('click', function() {
+    var v = $('link-input').value;
+    if (v) window.open(v, '_blank', 'noopener');
+  });
+
+  function resetCreate() {
+    $('note-input').value = '';
+    $('char-count').textContent = '0 / 50000';
+    $('burn-check').checked = false;
+    $('expiry-select').selectedIndex = 1;
+    $('result-card').style.display = 'none';
+  }
+
+  /* ─── read flow ─── */
+  function setReadState(which) {
+    $('read-loading').classList.remove('visible');
+    $('read-error').classList.remove('visible');
+    $('read-content').style.display = 'none';
+    $('read-burned').classList.remove('visible');
+    if (which === 'loading') $('read-loading').classList.add('visible');
+    if (which === 'error') $('read-error').classList.add('visible');
+    if (which === 'content') $('read-content').style.display = 'block';
+    if (which === 'burned') $('read-burned').classList.add('visible');
+  }
+
+  async function loadNote() {
+    var frag = parseFragment();
+    if (!frag) { showCreate(); return; }
+
+    showRead();
+    setReadState('loading');
+
+    try {
+      var res = await fetch(API + '/' + encodeURIComponent(frag.id));
+      if (!res.ok) {
+        throw new Error(res.status === 404 ? 'gone' : 'http');
+      }
+      var data = await res.json();
+      var keyBytes = b64urlDecode(frag.key);
+      var text = await decryptNote(data.ciphertext, keyBytes, frag.id);
+
+      $('note-view').textContent = text;
+      $('burn-hint').textContent = data.burnAfterRead
+        ? 'Read-once note — the encrypted blob was already destroyed on the server.'
+        : 'This note expires automatically. You can also burn it manually now.';
+      var pill = $('status-pill');
+      pill.className = 'status-pill ' + (data.burnAfterRead ? 'burned' : 'ok');
+      pill.innerHTML = data.burnAfterRead
+        ? '<span class="icon" aria-hidden="true" style="font-size:14px">local_fire_department</span> Burned after read'
+        : '<span class="icon" aria-hidden="true" style="font-size:14px">lock</span> Decrypted locally';
+
+      setReadState('content');
+      if (data.burnAfterRead) {
+        // Blob is gone server-side; UI still has the text
+        $('burn-now-btn').style.display = 'none';
+      } else {
+        $('burn-now-btn').style.display = '';
+      }
+    } catch (e) {
+      $('error-title').textContent = e.message === 'gone' ? 'Note is gone' : 'Could not open note';
+      $('error-sub').textContent = e.message === 'gone'
+        ? 'It was burned after being read, expired, or never existed. That\'s the point — nothing lasts forever.'
+        : 'The note may be burned or expired. Check the link with whoever shared it.';
+      setReadState('error');
+    }
+  }
+
+  $('burn-now-btn').addEventListener('click', async function() {
+    var frag = parseFragment();
+    if (!frag) return;
+    var btn = $('burn-now-btn');
+    btn.disabled = true;
+    try {
+      await fetch(API + '/' + encodeURIComponent(frag.id), { method: 'DELETE' });
+      setReadState('burned');
+      showToast('Note burned', 'local_fire_department');
+    } catch (e) {
+      btn.disabled = false;
+      showToast('Burn failed — try again', 'error');
+    }
+  });
+
+  $('copy-text').addEventListener('click', function() {
+    copyText($('note-view').textContent).then(function() { showToast('Text copied', 'content_copy'); }, function() { showToast('Copy failed', 'error'); });
+  });
+
+  ['error-new-btn', 'burned-new-btn', 'read-new-btn', 'new-note-btn'].forEach(function(id) {
+    $(id).addEventListener('click', function() { resetCreate(); showCreate(); });
+  });
+
+  /* ─── theme ─── */
+  var themeIcon = $('theme-icon');
+  function setTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    localStorage.setItem('inpriv_burn_theme', t);
+    themeIcon.textContent = t === 'dark' ? 'light_mode' : 'dark_mode';
+  }
+  var saved = localStorage.getItem('inpriv_burn_theme') || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  setTheme(saved);
+  $('theme-toggle').addEventListener('click', function() {
+    setTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+  });
+
+  /* ─── ripple ─── */
+  document.addEventListener('click', function(e) {
+    var t = e.target.closest('.btn, .icon-btn, .copy-btn');
+    if (!t) return;
+    var r = t.getBoundingClientRect();
+    var c = document.createElement('span');
+    var d = Math.max(r.width, r.height);
+    c.style.width = c.style.height = d + 'px';
+    c.style.left = (e.clientX - r.left - d / 2) + 'px';
+    c.style.top = (e.clientY - r.top - d / 2) + 'px';
+    c.classList.add('ripple-span');
+    var ex = t.querySelector('.ripple-span');
+    if (ex) ex.remove();
+    t.appendChild(c);
+    setTimeout(function() { c.remove(); }, 600);
+  });
+
+  /* ─── init ─── */
+  loadNote();
+})();
+</script>
+</body>
+</html>
