@@ -11,6 +11,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com fonts.gstatic.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.googleapis.com fonts.gstatic.com https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https://hush.best; media-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; connect-src 'self'; worker-src 'none'; manifest-src 'self'">
   <title>Inpriv QR — Generate &amp; Read QR Codes</title>
   <meta name="description" content="Generate QR codes from text, URLs, WiFi or contacts, or read QR codes from your camera or an image — all in your browser. Zero-knowledge, fully client-side." />
 
@@ -29,7 +30,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 
   <!-- jsQR decoder – loaded from CDN (MIT, https://github.com/cozmo/jsQR) -->
-  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" integrity="sha384-hStSInNIZ8ljtOVrmrgf7zdHMapaLBWoSnPTtF0nzsybp4+LuhDz6sHuEVpWIX8o" crossorigin="anonymous"></script>
 
   <style>
     /* ===== Tokens — Aurex Labs M3 Earthy Forest ===== */

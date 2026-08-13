@@ -1,0 +1,13 @@
+# Inpriv — Cloudflare Pages redirects
+# Each tool is served as a subdomain (e.g., wipe.inpriv.xyz → .wipe/index.html)
+# Subdomain routing is handled by Cloudflare DNS + Pages, not here.
+# This file handles path-based access fallbacks.
+
+# Redirect / to the landing page (index.html already serves there)
+# No redirect needed — index.html IS the landing page
+
+# Security: block dotfile access in case any leak through
+# .env, .git, etc. are gitignored but defense in depth
+/.env* /404.html 404
+/.git* /404.html 404
+/.DS_Store /404.html 404

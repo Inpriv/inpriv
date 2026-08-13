@@ -1,0 +1,25 @@
+# Inpriv — Cloudflare Pages security headers
+# Applied to all routes on all *.inpriv.xyz subdomains.
+# NOTE: CSP is set per-tool via <meta> tags in each index.html for
+# tool-specific precision. This file covers the broad security headers
+# that apply universally.
+
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: no-referrer
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=(), interest-cohort=()
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: unsafe-none
+  Cross-Origin-Resource-Policy: same-origin
+  X-DNS-Prefetch-Control: off
+  Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+  Cache-Control: public, max-age=3600, s-maxage=86400
+
+# Static assets — long cache
+/*.svg
+  Cache-Control: public, max-age=31536000, immutable
+/*.png
+  Cache-Control: public, max-age=31536000, immutable
+/*.woff2
+  Cache-Control: public, max-age=31536000, immutable
