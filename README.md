@@ -44,10 +44,11 @@ Inpriv is an ecosystem of **zero-knowledge, fully client-side web utilities** �
 - **IP Info** — [ipinfo.inpriv.xyz](https://ipinfo.inpriv.xyz) — what your browser reveals
 - **Brute** — [brute.inpriv.xyz](https://brute.inpriv.xyz) — hash brute-force matcher
 - **TOTP** — [totp.inpriv.xyz](https://totp.inpriv.xyz) — RFC 6238 authenticator, encrypted vault
+- **Burn** — [burn.inpriv.xyz](https://burn.inpriv.xyz) — ephemeral encrypted notes, read-once
 
 ## <img src="assets/icons/clock.svg" width="18" height="18" align="center" alt=""> In Development
 
-- **Mail** · **Zero** (wallet) · **OSINT** · **Pass** · **Base64** · **Burn** · **Hexa** · **Verdant**
+- **Mail** · **Zero** (wallet) · **OSINT** · **Pass** · **Base64** · **Hexa** · **Verdant**
 
 ---
 

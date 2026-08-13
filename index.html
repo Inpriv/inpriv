@@ -15,8 +15,8 @@
   <!-- Primary SEO Meta Tags -->
   <title>Inpriv — Privacy-First Tools | Zero-Knowledge & Client-Side</title>
   <meta name="title" content="Inpriv — Privacy-First Tools | Zero-Knowledge & Client-Side">
-  <meta name="description" content="A suite of zero-knowledge, client-side web utilities engineered for total digital privacy. Encrypted chat, EXIF wipe, WebRTC leak test, TOTP authenticator, hash brute force, client-side compression, and more.">
-  <meta name="keywords" content="privacy tools, zero knowledge, client side encryption, hush chat, metadata sanitizer, image compression, webrtc leak test, totp authenticator, 2fa, open source privacy">
+  <meta name="description" content="A suite of zero-knowledge, client-side web utilities engineered for total digital privacy. Encrypted chat, EXIF wipe, WebRTC leak test, TOTP authenticator, ephemeral encrypted notes, hash brute force, client-side compression, and more.">
+  <meta name="keywords" content="privacy tools, zero knowledge, client side encryption, hush chat, metadata sanitizer, image compression, webrtc leak test, totp authenticator, 2fa, burn ephemeral notes, open source privacy">
   <meta name="author" content="Aurex Labs">
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
   <link rel="canonical" href="https://inpriv.xyz/">
@@ -254,6 +254,18 @@
               "name": "TOTP",
               "description": "Time-based one-time password generator (RFC 6238). Authenticator, client-side.",
               "url": "https://totp.inpriv.xyz",
+              "applicationCategory": "SecurityApplication",
+              "operatingSystem": "All"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 16,
+            "item": {
+              "@type": "SoftwareApplication",
+              "name": "Burn",
+              "description": "Ephemeral encrypted notes. Read once, then destroyed. Zero-knowledge.",
+              "url": "https://burn.inpriv.xyz",
               "applicationCategory": "SecurityApplication",
               "operatingSystem": "All"
             }
@@ -768,7 +780,17 @@
       <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
     </a>
 
-    <div class="service-card coming-soon" style="animation-delay: 0.87s;">
+    <a href="https://burn.inpriv.xyz" class="service-card" style="animation-delay: 0.87s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">local_fire_department</span></div>
+      <div class="service-info">
+        <h2 class="service-name">Burn</h2>
+        <p class="service-desc">Ephemeral encrypted notes. Read once, then destroyed.</p>
+      </div>
+      <span class="status-badge live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
+    <div class="service-card coming-soon" style="animation-delay: 0.93s;">
       <div class="service-icon-box"><span class="icon" aria-hidden="true">auto_awesome</span></div>
       <div class="service-info">
         <h2 class="service-name">Soon</h2>
@@ -825,15 +847,6 @@
       <div class="service-info">
         <h2 class="service-name">Base64</h2>
         <p class="service-desc">Client-side Base64, URL, and HTML encoder/decoder.</p>
-      </div>
-      <span class="status-badge soon">Soon</span>
-    </div>
-
-    <div class="service-card coming-soon" style="animation-delay: 0.93s;" id="burn">
-      <div class="service-icon-box"><span class="icon" aria-hidden="true">local_fire_department</span></div>
-      <div class="service-info">
-        <h2 class="service-name">Burn</h2>
-        <p class="service-desc">Ephemeral encrypted notes. Read once, then destroyed.</p>
       </div>
       <span class="status-badge soon">Soon</span>
     </div>
