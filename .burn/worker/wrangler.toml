@@ -1,0 +1,13 @@
+name = "inpriv-burn"
+main = "src/index.js"
+compatibility_date = "2025-08-01"
+workers_dev = false
+
+# Static frontend served from ./public (index.html goes here after deploy prep)
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+[[kv_namespaces]]
+binding = "BURN_KV"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
