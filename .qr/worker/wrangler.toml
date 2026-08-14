@@ -1,0 +1,7 @@
+name = "inpriv-qr-api"
+main = "src/index.js"
+compatibility_date = "2025-08-01"
+workers_dev = true
+
+# QR API is stateless — no KV, no D1, no bindings needed.
+# Generates QR codes on the edge, free, no auth.

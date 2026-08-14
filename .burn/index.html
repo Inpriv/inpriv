@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com fonts.gstatic.com; script-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.googleapis.com fonts.gstatic.com https://fonts.gstatic.com; img-src 'self' data: blob: https://hush.best; media-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'; connect-src 'self'; worker-src 'none'; manifest-src 'self'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com fonts.gstatic.com; script-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.googleapis.com fonts.gstatic.com https://fonts.gstatic.com; img-src 'self' data: blob: https://hush.best https://qr.inpriv.xyz; media-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'; connect-src 'self' https://qr.inpriv.xyz; worker-src 'none'; manifest-src 'self'">
 <title>Inpriv Burn — Ephemeral Encrypted Notes</title>
 <meta name="description" content="Burn is a zero-knowledge ephemeral note. AES-256-GCM encrypted in your browser — the server never sees your text. Read once, then it's gone.">
 <meta name="theme-color" content="#13140E" media="(prefers-color-scheme: dark)">
@@ -420,6 +420,15 @@ a, button, input, textarea, select { touch-action:manipulation; }
         </div>
         <div class="hint"><b>Zero-knowledge:</b> the key lives in the URL fragment (<code>#…</code>) — it never touches the server. Anyone with this link can read the note.</div>
       </div>
+      <div class="qr-share" id="qr-share" style="display:none;text-align:center;margin-top:16px">
+        <label style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--md-on-surface-variant);display:block;margin-bottom:10px">Scan to open</label>
+        <div id="qr-container" style="display:inline-block;background:#FFFFFF;border-radius:16px;padding:12px;box-shadow:0 4px 16px -4px var(--md-shadow-color)">
+          <img id="qr-img" alt="QR code for this link" style="display:block;width:160px;height:160px;border-radius:8px">
+        </div>
+        <button class="btn secondary" id="download-qr-btn" type="button" style="max-width:160px;margin-top:10px;font-size:12px">
+          <span class="icon" aria-hidden="true" style="font-size:16px">download</span> Save QR
+        </button>
+      </div>
       <div class="btn-row">
         <button class="btn secondary" id="new-note-btn" type="button">New note</button>
         <button class="btn primary" id="open-link-btn" type="button">Open in new tab</button>
@@ -614,6 +623,12 @@ a, button, input, textarea, select { touch-action:manipulation; }
       $('link-input').value = link;
       $('result-card').style.display = 'block';
       $('result-card').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      // Load QR code via Inpriv QR API
+      var qrImg = $('qr-img');
+      var qrShare = $('qr-share');
+      qrImg.src = 'https://qr.inpriv.xyz/api/qr?data=' + encodeURIComponent(link) + '&format=png&size=200&margin=2&ec=M';
+      qrImg.onload = function() { qrShare.style.display = 'block'; };
+      qrImg.onerror = function() { qrShare.style.display = 'none'; };
       showToast('Secret link created', 'local_fire_department');
     } catch (e) {
       showToast('Failed: ' + (e.message || 'network error'), 'error');
@@ -634,12 +649,26 @@ a, button, input, textarea, select { touch-action:manipulation; }
     if (v) window.open(v, '_blank', 'noopener');
   });
 
+  $('download-qr-btn').addEventListener('click', function() {
+    var qrImg = $('qr-img');
+    if (!qrImg.src) return;
+    fetch(qrImg.src).then(function(r) { return r.blob(); }).then(function(blob) {
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'burn-qr.png';
+      a.click();
+      URL.revokeObjectURL(a.href);
+      showToast('QR saved', 'download');
+    }).catch(function() { showToast('Download failed', 'error'); });
+  });
+
   function resetCreate() {
     $('note-input').value = '';
     $('char-count').textContent = '0 / 50000';
     $('burn-check').checked = false;
     $('expiry-select').selectedIndex = 1;
     $('result-card').style.display = 'none';
+    $('qr-share').style.display = 'none';
   }
 
   /* ─── read flow ─── */
