@@ -11,7 +11,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ws: wss:; object-src 'none'; frame-src 'none';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ws: wss:; object-src 'none'; frame-src 'none'; manifest-src 'self' data:">
     <meta name="theme-color" content="#13140E" media="(prefers-color-scheme: dark)">
     <meta name="theme-color" content="#FAF9F0" media="(prefers-color-scheme: light)">
     <meta name="color-scheme" content="dark light">
@@ -24,6 +24,7 @@
 
     <link rel="icon" type="image/png" href="icon.png">
     <link rel="apple-touch-icon" href="icon.png">
+    <link rel="manifest" href="manifest.json">
 
     <title>hush · global</title>
 
@@ -77,7 +78,7 @@
             --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
             --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 
-            --app-height: 100vh;
+            --app-height: 100dvh;
             --safe-top: env(safe-area-inset-top, 0px);
             --safe-bottom: env(safe-area-inset-bottom, 0px);
         }
@@ -140,6 +141,9 @@
             overscroll-behavior: none;
         }
         html, body { height: 100%; overflow: hidden; }
+        @supports not (height: 100dvh) {
+            html, body { height: var(--app-height-fallback, 100vh); }
+        }
         body {
             font-family: var(--font-primary);
             font-size: 16px;
@@ -748,13 +752,13 @@
             background: var(--md-surface-container-low);
             border: 1px solid transparent;
             color: var(--md-on-surface);
-            padding: 8px 12px;
+            padding: 10px 14px;
             border-radius: 20px;
             font-family: var(--font-primary);
-            font-size: 15px;
+            font-size: 16px;
             outline: none;
             transition: border-color 0.2s ease, background-color 0.2s ease;
-            min-height: 40px;
+            min-height: 44px;
             line-height: 1.4;
         }
         .msg-input:focus {
@@ -768,8 +772,8 @@
             background: transparent;
             color: var(--md-on-surface);
             border: none;
-            width: 40px;
-            height: 40px;
+            width: 44px;
+            height: 44px;
             border-radius: 50%;
             cursor: pointer;
             display: flex;
@@ -985,15 +989,15 @@
         }
         .modal-field input, .modal-field select {
             width: 100%;
-            padding: 11px 16px;
+            padding: 12px 16px;
             border-radius: 14px;
             background: var(--md-surface-container);
             border: 1px solid var(--md-outline-variant);
             color: var(--md-on-surface);
-            font-size: 15px;
+            font-size: 16px;
             outline: none;
             font-family: var(--font-primary);
-            min-height: 44px;
+            min-height: 48px;
         }
         .modal-field input:focus, .modal-field select:focus { border-color: var(--md-primary); }
         .modal-field select option { background: var(--md-surface); color: var(--md-on-surface); }
@@ -1346,7 +1350,7 @@
             </button>
         </header>
         <div style="padding: 8px 12px; border-bottom: 1px solid var(--bubble-border); flex-shrink: 0;">
-            <input type="text" id="user-search" class="msg-input" placeholder="Search ID…" autocomplete="off" style="font-size:13px; padding:8px 12px;" aria-label="Search users">
+            <input type="text" id="user-search" class="msg-input" placeholder="Search ID…" autocomplete="off" style="font-size:16px; padding:10px 14px; min-height:44px;" aria-label="Search users">
         </div>
         <main>
             <div class="chat-inner" id="users-list-container"></div>
@@ -1465,6 +1469,21 @@
     <script>
     (function () {
         'use strict';
+
+        // --- Mobile viewport height fallback (browsers without dvh support) ---
+        // Keeps the app exactly viewport-tall when the mobile URL bar collapses.
+        const setAppHeight = () => {
+            document.documentElement.style.setProperty('--app-height-fallback', window.innerHeight + 'px');
+        };
+        setAppHeight();
+        window.addEventListener('resize', setAppHeight);
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', setAppHeight);
+        }
+        // Prevent double-tap zoom on action buttons while keeping pinch-zoom available.
+        document.addEventListener('dblclick', (e) => {
+            if (e.target.closest('button, .header-btn, .icon-btn')) e.preventDefault();
+        }, { passive: false });
 
         // --- CONFIG ---
         const MAX_FILE_SIZE = 5 * 1024 * 1024;

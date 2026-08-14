@@ -1,0 +1,25 @@
+{
+  "name": "hush — E2E encrypted chat",
+  "short_name": "hush",
+  "description": "Forward-secret end-to-end encrypted chat rooms. Zero metadata, zero knowledge.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#13140E",
+  "theme_color": "#13140E",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
