@@ -626,7 +626,7 @@ a, button, input, textarea, select { touch-action:manipulation; }
       // Load QR code via Inpriv QR API
       var qrImg = $('qr-img');
       var qrShare = $('qr-share');
-      qrImg.src = 'https://inpriv-qr-api.saloyek.workers.dev/api/qr?data=' + encodeURIComponent(link) + '&format=png&size=200&margin=2&ec=M';
+      qrImg.src = 'https://qr.inpriv.xyz/api/qr?data=' + encodeURIComponent(link) + '&format=png&size=200&margin=2&ec=M';
       qrImg.onload = function() { qrShare.style.display = 'block'; };
       qrImg.onerror = function() { qrShare.style.display = 'none'; };
       showToast('Secret link created', 'local_fire_department');
