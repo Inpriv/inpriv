@@ -2,8 +2,8 @@
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com fonts.gstatic.com; script-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.googleapis.com fonts.gstatic.com https://fonts.gstatic.com; img-src 'self' data: blob: https://hush.best https://qr.inpriv.xyz https://inpriv-qr-api.saloyek.workers.dev; media-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'; connect-src 'self' https://qr.inpriv.xyz https://inpriv-qr-api.saloyek.workers.dev; worker-src 'none'; manifest-src 'self'">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com fonts.gstatic.com; script-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.googleapis.com fonts.gstatic.com https://fonts.gstatic.com; img-src 'self' data: blob: https://hush.best https://qr.inpriv.xyz https://inpriv-qr-api.saloyek.workers.dev; media-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'; connect-src 'self' https://qr.inpriv.xyz https://inpriv-qr-api.saloyek.workers.dev; worker-src 'none'; manifest-src 'self' data:">
 <title>Inpriv Burn — Ephemeral Encrypted Notes</title>
 <meta name="description" content="Burn is a zero-knowledge ephemeral note. AES-256-GCM encrypted in your browser — the server never sees your text. Read once, then it's gone.">
 <meta name="theme-color" content="#13140E" media="(prefers-color-scheme: dark)">
@@ -12,6 +12,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Inpriv Burn">
+<link rel="apple-touch-icon" href="https://hush.best/icon.png">
+<link rel="manifest" href="data:application/json,{&quot;name&quot;:&quot;Inpriv Burn&quot;,&quot;short_name&quot;:&quot;Burn&quot;,&quot;start_url&quot;:&quot;https://burn.inpriv.xyz&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;background_color&quot;:&quot;#13140E&quot;,&quot;theme_color&quot;:&quot;#13140E&quot;,&quot;icons&quot;:[{&quot;src&quot;:&quot;https://hush.best/icon.png&quot;,&quot;sizes&quot;:&quot;512x512&quot;,&quot;type&quot;:&quot;image/png&quot;}]}">
 <link rel="icon" href="https://hush.best/icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -82,11 +84,12 @@
 }
 
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-html { scroll-behavior:smooth; -webkit-text-size-adjust:100%; }
-
+html { scroll-behavior:smooth; -webkit-text-size-adjust:100%; overscroll-behavior-y:none; }
 body {
   font-family:var(--font-sans);
   font-optical-sizing:auto;
+  text-size-adjust:100%;
+  -webkit-text-size-adjust:100%;
   background:
     radial-gradient(ellipse 80% 60% at 85% 0%, color-mix(in srgb, var(--md-tertiary-container) 45%, transparent) 0%, transparent 60%),
     radial-gradient(ellipse 60% 50% at 0% 100%, color-mix(in srgb, var(--md-primary-container) 45%, transparent) 0%, transparent 70%),
@@ -155,7 +158,7 @@ a, button, input, textarea, select { touch-action:manipulation; }
 .bar-actions { display:flex; gap:2px; }
 
 .icon-btn {
-  width:40px; height:44px; border-radius:50%; border:none;
+  width:44px; height:44px; border-radius:50%; border:none;
   background:transparent; color:var(--md-on-surface-variant);
   display:flex; align-items:center; justify-content:center;
   cursor:pointer; position:relative; overflow:hidden;
@@ -187,13 +190,14 @@ a, button, input, textarea, select { touch-action:manipulation; }
 .field label { display:block; font-size:10px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--md-on-surface-variant); margin-bottom:6px; }
 
 .note-input {
-  width:100%; min-height:180px; padding:14px;
+  width:100%; min-height:180px; padding:16px;
   border-radius:16px;
   border:1px solid var(--md-outline-variant);
   background:var(--md-surface-container-lowest);
   color:var(--md-on-surface);
-  font-family:var(--font-mono); font-size:14px; line-height:1.6;
+  font-family:var(--font-mono); font-size:16px; line-height:1.6;
   resize:vertical;
+  -webkit-overflow-scrolling:touch;
   transition:border-color 0.2s var(--ease-standard);
 }
 .note-input:focus { border-color:var(--md-primary); }
@@ -209,13 +213,14 @@ a, button, input, textarea, select { touch-action:manipulation; }
   font-size:18px; color:var(--md-on-surface-variant); pointer-events:none;
 }
 .select-input {
-  width:100%; padding:12px 34px 12px 14px;
+  width:100%; padding:14px 38px 14px 16px;
   border-radius:14px;
   border:1px solid var(--md-outline-variant);
   background:var(--md-surface-container-low);
   color:var(--md-on-surface);
-  font-size:13px; font-weight:600; cursor:pointer;
+  font-size:16px; font-weight:600; cursor:pointer;
   appearance:none; -webkit-appearance:none;
+  min-height:48px;
 }
 .select-input:focus { border-color:var(--md-primary); }
 
@@ -234,10 +239,11 @@ a, button, input, textarea, select { touch-action:manipulation; }
 /* Buttons */
 .btn {
   display:inline-flex; align-items:center; justify-content:center; gap:8px;
-  padding:12px 20px; border-radius:9999px;
-  font-size:14px; font-weight:600; cursor:pointer; border:none;
+  padding:14px 20px; border-radius:9999px;
+  font-size:15px; font-weight:600; cursor:pointer; border:none;
   transition:all 0.2s var(--ease-standard);
   width:100%; position:relative; overflow:hidden;
+  min-height:48px;
 }
 .btn:active { transform:scale(0.97); }
 .btn.primary { background:var(--md-primary-container); color:var(--md-on-primary-container); }
@@ -254,27 +260,30 @@ a, button, input, textarea, select { touch-action:manipulation; }
 .link-box { display:flex; gap:8px; margin-top:4px; }
 .link-input {
   flex:1; min-width:0;
-  padding:12px 14px;
+  padding:14px 16px;
   border-radius:14px;
   border:1px solid var(--md-primary);
   background:var(--md-surface-container-lowest);
   color:var(--md-primary);
-  font-family:var(--font-mono); font-size:11px;
+  font-family:var(--font-mono); font-size:13px;
+  min-height:48px;
 }
 .copy-btn {
-  flex-shrink:0; width:48px; border-radius:14px;
+  flex-shrink:0; width:52px; border-radius:14px;
   border:1px solid var(--md-outline-variant);
   background:var(--md-surface-container-high);
   color:var(--md-on-surface);
   cursor:pointer; display:flex; align-items:center; justify-content:center;
+  min-height:48px;
 }
 .copy-btn:active { transform:scale(0.92); }
 
 /* Read view */
 .note-view {
   white-space:pre-wrap; word-break:break-word;
-  font-family:var(--font-mono); font-size:13px; line-height:1.7;
-  max-height:50vh; overflow-y:auto;
+  font-family:var(--font-mono); font-size:15px; line-height:1.7;
+  max-height:60vh; overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
   padding:16px; border-radius:16px;
   background:var(--md-surface-container-lowest);
   border:1px solid var(--md-outline-variant);
@@ -422,11 +431,11 @@ a, button, input, textarea, select { touch-action:manipulation; }
       </div>
       <div class="qr-share" id="qr-share" style="display:none;text-align:center;margin-top:16px">
         <label style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--md-on-surface-variant);display:block;margin-bottom:10px">Scan to open</label>
-        <div id="qr-container" style="display:inline-block;background:#FFFFFF;border-radius:16px;padding:12px;box-shadow:0 4px 16px -4px var(--md-shadow-color)">
-          <img id="qr-img" alt="QR code for this link" style="display:block;width:160px;height:160px;border-radius:8px">
+        <div id="qr-container" style="display:inline-block;background:#FFFFFF;border-radius:20px;padding:16px;box-shadow:0 4px 16px -4px var(--md-shadow)">
+          <img id="qr-img" alt="QR code for this link" style="display:block;width:200px;height:200px;border-radius:8px;max-width:70vw">
         </div>
-        <button class="btn secondary" id="download-qr-btn" type="button" style="max-width:160px;margin-top:10px;font-size:12px">
-          <span class="icon" aria-hidden="true" style="font-size:16px">download</span> Save QR
+        <button class="btn secondary" id="download-qr-btn" type="button" style="max-width:200px;margin-top:12px;font-size:13px">
+          <span class="icon" aria-hidden="true" style="font-size:18px">download</span> Save QR
         </button>
       </div>
       <div class="btn-row">
