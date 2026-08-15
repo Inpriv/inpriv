@@ -67,7 +67,10 @@ holds ~778 KB of hidden data.
 
 ## Limitations
 
-- PNG input only (the whole point — lossless).
+- **Input**: any format the browser can decode (PNG, JPEG, WebP, AVIF, GIF…; iOS
+  transcodes HEIC automatically). Output is always PNG — lossless, so the hidden
+  bits survive. **Reveal** requires the original PNG output; converting it to
+  JPEG or re-uploading through messengers destroys the payload.
 - Images up to 40 MP (browser canvas sanity cap).
 - No steganographic "cover story" — a suspicious adversary can run
   steganalysis tools; the encryption layer denies them the plaintext.

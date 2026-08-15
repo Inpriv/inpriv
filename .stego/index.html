@@ -1053,11 +1053,11 @@ textarea::placeholder, .text-input::placeholder { color: color-mix(in srgb, var(
   <!-- ══════════ HIDE MODE ══════════ -->
   <section class="panel" id="panel-hide" aria-label="Hide a message in an image">
 
-    <div class="dropzone" id="dropzone-hide" role="button" tabindex="0" aria-label="Choose a PNG image to hide your message in">
+    <div class="dropzone" id="dropzone-hide" role="button" tabindex="0" aria-label="Choose an image to hide your message in">
       <div class="dropzone-icon"><span class="icon" aria-hidden="true">add_photo_alternate</span></div>
-      <h3>Choose a PNG image</h3>
-      <p>Drop an image here or tap to browse. Your message will be invisible inside the pixels — the picture looks identical.</p>
-      <span class="hint"><span class="icon" aria-hidden="true">image</span> PNG only &middot; stays on your device</span>
+      <h3>Choose an image</h3>
+      <p>Drop a photo here or tap to browse. Any format works — PNG, JPG, WebP. Your message will be invisible inside the pixels.</p>
+      <span class="hint"><span class="icon" aria-hidden="true">image</span> Any image format &middot; stays on your device</span>
     </div>
 
     <div class="preview-card" id="preview-hide" hidden>
@@ -1121,10 +1121,10 @@ textarea::placeholder, .text-input::placeholder { color: color-mix(in srgb, var(
   <!-- ══════════ REVEAL MODE ══════════ -->
   <section class="panel" id="panel-reveal" aria-label="Reveal a hidden message" hidden>
 
-    <div class="dropzone" id="dropzone-reveal" role="button" tabindex="0" aria-label="Choose a stego PNG image to reveal its hidden message">
+    <div class="dropzone" id="dropzone-reveal" role="button" tabindex="0" aria-label="Choose a stego image to reveal its hidden message">
       <div class="dropzone-icon"><span class="icon" aria-hidden="true">image_search</span></div>
       <h3>Choose a stego image</h3>
-      <p>Drop the PNG that carries a hidden message, or tap to browse. Use the original file — re-uploads to social media or messengers destroy the hidden bits.</p>
+      <p>Drop the image that carries a hidden message, or tap to browse. Use the original file — re-uploads to social media or messengers destroy the hidden bits.</p>
       <span class="hint"><span class="icon" aria-hidden="true">visibility</span> Nothing is uploaded</span>
     </div>
 
@@ -1221,7 +1221,7 @@ textarea::placeholder, .text-input::placeholder { color: color-mix(in srgb, var(
   </div>
 </div>
 
-<input type="file" id="file-input" accept="image/png" hidden>
+<input type="file" id="file-input" accept="image/*" hidden>
 
 <script>
 'use strict';
@@ -1380,9 +1380,16 @@ async function stegoReveal(imageData, password) {
 /* ═══════════════ Image loading ═══════════════ */
 
 async function loadImage(file) {
-  const isPng = file.type === 'image/png' || /\.png$/i.test(file.name);
-  if (!isPng) throw new Error('png-only');
-  const bitmap = await createImageBitmap(file);
+  // Accept any image the browser can decode (PNG, JPEG, WebP, GIF, BMP, AVIF…).
+  // The picker uses accept="image/*" so mobile galleries show ALL photos;
+  // iOS transcodes HEIC automatically. Output is always re-encoded as PNG.
+  let bitmap;
+  try {
+    bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+  } catch (e) {
+    // Fallback for older browsers without options support
+    bitmap = await createImageBitmap(file);
+  }
   if (bitmap.width * bitmap.height > MAX_PIXELS) {
     bitmap.close && bitmap.close();
     throw new Error('too-large');
@@ -1602,10 +1609,10 @@ async function acceptFile(file, target) {
     }
     updateFab();
   } catch (err) {
-    if (err && err.message === 'png-only') {
-      showToast('PNG only', 'Lossy formats like JPEG destroy the hidden bits. Convert to PNG first.', true);
-    } else if (err && err.message === 'too-large') {
+    if (err && err.message === 'too-large') {
       showToast('Image too large', 'Pick an image under 40 megapixels.', true);
+    } else if (err instanceof DOMException || (err && err.message !== 'too-large')) {
+      showToast('Could not read this image', 'This format may be unsupported here. Try converting it to PNG or JPG first.', true);
     } else {
       showToast('Could not read image', 'The file may be corrupted or unsupported.', true);
     }
