@@ -446,6 +446,8 @@
 
     .app-bar-brand span { color: var(--md-primary); }
 
+    .bar-actions { display: flex; align-items: center; gap: 4px; }
+
     .icon-btn {
       width: 40px; height: 40px; border-radius: 50%; border: none;
       background: transparent; color: var(--md-on-surface-variant);
@@ -681,12 +683,14 @@
     <a href="https://inpriv.xyz" class="app-bar-brand" aria-label="Inpriv Homepage">
       Inpriv<span>.</span>
     </a>
-    <button class="icon-btn" id="lang-toggle" aria-label="Zmień język / Change language" type="button">
-      <span class="icon" id="lang-icon" aria-hidden="true">translate</span>
-    </button>
-    <button class="icon-btn" id="theme-toggle" aria-label="Toggle light or dark theme" type="button">
-      <span class="icon" id="theme-icon" aria-hidden="true">light_mode</span>
-    </button>
+    <div class="bar-actions">
+      <button class="icon-btn" id="lang-toggle" aria-label="Zmień język / Change language" type="button">
+        <span class="icon" id="lang-icon" aria-hidden="true">translate</span>
+      </button>
+      <button class="icon-btn" id="theme-toggle" aria-label="Toggle light or dark theme" type="button">
+        <span class="icon" id="theme-icon" aria-hidden="true">light_mode</span>
+      </button>
+    </div>
   </nav>
 
   <header>
@@ -1072,6 +1076,5 @@
     applyLang(cur);
   });
 </script>
-</body>
 </body>
 </html>
