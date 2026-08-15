@@ -1,0 +1,37 @@
+{
+  "name": "Inpriv — Private Tools Suite",
+  "short_name": "Inpriv",
+  "description": "Zero-knowledge privacy utilities. Everything runs in your browser — data never leaves your device.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#13140E",
+  "theme_color": "#13140E",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["privacy", "security", "utilities"],
+  "icons": [
+    {
+      "src": "/assets/icons/pwa/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/assets/icons/pwa/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/assets/icons/pwa/maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/assets/icons/pwa/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

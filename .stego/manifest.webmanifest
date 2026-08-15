@@ -1,0 +1,37 @@
+{
+  "name": "Inpriv Stego — Hide Messages Inside Images",
+  "short_name": "Stego",
+  "description": "Hide AES-256 encrypted messages inside images. LSB steganography, 100% client-side.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#13140E",
+  "theme_color": "#13140E",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["privacy", "security", "utilities"],
+  "icons": [
+    {
+      "src": "/assets/icons/pwa/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/assets/icons/pwa/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/assets/icons/pwa/maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/assets/icons/pwa/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

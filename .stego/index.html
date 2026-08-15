@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Inpriv Stego">
 <link rel="apple-touch-icon" href="https://hush.best/icon.png">
-<link rel="manifest" href="data:application/json,{&quot;name&quot;:&quot;Inpriv Stego&quot;,&quot;short_name&quot;:&quot;Stego&quot;,&quot;start_url&quot;:&quot;https://stego.inpriv.xyz&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;background_color&quot;:&quot;#13140E&quot;,&quot;theme_color&quot;:&quot;#13140E&quot;,&quot;icons&quot;:[{&quot;src&quot;:&quot;https://hush.best/icon.png&quot;,&quot;sizes&quot;:&quot;512x512&quot;,&quot;type&quot;:&quot;image/png&quot;}]}">
+<link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="https://hush.best/icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1025,6 +1025,9 @@ textarea::placeholder, .text-input::placeholder { color: color-mix(in srgb, var(
       <img src="https://hush.best/icon.png" alt="" class="app-logo"> Inpriv<span class="accent">.</span> Stego
     </a>
     <div class="bar-actions">
+      <button class="icon-btn" id="lang-toggle" aria-label="Zmień język / Change language" type="button">
+        <span class="icon" id="lang-icon" aria-hidden="true">translate</span>
+      </button>
       <button class="icon-btn" id="theme-toggle" aria-label="Toggle theme" type="button">
         <span class="icon" id="theme-icon" aria-hidden="true">light_mode</span>
       </button>
@@ -1032,21 +1035,21 @@ textarea::placeholder, .text-input::placeholder { color: color-mix(in srgb, var(
   </nav>
 
   <header class="hero">
-    <h1 class="hero-title">Hide in plain<br><span class="accent">sight.</span></h1>
-    <p class="hero-desc">Steganography for everyone. Hide a message inside a PNG image — optionally AES-256 encrypted. Everything happens in your browser; the image never leaves your device.</p>
+    <h1 class="hero-title"><span data-i18n="hero1">Hide in plain</span><br><span class="accent" data-i18n="hero2">sight.</span></h1>
+    <p class="hero-desc" data-i18n="hero-desc">Steganography for everyone. Hide a message inside a PNG image — optionally AES-256 encrypted. Everything happens in your browser; the image never leaves your device.</p>
     <div class="hero-badges">
-      <span class="hero-badge"><span class="icon" aria-hidden="true">lock</span> Zero-knowledge</span>
-      <span class="hero-badge"><span class="icon" aria-hidden="true">cloud_off</span> No uploads</span>
-      <span class="hero-badge"><span class="icon" aria-hidden="true">code</span> Open source</span>
+      <span class="hero-badge"><span class="icon" aria-hidden="true">lock</span> <span data-i18n="badge-zk">Zero-knowledge</span></span>
+      <span class="hero-badge"><span class="icon" aria-hidden="true">cloud_off</span> <span data-i18n="badge-noup">No uploads</span></span>
+      <span class="hero-badge"><span class="icon" aria-hidden="true">code</span> <span data-i18n="badge-oss">Open source</span></span>
     </div>
   </header>
 
   <div class="segmented" role="group" aria-label="Mode">
     <button type="button" id="mode-hide" aria-pressed="true">
-      <span class="icon" aria-hidden="true">visibility_off</span> Hide message
+      <span class="icon" aria-hidden="true">visibility_off</span> <span data-i18n="mode-hide">Hide message</span>
     </button>
     <button type="button" id="mode-reveal" aria-pressed="false">
-      <span class="icon" aria-hidden="true">visibility</span> Reveal message
+      <span class="icon" aria-hidden="true">visibility</span> <span data-i18n="mode-reveal">Reveal message</span>
     </button>
   </div>
 
@@ -1055,9 +1058,9 @@ textarea::placeholder, .text-input::placeholder { color: color-mix(in srgb, var(
 
     <div class="dropzone" id="dropzone-hide" role="button" tabindex="0" aria-label="Choose an image to hide your message in">
       <div class="dropzone-icon"><span class="icon" aria-hidden="true">add_photo_alternate</span></div>
-      <h3>Choose an image</h3>
-      <p>Drop a photo here or tap to browse. Any format works — PNG, JPG, WebP. Your message will be invisible inside the pixels.</p>
-      <span class="hint"><span class="icon" aria-hidden="true">image</span> Any image format &middot; stays on your device</span>
+      <h3 data-i18n="dz1-title">Choose an image</h3>
+      <p data-i18n="dz1-desc">Drop a photo here or tap to browse. Any format works — PNG, JPG, WebP. Your message will be invisible inside the pixels.</p>
+      <span class="hint"><span class="icon" aria-hidden="true">image</span> <span data-i18n="dz1-hint">Any image format · stays on your device</span></span>
     </div>
 
     <div class="preview-card" id="preview-hide" hidden>
@@ -1068,19 +1071,19 @@ textarea::placeholder, .text-input::placeholder { color: color-mix(in srgb, var(
           <span class="preview-dims" id="preview-dims-hide"></span>
         </div>
         <button class="btn-outlined" id="change-btn-hide" type="button">
-          <span class="icon" aria-hidden="true">swap_horiz</span> Change image
+          <span class="icon" aria-hidden="true">swap_horiz</span> <span data-i18n="btn-change">Change image</span>
         </button>
       </div>
 
       <div class="stats-row">
-        <div class="stat"><div class="stat-label">Dimensions</div><div class="stat-value" id="stat-dims">—</div></div>
-        <div class="stat"><div class="stat-label">Capacity</div><div class="stat-value" id="stat-capacity">—</div></div>
-        <div class="stat"><div class="stat-label">Hidden size</div><div class="stat-value" id="stat-used">—</div></div>
+        <div class="stat"><div class="stat-label" data-i18n="st-dims">Dimensions</div><div class="stat-value" id="stat-dims">—</div></div>
+        <div class="stat"><div class="stat-label" data-i18n="st-cap">Capacity</div><div class="stat-value" id="stat-capacity">—</div></div>
+        <div class="stat"><div class="stat-label" data-i18n="st-used">Hidden size</div><div class="stat-value" id="stat-used">—</div></div>
       </div>
 
       <div class="capacity-wrap">
         <div class="capacity-head">
-          <span>Capacity used</span>
+          <span data-i18n="st-capused">Capacity used</span>
           <span id="capacity-pct" aria-live="polite">0%</span>
         </div>
         <div class="capacity-track" role="progressbar" aria-label="Capacity used" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="capacity-bar-wrap">
@@ -1091,29 +1094,29 @@ textarea::placeholder, .text-input::placeholder { color: color-mix(in srgb, var(
 
     <div class="field">
       <label class="field-label" for="message-input">
-        <span>Secret message</span>
+        <span data-i18n="f-secret">Secret message</span>
         <span class="count" id="message-count">0 chars</span>
       </label>
-      <textarea id="message-input" placeholder="Type the message you want to hide inside the image…" autocomplete="off" spellcheck="false" maxlength="250000"></textarea>
+      <textarea id="message-input" placeholder="Type the message you want to hide inside the image…" data-i18n-ph="ph-msg" autocomplete="off" spellcheck="false" maxlength="250000"></textarea>
       <p class="field-hint">
         <span class="icon" aria-hidden="true">info</span>
-        <span>The message is embedded into the least-significant bits of the image pixels — invisible to the human eye.</span>
+        <span data-i18n="hint-msg">The message is embedded into the least-significant bits of the image pixels — invisible to the human eye.</span>
       </p>
     </div>
 
     <div class="field">
       <label class="field-label" for="password-hide">
-        <span>Password <span style="text-transform:none;font-weight:500;opacity:.8">(optional)</span></span>
+        <span><span data-i18n="f-password">Password</span> <span style="text-transform:none;font-weight:500;opacity:.8" data-i18n="f-optional">(optional)</span></span>
       </label>
       <div class="pw-wrap">
-        <input class="text-input" id="password-hide" type="password" placeholder="Add a password for AES-256 encryption" autocomplete="new-password">
+        <input class="text-input" id="password-hide" type="password" placeholder="Add a password for AES-256 encryption" data-i18n-ph="ph-pw-hide" autocomplete="new-password">
         <button class="icon-btn pw-toggle" id="pw-toggle-hide" aria-label="Show or hide password" type="button">
           <span class="icon" id="pw-toggle-icon-hide" aria-hidden="true">visibility</span>
         </button>
       </div>
       <p class="field-hint">
         <span class="icon" aria-hidden="true">enhanced_encryption</span>
-        <span>With a password, the message is encrypted with AES-256-GCM (PBKDF2, 100k iterations) before embedding. Without one, it is stored plainly inside the pixels.</span>
+        <span data-i18n="hint-pw">With a password, the message is encrypted with AES-256-GCM (PBKDF2, 100k iterations) before embedding. Without one, it is stored plainly inside the pixels.</span>
       </p>
     </div>
   </section>
@@ -1123,9 +1126,9 @@ textarea::placeholder, .text-input::placeholder { color: color-mix(in srgb, var(
 
     <div class="dropzone" id="dropzone-reveal" role="button" tabindex="0" aria-label="Choose a stego image to reveal its hidden message">
       <div class="dropzone-icon"><span class="icon" aria-hidden="true">image_search</span></div>
-      <h3>Choose a stego image</h3>
-      <p>Drop the image that carries a hidden message, or tap to browse. Use the original file — re-uploads to social media or messengers destroy the hidden bits.</p>
-      <span class="hint"><span class="icon" aria-hidden="true">visibility</span> Nothing is uploaded</span>
+      <h3 data-i18n="dz2-title">Choose a stego image</h3>
+      <p data-i18n="dz2-desc">Drop the image that carries a hidden message, or tap to browse. Use the original file — re-uploads to social media or messengers destroy the hidden bits.</p>
+      <span class="hint"><span class="icon" aria-hidden="true">visibility</span> <span data-i18n="dz2-hint">Nothing is uploaded</span></span>
     </div>
 
     <div class="preview-card" id="preview-reveal" hidden>
@@ -1136,37 +1139,37 @@ textarea::placeholder, .text-input::placeholder { color: color-mix(in srgb, var(
           <span class="preview-dims" id="preview-dims-reveal"></span>
         </div>
         <button class="btn-outlined" id="change-btn-reveal" type="button">
-          <span class="icon" aria-hidden="true">swap_horiz</span> Change image
+          <span class="icon" aria-hidden="true">swap_horiz</span> <span data-i18n="btn-change">Change image</span>
         </button>
       </div>
     </div>
 
     <div class="field" id="reveal-pw-field" hidden>
       <label class="field-label" for="password-reveal">
-        <span>Password</span>
+        <span data-i18n="f-password2">Password</span>
       </label>
       <div class="pw-wrap">
-        <input class="text-input" id="password-reveal" type="password" placeholder="Password used to encrypt the message" autocomplete="off">
+        <input class="text-input" id="password-reveal" type="password" placeholder="Password used to encrypt the message" data-i18n-ph="ph-pw-reveal" autocomplete="off">
         <button class="icon-btn pw-toggle" id="pw-toggle-reveal" aria-label="Show or hide password" type="button">
           <span class="icon" id="pw-toggle-icon-reveal" aria-hidden="true">visibility</span>
         </button>
       </div>
       <p class="field-hint">
         <span class="icon" aria-hidden="true">key</span>
-        <span>This image contains an encrypted message. Enter the password to decrypt it.</span>
+        <span data-i18n="hint-reveal-pw">This image contains an encrypted message. Enter the password to decrypt it.</span>
       </p>
     </div>
 
     <div class="result-card" id="result-card" hidden>
       <div class="result-head">
         <span class="icon" aria-hidden="true">mark_email_read</span>
-        <span class="result-title">Hidden message</span>
-        <span class="result-chip" id="result-encrypted-chip"><span class="icon" aria-hidden="true">lock</span><span id="result-encrypted-label">Encrypted</span></span>
+        <span class="result-title" data-i18n="res-title">Hidden message</span>
+        <span class="result-chip" id="result-encrypted-chip"><span class="icon" aria-hidden="true">lock</span><span id="result-encrypted-label" data-i18n="res-enc">Encrypted</span></span>
       </div>
       <div class="result-message" id="result-message" tabindex="0" aria-live="polite"></div>
       <div class="result-actions">
         <button class="btn-outlined" id="copy-btn" type="button">
-          <span class="icon" aria-hidden="true">content_copy</span> Copy message
+          <span class="icon" aria-hidden="true">content_copy</span> <span data-i18n="btn-copy">Copy message</span>
         </button>
       </div>
     </div>
@@ -1174,22 +1177,22 @@ textarea::placeholder, .text-input::placeholder { color: color-mix(in srgb, var(
 
   <!-- ══════════ HOW IT WORKS ══════════ -->
   <section class="how" aria-label="How it works">
-    <div class="how-title"><span class="icon" aria-hidden="true">school</span> How it works</div>
+    <div class="how-title"><span class="icon" aria-hidden="true">school</span> <span data-i18n="how-title">How it works</span></div>
     <div class="how-grid">
       <div class="how-step">
         <span class="icon" aria-hidden="true">edit_note</span>
-        <h4>1. Write &amp; lock</h4>
-        <p>Pick a PNG, type your secret and an optional password. The message is encrypted in your browser with AES-256-GCM.</p>
+        <h4 data-i18n="how1-t">1. Write &amp; lock</h4>
+        <p data-i18n="how1-d">Pick a PNG, type your secret and an optional password. The message is encrypted in your browser with AES-256-GCM.</p>
       </div>
       <div class="how-step">
         <span class="icon" aria-hidden="true">hide_image</span>
-        <h4>2. Embed</h4>
-        <p>The ciphertext is spread across the least-significant bits of the pixels. The result looks identical — and metadata is stripped.</p>
+        <h4 data-i18n="how2-t">2. Embed</h4>
+        <p data-i18n="how2-d">The ciphertext is spread across the least-significant bits of the pixels. The result looks identical — and metadata is stripped.</p>
       </div>
       <div class="how-step">
         <span class="icon" aria-hidden="true">visibility</span>
-        <h4>3. Share &amp; reveal</h4>
-        <p>Send the PNG as a file. Anyone with Stego — and the password, if you set one — can reveal the message.</p>
+        <h4 data-i18n="how3-t">3. Share &amp; reveal</h4>
+        <p data-i18n="how3-d">Send the PNG as a file. Anyone with Stego — and the password, if you set one — can reveal the message.</p>
       </div>
     </div>
   </section>
@@ -1205,11 +1208,11 @@ textarea::placeholder, .text-input::placeholder { color: color-mix(in srgb, var(
 <div class="toolbar" id="toolbar">
   <div class="toolbar-hint" id="toolbar-hint">
     <span class="icon" aria-hidden="true">touch_app</span>
-    <span id="toolbar-hint-text">Pick an image to start</span>
+    <span id="toolbar-hint-text" data-i18n="tb-hint">Pick an image to start</span>
   </div>
   <button class="fab" id="fab" type="button" disabled>
     <span class="icon" id="fab-icon" aria-hidden="true">visibility_off</span>
-    <span id="fab-label">Hide message</span>
+    <span id="fab-label" data-i18n="mode-hide">Hide message</span>
   </button>
 </div>
 
@@ -1225,6 +1228,110 @@ textarea::placeholder, .text-input::placeholder { color: color-mix(in srgb, var(
 
 <script>
 'use strict';
+
+/* ─── i18n (PL/EN) ─── */
+const I18N = {
+  en: {
+    'hero1': 'Hide in plain', 'hero2': 'sight.',
+    'hero-desc': 'Steganography for everyone. Hide a message inside a PNG image — optionally AES-256 encrypted. Everything happens in your browser; the image never leaves your device.',
+    'badge-zk': 'Zero-knowledge', 'badge-noup': 'No uploads', 'badge-oss': 'Open source',
+    'mode-hide': 'Hide message', 'mode-reveal': 'Reveal message',
+    'dz1-title': 'Choose an image',
+    'dz1-desc': 'Drop a photo here or tap to browse. Any format works — PNG, JPG, WebP. Your message will be invisible inside the pixels.',
+    'dz1-hint': 'Any image format · stays on your device',
+    'dz2-title': 'Choose a stego image',
+    'dz2-desc': 'Drop the image that carries a hidden message, or tap to browse. Use the original file — re-uploads to social media or messengers destroy the hidden bits.',
+    'dz2-hint': 'Nothing is uploaded',
+    'f-secret': 'Secret message', 'f-password': 'Password', 'f-optional': '(optional)', 'f-password2': 'Password',
+    'ph-msg': 'Type the message you want to hide inside the image…',
+    'ph-pw-hide': 'Add a password for AES-256 encryption',
+    'ph-pw-reveal': 'Password used to encrypt the message',
+    'hint-msg': 'The message is embedded into the least-significant bits of the image pixels — invisible to the human eye.',
+    'hint-pw': 'With a password, the message is encrypted with AES-256-GCM (PBKDF2, 100k iterations) before embedding. Without one, it is stored plainly inside the pixels.',
+    'hint-reveal-pw': 'This image contains an encrypted message. Enter the password to decrypt it.',
+    'btn-change': 'Change image', 'btn-copy': 'Copy message',
+    'st-dims': 'Dimensions', 'st-cap': 'Capacity', 'st-used': 'Hidden size', 'st-capused': 'Capacity used',
+    'res-title': 'Hidden message', 'res-enc': 'Encrypted',
+    'how-title': 'How it works',
+    'how1-t': '1. Write & lock', 'how1-d': 'Pick a PNG, type your secret and an optional password. The message is encrypted in your browser with AES-256-GCM.',
+    'how2-t': '2. Embed', 'how2-d': 'The ciphertext is spread across the least-significant bits of the pixels. The result looks identical — and metadata is stripped.',
+    'how3-t': '3. Share & reveal', 'how3-d': 'Send the PNG as a file. Anyone with Stego — and the password, if you set one — can reveal the message.',
+    'tb-hint': 'Pick an image to start',
+    'fab-saved': 'Saved', 'unit-chars': 'chars',
+    't-overwrite-t': 'This image already carries a message', 't-overwrite-s': 'Hiding again will overwrite the existing hidden data.',
+    't-toolarge-t': 'Image too large', 't-toolarge-s': 'Pick an image under 40 megapixels.', 't-toolarge-s2': 'The message does not fit — pick a larger image or shorten it.',
+    't-readfail-t': 'Could not read this image', 't-readfail-s': 'This format may be unsupported here. Try converting it to PNG or JPG first.',
+    't-corrupt-t': 'Could not read image', 't-corrupt-s': 'The file may be corrupted or unsupported.',
+    't-copied-t': 'Copied', 't-copied-s': 'Message copied to clipboard.',
+    't-copyfail-t': 'Copy failed', 't-copyfail-s': 'Select the text and copy manually.',
+    't-toobig-t': 'Message too large for this image',
+    't-wentwrong-t': 'Something went wrong', 't-wentwrong-s': 'The image could not be processed.',
+    't-revealed-t': 'Message revealed', 't-revealed-enc': 'Decrypted with your password.', 't-revealed-plain': 'The message was not password-protected.',
+    't-nomsg-t': 'No hidden message found', 't-nomsg-s': 'Make sure this is the original PNG — re-uploads and screenshots destroy the hidden bits.', 't-nomsg-s2': 'The image does not contain a valid Stego payload.',
+    't-pwreq-t': 'Password required', 't-pwreq-s': 'This message is encrypted. Enter the password and try again.',
+    't-badpw-t': 'Wrong password', 't-badpw-s': 'Decryption failed — check the password.',
+    't-hidden-t': 'Hidden & downloaded', 't-hidden-s': 'The message is inside the pixels. Share the PNG as a file.'
+  },
+  pl: {
+    'hero1': 'Ukryj na', 'hero2': 'oczach wszystkich.',
+    'hero-desc': 'Steganografia dla każdego. Ukryj wiadomość w obrazie PNG — opcjonalnie zaszyfrowaną AES-256. Wszystko dzieje się w Twojej przeglądarce; obraz nigdy nie opuszcza urządzenia.',
+    'badge-zk': 'Zero-knowledge', 'badge-noup': 'Bez wysyłania', 'badge-oss': 'Open source',
+    'mode-hide': 'Ukryj wiadomość', 'mode-reveal': 'Odczytaj wiadomość',
+    'dz1-title': 'Wybierz obraz',
+    'dz1-desc': 'Przeciągnij zdjęcie tutaj lub dotknij, by przeglądać. Każdy format działa — PNG, JPG, WebP. Twoja wiadomość będzie niewidoczna w pikselach.',
+    'dz1-hint': 'Dowolny format · zostaje na urządzeniu',
+    'dz2-title': 'Wybierz obraz z ukryciem',
+    'dz2-desc': 'Przeciągnij obraz, który niesie ukrytą wiadomość, lub dotknij, by przeglądać. Użyj oryginalnego pliku — przesłanie przez komunikatory niszczy ukryte bity.',
+    'dz2-hint': 'Nic nie jest wysyłane',
+    'f-secret': 'Tajna wiadomość', 'f-password': 'Hasło', 'f-optional': '(opcjonalnie)', 'f-password2': 'Hasło',
+    'ph-msg': 'Wpisz wiadomość, którą chcesz ukryć w obrazie…',
+    'ph-pw-hide': 'Dodaj hasło do szyfrowania AES-256',
+    'ph-pw-reveal': 'Hasło użyte do zaszyfrowania wiadomości',
+    'hint-msg': 'Wiadomość jest wpisywana w najmłodsze bity pikseli obrazu — niewidoczne dla oka.',
+    'hint-pw': 'Z hasłem wiadomość jest szyfrowana AES-256-GCM (PBKDF2, 100 tys. iteracji) przed osadzeniem. Bez hasła zapisywana jawnie w pikselach.',
+    'hint-reveal-pw': 'Ten obraz zawiera zaszyfrowaną wiadomość. Wpisz hasło, by odszyfrować.',
+    'btn-change': 'Zmień obraz', 'btn-copy': 'Kopiuj wiadomość',
+    'st-dims': 'Wymiary', 'st-cap': 'Pojemność', 'st-used': 'Rozmiar ukrycia', 'st-capused': 'Wykorzystanie',
+    'res-title': 'Ukryta wiadomość', 'res-enc': 'Zaszyfrowana',
+    'how-title': 'Jak to działa',
+    'how1-t': '1. Napisz i zablokuj', 'how1-d': 'Wybierz PNG, wpisz sekret i opcjonalne hasło. Wiadomość jest szyfrowana w przeglądarce AES-256-GCM.',
+    'how2-t': '2. Osadź', 'how2-d': 'Szyfrogram rozkłada się na najmłodsze bity pikseli. Wynik wygląda identycznie — a metadane są wycinane.',
+    'how3-t': '3. Przekaż i odczytaj', 'how3-d': 'Wyślij PNG jako plik. Każdy ze Stego — i hasłem, jeśli ustawiłeś — może odczytać wiadomość.',
+    'tb-hint': 'Wybierz obraz, aby zacząć',
+    'fab-saved': 'Zapisano', 'unit-chars': 'znaków',
+    't-overwrite-t': 'Ten obraz już niesie wiadomość', 't-overwrite-s': 'Ponowne ukrycie nadpisze istniejące dane.',
+    't-toolarge-t': 'Obraz za duży', 't-toolarge-s': 'Wybierz obraz do 40 megapikseli.', 't-toolarge-s2': 'Wiadomość się nie mieści — wybierz większy obraz lub skróć tekst.',
+    't-readfail-t': 'Nie udało się odczytać obrazu', 't-readfail-s': 'Ten format może być nieobsługiwany. Spróbuj najpierw przekonwertować na PNG lub JPG.',
+    't-corrupt-t': 'Nie udało się odczytać pliku', 't-corrupt-s': 'Plik może być uszkodzony lub w nieznanym formacie.',
+    't-copied-t': 'Skopiowano', 't-copied-s': 'Wiadomość skopiowana do schowka.',
+    't-copyfail-t': 'Kopiowanie nie udało się', 't-copyfail-s': 'Zaznacz tekst i skopiuj ręcznie.',
+    't-toobig-t': 'Wiadomość za duża dla tego obrazu',
+    't-wentwrong-t': 'Coś poszło nie tak', 't-wentwrong-s': 'Obraz nie mógł zostać przetworzony.',
+    't-revealed-t': 'Wiadomość odczytana', 't-revealed-enc': 'Odszyfrowana Twoim hasłem.', 't-revealed-plain': 'Wiadomość nie była chroniona hasłem.',
+    't-nomsg-t': 'Nie znaleziono ukrytej wiadomości', 't-nomsg-s': 'Upewnij się, że to oryginalny PNG — przesłania i screenshooty niszczą ukryte bity.', 't-nomsg-s2': 'Obraz nie zawiera poprawnego payloadu Stego.',
+    't-pwreq-t': 'Wymagane hasło', 't-pwreq-s': 'Ta wiadomość jest zaszyfrowana. Wpisz hasło i spróbuj ponownie.',
+    't-badpw-t': 'Złe hasło', 't-badpw-s': 'Deszyfracja nie udała się — sprawdź hasło.',
+    't-hidden-t': 'Ukryto i pobrano', 't-hidden-s': 'Wiadomość jest w pikselach. Przekaż PNG jako plik.'
+  }
+};
+const t = (k) => (I18N[document.documentElement.lang === 'pl' ? 'pl' : 'en'][k] !== undefined
+  ? I18N[document.documentElement.lang === 'pl' ? 'pl' : 'en'][k] : k);
+
+function applyLang(lang) {
+  if (lang !== 'pl' && lang !== 'en') lang = 'en';
+  document.documentElement.lang = lang;
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const v = I18N[lang][el.getAttribute('data-i18n')];
+    if (v !== undefined) el.textContent = v;
+  });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+    const v = I18N[lang][el.getAttribute('data-i18n-ph')];
+    if (v !== undefined) el.placeholder = v;
+  });
+  localStorage.setItem('stego_lang', lang);
+}
+applyLang(localStorage.getItem('stego_lang') || ((navigator.language || '').toLowerCase().startsWith('pl') ? 'pl' : 'en'));
+
 
 /* ═══════════════ Steganography core ═══════════════ */
 
@@ -1590,7 +1697,7 @@ async function acceptFile(file, target) {
       // Probe whether this image already carries a payload (friendly warning)
       const probe = await stegoReveal(loaded.imageData, '');
       if (probe.error === 'needs-password' || probe.ok) {
-        showToast('This image already carries a message', 'Hiding again will overwrite the existing hidden data.', false);
+        showToast('t-overwrite-t', 't-overwrite-s', false);
       }
       updateCapacity();
     } else {
@@ -1610,11 +1717,11 @@ async function acceptFile(file, target) {
     updateFab();
   } catch (err) {
     if (err && err.message === 'too-large') {
-      showToast('Image too large', 'Pick an image under 40 megapixels.', true);
+      showToast('t-toolarge-t', 't-toolarge-s', true);
     } else if (err instanceof DOMException || (err && err.message !== 'too-large')) {
-      showToast('Could not read this image', 'This format may be unsupported here. Try converting it to PNG or JPG first.', true);
+      showToast('t-readfail-t', 't-readfail-s', true);
     } else {
-      showToast('Could not read image', 'The file may be corrupted or unsupported.', true);
+      showToast('t-corrupt-t', 't-corrupt-s', true);
     }
   }
 }
@@ -1642,7 +1749,7 @@ function updateCapacity() {
 }
 
 els.messageInput.addEventListener('input', () => {
-  els.messageCount.textContent = els.messageInput.value.length + ' chars';
+  els.messageCount.textContent = els.messageInput.value.length + ' ' + t('unit-chars');
   updateCapacity();
 });
 els.passwordHide.addEventListener('input', updateCapacity);
@@ -1665,14 +1772,14 @@ function updateFab() {
     els.fabIcon.textContent = 'visibility_off';
     const ready = state.hideImage && els.messageInput.value.trim().length > 0;
     els.fab.disabled = !ready;
-    els.fabLabel.textContent = 'Hide message';
+    els.fabLabel.textContent = t('mode-hide');
     els.toolbarHintText.textContent = !state.hideImage
       ? 'Pick an image to start'
       : (els.messageInput.value.trim().length === 0 ? 'Write your secret message' : 'Ready — the result will look identical');
   } else {
     els.fabIcon.textContent = 'visibility';
     els.fab.disabled = !state.revealImage;
-    els.fabLabel.textContent = 'Reveal message';
+    els.fabLabel.textContent = t('mode-reveal');
     els.toolbarHintText.textContent = !state.revealImage
       ? 'Pick a stego image to read its secret'
       : (state.needsPassword ? 'Enter the password, then reveal' : 'Ready to reveal');
@@ -1695,9 +1802,9 @@ function setBusy(busy) {
 els.copyBtn.addEventListener('click', async () => {
   try {
     await navigator.clipboard.writeText(els.resultMessage.textContent);
-    showToast('Copied', 'Message copied to clipboard.');
+    showToast('t-copied-t', 't-copied-s');
   } catch (e) {
-    showToast('Copy failed', 'Select the text and copy manually.', true);
+    showToast('t-copyfail-t', 't-copyfail-s', true);
   }
 });
 
@@ -1719,7 +1826,7 @@ async function doHide() {
     const fresh = new ImageData(new Uint8ClampedArray(img.imageData.data), img.width, img.height);
     const res = await stegoHide(fresh, message, els.passwordHide.value || null);
     if (!res.ok) {
-      showToast('Message too large for this image',
+      showToast('t-toobig-t',
         'Needs ' + fmtBytes(res.need) + ' of data but only ' + fmtBytes(res.cap) + ' fits. Use a bigger image or a shorter message.', true);
       return;
     }
@@ -1738,12 +1845,12 @@ async function doHide() {
     setTimeout(() => URL.revokeObjectURL(a.href), 60000);
 
     els.fab.classList.add('success');
-    els.fabLabel.textContent = 'Saved';
+    els.fabLabel.textContent = t('fab-saved');
     setTimeout(() => { els.fab.classList.remove('success'); updateFab(); }, 2000);
-    showToast('Hidden & downloaded',
+    showToast('t-hidden-t',
       res.encrypted ? 'AES-256 encrypted message embedded. Send the PNG as a file.' : 'Message embedded. Send the PNG as a file.', false);
   } catch (err) {
-    showToast('Something went wrong', 'The image could not be processed.', true);
+    showToast('t-wentwrong-t', 't-wentwrong-s', true);
   } finally {
     setBusy(false);
   }
@@ -1760,21 +1867,21 @@ async function doReveal() {
       els.resultChipLabel.textContent = res.encrypted ? 'Encrypted' : 'Not encrypted';
       els.resultCard.hidden = false;
       els.resultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      showToast('Message revealed', res.encrypted ? 'Decrypted with your password.' : 'The message was not password-protected.', false);
+      showToast('t-revealed-t', res.encrypted ? 't-revealed-enc' : 't-revealed-plain', false);
     } else if (res.error === 'no-message') {
-      showToast('No hidden message found', 'Make sure this is the original PNG — re-uploads and screenshots destroy the hidden bits.', true);
+      showToast('t-nomsg-t', 't-nomsg-s', true);
     } else if (res.error === 'needs-password') {
       state.needsPassword = true;
       els.revealPwField.hidden = false;
       els.passwordReveal.focus();
-      showToast('Password required', 'This message is encrypted. Enter the password and try again.', true);
+      showToast('t-pwreq-t', 't-pwreq-s', true);
     } else if (res.error === 'bad-password') {
-      showToast('Wrong password', 'Decryption failed — check the password.', true);
+      showToast('t-badpw-t', 't-badpw-s', true);
     } else {
-      showToast('No hidden message found', 'The image does not contain a valid Stego payload.', true);
+      showToast('t-nomsg-t', 't-nomsg-s2', true);
     }
   } catch (err) {
-    showToast('Something went wrong', 'The image could not be processed.', true);
+    showToast('t-wentwrong-t', 't-wentwrong-s', true);
   } finally {
     setBusy(false);
   }
@@ -1803,6 +1910,17 @@ window.__stego = {
   parseHeader, buildHeader, capacityBits, deriveKey,
   MAGIC, HEADER_LEN,
 };
+
+document.getElementById('lang-toggle').addEventListener('click', () => {
+  applyLang(document.documentElement.lang === 'pl' ? 'en' : 'pl');
+});
+
+// PWA — service worker registration
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
 </script>
 </body>
 </html>

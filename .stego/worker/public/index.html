@@ -1,1018 +1,651 @@
 <!DOCTYPE html>
+<!--
+  Inpriv — Privacy-First Tools
+  Copyright (c) 2026 Aurex Labs — MIT License
+
+  Suite landing page. Curates a set of zero-knowledge, fully client-side
+  web utilities (encrypted chat, metadata wipe, WebRTC audit, hashing, QR,
+  TOTP authenticator, brute force, and more). No trackers, no server logs — everything runs in the browser.
+-->
 <html lang="en" data-theme="dark">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com fonts.gstatic.com; script-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.googleapis.com fonts.gstatic.com https://fonts.gstatic.com; img-src 'self' data: blob: https://hush.best; media-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'; connect-src 'self'; worker-src 'none'; manifest-src 'self' data:">
-<title>Inpriv Stego — Hide Messages Inside Images</title>
-<meta name="description" content="Stego is a zero-knowledge steganography tool. Hide encrypted messages inside PNG images using LSB steganography — everything happens in your browser, nothing is uploaded.">
-<meta name="theme-color" content="#13140E" media="(prefers-color-scheme: dark)">
-<meta name="theme-color" content="#FAF9F0" media="(prefers-color-scheme: light)">
-<meta name="robots" content="noindex, nofollow">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Inpriv Stego">
-<link rel="apple-touch-icon" href="https://hush.best/icon.png">
-<link rel="manifest" href="data:application/json,{&quot;name&quot;:&quot;Inpriv Stego&quot;,&quot;short_name&quot;:&quot;Stego&quot;,&quot;start_url&quot;:&quot;https://stego.inpriv.xyz&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;background_color&quot;:&quot;#13140E&quot;,&quot;theme_color&quot;:&quot;#13140E&quot;,&quot;icons&quot;:[{&quot;src&quot;:&quot;https://hush.best/icon.png&quot;,&quot;sizes&quot;:&quot;512x512&quot;,&quot;type&quot;:&quot;image/png&quot;}]}">
-<link rel="icon" href="https://hush.best/icon.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:ital,opsz,wght@0,8..144,300..800;1,8..144,300..800&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
-<style>
-:root {
-  --ease-standard: cubic-bezier(0.2, 0.0, 0.0, 1.0);
-  --ease-spring: cubic-bezier(0.2, 1.4, 0.0, 1.0);
-  --ease-spring-soft: cubic-bezier(0.34, 1.3, 0.64, 1.0);
-  --font-sans: 'Roboto Flex', system-ui, -apple-system, sans-serif;
-  --font-icon: 'Material Symbols Rounded';
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-}
-
-[data-theme="dark"], :root {
-  --md-primary: #ABD37A;
-  --md-on-primary: #173800;
-  --md-primary-container: #2E4F2F;
-  --md-on-primary-container: #C7EFA0;
-  --md-secondary: #BCCBAF;
-  --md-secondary-container: #3D4B34;
-  --md-on-secondary-container: #D8E7CB;
-  --md-tertiary: #FFB4A5;
-  --md-tertiary-container: #7E2D1E;
-  --md-on-tertiary-container: #FFDAD3;
-  --md-error: #FFB4AB;
-  --md-error-container: #410002;
-  --md-on-error-container: #FFDAD6;
-  --md-surface: #13140E;
-  --md-on-surface: #E3E2D3;
-  --md-on-surface-variant: #C3C8B6;
-  --md-surface-container-lowest: #0D0F09;
-  --md-surface-container-low: #1A1C17;
-  --md-surface-container: #1F211B;
-  --md-surface-container-high: #292B25;
-  --md-surface-container-highest: #34362F;
-  --md-outline: #8D9283;
-  --md-outline-variant: #43483D;
-  --md-shadow: rgba(0,0,0,0.4);
-  --md-shadow-strong: rgba(0,0,0,0.65);
-  --md-inverse-surface: #E3E2D3;
-  --md-inverse-on-surface: #2F312C;
-  --md-inverse-primary: #466E47;
-}
-
-[data-theme="light"] {
-  --md-primary: #466E47;
-  --md-on-primary: #FFFFFF;
-  --md-primary-container: #C7EFA0;
-  --md-on-primary-container: #0C2000;
-  --md-secondary: #55624C;
-  --md-secondary-container: #D8E7CB;
-  --md-on-secondary-container: #131F0C;
-  --md-tertiary: #9C4231;
-  --md-tertiary-container: #FFDAD3;
-  --md-on-tertiary-container: #3D0A03;
-  --md-error: #BA1A1A;
-  --md-error-container: #FFDAD6;
-  --md-on-error-container: #410002;
-  --md-surface: #FAF9F0;
-  --md-on-surface: #1A1C17;
-  --md-on-surface-variant: #43483D;
-  --md-surface-container-lowest: #FFFFFF;
-  --md-surface-container-low: #F4F3E7;
-  --md-surface-container: #EEEDDE;
-  --md-surface-container-high: #E9E7D9;
-  --md-surface-container-highest: #E3E2D3;
-  --md-outline: #74796C;
-  --md-outline-variant: #C3C8B6;
-  --md-shadow: rgba(20,25,15,0.15);
-  --md-shadow-strong: rgba(20,25,15,0.28);
-  --md-inverse-surface: #2F312C;
-  --md-inverse-on-surface: #F0EFE7;
-  --md-inverse-primary: #ABD37A;
-}
-
-*, *::before, *::after {
-  margin: 0; padding: 0; box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent;
-}
-
-html { -webkit-text-size-adjust: 100%; }
-
-body {
-  font-family: var(--font-sans);
-  font-optical-sizing: auto;
-  background:
-    radial-gradient(ellipse 80% 60% at 85% 0%, color-mix(in srgb, var(--md-primary-container) 55%, transparent) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 50% at 0% 100%, color-mix(in srgb, var(--md-tertiary-container) 45%, transparent) 0%, transparent 70%),
-    var(--md-surface);
-  background-attachment: fixed;
-  color: var(--md-on-surface);
-  min-height: 100dvh;
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-  transition: background-color 0.5s var(--ease-standard), color 0.5s var(--ease-standard);
-}
-
-a:focus-visible, button:focus-visible, textarea:focus-visible, input:focus-visible, [tabindex]:focus-visible {
-  outline: 2px solid var(--md-primary);
-  outline-offset: 3px;
-}
-
-.icon {
-  font-family: var(--font-icon);
-  font-weight: normal;
-  font-style: normal;
-  line-height: 1;
-  letter-spacing: normal;
-  text-transform: none;
-  display: inline-block;
-  white-space: nowrap;
-  word-wrap: normal;
-  direction: ltr;
-  -webkit-font-feature-settings: 'liga';
-  -webkit-font-smoothing: antialiased;
-  font-variation-settings: 'wght' 500, 'GRAD' 200, 'opsz' 24;
-  user-select: none;
-}
-
-/* ─── Background effects ─────────────────────────────── */
-
-.dot-grid {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  background-image: radial-gradient(circle at 1px 1px, var(--md-outline-variant) 1px, transparent 0);
-  background-size: 28px 28px;
-  opacity: 0.18;
-  mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
-  -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
-}
-
-.blur-blob {
-  position: fixed;
-  top: -120px;
-  right: -120px;
-  width: 420px;
-  height: 420px;
-  border-radius: 50%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--md-tertiary) 22%, transparent), transparent 70%);
-  filter: blur(60px);
-  animation: drift 22s ease-in-out infinite;
-  pointer-events: none;
-  z-index: 0;
-}
-
-@keyframes drift {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(-60px, 40px) scale(1.1); }
-}
-
-/* ─── Layout ─────────────────────────────────────────── */
-
-.container {
-  position: relative;
-  z-index: 1;
-  max-width: 780px;
-  margin: 0 auto;
-  padding: 12px 16px calc(200px + env(safe-area-inset-bottom));
-}
-
-@media (min-width: 600px) {
-  .container { padding: 18px 24px calc(180px + env(safe-area-inset-bottom)); }
-}
-
-/* ─── App bar ────────────────────────────────────────── */
-
-.app-bar {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 46px;
-  padding: 6px 6px 6px 14px;
-  border-radius: 9999px;
-  background: color-mix(in srgb, var(--md-surface-container) 75%, transparent);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border: 1px solid color-mix(in srgb, var(--md-outline-variant) 50%, transparent);
-  box-shadow: 0 4px 20px -4px var(--md-shadow);
-  animation: barIn 0.7s var(--ease-spring);
-  margin-bottom: 32px;
-}
-
-@media (min-width: 600px) {
-  .app-bar { height: 54px; padding: 8px 8px 8px 20px; margin-bottom: 40px; }
-}
-
-@keyframes barIn {
-  from { opacity: 0; transform: translateY(-12px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.app-bar-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  text-decoration: none;
-  color: var(--md-on-surface);
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  line-height: 1.1;
-  white-space: nowrap;
-}
-
-@media (min-width: 600px) {
-  .app-bar-brand { font-size: 19px; }
-}
-
-.app-bar-brand .accent { color: var(--md-primary); }
-
-.app-logo {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.bar-actions { display: flex; align-items: center; gap: 4px; }
-
-.icon-btn {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: none;
-  background: none;
-  color: var(--md-on-surface-variant);
-  cursor: pointer;
-  transition: color 0.2s var(--ease-standard), transform 0.15s var(--ease-spring);
-}
-
-.icon-btn:hover { color: var(--md-on-surface); }
-.icon-btn:active { transform: scale(0.92); }
-.icon-btn::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: currentColor;
-  opacity: 0;
-  transition: opacity 0.2s var(--ease-standard);
-}
-.icon-btn:hover::before { opacity: 0.08; }
-.icon-btn:active::before { opacity: 0.12; }
-.icon-btn .icon { position: relative; font-size: 22px; }
-
-@media (min-width: 600px) {
-  .icon-btn { width: 44px; height: 44px; }
-  .icon-btn .icon { font-size: 24px; }
-}
-
-/* ─── Hero ───────────────────────────────────────────── */
-
-.hero { text-align: center; margin-bottom: 28px; animation: fadeUp 0.8s var(--ease-spring); }
-
-@media (min-width: 600px) { .hero { margin-bottom: 36px; } }
-
-.hero-title {
-  font-size: clamp(32px, 9vw, 44px);
-  font-weight: 800;
-  letter-spacing: -0.025em;
-  line-height: 1.05;
-}
-
-@media (min-width: 600px) {
-  .hero-title { font-size: clamp(40px, 6.5vw, 52px); }
-}
-
-.hero-title .accent {
-  font-style: italic;
-  font-weight: 300;
-  color: var(--md-primary);
-}
-
-.hero-desc {
-  margin: 14px auto 0;
-  max-width: 520px;
-  font-size: 14px;
-  color: var(--md-on-surface-variant);
-}
-
-@media (min-width: 600px) { .hero-desc { font-size: 15px; } }
-
-.hero-badges {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 18px;
-}
-
-.hero-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border-radius: 9999px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: var(--md-on-secondary-container);
-  background: color-mix(in srgb, var(--md-secondary-container) 70%, transparent);
-  border: 1px solid color-mix(in srgb, var(--md-outline-variant) 45%, transparent);
-}
-
-.hero-badge .icon { font-size: 14px; color: var(--md-primary); }
-
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(24px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* ─── Segmented control ──────────────────────────────── */
-
-.segmented {
-  display: flex;
-  gap: 4px;
-  padding: 4px;
-  border-radius: 9999px;
-  background: var(--md-surface-container-high);
-  margin-bottom: 20px;
-  animation: fadeUp 0.8s var(--ease-spring) 0.05s both;
-}
-
-.segmented button {
-  flex: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 10px 18px;
-  border: none;
-  border-radius: 9999px;
-  background: none;
-  font-family: var(--font-sans);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: var(--md-on-surface-variant);
-  cursor: pointer;
-  position: relative;
-  transition: color 0.2s var(--ease-standard), background-color 0.3s var(--ease-standard), transform 0.15s var(--ease-spring);
-}
-
-.segmented button .icon { font-size: 18px; }
-
-.segmented button:hover { color: var(--md-on-surface); }
-.segmented button:active { transform: scale(0.96); }
-
-.segmented button[aria-pressed="true"] {
-  background: var(--md-secondary-container);
-  color: var(--md-on-secondary-container);
-}
-
-/* ─── Panels ─────────────────────────────────────────── */
-
-.panel { animation: fadeUp 0.6s var(--ease-spring) both; }
-.panel[hidden] { display: none; }
-
-/* ─── Dropzone ───────────────────────────────────────── */
-
-.dropzone {
-  border-radius: 24px;
-  border: 2px dashed var(--md-outline-variant);
-  background: var(--md-surface-container-low);
-  padding: 36px 20px;
-  text-align: center;
-  cursor: pointer;
-  transition: border-color 0.3s var(--ease-standard), transform 0.4s var(--ease-spring-soft),
-              background-color 0.3s var(--ease-standard), box-shadow 0.4s var(--ease-spring-soft);
-}
-
-@media (min-width: 600px) {
-  .dropzone { border-radius: 28px; padding: 52px 40px; }
-}
-
-.dropzone:hover, .dropzone:focus-visible {
-  border-color: var(--md-primary);
-  transform: translateY(-4px);
-  background: var(--md-surface-container);
-  box-shadow: 0 12px 40px -6px var(--md-shadow);
-}
-
-.dropzone.drag-over {
-  border-style: solid;
-  border-color: var(--md-primary);
-  background: color-mix(in srgb, var(--md-primary-container) 30%, var(--md-surface-container-low));
-  transform: scale(1.02);
-}
-
-.dropzone-icon {
-  width: 72px;
-  height: 72px;
-  margin: 0 auto 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 24px;
-  background: var(--md-primary-container);
-  color: var(--md-on-primary-container);
-  animation: pulse 2.8s ease-in-out infinite;
-  transition: transform 0.4s var(--ease-spring);
-}
-
-.dropzone:hover .dropzone-icon { transform: scale(1.08) rotate(-4deg); }
-
-.dropzone-icon .icon {
-  font-size: 36px;
-  font-variation-settings: 'wght' 400, 'GRAD' 0, 'opsz' 48;
-}
-
-@keyframes pulse {
-  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--md-primary) 30%, transparent); }
-  50% { box-shadow: 0 0 0 16px color-mix(in srgb, var(--md-primary) 0%, transparent); }
-}
-
-.dropzone h3 {
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  line-height: 1.2;
-  margin-bottom: 8px;
-}
-
-@media (min-width: 600px) { .dropzone h3 { font-size: 24px; } }
-
-.dropzone p {
-  font-size: 14px;
-  color: var(--md-on-surface-variant);
-  max-width: 400px;
-  margin: 0 auto;
-}
-
-.dropzone .hint {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 16px;
-  padding: 6px 14px;
-  border-radius: 9999px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--md-on-surface-variant);
-  background: var(--md-surface-container-high);
-}
-
-.dropzone .hint .icon { font-size: 14px; color: var(--md-primary); }
-
-/* ─── Preview card ───────────────────────────────────── */
-
-.preview-card {
-  border-radius: 24px;
-  border: 1px solid var(--md-outline-variant);
-  background: var(--md-surface-container-low);
-  padding: 12px;
-  animation: editorIn 0.6s var(--ease-spring);
-}
-
-@media (min-width: 600px) {
-  .preview-card { border-radius: 28px; padding: 18px; }
-}
-
-@keyframes editorIn {
-  from { opacity: 0; transform: translateY(24px) scale(0.985); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-.preview-frame {
-  border-radius: 16px;
-  overflow: hidden;
-  background:
-    repeating-conic-gradient(color-mix(in srgb, var(--md-outline-variant) 30%, transparent) 0% 25%, transparent 0% 50%)
-    50% / 20px 20px;
-  border: 1px solid var(--md-outline-variant);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  max-height: 40vh;
-}
-
-@media (min-width: 600px) { .preview-frame { max-height: 44vh; border-radius: 18px; } }
-
-.preview-frame img {
-  display: block;
-  max-width: 100%;
-  max-height: 40vh;
-  object-fit: contain;
-}
-
-@media (min-width: 600px) { .preview-frame img { max-height: 44vh; } }
-
-.preview-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  flex-wrap: wrap;
-  padding: 12px 8px 2px;
-}
-
-.preview-meta {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-
-.preview-name {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--md-on-surface);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 220px;
-}
-
-@media (min-width: 600px) { .preview-name { max-width: 360px; } }
-
-.preview-dims {
-  font-size: 12px;
-  color: var(--md-on-surface-variant);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-/* ─── Stats row ──────────────────────────────────────── */
-
-.stats-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin: 16px 0 0;
-}
-
-.stat {
-  background: var(--md-surface-container-low);
-  border: 1px solid var(--md-outline-variant);
-  border-radius: 16px;
-  padding: 12px;
-  text-align: center;
-}
-
-.stat-label {
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--md-on-surface-variant);
-  margin-bottom: 4px;
-}
-
-@media (min-width: 600px) { .stat-label { font-size: 10px; } }
-
-.stat-value {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--md-on-surface);
-  font-variant-numeric: tabular-nums;
-}
-
-/* ─── Capacity bar ───────────────────────────────────── */
-
-.capacity-wrap { margin-top: 16px; }
-
-.capacity-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--md-on-surface-variant);
-  margin-bottom: 6px;
-}
-
-.capacity-track {
-  height: 24px;
-  border-radius: 12px;
-  background: var(--md-surface-container-high);
-  overflow: hidden;
-  position: relative;
-}
-
-.capacity-fill {
-  height: 100%;
-  width: 0%;
-  border-radius: 12px;
-  background: var(--md-primary);
-  transform-origin: left;
-  transform: scaleX(0);
-  transition: transform 0.6s var(--ease-spring-soft), background-color 0.3s var(--ease-standard);
-}
-
-.capacity-fill.over { background: var(--md-error); }
-
-/* ─── Fields ─────────────────────────────────────────── */
-
-.field { margin-top: 16px; }
-
-.field-label {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--md-on-surface-variant);
-  margin-bottom: 8px;
-}
-
-.field-label .count {
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  text-transform: none;
-  opacity: 0.8;
-}
-
-textarea, .text-input {
-  width: 100%;
-  border-radius: 16px;
-  border: 1px solid var(--md-outline-variant);
-  background: var(--md-surface-container-low);
-  color: var(--md-on-surface);
-  font-family: var(--font-sans);
-  font-size: 14px;
-  line-height: 1.5;
-  padding: 14px 16px;
-  resize: vertical;
-  min-height: 120px;
-  transition: border-color 0.2s var(--ease-standard), background-color 0.2s var(--ease-standard);
-}
-
-.text-input { min-height: 0; height: 48px; font-size: 15px; }
-
-textarea:hover, .text-input:hover { border-color: var(--md-outline); }
-
-textarea::placeholder, .text-input::placeholder { color: color-mix(in srgb, var(--md-on-surface-variant) 70%, transparent); }
-
-.field-hint {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  margin-top: 8px;
-  font-size: 12px;
-  color: var(--md-on-surface-variant);
-}
-
-.field-hint .icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; color: var(--md-primary); }
-
-/* Password row with inline visibility toggle */
-
-.pw-wrap { position: relative; }
-
-.pw-toggle {
-  position: absolute;
-  right: 6px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-.pw-toggle .icon { font-size: 20px; }
-
-/* ─── Result card (reveal) ───────────────────────────── */
-
-.result-card {
-  margin-top: 20px;
-  border-radius: 24px;
-  border: 1px solid color-mix(in srgb, var(--md-primary) 55%, var(--md-outline-variant));
-  background: color-mix(in srgb, var(--md-primary-container) 18%, var(--md-surface-container-low));
-  padding: 20px;
-  animation: editorIn 0.5s var(--ease-spring);
-}
-
-@media (min-width: 600px) { .result-card { border-radius: 28px; } }
-
-.result-head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
-}
-
-.result-head .icon { color: var(--md-primary); font-size: 22px; }
-
-.result-title { font-size: 15px; font-weight: 700; flex: 1; }
-
-.result-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 10px;
-  border-radius: 8px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  background: var(--md-secondary-container);
-  color: var(--md-on-secondary-container);
-}
-
-.result-chip .icon { font-size: 13px; color: inherit; font-variation-settings: 'wght' 600, 'GRAD' 0, 'opsz' 20; }
-
-.result-message {
-  font-family: var(--font-mono);
-  font-size: 13px;
-  line-height: 1.55;
-  white-space: pre-wrap;
-  word-break: break-word;
-  color: var(--md-on-surface);
-  background: var(--md-surface-container-lowest);
-  border: 1px solid var(--md-outline-variant);
-  border-radius: 12px;
-  padding: 14px 16px;
-  max-height: 320px;
-  overflow-y: auto;
-}
-
-.result-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
-
-/* ─── Outlined button ────────────────────────────────── */
-
-.btn-outlined {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 18px;
-  border-radius: 9999px;
-  border: 1px solid var(--md-outline);
-  background: none;
-  color: var(--md-on-surface);
-  font-family: var(--font-sans);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  cursor: pointer;
-  position: relative;
-  transition: background-color 0.2s var(--ease-standard), transform 0.15s var(--ease-spring);
-}
-
-.btn-outlined:hover { background: color-mix(in srgb, var(--md-on-surface) 8%, transparent); }
-.btn-outlined:active { transform: scale(0.96); }
-.btn-outlined .icon { font-size: 18px; }
-
-/* ─── How it works ───────────────────────────────────── */
-
-.how {
-  margin-top: 44px;
-  animation: fadeUp 0.8s var(--ease-spring) 0.15s both;
-}
-
-.how-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--md-on-surface-variant);
-  margin-bottom: 14px;
-}
-
-.how-title .icon { font-size: 18px; color: var(--md-primary); }
-
-.how-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
-}
-
-@media (min-width: 600px) { .how-grid { grid-template-columns: repeat(3, 1fr); } }
-
-.how-step {
-  border-radius: 16px;
-  border: 1px solid var(--md-outline-variant);
-  background: color-mix(in srgb, var(--md-surface-container-low) 80%, transparent);
-  padding: 16px;
-}
-
-.how-step .icon {
-  font-size: 20px;
-  color: var(--md-primary);
-  margin-bottom: 8px;
-  display: block;
-}
-
-.how-step h4 { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
-.how-step p { font-size: 12px; color: var(--md-on-surface-variant); line-height: 1.45; }
-
-/* ─── Footer note ────────────────────────────────────── */
-
-.footnote {
-  margin-top: 28px;
-  text-align: center;
-  font-size: 12px;
-  color: var(--md-on-surface-variant);
-}
-
-.footnote a { color: var(--md-primary); text-decoration: none; font-weight: 600; }
-.footnote a:hover { text-decoration: underline; }
-
-/* ─── Floating toolbar + FAB ─────────────────────────── */
-
-.toolbar {
-  position: fixed;
-  bottom: 12px;
-  left: 12px;
-  right: 12px;
-  z-index: 40;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 12px;
-  border-radius: 24px;
-  background: color-mix(in srgb, var(--md-surface-container) 88%, transparent);
-  backdrop-filter: blur(28px) saturate(180%);
-  -webkit-backdrop-filter: blur(28px) saturate(180%);
-  border: 1px solid color-mix(in srgb, var(--md-outline-variant) 50%, transparent);
-  box-shadow: 0 12px 40px -6px var(--md-shadow-strong);
-  animation: toolbarIn 0.55s var(--ease-spring) 0.15s both;
-  padding-bottom: calc(12px + env(safe-area-inset-bottom));
-}
-
-@keyframes toolbarIn {
-  from { opacity: 0; transform: translateY(100%); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@media (min-width: 600px) {
-  .toolbar {
-    bottom: 24px;
-    left: 50%;
-    right: auto;
-    transform: translateX(-50%);
-    width: calc(100% - 44px);
-    max-width: 732px;
-    flex-direction: row;
-    align-items: center;
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  
+  <!-- Primary SEO Meta Tags -->
+  <title>Inpriv — Privacy-First Tools | Zero-Knowledge & Client-Side</title>
+  <meta name="title" content="Inpriv — Privacy-First Tools | Zero-Knowledge & Client-Side">
+  <meta name="description" content="A suite of zero-knowledge, client-side web utilities engineered for total digital privacy. Encrypted chat, EXIF wipe, WebRTC leak test, TOTP authenticator, ephemeral encrypted notes, hash brute force, client-side compression, and more.">
+  <meta name="keywords" content="privacy tools, zero knowledge, client side encryption, hush chat, metadata sanitizer, image compression, webrtc leak test, totp authenticator, 2fa, burn ephemeral notes, open source privacy">
+  <meta name="author" content="Aurex Labs">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <link rel="canonical" href="https://inpriv.xyz/">
+
+  <!-- Color Scheme & PWA -->
+  <meta name="theme-color" content="#13140E" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#FAF9F0" media="(prefers-color-scheme: light)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Inpriv">
+
+  <!-- Open Graph / Facebook / LinkedIn -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://inpriv.xyz/">
+  <meta property="og:site_name" content="Inpriv">
+  <meta property="og:title" content="Inpriv — Privacy-First Tools | Zero-Knowledge & Client-Side">
+  <meta property="og:description" content="A suite of zero-knowledge, client-side web utilities engineered for total digital privacy. TOTP authenticator. No trackers, no server logs.">
+  <meta property="og:image" content="https://hush.best/icon.png">
+  <meta property="og:image:alt" content="Inpriv Logo">
+  <meta property="og:locale" content="en_US">
+
+  <!-- Twitter Cards -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="https://inpriv.xyz/">
+  <meta name="twitter:title" content="Inpriv — Privacy-First Tools | Zero-Knowledge & Client-Side">
+  <meta name="twitter:description" content="A suite of zero-knowledge, client-side web utilities engineered for total digital privacy. TOTP authenticator. No trackers, no server logs.">
+  <meta name="twitter:image" content="https://hush.best/icon.png">
+
+  <!-- Favicons & App Icons -->
+  <link rel="icon" type="image/png" sizes="32x32" href="https://hush.best/icon.png">
+  <link rel="shortcut icon" href="https://hush.best/icon.png">
+  <link rel="apple-touch-icon" href="https://hush.best/icon.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+
+  <!-- Preconnect and Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:ital,opsz,wght@0,8..144,300..800;1,8..144,300..800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+  <!-- Structured Data (JSON-LD) for SEO Rich Snippets -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://inpriv.xyz/#website",
+        "url": "https://inpriv.xyz/",
+        "name": "Inpriv",
+        "description": "Privacy-first tools. Zero-knowledge. Client-side only.",
+        "publisher": {
+          "@type": "Organization",
+          "name": "Aurex Labs",
+          "url": "https://inpriv.xyz"
+        }
+      },
+      {
+        "@type": "ItemList",
+        "name": "Inpriv Privacy Tools Suite",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "item": {
+              "@type": "SoftwareApplication",
+              "name": "Hush",
+              "description": "End-to-end encrypted chat. No logs, no servers.",
+              "url": "https://hush.best",
+              "applicationCategory": "SecurityApplication",
+              "operatingSystem": "All"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "item": {
+              "@type": "SoftwareApplication",
+              "name": "Wipe",
+              "description": "Zero-knowledge metadata sanitizer for images.",
+              "url": "https://wipe.inpriv.xyz",
+              "applicationCategory": "SecurityApplication",
+              "operatingSystem": "All"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 3,
+            "item": {
+              "@type": "SoftwareApplication",
+              "name": "WebRTC Leak Check",
+              "description": "Check if your real IP address is leaked via WebRTC.",
+              "url": "https://webrtc.inpriv.xyz",
+              "applicationCategory": "SecurityApplication",
+              "operatingSystem": "All"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 4,
+            "item": {
+              "@type": "SoftwareApplication",
+              "name": "Pay",
+              "description": "Crypto payment bridge for accepting payments.",
+              "url": "https://pay.inpriv.xyz",
+              "applicationCategory": "FinanceApplication",
+              "operatingSystem": "All"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 5,
+            "item": {
+              "@type": "SoftwareApplication",
+              "name": "Compress",
+              "description": "Client-side image compression. No server uploads.",
+              "url": "https://compress.inpriv.xyz",
+              "applicationCategory": "UtilitiesApplication",
+              "operatingSystem": "All"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 6,
+            "item": {
+              "@type": "SoftwareApplication",
+              "name": "Hash",
+              "description": "Client-side SHA and MD5 checksum generator for text and files.",
+              "url": "https://hash.inpriv.xyz",
+              "applicationCategory": "SecurityApplication",
+              "operatingSystem": "All"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 7,
+            "item": {
+              "@type": "SoftwareApplication",
+              "name": "DNS Leak Test",
+              "description": "Browser-side DNS resolution audit against multiple DoH resolvers.",
+              "url": "https://dns.inpriv.xyz",
+              "applicationCategory": "SecurityApplication",
+              "operatingSystem": "All"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 8,
+            "item": {
+              "@type": "SoftwareApplication",
+              "name": "QR",
+              "description": "Generate and read QR codes entirely in your browser.",
+              "url": "https://qr.inpriv.xyz",
+              "applicationCategory": "UtilitiesApplication",
+              "operatingSystem": "All"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 9,
+            "item": {
+              "@type": "SoftwareApplication",
+              "name": "Keyring",
+              "description": "Zero-knowledge encrypted vault for SSH keys, tokens and passwords.",
+              "url": "https://keyring.inpriv.xyz",
+              "applicationCategory": "SecurityApplication",
+              "operatingSystem": "All"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 10,
+            "item": {
+              "@type": "SoftwareApplication",
+              "name": "IP Info",
+              "description": "See what your browser reveals: public IP, ISP and device fingerprint.",
+              "url": "https://ipinfo.inpriv.xyz",
+              "applicationCategory": "SecurityApplication",
+              "operatingSystem": "All"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 11,
+            "item": {
+              "@type": "SoftwareApplication",
+              "name": "Pass",
+              "description": "Offline cryptographic password generator.",
+              "url": "https://inpriv.xyz#pass",
+              "applicationCategory": "SecurityApplication",
+              "operatingSystem": "All"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 12,
+            "item": {
+              "@type": "SoftwareApplication",
+              "name": "Base64",
+              "description": "Client-side Base64, URL, and HTML encoder/decoder.",
+              "url": "https://inpriv.xyz#base64",
+              "applicationCategory": "UtilitiesApplication",
+              "operatingSystem": "All"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 13,
+            "item": {
+              "@type": "SoftwareApplication",
+              "name": "Burn",
+              "description": "Ephemeral encrypted notes. Read once, then destroyed.",
+              "url": "https://inpriv.xyz#burn",
+              "applicationCategory": "SecurityApplication",
+              "operatingSystem": "All"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 14,
+            "item": {
+              "@type": "SoftwareApplication",
+              "name": "Brute",
+              "description": "Client-side hash brute force matcher. MD5, SHA-1, SHA-256, SHA-384, SHA-512.",
+              "url": "https://brute.inpriv.xyz",
+              "applicationCategory": "SecurityApplication",
+              "operatingSystem": "All"
+            }
+          }
+                  ,
+          {
+            "@type": "ListItem",
+            "position": 15,
+            "item": {
+              "@type": "SoftwareApplication",
+              "name": "TOTP",
+              "description": "Time-based one-time password generator (RFC 6238). Authenticator, client-side.",
+              "url": "https://totp.inpriv.xyz",
+              "applicationCategory": "SecurityApplication",
+              "operatingSystem": "All"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 16,
+            "item": {
+              "@type": "SoftwareApplication",
+              "name": "Burn",
+              "description": "Ephemeral encrypted notes. Read once, then destroyed. Zero-knowledge.",
+              "url": "https://burn.inpriv.xyz",
+              "applicationCategory": "SecurityApplication",
+              "operatingSystem": "All"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 17,
+            "item": {
+              "@type": "SoftwareApplication",
+              "name": "Stego",
+              "description": "Hide AES-256 encrypted messages inside PNG images. LSB steganography, fully client-side.",
+              "url": "https://stego.inpriv.xyz",
+              "applicationCategory": "SecurityApplication",
+              "operatingSystem": "All"
+            }
+          }
+        ]
+      }
+    ]
   }
-  @keyframes toolbarIn {
-    from { opacity: 0; transform: translate(-50%, 100%); }
-    to { opacity: 1; transform: translate(-50%, 0); }
-  }
-}
+  </script>
 
-.toolbar-hint {
-  display: none;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--md-on-surface-variant);
-  padding-left: 6px;
-  flex: 1;
-  min-width: 0;
-}
+  <style>
+    :root {
+      --md-easing-standard: cubic-bezier(0.2, 0.0, 0.0, 1.0);
+      --md-easing-emphasized: cubic-bezier(0.3, 0.0, 0.0, 1.0);
+      --md-easing-spring: cubic-bezier(0.2, 1.4, 0.0, 1.0);
+      --md-easing-spring-soft: cubic-bezier(0.34, 1.3, 0.64, 1.0);
 
-.toolbar-hint .icon { font-size: 16px; color: var(--md-primary); flex-shrink: 0; }
+      --font-sans: 'Roboto Flex', system-ui, -apple-system, sans-serif;
+      --font-icon: 'Material Symbols Rounded';
+      --touch-target-min: 48px;
+    }
 
-@media (min-width: 600px) { .toolbar-hint { display: flex; } }
+    [data-theme="dark"], :root {
+      --md-primary: #ABD37A;
+      --md-on-primary: #173800;
+      --md-primary-container: #2E4F2F;
+      --md-on-primary-container: #C7EFA0;
+      --md-secondary: #BCCBAF;
+      --md-on-secondary: #27341F;
+      --md-secondary-container: #3D4B34;
+      --md-on-secondary-container: #D8E7CB;
+      --md-tertiary: #FFB4A5;
+      --md-on-tertiary: #5E1709;
+      --md-tertiary-container: #7E2D1E;
+      --md-on-tertiary-container: #FFDAD3;
+      --md-error: #FFB4AB;
+      --md-surface: #13140E;
+      --md-on-surface: #E3E2D3;
+      --md-on-surface-variant: #C3C8B6;
+      --md-surface-container-lowest: #0D0F09;
+      --md-surface-container-low: #1A1C17;
+      --md-surface-container: #1F211B;
+      --md-surface-container-high: #292B25;
+      --md-surface-container-highest: #34362F;
+      --md-outline: #8D9283;
+      --md-outline-variant: #43483D;
+      --md-shadow-color: rgba(0, 0, 0, 0.4);
+      --md-shadow-color-strong: rgba(0, 0, 0, 0.65);
+    }
 
-.fab {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  width: 100%;
-  height: 52px;
-  padding: 0 28px;
-  border: none;
-  border-radius: 9999px;
-  background: var(--md-primary);
-  color: var(--md-on-primary);
-  font-family: var(--font-sans);
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  cursor: pointer;
-  position: relative;
-  box-shadow: 0 6px 20px -4px var(--md-shadow);
-  transition: transform 0.15s var(--ease-spring), box-shadow 0.3s var(--ease-standard),
-              background-color 0.3s var(--ease-standard), color 0.3s var(--ease-standard);
-  flex-shrink: 0;
-}
+    [data-theme="light"] {
+      --md-primary: #466E47;
+      --md-on-primary: #FFFFFF;
+      --md-primary-container: #C7EFA0;
+      --md-on-primary-container: #0C2000;
+      --md-secondary: #55624C;
+      --md-on-secondary: #FFFFFF;
+      --md-secondary-container: #D8E7CB;
+      --md-on-secondary-container: #131F0C;
+      --md-tertiary: #9C4231;
+      --md-on-tertiary: #FFFFFF;
+      --md-tertiary-container: #FFDAD3;
+      --md-on-tertiary-container: #3D0A03;
+      --md-error: #BA1A1A;
+      --md-surface: #FAF9F0;
+      --md-on-surface: #1A1C17;
+      --md-on-surface-variant: #43483D;
+      --md-surface-container-lowest: #FFFFFF;
+      --md-surface-container-low: #F4F3E7;
+      --md-surface-container: #EEEDDE;
+      --md-surface-container-high: #E9E7D9;
+      --md-surface-container-highest: #E3E2D3;
+      --md-outline: #74796C;
+      --md-outline-variant: #C3C8B6;
+      --md-shadow-color: rgba(20, 25, 15, 0.15);
+      --md-shadow-color-strong: rgba(20, 25, 15, 0.28);
+    }
 
-@media (min-width: 600px) { .fab { width: auto; height: 56px; } }
+    *, *::before, *::after {
+      margin: 0; padding: 0; box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
 
-.fab:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 28px -6px var(--md-shadow-strong);
-}
+    html {
+      scroll-behavior: smooth;
+      -webkit-text-size-adjust: 100%;
+    }
 
-.fab:active:not(:disabled) { transform: scale(0.96); }
+    body {
+      font-family: var(--font-sans);
+      font-optical-sizing: auto;
+      background:
+        radial-gradient(ellipse 80% 60% at 85% 0%, color-mix(in srgb, var(--md-primary-container) 55%, transparent) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 0% 100%, color-mix(in srgb, var(--md-tertiary-container) 45%, transparent) 0%, transparent 70%),
+        var(--md-surface);
+      background-attachment: fixed;
+      color: var(--md-on-surface);
+      min-height: 100dvh;
+      overflow-x: hidden;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      transition: background-color 0.5s var(--md-easing-standard), color 0.5s var(--md-easing-standard);
+    }
 
-.fab:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-  box-shadow: none;
-}
+    /* Accessibility Focus Rings */
+    a:focus-visible, button:focus-visible {
+      outline: 2px solid var(--md-primary);
+      outline-offset: 3px;
+    }
 
-.fab.success {
-  background: var(--md-secondary-container);
-  color: var(--md-on-secondary-container);
-  animation: fabPop 0.5s var(--ease-spring);
-}
+    .dot-grid {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background-image: radial-gradient(circle at 1px 1px, var(--md-outline-variant) 1px, transparent 0);
+      background-size: 28px 28px;
+      opacity: 0.18;
+      mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+      -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+    }
 
-@keyframes fabPop {
-  0% { transform: scale(1); }
-  40% { transform: scale(0.92); }
-  70% { transform: scale(1.05); }
-  100% { transform: scale(1); }
-}
+    .blur-blob {
+      position: fixed; top: -100px; right: -100px;
+      width: 420px; height: 420px; border-radius: 50%;
+      background: radial-gradient(circle, color-mix(in srgb, var(--md-tertiary) 22%, transparent), transparent 70%);
+      filter: blur(60px);
+      animation: drift 22s ease-in-out infinite;
+      pointer-events: none; z-index: 0;
+    }
 
-.fab .icon { font-size: 20px; font-variation-settings: 'wght' 600, 'GRAD' 200, 'opsz' 24; }
+    .icon {
+      font-family: var(--font-icon);
+      font-weight: normal; font-style: normal;
+      display: inline-block; line-height: 1;
+      text-transform: none; letter-spacing: normal; word-wrap: normal;
+      white-space: nowrap; direction: ltr;
+      -webkit-font-smoothing: antialiased;
+      font-variation-settings: 'wght' 500, 'GRAD' 0, 'opsz' 24;
+    }
 
-.fab .spinner {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  border: 2.5px solid color-mix(in srgb, currentColor 35%, transparent);
-  border-top-color: currentColor;
-  animation: spin 0.8s linear infinite;
-}
+    .container {
+      width: 100%; max-width: 680px; margin: 0 auto;
+      padding: 16px 16px calc(48px + env(safe-area-inset-bottom, 0px)) 16px;
+      position: relative; z-index: 1;
+      display: flex; flex-direction: column; min-height: 100dvh;
+    }
 
-@keyframes spin { to { transform: rotate(360deg); } }
+    .app-bar {
+      position: sticky; top: 12px; z-index: 50;
+      width: 100%; height: 48px; padding: 6px 6px 6px 18px;
+      margin-bottom: 20px;
+      border-radius: 9999px;
+      background: color-mix(in srgb, var(--md-surface-container) 80%, transparent);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 1px solid color-mix(in srgb, var(--md-outline-variant) 50%, transparent);
+      box-shadow: 0 4px 20px -4px var(--md-shadow-color);
+      display: flex; align-items: center; justify-content: space-between;
+      animation: barIn 0.7s var(--md-easing-spring) both;
+    }
 
-/* ─── Toast ──────────────────────────────────────────── */
+    .app-bar-brand {
+      font-size: 17px; font-weight: 700; letter-spacing: -0.01em;
+      color: var(--md-on-surface); text-decoration: none;
+      display: flex; align-items: center; gap: 4px;
+    }
 
-.toast {
-  position: fixed;
-  bottom: calc(96px + env(safe-area-inset-bottom));
-  left: 50%;
-  transform: translate(-50%, 20px);
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  max-width: calc(100% - 32px);
-  padding: 12px 16px;
-  border-radius: 12px;
-  background: var(--md-inverse-surface);
-  color: var(--md-inverse-on-surface);
-  box-shadow: 0 8px 24px var(--md-shadow-strong);
-  font-size: 13px;
-  opacity: 0;
-  pointer-events: none;
-  transition: transform 0.35s var(--ease-spring), opacity 0.35s var(--ease-standard);
-}
+    .app-bar-brand span { color: var(--md-primary); }
 
-.toast.visible { opacity: 1; transform: translate(-50%, 0); }
+    .icon-btn {
+      width: 40px; height: 40px; border-radius: 50%; border: none;
+      background: transparent; color: var(--md-on-surface-variant);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; position: relative; overflow: hidden;
+      transition: color 0.2s var(--md-easing-standard), transform 0.15s var(--md-easing-spring);
+    }
 
-.toast .icon { font-size: 22px; color: var(--md-inverse-primary); }
-.toast.error .icon { color: var(--md-error); }
+    .icon-btn:hover { color: var(--md-on-surface); }
+    .icon-btn:hover::before { content: ''; position: absolute; inset: 0; background: currentColor; opacity: 0.08; }
+    .icon-btn:active { transform: scale(0.92); }
 
-.toast-title { font-weight: 600; font-size: 14px; line-height: 1.2; }
-.toast-sub { font-size: 12px; opacity: 0.7; line-height: 1.2; margin-top: 2px; }
+    header {
+      text-align: center; margin-bottom: 16px;
+      opacity: 0; animation: fadeUp 0.8s var(--md-easing-spring) 0.1s both;
+    }
 
-@media (min-width: 600px) { .toast { bottom: 130px; } }
+    .hero-title {
+      font-size: clamp(32px, 8vw, 44px); font-weight: 800; letter-spacing: -0.025em;
+      line-height: 1.05; color: var(--md-on-surface); margin-bottom: 12px;
+    }
 
-/* ─── Ripple ─────────────────────────────────────────── */
+    .hero-title .accent {
+      font-style: italic; font-weight: 300; color: var(--md-primary);
+    }
 
-.ripple {
-  position: absolute;
-  border-radius: 50%;
-  background: currentColor;
-  opacity: 0.25;
-  transform: scale(0);
-  animation: rippleAnim 0.6s var(--ease-standard) forwards;
-  pointer-events: none;
-}
+    .tagline {
+      font-size: 15px; color: var(--md-on-surface-variant); font-weight: 500;
+      max-width: 380px; margin: 0 auto 12px auto; line-height: 1.4;
+    }
 
-@keyframes rippleAnim {
-  to { transform: scale(4); opacity: 0; }
-}
+    .description {
+      font-size: 14px; color: var(--md-on-surface-variant); line-height: 1.5;
+      max-width: 440px; margin: 0 auto; opacity: 0.85;
+    }
 
-/* ─── Reduced motion ─────────────────────────────────── */
+    .grid {
+      display: grid; grid-template-columns: 1fr; gap: 9px; margin-bottom: auto;
+    }
 
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-</style>
+    .service-card {
+      display: flex; align-items: center; gap: 14px;
+      padding: 12px 16px;
+      background: var(--md-surface-container-low);
+      border: 1px solid var(--md-outline-variant);
+      border-radius: 20px;
+      text-decoration: none; color: inherit;
+      position: relative; overflow: hidden;
+      min-height: var(--touch-target-min);
+      transition: all 0.4s var(--md-easing-spring-soft);
+      opacity: 0; animation: fadeUp 0.7s var(--md-easing-spring) both;
+    }
+
+    .service-card:hover {
+      transform: translateY(-4px);
+      background: var(--md-surface-container);
+      border-color: var(--md-primary);
+      box-shadow: 0 12px 32px -6px var(--md-shadow-color-strong);
+    }
+
+    .service-card.coming-soon {
+      cursor: default; opacity: 0.75;
+    }
+
+    .service-card.coming-soon:hover {
+      transform: none; background: var(--md-surface-container-low);
+      border-color: var(--md-outline-variant); box-shadow: none;
+    }
+
+    .service-card.placeholder {
+      cursor: default; opacity: 0.55;
+      border: 1px dashed var(--md-outline-variant);
+      background: transparent;
+    }
+
+    .service-card.placeholder:hover {
+      transform: none; background: transparent;
+      border-color: var(--md-outline-variant); box-shadow: none;
+    }
+
+    .service-icon-box {
+      width: 40px; height: 40px; border-radius: 13px;
+      background: var(--md-primary-container); color: var(--md-on-primary-container);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: transform 0.3s var(--md-easing-spring);
+    }
+
+    .service-icon-box .icon { font-size: 20px; }
+
+    .service-card:hover .service-icon-box {
+      transform: scale(1.08) rotate(-3deg);
+    }
+
+    .service-card.coming-soon .service-icon-box,
+    .service-card.placeholder .service-icon-box {
+      background: var(--md-surface-container-highest);
+      color: var(--md-on-surface-variant);
+      transform: none !important;
+    }
+
+    .service-info { flex: 1; min-width: 0; }
+    .service-name { font-size: 16px; font-weight: 700; color: var(--md-on-surface); margin-bottom: 2px; }
+    .service-desc { font-size: 13px; color: var(--md-on-surface-variant); line-height: 1.4; }
+
+    .status-badge {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+      padding: 4px 10px; border-radius: 9999px; flex-shrink: 0;
+      text-transform: uppercase;
+    }
+
+    .status-badge.live {
+      background: var(--md-primary-container); color: var(--md-on-primary-container);
+    }
+
+    .status-badge.soon {
+      background: var(--md-surface-container-highest); color: var(--md-on-surface-variant);
+    }
+
+    .arrow-icon {
+      font-size: 20px; color: var(--md-on-surface-variant); opacity: 0.5;
+      transition: all 0.25s var(--md-easing-standard); flex-shrink: 0;
+    }
+
+    .service-card:hover .arrow-icon {
+      transform: translateX(4px); opacity: 1; color: var(--md-primary);
+    }
+
+    .section-divider {
+      display: flex; align-items: center; gap: 16px;
+      margin: 10px 0 2px 0;
+      opacity: 0; animation: fadeUp 0.5s var(--md-easing-standard) both;
+    }
+
+    .section-divider::before, .section-divider::after {
+      content: ''; flex: 1; height: 1px; background: var(--md-outline-variant); opacity: 0.6;
+    }
+
+    .section-divider span {
+      font-size: 10px; font-weight: 700; color: var(--md-on-surface-variant);
+      letter-spacing: 0.12em; text-transform: uppercase; white-space: nowrap;
+    }
+
+    .ripple-span {
+      position: absolute; border-radius: 50%;
+      background: currentColor; opacity: 0.2;
+      transform: scale(0); animation: rippleAnim 0.6s var(--md-easing-standard) forwards;
+      pointer-events: none;
+    }
+
+    footer {
+      text-align: center; padding-top: 24px;
+    }
+
+    footer .copyright {
+      font-size: 12px; color: var(--md-on-surface-variant); margin-bottom: 4px; opacity: 0.8;
+    }
+
+    footer .byline {
+      font-size: 13px; font-weight: 600; color: var(--md-on-surface);
+    }
+
+    footer .byline span {
+      color: var(--md-primary); font-weight: 700;
+    }
+
+    @keyframes barIn {
+      from { opacity: 0; transform: translateY(-12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes drift {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(-60px, 40px) scale(1.1); }
+    }
+
+    @keyframes rippleAnim {
+      to { transform: scale(4); opacity: 0; }
+    }
+
+    @media(min-width: 600px) {
+      .container { max-width: 720px; padding-top: 20px; }
+      .app-bar { height: 52px; margin-bottom: 22px; }
+      .app-bar-brand { font-size: 19px; }
+      .hero-title { font-size: clamp(40px, 6.5vw, 56px); }
+      .tagline { font-size: 16px; max-width: 440px; }
+      .grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .service-card { border-radius: 22px; padding: 14px 18px; }
+      .section-divider { grid-column: span 2; margin: 12px 0 4px 0; }
+    }
+
+    @media(min-width: 1024px) {
+      .container { max-width: 840px; }
+      .grid { gap: 12px; }
+    }
+  </style>
 </head>
 <body>
 
@@ -1020,789 +653,387 @@ textarea::placeholder, .text-input::placeholder { color: color-mix(in srgb, var(
 <div class="blur-blob" aria-hidden="true"></div>
 
 <div class="container">
-  <nav class="app-bar" aria-label="Navigation">
-    <a href="https://inpriv.xyz" class="app-bar-brand">
-      <img src="https://hush.best/icon.png" alt="" class="app-logo"> Inpriv<span class="accent">.</span> Stego
+  <nav class="app-bar" aria-label="Main Navigation">
+    <a href="https://inpriv.xyz" class="app-bar-brand" aria-label="Inpriv Homepage">
+      Inpriv<span>.</span>
     </a>
-    <div class="bar-actions">
-      <button class="icon-btn" id="theme-toggle" aria-label="Toggle theme" type="button">
-        <span class="icon" id="theme-icon" aria-hidden="true">light_mode</span>
-      </button>
-    </div>
+    <button class="icon-btn" id="lang-toggle" aria-label="Zmień język / Change language" type="button">
+      <span class="icon" id="lang-icon" aria-hidden="true">translate</span>
+    </button>
+    <button class="icon-btn" id="theme-toggle" aria-label="Toggle light or dark theme" type="button">
+      <span class="icon" id="theme-icon" aria-hidden="true">light_mode</span>
+    </button>
   </nav>
 
-  <header class="hero">
-    <h1 class="hero-title">Hide in plain<br><span class="accent">sight.</span></h1>
-    <p class="hero-desc">Steganography for everyone. Hide a message inside a PNG image — optionally AES-256 encrypted. Everything happens in your browser; the image never leaves your device.</p>
-    <div class="hero-badges">
-      <span class="hero-badge"><span class="icon" aria-hidden="true">lock</span> Zero-knowledge</span>
-      <span class="hero-badge"><span class="icon" aria-hidden="true">cloud_off</span> No uploads</span>
-      <span class="hero-badge"><span class="icon" aria-hidden="true">code</span> Open source</span>
-    </div>
+  <header>
+    <h1 class="hero-title"><span data-i18n="hero1">Zero-knowledge.</span> <br><span class="accent" data-i18n="hero2">Client-side only.</span></h1>
+    <p class="tagline" data-i18n="tagline">Privacy-first web utilities designed for your peace of mind.</p>
+    <p class="description" data-i18n-html="description">
+      A suite of tools engineered to keep your sensitive data exclusively on your device.
+      No trackers, no remote logs, zero compromises.
+    </p>
   </header>
 
-  <div class="segmented" role="group" aria-label="Mode">
-    <button type="button" id="mode-hide" aria-pressed="true">
-      <span class="icon" aria-hidden="true">visibility_off</span> Hide message
-    </button>
-    <button type="button" id="mode-reveal" aria-pressed="false">
-      <span class="icon" aria-hidden="true">visibility</span> Reveal message
-    </button>
-  </div>
+  <main class="grid" id="grid">
+    <!-- Live Services -->
+    <a href="https://hush.best" class="service-card" style="animation-delay: 0.15s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">chat</span></div>
+      <div class="service-info">
+        <h2 class="service-name">Hush</h2>
+        <p class="service-desc" data-i18n="desc-hush">End-to-end encrypted chat. No logs, no servers.</p>
+      </div>
+      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
 
-  <!-- ══════════ HIDE MODE ══════════ -->
-  <section class="panel" id="panel-hide" aria-label="Hide a message in an image">
+    <a href="https://wipe.inpriv.xyz" class="service-card" style="animation-delay: 0.21s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">auto_fix_high</span></div>
+      <div class="service-info">
+        <h2 class="service-name">Wipe</h2>
+        <p class="service-desc" data-i18n="desc-wipe">Zero-knowledge metadata sanitizer for images.</p>
+      </div>
+      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
 
-    <div class="dropzone" id="dropzone-hide" role="button" tabindex="0" aria-label="Choose an image to hide your message in">
-      <div class="dropzone-icon"><span class="icon" aria-hidden="true">add_photo_alternate</span></div>
-      <h3>Choose an image</h3>
-      <p>Drop a photo here or tap to browse. Any format works — PNG, JPG, WebP. Your message will be invisible inside the pixels.</p>
-      <span class="hint"><span class="icon" aria-hidden="true">image</span> Any image format &middot; stays on your device</span>
+    <a href="https://compress.inpriv.xyz" class="service-card" style="animation-delay: 0.27s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">compress</span></div>
+      <div class="service-info">
+        <h2 class="service-name">Compress</h2>
+        <p class="service-desc" data-i18n="desc-compress">Client-side image compression. No upload needed.</p>
+      </div>
+      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
+    <a href="https://webrtc.inpriv.xyz" class="service-card" style="animation-delay: 0.33s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">security</span></div>
+      <div class="service-info">
+        <h2 class="service-name">WebRTC Leak</h2>
+        <p class="service-desc" data-i18n="desc-webrtc-leak">Check if your real IP address is leaked via WebRTC.</p>
+      </div>
+      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
+    <a href="https://pay.inpriv.xyz" class="service-card" style="animation-delay: 0.39s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">payments</span></div>
+      <div class="service-info">
+        <h2 class="service-name">Pay</h2>
+        <p class="service-desc" data-i18n="desc-pay">Crypto payment bridge for accepting payments.</p>
+      </div>
+      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
+    <a href="https://hash.inpriv.xyz" class="service-card" style="animation-delay: 0.45s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">fingerprint</span></div>
+      <div class="service-info">
+        <h2 class="service-name">Hash</h2>
+        <p class="service-desc" data-i18n="desc-hash">SHA &amp; MD5 checksums for any text or file, in-browser.</p>
+      </div>
+      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
+    <a href="https://dns.inpriv.xyz" class="service-card" style="animation-delay: 0.51s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">dns</span></div>
+      <div class="service-info">
+        <h2 class="service-name">DNS Leak</h2>
+        <p class="service-desc" data-i18n="desc-dns-leak">Browser-side DNS resolution audit over DoH.</p>
+      </div>
+      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
+    <a href="https://qr.inpriv.xyz" class="service-card" style="animation-delay: 0.57s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">qr_code</span></div>
+      <div class="service-info">
+        <h2 class="service-name">QR</h2>
+        <p class="service-desc" data-i18n="desc-qr">Generate &amp; read QR codes. Camera or image, fully offline.</p>
+      </div>
+      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
+    <a href="https://keyring.inpriv.xyz" class="service-card" style="animation-delay: 0.63s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">key</span></div>
+      <div class="service-info">
+        <h2 class="service-name">Keyring</h2>
+        <p class="service-desc" data-i18n="desc-keyring">Zero-knowledge encrypted vault for keys &amp; tokens.</p>
+      </div>
+      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
+    <a href="https://ipinfo.inpriv.xyz" class="service-card" style="animation-delay: 0.69s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">my_location</span></div>
+      <div class="service-info">
+        <h2 class="service-name">IP Info</h2>
+        <p class="service-desc" data-i18n="desc-ip-info">What your browser reveals — IP, ISP &amp; fingerprint.</p>
+      </div>
+      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
+    <a href="https://brute.inpriv.xyz" class="service-card" style="animation-delay: 0.75s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">lock_open</span></div>
+      <div class="service-info">
+        <h2 class="service-name">Brute</h2>
+        <p class="service-desc" data-i18n="desc-brute">Hash brute force matcher — MD5, SHA-1, SHA-256, SHA-384, SHA-512.</p>
+      </div>
+      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
+    <a href="https://totp.inpriv.xyz" class="service-card" style="animation-delay: 0.81s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">timer</span></div>
+      <div class="service-info">
+        <h2 class="service-name">TOTP</h2>
+        <p class="service-desc" data-i18n="desc-totp">Time-based one-time password generator (RFC 6238). 2FA codes, client-side.</p>
+      </div>
+      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
+    <a href="https://burn.inpriv.xyz" class="service-card" style="animation-delay: 0.87s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">local_fire_department</span></div>
+      <div class="service-info">
+        <h2 class="service-name">Burn</h2>
+        <p class="service-desc" data-i18n="desc-burn">Ephemeral encrypted notes. Read once, then destroyed.</p>
+      </div>
+      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
+    <a href="https://stego.inpriv.xyz" class="service-card" style="animation-delay: 0.93s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">hide_image</span></div>
+      <div class="service-info">
+        <h2 class="service-name">Stego</h2>
+        <p class="service-desc" data-i18n="desc-stego">Hide encrypted messages inside PNG images. Invisible, in-browser.</p>
+      </div>
+      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
+    <div class="service-card coming-soon" style="animation-delay: 0.97s;">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">auto_awesome</span></div>
+      <div class="service-info">
+        <h2 class="service-name">Soon</h2>
+        <p class="service-desc" data-i18n="desc-soon">Something new is coming.</p>
+      </div>
+      <span class="status-badge soon" data-i18n="badge-soon">Soon</span>
     </div>
 
-    <div class="preview-card" id="preview-hide" hidden>
-      <div class="preview-frame"><img id="preview-img-hide" alt="Selected image preview"></div>
-      <div class="preview-bar">
-        <div class="preview-meta">
-          <span class="preview-name" id="preview-name-hide"></span>
-          <span class="preview-dims" id="preview-dims-hide"></span>
-        </div>
-        <button class="btn-outlined" id="change-btn-hide" type="button">
-          <span class="icon" aria-hidden="true">swap_horiz</span> Change image
-        </button>
-      </div>
-
-      <div class="stats-row">
-        <div class="stat"><div class="stat-label">Dimensions</div><div class="stat-value" id="stat-dims">—</div></div>
-        <div class="stat"><div class="stat-label">Capacity</div><div class="stat-value" id="stat-capacity">—</div></div>
-        <div class="stat"><div class="stat-label">Hidden size</div><div class="stat-value" id="stat-used">—</div></div>
-      </div>
-
-      <div class="capacity-wrap">
-        <div class="capacity-head">
-          <span>Capacity used</span>
-          <span id="capacity-pct" aria-live="polite">0%</span>
-        </div>
-        <div class="capacity-track" role="progressbar" aria-label="Capacity used" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="capacity-bar-wrap">
-          <div class="capacity-fill" id="capacity-fill"></div>
-        </div>
-      </div>
+    <!-- Divider -->
+    <div class="section-divider" style="animation-delay: 0.51s;">
+      <span>Coming Soon</span>
     </div>
 
-    <div class="field">
-      <label class="field-label" for="message-input">
-        <span>Secret message</span>
-        <span class="count" id="message-count">0 chars</span>
-      </label>
-      <textarea id="message-input" placeholder="Type the message you want to hide inside the image…" autocomplete="off" spellcheck="false" maxlength="250000"></textarea>
-      <p class="field-hint">
-        <span class="icon" aria-hidden="true">info</span>
-        <span>The message is embedded into the least-significant bits of the image pixels — invisible to the human eye.</span>
-      </p>
+    <!-- Upcoming Services -->
+    <div class="service-card coming-soon" style="animation-delay: 0.57s;">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">mail</span></div>
+      <div class="service-info">
+        <h2 class="service-name">Mail</h2>
+        <p class="service-desc" data-i18n="desc-mail">Encrypted, disposable email forwarding.</p>
+      </div>
+      <span class="status-badge soon" data-i18n="badge-soon">Soon</span>
     </div>
 
-    <div class="field">
-      <label class="field-label" for="password-hide">
-        <span>Password <span style="text-transform:none;font-weight:500;opacity:.8">(optional)</span></span>
-      </label>
-      <div class="pw-wrap">
-        <input class="text-input" id="password-hide" type="password" placeholder="Add a password for AES-256 encryption" autocomplete="new-password">
-        <button class="icon-btn pw-toggle" id="pw-toggle-hide" aria-label="Show or hide password" type="button">
-          <span class="icon" id="pw-toggle-icon-hide" aria-hidden="true">visibility</span>
-        </button>
+    <div class="service-card coming-soon" style="animation-delay: 0.63s;">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">account_balance_wallet</span></div>
+      <div class="service-info">
+        <h2 class="service-name">Zero</h2>
+        <p class="service-desc" data-i18n="desc-zero">Private crypto wallet. Self-custodial.</p>
       </div>
-      <p class="field-hint">
-        <span class="icon" aria-hidden="true">enhanced_encryption</span>
-        <span>With a password, the message is encrypted with AES-256-GCM (PBKDF2, 100k iterations) before embedding. Without one, it is stored plainly inside the pixels.</span>
-      </p>
-    </div>
-  </section>
-
-  <!-- ══════════ REVEAL MODE ══════════ -->
-  <section class="panel" id="panel-reveal" aria-label="Reveal a hidden message" hidden>
-
-    <div class="dropzone" id="dropzone-reveal" role="button" tabindex="0" aria-label="Choose a stego image to reveal its hidden message">
-      <div class="dropzone-icon"><span class="icon" aria-hidden="true">image_search</span></div>
-      <h3>Choose a stego image</h3>
-      <p>Drop the image that carries a hidden message, or tap to browse. Use the original file — re-uploads to social media or messengers destroy the hidden bits.</p>
-      <span class="hint"><span class="icon" aria-hidden="true">visibility</span> Nothing is uploaded</span>
+      <span class="status-badge soon" data-i18n="badge-soon">Soon</span>
     </div>
 
-    <div class="preview-card" id="preview-reveal" hidden>
-      <div class="preview-frame"><img id="preview-img-reveal" alt="Selected stego image preview"></div>
-      <div class="preview-bar">
-        <div class="preview-meta">
-          <span class="preview-name" id="preview-name-reveal"></span>
-          <span class="preview-dims" id="preview-dims-reveal"></span>
-        </div>
-        <button class="btn-outlined" id="change-btn-reveal" type="button">
-          <span class="icon" aria-hidden="true">swap_horiz</span> Change image
-        </button>
+    <div class="service-card coming-soon" style="animation-delay: 0.69s;">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">manage_search</span></div>
+      <div class="service-info">
+        <h2 class="service-name">OSINT</h2>
+        <p class="service-desc" data-i18n="desc-osint">AI-powered open-source intelligence on anything.</p>
       </div>
+      <span class="status-badge soon" data-i18n="badge-soon">Soon</span>
     </div>
 
-    <div class="field" id="reveal-pw-field" hidden>
-      <label class="field-label" for="password-reveal">
-        <span>Password</span>
-      </label>
-      <div class="pw-wrap">
-        <input class="text-input" id="password-reveal" type="password" placeholder="Password used to encrypt the message" autocomplete="off">
-        <button class="icon-btn pw-toggle" id="pw-toggle-reveal" aria-label="Show or hide password" type="button">
-          <span class="icon" id="pw-toggle-icon-reveal" aria-hidden="true">visibility</span>
-        </button>
+    <!-- Newly Added Functions -->
+    <div class="service-card coming-soon" style="animation-delay: 0.81s;" id="pass">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">password</span></div>
+      <div class="service-info">
+        <h2 class="service-name">Pass</h2>
+        <p class="service-desc" data-i18n="desc-pass">Offline cryptographic password generator.</p>
       </div>
-      <p class="field-hint">
-        <span class="icon" aria-hidden="true">key</span>
-        <span>This image contains an encrypted message. Enter the password to decrypt it.</span>
-      </p>
+      <span class="status-badge soon" data-i18n="badge-soon">Soon</span>
     </div>
 
-    <div class="result-card" id="result-card" hidden>
-      <div class="result-head">
-        <span class="icon" aria-hidden="true">mark_email_read</span>
-        <span class="result-title">Hidden message</span>
-        <span class="result-chip" id="result-encrypted-chip"><span class="icon" aria-hidden="true">lock</span><span id="result-encrypted-label">Encrypted</span></span>
+    <div class="service-card coming-soon" style="animation-delay: 0.87s;" id="base64">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">code</span></div>
+      <div class="service-info">
+        <h2 class="service-name">Base64</h2>
+        <p class="service-desc" data-i18n="desc-base64">Client-side Base64, URL, and HTML encoder/decoder.</p>
       </div>
-      <div class="result-message" id="result-message" tabindex="0" aria-live="polite"></div>
-      <div class="result-actions">
-        <button class="btn-outlined" id="copy-btn" type="button">
-          <span class="icon" aria-hidden="true">content_copy</span> Copy message
-        </button>
+      <span class="status-badge soon" data-i18n="badge-soon">Soon</span>
+    </div>
+
+    <div class="service-card placeholder" style="animation-delay: 0.99s;">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">add</span></div>
+      <div class="service-info">
+        <h2 class="service-name" style="color:var(--md-on-surface-variant)"" data-i18n="more-soon-title">More Soon</h2>
+        <p class="service-desc">New utilities currently in active development.</p>
       </div>
     </div>
-  </section>
+  </main>
 
-  <!-- ══════════ HOW IT WORKS ══════════ -->
-  <section class="how" aria-label="How it works">
-    <div class="how-title"><span class="icon" aria-hidden="true">school</span> How it works</div>
-    <div class="how-grid">
-      <div class="how-step">
-        <span class="icon" aria-hidden="true">edit_note</span>
-        <h4>1. Write &amp; lock</h4>
-        <p>Pick a PNG, type your secret and an optional password. The message is encrypted in your browser with AES-256-GCM.</p>
-      </div>
-      <div class="how-step">
-        <span class="icon" aria-hidden="true">hide_image</span>
-        <h4>2. Embed</h4>
-        <p>The ciphertext is spread across the least-significant bits of the pixels. The result looks identical — and metadata is stripped.</p>
-      </div>
-      <div class="how-step">
-        <span class="icon" aria-hidden="true">visibility</span>
-        <h4>3. Share &amp; reveal</h4>
-        <p>Send the PNG as a file. Anyone with Stego — and the password, if you set one — can reveal the message.</p>
-      </div>
-    </div>
-  </section>
-
-  <p class="footnote">
-    Part of <a href="https://inpriv.xyz" target="_blank" rel="noopener noreferrer">Inpriv</a> — zero-knowledge utilities by
-    <a href="https://aurexlabs.xyz" target="_blank" rel="noopener noreferrer">Aurex Labs</a>.
-    Share images as <strong>files</strong> — compressing or re-encoding (JPEG, screenshots, messengers) destroys the hidden data.
-  </p>
+  <footer>
+    <div class="copyright" data-i18n="copyright">Copyright 2026, Inpriv</div>
+    <div class="byline"><span data-i18n="by">by</span> <span>Aurex Labs</span></div>
+  </footer>
 </div>
-
-<!-- ══════════ TOOLBAR ══════════ -->
-<div class="toolbar" id="toolbar">
-  <div class="toolbar-hint" id="toolbar-hint">
-    <span class="icon" aria-hidden="true">touch_app</span>
-    <span id="toolbar-hint-text">Pick an image to start</span>
-  </div>
-  <button class="fab" id="fab" type="button" disabled>
-    <span class="icon" id="fab-icon" aria-hidden="true">visibility_off</span>
-    <span id="fab-label">Hide message</span>
-  </button>
-</div>
-
-<div class="toast" id="toast" role="status" aria-live="polite">
-  <span class="icon" id="toast-icon" aria-hidden="true">check_circle</span>
-  <div>
-    <div class="toast-title" id="toast-title"></div>
-    <div class="toast-sub" id="toast-sub"></div>
-  </div>
-</div>
-
-<input type="file" id="file-input" accept="image/*" hidden>
 
 <script>
-'use strict';
+  // Light / Dark Theme Logic
+  const themeToggleBtn = document.getElementById('theme-toggle');
+  const themeIcon = document.getElementById('theme-icon');
 
-/* ═══════════════ Steganography core ═══════════════ */
-
-const MAGIC = [0x49, 0x56, 0x53, 0x31]; // "IVS1" — Inpriv Stego v1
-const HEADER_LEN = 9;                   // magic(4) + flag(1) + length(4, uint32 BE)
-const PBKDF2_ITERATIONS = 100000;
-const MAX_PIXELS = 40e6;                // sanity cap ≈ 6000×6600
-
-const textEncoder = new TextEncoder();
-const textDecoder = new TextDecoder();
-
-function buildHeader(flag, payloadLen) {
-  const h = new Uint8Array(HEADER_LEN);
-  h.set(MAGIC, 0);
-  h[4] = flag;
-  new DataView(h.buffer).setUint32(5, payloadLen, false);
-  return h;
-}
-
-function parseHeader(bytes) {
-  if (!bytes || bytes.length < HEADER_LEN) return null;
-  for (let i = 0; i < 4; i++) if (bytes[i] !== MAGIC[i]) return null;
-  const len = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(5, false);
-  if (len === 0 || len > 64 * 1024 * 1024) return null;
-  return { flag: bytes[4], len };
-}
-
-async function deriveKey(password, salt) {
-  const base = await crypto.subtle.importKey('raw', textEncoder.encode(password), 'PBKDF2', false, ['deriveKey']);
-  return crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt: salt, iterations: PBKDF2_ITERATIONS, hash: 'SHA-256' },
-    base,
-    { name: 'AES-GCM', length: 256 },
-    false,
-    ['encrypt', 'decrypt']
-  );
-}
-
-/* Build the embedded payload. flag 0 = plain UTF-8, flag 1 = salt+iv+ciphertext */
-async function buildPayload(message, password) {
-  const msg = textEncoder.encode(message);
-  if (password) {
-    const salt = crypto.getRandomValues(new Uint8Array(16));
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    const key = await deriveKey(password, salt);
-    const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, key, msg));
-    const payload = new Uint8Array(16 + 12 + ct.length);
-    payload.set(salt, 0);
-    payload.set(iv, 16);
-    payload.set(ct, 28);
-    return { bytes: payload, encrypted: true };
+  function setTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('aurex_theme', theme);
+    themeIcon.textContent = theme === 'dark' ? 'light_mode' : 'dark_mode';
   }
-  return { bytes: msg, encrypted: false };
-}
 
-/* Decrypt salt+iv+ciphertext payload → plaintext string */
-async function openPayload(payload, password) {
-  if (payload.length < 29) throw new Error('truncated');
-  const salt = payload.slice(0, 16);
-  const iv = payload.slice(16, 28);
-  const ct = payload.slice(28);
-  const key = await deriveKey(password, salt);
-  const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv }, key, ct);
-  return textDecoder.decode(pt);
-}
+  const savedTheme = localStorage.getItem('aurex_theme') || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  setTheme(savedTheme);
 
-/* Usable channel capacity in bits: R,G,B of fully-opaque pixels only.
-   (Semi-transparent pixels are skipped — canvas alpha premultiplication
-   makes their RGB values lossy, which would corrupt embedded bits.) */
-function capacityBits(data) {
-  let opaque = 0;
-  for (let px = 3; px < data.length; px += 4) if (data[px] === 255) opaque++;
-  return opaque * 3;
-}
-
-/* Embed bytes LSB-first across R,G,B of opaque pixels. Throws on overflow. */
-function embedBytes(data, bytes) {
-  const totalBits = bytes.length * 8;
-  let bitIdx = 0;
-  for (let px = 0; px < data.length && bitIdx < totalBits; px += 4) {
-    if (data[px + 3] !== 255) continue;
-    for (let c = 0; c < 3 && bitIdx < totalBits; c++) {
-      const byte = bytes[bitIdx >> 3];
-      const bit = (byte >>> (7 - (bitIdx & 7))) & 1;
-      const off = px + c;
-      data[off] = (data[off] & 0xFE) | bit;
-      bitIdx++;
-    }
-  }
-  if (bitIdx < totalBits) throw new Error('capacity');
-}
-
-/* Extract `count` bytes starting at absolute channel-bit `startBit`, using the
-   identical traversal. Returns null when the image is too small to hold them
-   (implies no valid payload). */
-function extractBytes(data, count, startBit) {
-  startBit = startBit || 0;
-  const out = new Uint8Array(count);
-  const totalBits = startBit + count * 8;
-  let bitIdx = 0;
-  for (let px = 0; px < data.length && bitIdx < totalBits; px += 4) {
-    if (data[px + 3] !== 255) continue;
-    for (let c = 0; c < 3 && bitIdx < totalBits; c++) {
-      if (bitIdx >= startBit) {
-        const rel = bitIdx - startBit;
-        const bit = data[px + c] & 1;
-        out[rel >> 3] |= bit << (7 - (rel & 7));
-      }
-      bitIdx++;
-    }
-  }
-  return bitIdx === totalBits ? out : null;
-}
-
-/* Hide: ImageData + message + optional password → Uint8Array pixel buffer mutated in place */
-async function stegoHide(imageData, message, password) {
-  const { bytes: payload, encrypted } = await buildPayload(message, password);
-  const header = buildHeader(encrypted ? 1 : 0, payload.length);
-  const full = new Uint8Array(HEADER_LEN + payload.length);
-  full.set(header, 0);
-  full.set(payload, HEADER_LEN);
-  const need = full.length * 8;
-  const cap = capacityBits(imageData.data);
-  if (need > cap) return { ok: false, error: 'capacity', need, cap };
-  embedBytes(imageData.data, full);
-  return { ok: true, usedBits: need, capBits: cap, encrypted, payloadLen: payload.length };
-}
-
-/* Reveal: ImageData + optional password → {ok, message?, encrypted?, needsPassword?, badPassword?} */
-async function stegoReveal(imageData, password) {
-  const data = imageData.data;
-  const header = extractBytes(data, HEADER_LEN, 0);
-  const parsed = parseHeader(header);
-  if (!parsed) return { ok: false, error: 'no-message' };
-  const payload = extractBytes(data, parsed.len, HEADER_LEN * 8);
-  if (!payload) return { ok: false, error: 'no-message' };
-  if (parsed.flag === 1) {
-    if (!password) return { ok: false, error: 'needs-password' };
-    try {
-      const message = await openPayload(payload, password);
-      return { ok: true, message, encrypted: true };
-    } catch (e) {
-      return { ok: false, error: 'bad-password' };
-    }
-  }
-  let message;
-  try { message = textDecoder.decode(payload, { stream: false }); }
-  catch (e) { return { ok: false, error: 'no-message' }; }
-  if (message.includes('\uFFFD')) { /* replacement chars — likely garbage bits */ }
-  return { ok: true, message, encrypted: false };
-}
-
-/* ═══════════════ Image loading ═══════════════ */
-
-async function loadImage(file) {
-  // Accept any image the browser can decode (PNG, JPEG, WebP, GIF, BMP, AVIF…).
-  // The picker uses accept="image/*" so mobile galleries show ALL photos;
-  // iOS transcodes HEIC automatically. Output is always re-encoded as PNG.
-  let bitmap;
-  try {
-    bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
-  } catch (e) {
-    // Fallback for older browsers without options support
-    bitmap = await createImageBitmap(file);
-  }
-  if (bitmap.width * bitmap.height > MAX_PIXELS) {
-    bitmap.close && bitmap.close();
-    throw new Error('too-large');
-  }
-  const canvas = document.createElement('canvas');
-  canvas.width = bitmap.width;
-  canvas.height = bitmap.height;
-  const ctx = canvas.getContext('2d', { willReadFrequently: true });
-  ctx.drawImage(bitmap, 0, 0);
-  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  bitmap.close && bitmap.close();
-  return { imageData, canvas, width: canvas.width, height: canvas.height };
-}
-
-function canvasToPngBlob(canvas) {
-  return new Promise((resolve, reject) => {
-    canvas.toBlob((blob) => {
-      if (blob) resolve(blob);
-      else reject(new Error('encode-failed'));
-    }, 'image/png');
+  themeToggleBtn.addEventListener('click', () => {
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    setTheme(currentTheme === 'dark' ? 'light' : 'dark');
   });
-}
 
-/* ═══════════════ App state & UI ═══════════════ */
+  // Material Design Wave Ripple Effect
+  document.addEventListener('click', (e) => {
+    const target = e.target.closest('.service-card, .icon-btn');
+    if (!target || target.classList.contains('coming-soon') || target.classList.contains('placeholder')) return;
+    
+    const rect = target.getBoundingClientRect();
+    const circle = document.createElement('span');
+    const diameter = Math.max(rect.width, rect.height);
+    const radius = diameter / 2;
 
-const els = {
-  themeToggle: document.getElementById('theme-toggle'),
-  themeIcon: document.getElementById('theme-icon'),
-  modeHide: document.getElementById('mode-hide'),
-  modeReveal: document.getElementById('mode-reveal'),
-  panelHide: document.getElementById('panel-hide'),
-  panelReveal: document.getElementById('panel-reveal'),
-  dropzoneHide: document.getElementById('dropzone-hide'),
-  dropzoneReveal: document.getElementById('dropzone-reveal'),
-  previewHide: document.getElementById('preview-hide'),
-  previewReveal: document.getElementById('preview-reveal'),
-  previewImgHide: document.getElementById('preview-img-hide'),
-  previewImgReveal: document.getElementById('preview-img-reveal'),
-  previewNameHide: document.getElementById('preview-name-hide'),
-  previewNameReveal: document.getElementById('preview-name-reveal'),
-  previewDimsHide: document.getElementById('preview-dims-hide'),
-  previewDimsReveal: document.getElementById('preview-dims-reveal'),
-  changeBtnHide: document.getElementById('change-btn-hide'),
-  changeBtnReveal: document.getElementById('change-btn-reveal'),
-  statDims: document.getElementById('stat-dims'),
-  statCapacity: document.getElementById('stat-capacity'),
-  statUsed: document.getElementById('stat-used'),
-  capacityPct: document.getElementById('capacity-pct'),
-  capacityFill: document.getElementById('capacity-fill'),
-  capacityWrap: document.getElementById('capacity-bar-wrap'),
-  messageInput: document.getElementById('message-input'),
-  messageCount: document.getElementById('message-count'),
-  passwordHide: document.getElementById('password-hide'),
-  passwordReveal: document.getElementById('password-reveal'),
-  pwToggleHide: document.getElementById('pw-toggle-hide'),
-  pwToggleReveal: document.getElementById('pw-toggle-reveal'),
-  pwToggleIconHide: document.getElementById('pw-toggle-icon-hide'),
-  pwToggleIconReveal: document.getElementById('pw-toggle-icon-reveal'),
-  revealPwField: document.getElementById('reveal-pw-field'),
-  resultCard: document.getElementById('result-card'),
-  resultMessage: document.getElementById('result-message'),
-  resultChip: document.getElementById('result-encrypted-chip'),
-  resultChipLabel: document.getElementById('result-encrypted-label'),
-  copyBtn: document.getElementById('copy-btn'),
-  fab: document.getElementById('fab'),
-  fabIcon: document.getElementById('fab-icon'),
-  fabLabel: document.getElementById('fab-label'),
-  toolbarHintText: document.getElementById('toolbar-hint-text'),
-  toast: document.getElementById('toast'),
-  toastIcon: document.getElementById('toast-icon'),
-  toastTitle: document.getElementById('toast-title'),
-  toastSub: document.getElementById('toast-sub'),
-  fileInput: document.getElementById('file-input'),
-};
+    circle.style.width = circle.style.height = `${diameter}px`;
+    circle.style.left = `${e.clientX - rect.left - radius}px`;
+    circle.style.top = `${e.clientY - rect.top - radius}px`;
+    circle.classList.add('ripple-span');
 
-const state = {
-  mode: 'hide',            // 'hide' | 'reveal'
-  hideImage: null,         // { imageData, canvas, width, height, name }
-  revealImage: null,
-  needsPassword: false,    // reveal: stego header says encrypted
-  busy: false,
-};
+    const existingRipple = target.querySelector('.ripple-span');
+    if (existingRipple) existingRipple.remove();
 
-/* ─── Theme ─── */
-function setTheme(theme) {
-  document.documentElement.setAttribute('data-theme', theme);
-  localStorage.setItem('aurex_theme', theme);
-  els.themeIcon.textContent = theme === 'dark' ? 'light_mode' : 'dark_mode';
-}
-const savedTheme = localStorage.getItem('aurex_theme') ||
-  (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
-setTheme(savedTheme);
-els.themeToggle.addEventListener('click', () => {
-  setTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
-});
-
-/* ─── Toast ─── */
-let toastTimer = null;
-function showToast(title, sub, isError) {
-  clearTimeout(toastTimer);
-  els.toastTitle.textContent = title;
-  els.toastSub.textContent = sub || '';
-  els.toastIcon.textContent = isError ? 'error' : 'check_circle';
-  els.toast.classList.toggle('error', !!isError);
-  els.toast.classList.add('visible');
-  toastTimer = setTimeout(() => els.toast.classList.remove('visible'), 3400);
-}
-
-/* ─── Formatting helpers ─── */
-function fmtBytes(bits) { return (bits / 8) >= 1024 ? ((bits / 8) / 1024).toFixed(1) + ' KB' : Math.ceil(bits / 8) + ' B'; }
-function fmtPct(p) { return p < 1 && p > 0 ? '<1%' : Math.round(p) + '%'; }
-
-/* ─── Mode switching ─── */
-function setMode(mode) {
-  state.mode = mode;
-  els.modeHide.setAttribute('aria-pressed', String(mode === 'hide'));
-  els.modeReveal.setAttribute('aria-pressed', String(mode === 'reveal'));
-  els.panelHide.hidden = mode !== 'hide';
-  els.panelReveal.hidden = mode !== 'reveal';
-  updateFab();
-}
-els.modeHide.addEventListener('click', () => setMode('hide'));
-els.modeReveal.addEventListener('click', () => setMode('reveal'));
-
-/* ─── File input plumbing ─── */
-let pickerTarget = 'hide';
-function openPicker(target) {
-  pickerTarget = target;
-  els.fileInput.value = '';
-  els.fileInput.click();
-}
-els.dropzoneHide.addEventListener('click', () => openPicker('hide'));
-els.dropzoneReveal.addEventListener('click', () => openPicker('reveal'));
-els.changeBtnHide.addEventListener('click', () => openPicker('hide'));
-els.changeBtnReveal.addEventListener('click', () => openPicker('reveal'));
-
-[els.dropzoneHide, els.dropzoneReveal].forEach((dz) => {
-  dz.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      openPicker(dz === els.dropzoneHide ? 'hide' : 'reveal');
-    }
+    target.appendChild(circle);
+    setTimeout(() => circle.remove(), 600);
   });
-});
 
-els.fileInput.addEventListener('change', () => {
-  const file = els.fileInput.files && els.fileInput.files[0];
-  if (file) acceptFile(file, pickerTarget);
-});
-
-/* Global drag & drop with counter (prevents flicker) */
-let dragCounter = 0;
-window.addEventListener('dragenter', (e) => {
-  e.preventDefault();
-  dragCounter++;
-  els.dropzoneHide.classList.add('drag-over');
-  els.dropzoneReveal.classList.add('drag-over');
-});
-window.addEventListener('dragleave', (e) => {
-  e.preventDefault();
-  dragCounter = Math.max(0, dragCounter - 1);
-  if (dragCounter === 0) {
-    els.dropzoneHide.classList.remove('drag-over');
-    els.dropzoneReveal.classList.remove('drag-over');
+  // PWA — service worker registration
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    });
   }
-});
-window.addEventListener('dragover', (e) => e.preventDefault());
-window.addEventListener('drop', (e) => {
-  e.preventDefault();
-  dragCounter = 0;
-  els.dropzoneHide.classList.remove('drag-over');
-  els.dropzoneReveal.classList.remove('drag-over');
-  const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-  if (file) acceptFile(file, state.mode);
-});
-
-/* ─── Accept & preview ─── */
-async function acceptFile(file, target) {
-  if (state.busy) return;
-  try {
-    const loaded = await loadImage(file);
-    const view = target === 'hide' ? {
-      card: els.previewHide, img: els.previewImgHide, nameEl: els.previewNameHide,
-      dimsEl: els.previewDimsHide, dz: els.dropzoneHide,
-    } : {
-      card: els.previewReveal, img: els.previewImgReveal, nameEl: els.previewNameReveal,
-      dimsEl: els.previewDimsReveal, dz: els.dropzoneReveal,
-    };
-    if (view.img.src && view.img.src.startsWith('blob:')) URL.revokeObjectURL(view.img.src);
-    view.img.src = URL.createObjectURL(file);
-    view.nameEl.textContent = file.name;
-    view.dimsEl.textContent = loaded.width + ' × ' + loaded.height;
-    view.card.hidden = false;
-    view.dz.hidden = true;
-
-    if (target === 'hide') {
-      state.hideImage = { ...loaded, name: file.name };
-      // Probe whether this image already carries a payload (friendly warning)
-      const probe = await stegoReveal(loaded.imageData, '');
-      if (probe.error === 'needs-password' || probe.ok) {
-        showToast('This image already carries a message', 'Hiding again will overwrite the existing hidden data.', false);
-      }
-      updateCapacity();
-    } else {
-      state.revealImage = { ...loaded, name: file.name };
-      state.needsPassword = false;
-      els.resultCard.hidden = true;
-      els.revealPwField.hidden = true;
-      els.passwordReveal.value = '';
-      // Pre-probe header to show the password field early if encrypted
-      const head = extractBytes(loaded.imageData.data, HEADER_LEN);
-      const parsed = parseHeader(head);
-      if (parsed && parsed.flag === 1) {
-        state.needsPassword = true;
-        els.revealPwField.hidden = false;
-      }
-    }
-    updateFab();
-  } catch (err) {
-    if (err && err.message === 'too-large') {
-      showToast('Image too large', 'Pick an image under 40 megapixels.', true);
-    } else if (err instanceof DOMException || (err && err.message !== 'too-large')) {
-      showToast('Could not read this image', 'This format may be unsupported here. Try converting it to PNG or JPG first.', true);
-    } else {
-      showToast('Could not read image', 'The file may be corrupted or unsupported.', true);
-    }
-  }
-}
-
-/* ─── Capacity meter (hide mode) ─── */
-function updateCapacity() {
-  const img = state.hideImage;
-  if (!img) return;
-  const cap = capacityBits(img.imageData.data);
-  const msgLen = textEncoder.encode(els.messageInput.value).length;
-  const pwLen = els.passwordHide.value ? 28 : 0;   // salt+iv prefix when encrypted
-  const used = (HEADER_LEN + pwLen + msgLen) * 8;  // ciphertext ≈ plaintext for GCM
-
-  els.statDims.textContent = img.width + '×' + img.height;
-  els.statCapacity.textContent = fmtBytes(cap);
-  els.statUsed.textContent = fmtBytes(used);
-
-  const pct = Math.min(100, cap ? (used / cap) * 100 : 0);
-  const over = used > cap;
-  els.capacityPct.textContent = fmtPct(pct);
-  els.capacityFill.style.transform = 'scaleX(' + (pct / 100) + ')';
-  els.capacityFill.classList.toggle('over', over);
-  els.capacityWrap.setAttribute('aria-valuenow', String(Math.round(pct)));
-  updateFab();
-}
-
-els.messageInput.addEventListener('input', () => {
-  els.messageCount.textContent = els.messageInput.value.length + ' chars';
-  updateCapacity();
-});
-els.passwordHide.addEventListener('input', updateCapacity);
-
-/* Password visibility toggles */
-function bindPwToggle(btn, icon, input) {
-  btn.addEventListener('click', () => {
-    const show = input.type === 'password';
-    input.type = show ? 'text' : 'password';
-    icon.textContent = show ? 'visibility_off' : 'visibility';
-  });
-}
-bindPwToggle(els.pwToggleHide, els.pwToggleIconHide, els.passwordHide);
-bindPwToggle(els.pwToggleReveal, els.pwToggleIconReveal, els.passwordReveal);
-
-/* ─── FAB state ─── */
-function updateFab() {
-  if (state.busy) return;
-  if (state.mode === 'hide') {
-    els.fabIcon.textContent = 'visibility_off';
-    const ready = state.hideImage && els.messageInput.value.trim().length > 0;
-    els.fab.disabled = !ready;
-    els.fabLabel.textContent = 'Hide message';
-    els.toolbarHintText.textContent = !state.hideImage
-      ? 'Pick an image to start'
-      : (els.messageInput.value.trim().length === 0 ? 'Write your secret message' : 'Ready — the result will look identical');
-  } else {
-    els.fabIcon.textContent = 'visibility';
-    els.fab.disabled = !state.revealImage;
-    els.fabLabel.textContent = 'Reveal message';
-    els.toolbarHintText.textContent = !state.revealImage
-      ? 'Pick a stego image to read its secret'
-      : (state.needsPassword ? 'Enter the password, then reveal' : 'Ready to reveal');
-  }
-}
-
-function setBusy(busy) {
-  state.busy = busy;
-  els.fab.disabled = busy;
-  if (busy) {
-    els.fabLabel.textContent = state.mode === 'hide' ? 'Hiding…' : 'Revealing…';
-    els.fabIcon.outerHTML = '<span class="spinner" id="fab-icon" aria-hidden="true"></span>';
-  } else {
-    document.getElementById('fab-icon').outerHTML = '<span class="icon" id="fab-icon" aria-hidden="true"></span>';
-    updateFab();
-  }
-}
-
-/* ─── Copy button ─── */
-els.copyBtn.addEventListener('click', async () => {
-  try {
-    await navigator.clipboard.writeText(els.resultMessage.textContent);
-    showToast('Copied', 'Message copied to clipboard.');
-  } catch (e) {
-    showToast('Copy failed', 'Select the text and copy manually.', true);
-  }
-});
-
-/* ─── Main actions ─── */
-els.fab.addEventListener('click', async () => {
-  if (state.busy) return;
-  if (state.mode === 'hide') await doHide();
-  else await doReveal();
-});
-
-async function doHide() {
-  const img = state.hideImage;
-  if (!img) return;
-  const message = els.messageInput.value;
-  if (!message.trim()) return;
-  setBusy(true);
-  try {
-    // work on a copy so re-hiding with edits stays possible
-    const fresh = new ImageData(new Uint8ClampedArray(img.imageData.data), img.width, img.height);
-    const res = await stegoHide(fresh, message, els.passwordHide.value || null);
-    if (!res.ok) {
-      showToast('Message too large for this image',
-        'Needs ' + fmtBytes(res.need) + ' of data but only ' + fmtBytes(res.cap) + ' fits. Use a bigger image or a shorter message.', true);
-      return;
-    }
-    const outCanvas = document.createElement('canvas');
-    outCanvas.width = img.width;
-    outCanvas.height = img.height;
-    outCanvas.getContext('2d', { willReadFrequently: true }).putImageData(fresh, 0, 0);
-    const blob = await canvasToPngBlob(outCanvas);
-
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = (img.name.replace(/\.png$/i, '') || 'image') + '-stego.png';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 60000);
-
-    els.fab.classList.add('success');
-    els.fabLabel.textContent = 'Saved';
-    setTimeout(() => { els.fab.classList.remove('success'); updateFab(); }, 2000);
-    showToast('Hidden & downloaded',
-      res.encrypted ? 'AES-256 encrypted message embedded. Send the PNG as a file.' : 'Message embedded. Send the PNG as a file.', false);
-  } catch (err) {
-    showToast('Something went wrong', 'The image could not be processed.', true);
-  } finally {
-    setBusy(false);
-  }
-}
-
-async function doReveal() {
-  const img = state.revealImage;
-  if (!img) return;
-  setBusy(true);
-  try {
-    const res = await stegoReveal(img.imageData, els.passwordReveal.value || null);
-    if (res.ok) {
-      els.resultMessage.textContent = res.message;
-      els.resultChipLabel.textContent = res.encrypted ? 'Encrypted' : 'Not encrypted';
-      els.resultCard.hidden = false;
-      els.resultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      showToast('Message revealed', res.encrypted ? 'Decrypted with your password.' : 'The message was not password-protected.', false);
-    } else if (res.error === 'no-message') {
-      showToast('No hidden message found', 'Make sure this is the original PNG — re-uploads and screenshots destroy the hidden bits.', true);
-    } else if (res.error === 'needs-password') {
-      state.needsPassword = true;
-      els.revealPwField.hidden = false;
-      els.passwordReveal.focus();
-      showToast('Password required', 'This message is encrypted. Enter the password and try again.', true);
-    } else if (res.error === 'bad-password') {
-      showToast('Wrong password', 'Decryption failed — check the password.', true);
-    } else {
-      showToast('No hidden message found', 'The image does not contain a valid Stego payload.', true);
-    }
-  } catch (err) {
-    showToast('Something went wrong', 'The image could not be processed.', true);
-  } finally {
-    setBusy(false);
-  }
-}
-
-/* ─── Ripple ─── */
-document.addEventListener('click', (e) => {
-  const target = e.target.closest('.fab, .icon-btn, .segmented button, .dropzone, .btn-outlined');
-  if (!target || target.disabled) return;
-  const rect = target.getBoundingClientRect();
-  const circle = document.createElement('span');
-  const diameter = Math.max(rect.width, rect.height);
-  circle.className = 'ripple';
-  circle.style.width = circle.style.height = diameter + 'px';
-  circle.style.left = (e.clientX - rect.left - diameter / 2) + 'px';
-  circle.style.top = (e.clientY - rect.top - diameter / 2) + 'px';
-  if (getComputedStyle(target).position === 'static') target.style.position = 'relative';
-  if (getComputedStyle(target).overflow !== 'hidden') target.style.overflow = 'hidden';
-  target.appendChild(circle);
-  setTimeout(() => circle.remove(), 650);
-});
-
-/* Test hooks (used by automated verification; harmless in production) */
-window.__stego = {
-  stegoHide, stegoReveal, buildPayload, openPayload, embedBytes, extractBytes,
-  parseHeader, buildHeader, capacityBits, deriveKey,
-  MAGIC, HEADER_LEN,
-};
 </script>
+
+<script>
+  // ── i18n (PL/EN) ─────────────────────────────────────────────
+  const I18N = {
+    en: {
+      'hero1': 'Zero-knowledge.',
+      'hero2': 'Client-side only.',
+      'tagline': 'Privacy-first web utilities designed for your peace of mind.',
+      'description': 'A suite of tools engineered to keep your sensitive data exclusively on your device. No trackers, no remote logs, zero compromises.',
+      'copyright': 'Copyright 2026, Inpriv',
+      'by': 'by',
+      'badge-live': 'Live',
+      'badge-soon': 'Soon',
+      'more-soon-title': 'More Soon',
+      'desc-soon': 'Something new is coming.',
+      'desc-hush': 'End-to-end encrypted chat. No logs, no servers.',
+      'desc-wipe': 'Zero-knowledge metadata sanitizer for images.',
+      'desc-compress': 'Client-side image compression. No upload needed.',
+      'desc-webrtc-leak': 'Check if your real IP address is leaked via WebRTC.',
+      'desc-pay': 'Crypto payment bridge for accepting payments.',
+      'desc-hash': 'SHA & MD5 checksums for any text or file, in-browser.',
+      'desc-dns-leak': 'Browser-side DNS resolution audit over DoH.',
+      'desc-qr': 'Generate & read QR codes. Camera or image, fully offline.',
+      'desc-keyring': 'Zero-knowledge encrypted vault for keys & tokens.',
+      'desc-ip-info': 'What your browser reveals — IP, ISP & fingerprint.',
+      'desc-brute': 'Hash brute force matcher — MD5, SHA-1, SHA-256, SHA-384, SHA-512.',
+      'desc-totp': 'Time-based one-time password generator (RFC 6238). 2FA codes, client-side.',
+      'desc-burn': 'Ephemeral encrypted notes. Read once, then destroyed.',
+      'desc-stego': 'Hide encrypted messages inside PNG images. Invisible, in-browser.',
+      'desc-mail': 'Encrypted, disposable email forwarding.',
+      'desc-zero': 'Private crypto wallet. Self-custodial.',
+      'desc-osint': 'AI-powered open-source intelligence on anything.',
+      'desc-pass': 'Offline cryptographic password generator.',
+      'desc-base64': 'Client-side Base64, URL, and HTML encoder/decoder.'
+    },
+    pl: {
+      'hero1': 'Zero-knowledge.',
+      'hero2': 'Wszystko po stronie klienta.',
+      'tagline': 'Narzędzia privacy-first zaprojektowane dla Twojego spokoju.',
+      'description': 'Suite narzędzi zaprojektowanych tak, by Twoje wrażliwe dane nigdy nie opuściły urządzenia. Bez trackerów, bez zdalnych logów, zero kompromisów.',
+      'copyright': 'Copyright 2026, Inpriv',
+      'by': 'od',
+      'badge-live': 'Live',
+      'badge-soon': 'Wkrótce',
+      'more-soon-title': 'Więcej wkrótce',
+      'desc-soon': 'Coś nowego nadchodzi.',
+      'desc-hush': 'Czat szyfrowany end-to-end. Bez logów, bez serwerów.',
+      'desc-wipe': 'Zero-knowledge usuwanie metadanych ze zdjęć.',
+      'desc-compress': 'Kompresja zdjęć w przeglądarce. Bez wysyłania.',
+      'desc-webrtc-leak': 'Sprawdź, czy Twoje prawdziwe IP wycieka przez WebRTC.',
+      'desc-pay': 'Krypto mostek płatności do przyjmowania płatności.',
+      'desc-hash': 'Sumy SHA i MD5 dla tekstu i plików, w przeglądarce.',
+      'desc-dns-leak': 'Audyt DNS w przeglądarce przez DoH.',
+      'desc-qr': 'Generuj i czytaj kody QR. Aparat lub obraz, w pełni offline.',
+      'desc-keyring': 'Zero-knowledge szyfrowany sejf na klucze i tokeny.',
+      'desc-ip-info': 'Co zdradza Twoja przeglądarka — IP, ISP i fingerprint.',
+      'desc-brute': 'Łamanie hashy słownikowo — MD5, SHA-1, SHA-256, SHA-384, SHA-512.',
+      'desc-totp': 'Generator haseł jednorazowych TOTP (RFC 6238). Kody 2FA, client-side.',
+      'desc-burn': 'Szyfrowane notatki efemeryczne. Przeczytane raz — zniszczone.',
+      'desc-stego': 'Ukryj zaszyfrowane wiadomości w zdjęciach PNG. Niewidoczne, w przeglądarce.',
+      'desc-mail': 'Szyfrowane, jednorazowe przekazywanie e-maili.',
+      'desc-zero': 'Prywatny portfel krypto. Self-custodial.',
+      'desc-osint': 'Open-source intelligence wspomagane AI — na wszystko.',
+      'desc-pass': 'Offline kryptograficzny generator haseł.',
+      'desc-base64': 'Koder/dekoder Base64, URL i HTML — w przeglądarce.'
+    }
+  };
+
+  const i18nLangs = ['en', 'pl'];
+  function applyLang(lang) {
+    if (!i18nLangs.includes(lang)) lang = 'en';
+    document.documentElement.lang = lang;
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      const t = I18N[lang][key];
+      if (t) el.textContent = t;
+    });
+    document.querySelectorAll('[data-i18n-html]').forEach(el => {
+      const key = el.getAttribute('data-i18n-html');
+      const t = I18N[lang][key];
+      if (t) el.innerHTML = t;
+    });
+    localStorage.setItem('inpriv_lang', lang);
+  }
+
+  const savedLang = localStorage.getItem('inpriv_lang')
+    || ((navigator.language || '').toLowerCase().startsWith('pl') ? 'pl' : 'en');
+  applyLang(savedLang);
+
+  document.getElementById('lang-toggle').addEventListener('click', () => {
+    const cur = document.documentElement.lang === 'pl' ? 'en' : 'pl';
+    applyLang(cur);
+  });
+</script>
+</body>
 </body>
 </html>
