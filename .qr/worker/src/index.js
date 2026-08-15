@@ -2,6 +2,8 @@
 // GET /api/qr?data=<text>&format=svg|png&ec=L|M|Q|H&size=256&margin=4&fg=000000&bg=ffffff
 // Copyright (c) 2026 Aurex Labs — MIT License
 
+import { maintenanceGate, maintenancePage } from "../../../common/gate.js";
+
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, OPTIONS",
@@ -269,6 +271,16 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
 
+    const gate = await maintenanceGate("qr");
+    if (gate.locked && path !== "/api/health") {
+      return path.startsWith("/api/") || path === "/qr"
+        ? new Response(JSON.stringify({ error: "service_locked" }), {
+            status: 503,
+            headers: { "Content-Type": "application/json", ...CORS },
+          })
+        : maintenancePage("Inpriv QR", gate.message);
+    }
+
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: CORS });
     }
@@ -320,7 +332,7 @@ export default {
     }
 
     // ─── Health check ───
-    if (path === "/api/health" || path === "/") {
+    if (path === "/api/health") {
       return json({
         service: "inpriv-qr-api",
         version: "1.0.0",
@@ -338,6 +350,10 @@ export default {
         },
         limits: { "max_data_length": 2000 },
       });
+    }
+
+    if (env.ASSETS) {
+      return env.ASSETS.fetch(request);
     }
 
     return json({ error: "Not found" }, 404);

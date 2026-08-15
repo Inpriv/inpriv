@@ -3,6 +3,8 @@
 // Key never leaves the client (URL fragment). KV with TTL + burn-after-read.
 // Copyright (c) 2026 Aurex Labs — MIT License
 
+import { maintenanceGate, maintenancePage } from "../../../common/gate.js";
+
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
@@ -26,6 +28,13 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
     const method = request.method;
+
+    const gate = await maintenanceGate("burn");
+    if (gate.locked && path !== "/api/health") {
+      return path.startsWith("/api/")
+        ? json({ error: "service_locked" }, 503)
+        : maintenancePage("Inpriv Burn", gate.message);
+    }
 
     if (method === "OPTIONS") {
       return new Response(null, { status: 204, headers: CORS });
@@ -93,6 +102,10 @@ export default {
         await env.BURN_KV.delete(key).catch(() => {});
         return json({ ok: true });
       }
+    }
+
+    if (env.ASSETS) {
+      return env.ASSETS.fetch(request);
     }
 
     return json({ error: "not found" }, 404);

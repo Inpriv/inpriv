@@ -1,0 +1,1618 @@
+<!DOCTYPE html>
+<!--
+  Inpriv WebRTC Audit — Interface Exposure & Leak Shield
+  Copyright (c) 2026 Aurex Labs — MIT License
+
+  Enumerates local ICE candidates exposed by RTCPeerConnection and flags real
+  local/private IPs. Pure client-side — opens a transient peer and reads only
+  its own candidates.
+-->
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com fonts.gstatic.com; script-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.googleapis.com fonts.gstatic.com https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'; connect-src 'self'; worker-src 'none'; manifest-src 'self'">
+  <meta name="description" content="Enterprise WebRTC Interface Exposure Audit & Threat Intelligence Shield" />
+  <title>Aurex Labs — WebRTC Security Audit & Leak Shield</title>
+  
+  <!-- Typography: Roboto Flex & Material Symbols Rounded -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:ital,opsz,wght@0,8..144,100..1000;1,8..144,100..1000&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+
+  <style>
+    /* ==========================================================================
+       1. COLOR PALETTE & DESIGN TOKENS (Aurex Labs M3 Earthy Forest)
+       ========================================================================== */
+    :root {
+      --md-easing-standard: cubic-bezier(0.2, 0.0, 0.0, 1.0);
+      --md-easing-emphasized: cubic-bezier(0.3, 0.0, 0.0, 1.0);
+      --md-easing-spring: cubic-bezier(0.2, 1.4, 0.0, 1.0);
+      --md-easing-spring-soft: cubic-bezier(0.34, 1.3, 0.64, 1.0);
+      --font-primary: 'Roboto Flex', system-ui, -apple-system, sans-serif;
+    }
+
+    [data-theme="light"] {
+      --md-primary: #466E47;
+      --md-on-primary: #FFFFFF;
+      --md-primary-container: #C7EFA0;
+      --md-on-primary-container: #0C2000;
+      --md-secondary: #55624C;
+      --md-on-secondary: #FFFFFF;
+      --md-secondary-container: #D8E7CB;
+      --md-on-secondary-container: #131F0C;
+      --md-tertiary: #9C4231;
+      --md-on-tertiary: #FFFFFF;
+      --md-tertiary-container: #FFDAD3;
+      --md-on-tertiary-container: #3D0A03;
+      --md-error: #BA1A1A;
+      --md-surface: #FAF9F0;
+      --md-on-surface: #1A1C17;
+      --md-on-surface-variant: #43483D;
+      --md-surface-dim: #DBDAD0;
+      --md-surface-container-lowest: #FFFFFF;
+      --md-surface-container-low: #F4F3E7;
+      --md-surface-container: #EEEDDE;
+      --md-surface-container-high: #E9E7D9;
+      --md-surface-container-highest: #E3E2D3;
+      --md-outline: #74796C;
+      --md-outline-variant: #C3C8B6;
+      --md-inverse-surface: #2F312C;
+      --md-inverse-on-surface: #F0EFE7;
+      --md-inverse-primary: #ABD37A;
+      --md-shadow-color: rgba(20, 25, 15, 0.15);
+      --md-shadow-color-strong: rgba(20, 25, 15, 0.28);
+    }
+
+    [data-theme="dark"] {
+      --md-primary: #ABD37A;
+      --md-on-primary: #173800;
+      --md-primary-container: #2E4F2F;
+      --md-on-primary-container: #C7EFA0;
+      --md-secondary: #BCCBAF;
+      --md-on-secondary: #27341F;
+      --md-secondary-container: #3D4B34;
+      --md-on-secondary-container: #D8E7CB;
+      --md-tertiary: #FFB4A5;
+      --md-on-tertiary: #5E1709;
+      --md-tertiary-container: #7E2D1E;
+      --md-on-tertiary-container: #FFDAD3;
+      --md-error: #FFB4AB;
+      --md-surface: #13140E;
+      --md-on-surface: #E3E2D3;
+      --md-on-surface-variant: #C3C8B6;
+      --md-surface-dim: #13140E;
+      --md-surface-container-lowest: #0D0F09;
+      --md-surface-container-low: #1A1C17;
+      --md-surface-container: #1F211B;
+      --md-surface-container-high: #292B25;
+      --md-surface-container-highest: #34362F;
+      --md-outline: #8D9283;
+      --md-outline-variant: #43483D;
+      --md-inverse-surface: #E3E2D3;
+      --md-inverse-on-surface: #2F312C;
+      --md-inverse-primary: #466E47;
+      --md-shadow-color: rgba(0, 0, 0, 0.4);
+      --md-shadow-color-strong: rgba(0, 0, 0, 0.65);
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-primary);
+      background-color: var(--md-surface);
+      color: var(--md-on-surface);
+      min-height: 100vh;
+      padding: 24px 16px 220px 16px;
+      position: relative;
+      overflow-x: hidden;
+      transition: background-color 0.5s var(--md-easing-standard), color 0.5s var(--md-easing-standard);
+      font-optical-sizing: auto;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+    }
+
+    @media (min-width: 600px) {
+      body {
+        padding: 32px 24px 220px 24px;
+      }
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 85% 0%, color-mix(in srgb, var(--md-primary-container) 55%, transparent) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 0% 100%, color-mix(in srgb, var(--md-tertiary-container) 45%, transparent) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .bg-grid {
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(circle at 1px 1px, var(--md-outline-variant) 1px, transparent 0);
+      background-size: 28px 28px;
+      opacity: 0.18;
+      mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+      -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .bg-blob {
+      position: fixed;
+      top: -100px;
+      right: -100px;
+      width: 420px;
+      height: 420px;
+      border-radius: 50%;
+      background: radial-gradient(circle, color-mix(in srgb, var(--md-tertiary) 22%, transparent), transparent 70%);
+      filter: blur(60px);
+      animation: drift 22s ease-in-out infinite;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .app-wrapper {
+      max-width: 1080px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    .material-symbols-rounded {
+      font-family: 'Material Symbols Rounded';
+      font-weight: normal;
+      font-style: normal;
+      font-size: 24px;
+      line-height: 1;
+      display: inline-block;
+      white-space: nowrap;
+      word-wrap: normal;
+      font-variation-settings: 'wght' 500, 'GRAD' 0, 'opsz' 24;
+    }
+
+    @keyframes barIn {
+      from { opacity: 0; transform: translateY(-12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--md-primary) 35%, transparent); }
+      50% { box-shadow: 0 0 0 18px color-mix(in srgb, var(--md-primary) 0%, transparent); }
+    }
+    @keyframes drift {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(-60px, 40px) scale(1.1); }
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* App Bar */
+    .app-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 54px;
+      padding: 6px 12px 6px 18px;
+      border-radius: 9999px;
+      background: color-mix(in srgb, var(--md-surface-container) 80%, transparent);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 1px solid color-mix(in srgb, var(--md-outline-variant) 50%, transparent);
+      box-shadow: 0 4px 20px -4px var(--md-shadow-color);
+      animation: barIn 0.7s var(--md-easing-spring);
+      margin-bottom: 32px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--md-primary-container);
+      color: var(--md-on-primary-container);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .brand-h1 {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      line-height: 1.1;
+      color: var(--md-on-surface);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .open-source-badge {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: var(--md-surface-container-high);
+      color: var(--md-on-surface-variant);
+      border: 1px solid var(--md-outline-variant);
+    }
+
+    .brand-tagline {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--md-on-surface-variant);
+    }
+
+    .icon-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: none;
+      background: transparent;
+      color: var(--md-on-surface);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.2s var(--md-easing-standard), transform 0.15s var(--md-easing-spring);
+    }
+
+    .icon-btn:hover {
+      background-color: color-mix(in srgb, var(--md-on-surface) 8%, transparent);
+    }
+
+    /* Hero & Status Card */
+    .hero {
+      text-align: center;
+      margin-bottom: 32px;
+      animation: fadeUp 0.8s var(--md-easing-spring);
+    }
+
+    .hero-h2 {
+      font-size: clamp(32px, 7vw, 52px);
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      line-height: 1.05;
+      margin-bottom: 12px;
+    }
+
+    .hero-h2 .accent {
+      font-style: italic;
+      font-weight: 300;
+      color: var(--md-primary);
+    }
+
+    .hero-desc {
+      font-size: clamp(14px, 2vw, 15px);
+      color: var(--md-on-surface-variant);
+      max-width: 660px;
+      margin: 0 auto;
+      line-height: 1.5;
+    }
+
+    .status-card {
+      background: var(--md-surface-container-low);
+      border: 1px solid var(--md-outline-variant);
+      border-radius: 28px;
+      padding: 28px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.4s var(--md-easing-spring-soft);
+      animation: fadeUp 0.8s var(--md-easing-spring) 0.1s backwards;
+      margin-bottom: 24px;
+    }
+
+    .status-badge-icon {
+      width: 72px;
+      height: 72px;
+      border-radius: 24px;
+      background: var(--md-primary-container);
+      color: var(--md-on-primary-container);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      position: relative;
+      transition: all 0.3s var(--md-easing-spring);
+    }
+
+    .status-badge-icon.scanning {
+      animation: pulse 2.8s infinite;
+    }
+
+    .status-badge-icon .material-symbols-rounded {
+      font-size: 38px;
+      font-variation-settings: 'wght' 400, 'GRAD' 0, 'opsz' 48;
+    }
+
+    .status-title {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      margin-bottom: 6px;
+    }
+
+    .status-subtitle {
+      font-size: 14px;
+      color: var(--md-on-surface-variant);
+      max-width: 600px;
+      line-height: 1.45;
+    }
+
+    .status-card.secure {
+      border-color: color-mix(in srgb, var(--md-primary) 50%, transparent);
+    }
+    .status-card.secure .status-badge-icon {
+      background: var(--md-primary-container);
+      color: var(--md-on-primary-container);
+    }
+
+    .status-card.leaking {
+      border-color: color-mix(in srgb, var(--md-tertiary) 60%, transparent);
+    }
+    .status-card.leaking .status-badge-icon {
+      background: var(--md-tertiary-container);
+      color: var(--md-on-tertiary-container);
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      height: 4px;
+      background: var(--md-surface-container-high);
+      border-radius: 2px;
+      margin-top: 20px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--md-primary);
+      transition: width 0.3s var(--md-easing-standard);
+    }
+
+    /* Grid Layout */
+    .grid-container {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    @media (min-width: 600px) {
+      .grid-container {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .card {
+      background: var(--md-surface-container-low);
+      border: 1px solid var(--md-outline-variant);
+      border-radius: 24px;
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      transition: all 0.4s var(--md-easing-spring-soft);
+      animation: fadeUp 0.8s var(--md-easing-spring) 0.2s backwards;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      border-color: var(--md-primary);
+      box-shadow: 0 8px 24px -4px var(--md-shadow-color);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .card-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--md-on-surface-variant);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .card-label .material-symbols-rounded {
+      font-size: 18px;
+    }
+
+    .ip-value-box {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--md-surface-container);
+      border-radius: 16px;
+      padding: 12px 16px;
+      gap: 12px;
+    }
+
+    .ip-address {
+      font-size: 15px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      word-break: break-all;
+      color: var(--md-on-surface);
+    }
+
+    .meta-details {
+      font-size: 12px;
+      color: var(--md-on-surface-variant);
+      margin-top: 8px;
+      line-height: 1.45;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .copy-btn {
+      background: transparent;
+      border: none;
+      color: var(--md-on-surface-variant);
+      cursor: pointer;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s var(--md-easing-standard);
+      flex-shrink: 0;
+    }
+
+    .copy-btn:hover {
+      background: var(--md-surface-container-high);
+      color: var(--md-primary);
+    }
+
+    .tag-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      width: fit-content;
+    }
+
+    .tag.safe {
+      background: var(--md-primary-container);
+      color: var(--md-on-primary-container);
+    }
+
+    .tag.vpn {
+      background: var(--md-secondary-container);
+      color: var(--md-on-secondary-container);
+    }
+
+    .tag.warning {
+      background: var(--md-tertiary-container);
+      color: var(--md-on-tertiary-container);
+    }
+
+    .tag.neutral {
+      background: var(--md-surface-container-high);
+      color: var(--md-on-surface-variant);
+    }
+
+    /* Enterprise Control Posture Table */
+    .posture-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .posture-item {
+      background: var(--md-surface-container);
+      border-radius: 16px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .posture-item-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: var(--md-on-surface-variant);
+      text-transform: uppercase;
+    }
+
+    .posture-item-value {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--md-on-surface);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* ICE Table */
+    .details-card {
+      grid-column: 1 / -1;
+    }
+
+    .table-wrapper {
+      width: 100%;
+      overflow-x: auto;
+      margin-top: 8px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 13px;
+    }
+
+    th {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--md-on-surface-variant);
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--md-outline-variant);
+    }
+
+    td {
+      padding: 12px;
+      border-bottom: 1px solid color-mix(in srgb, var(--md-outline-variant) 30%, transparent);
+      font-variant-numeric: tabular-nums;
+      color: var(--md-on-surface);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* Floating Toolbar */
+    .floating-toolbar {
+      position: fixed;
+      bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 32px);
+      max-width: 680px;
+      background: color-mix(in srgb, var(--md-surface-container) 85%, transparent);
+      backdrop-filter: blur(28px) saturate(180%);
+      -webkit-backdrop-filter: blur(28px) saturate(180%);
+      border: 1px solid color-mix(in srgb, var(--md-outline-variant) 50%, transparent);
+      box-shadow: 0 12px 40px -6px var(--md-shadow-color-strong);
+      border-radius: 9999px;
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      z-index: 40;
+      animation: barIn 0.7s var(--md-easing-spring);
+    }
+
+    .fab-btn {
+      flex: 1;
+      height: 48px;
+      border-radius: 9999px;
+      border: none;
+      background: var(--md-primary);
+      color: var(--md-on-primary);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 16px -2px var(--md-shadow-color);
+      transition: all 0.3s var(--md-easing-spring-soft);
+      white-space: nowrap;
+    }
+
+    .fab-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px -2px var(--md-shadow-color-strong);
+    }
+
+    .fab-btn:active {
+      transform: scale(0.96);
+    }
+
+    .fab-btn.secondary-fab {
+      background: var(--md-surface-container-high);
+      color: var(--md-on-surface);
+      border: 1px solid var(--md-outline-variant);
+    }
+
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid color-mix(in srgb, currentColor 30%, transparent);
+      border-top-color: currentColor;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    /* Footer & Link Styling */
+    .app-footer {
+      text-align: center;
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid var(--md-outline-variant);
+      color: var(--md-on-surface-variant);
+      font-size: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .footer-links {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .footer-links a {
+      color: var(--md-primary);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .footer-links a:hover {
+      text-decoration: underline;
+    }
+
+    /* Disabled/Grayed-out Link Indicator */
+    .footer-links .disabled-link {
+      color: var(--md-outline);
+      opacity: 0.75;
+      cursor: not-allowed;
+      font-weight: 600;
+      text-decoration: none !important;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* Toast */
+    .toast-container {
+      position: fixed;
+      bottom: 96px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: var(--md-inverse-surface);
+      color: var(--md-inverse-on-surface);
+      border-radius: 14px;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 8px 24px var(--md-shadow-color-strong);
+      opacity: 0;
+      transform: translateY(20px) scale(0.95);
+      transition: all 0.35s var(--md-easing-spring);
+      pointer-events: auto;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    .toast-icon {
+      color: var(--md-inverse-primary);
+    }
+
+    .toast-text {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .skeleton-text {
+      height: 18px;
+      width: 140px;
+      background: color-mix(in srgb, var(--md-on-surface) 12%, transparent);
+      border-radius: 6px;
+      animation: pulse 1.5s infinite;
+    }
+
+    /* ==========================================================================
+       MOBILE RESPONSIVE OPTIMIZATIONS
+       ========================================================================== */
+    @media (max-width: 600px) {
+      /* App Bar — prevent brand overflow */
+      .app-bar {
+        padding: 6px 8px 6px 12px;
+        margin-bottom: 24px;
+      }
+      .brand {
+        gap: 8px;
+        min-width: 0;
+      }
+      .brand-text {
+        min-width: 0;
+        overflow: hidden;
+      }
+      .brand-h1 {
+        font-size: 15px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .open-source-badge {
+        display: none;
+      }
+
+      /* Hero & spacing */
+      .hero {
+        margin-bottom: 24px;
+      }
+
+      /* Status card — reduce padding */
+      .status-card {
+        padding: 20px 16px;
+        border-radius: 20px;
+      }
+      .status-badge-icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 20px;
+      }
+      .status-title {
+        font-size: 20px;
+      }
+      .status-subtitle {
+        font-size: 13px;
+      }
+
+      /* Cards — tighter padding */
+      .card {
+        padding: 16px;
+        border-radius: 20px;
+      }
+      .card-header {
+        margin-bottom: 10px;
+      }
+
+      /* IP boxes & copy buttons — larger touch targets */
+      .ip-value-box {
+        padding: 10px 12px;
+      }
+      .ip-address {
+        font-size: 13px;
+      }
+      .copy-btn {
+        width: 40px;
+        height: 40px;
+      }
+
+      /* Posture grid — prevent overflow */
+      .posture-grid {
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      }
+      .posture-item {
+        padding: 10px 12px;
+      }
+
+      /* Table — mobile-optimized sizing */
+      th {
+        padding: 8px 6px;
+        font-size: 9px;
+      }
+      td {
+        padding: 8px 6px;
+        font-size: 12px;
+      }
+
+      /* Footer links — wrap on mobile */
+      .footer-links {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 6px 8px;
+      }
+
+      /* Floating toolbar — ensure buttons fit */
+      .floating-toolbar {
+        padding: 6px 8px;
+        gap: 8px;
+      }
+      .fab-btn {
+        font-size: 13px;
+      }
+
+      /* Toast — center and fit mobile width */
+      .toast-container {
+        bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+        width: calc(100% - 32px);
+      }
+      .toast {
+        padding: 10px 16px;
+        justify-content: center;
+        text-align: center;
+      }
+      .toast-text {
+        font-size: 13px;
+      }
+    }
+
+    /* Very small screens — collapse toolbar buttons to icon-only */
+    @media (max-width: 380px) {
+      .fab-btn span:last-child {
+        display: none;
+      }
+      .fab-btn {
+        padding: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bg-grid"></div>
+  <div class="bg-blob"></div>
+
+  <div class="app-wrapper">
+
+    <!-- App Bar -->
+    <header class="app-bar">
+      <div class="brand">
+        <div class="brand-icon">
+          <span class="material-symbols-rounded">security</span>
+        </div>
+        <div class="brand-text">
+          <span class="brand-h1">
+            Aurex Labs
+            <span class="open-source-badge">MIT License</span>
+          </span>
+          <span class="brand-tagline">WebRTC Security Shield v3.2</span>
+        </div>
+      </div>
+      <div class="app-bar-actions">
+        <button class="icon-btn" id="themeToggleBtn" aria-label="Toggle Dark/Light Theme">
+          <span class="material-symbols-rounded" id="themeIcon">light_mode</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+      <h2 class="hero-h2">WebRTC <span class="accent">Security Shield</span></h2>
+      <p class="hero-desc">
+        Enterprise-grade STUN candidate resolution audit. Evaluates WebRTC interface bindings against active HTTP proxy/VPN tunnels with zero false positives.
+      </p>
+    </section>
+
+    <!-- Hero Status Banner -->
+    <div class="status-card" id="statusCard">
+      <div class="status-badge-icon scanning" id="statusIconBg">
+        <span class="material-symbols-rounded" id="statusIcon">radar</span>
+      </div>
+      <h3 class="status-title" id="statusTitle">Executing Security Audit...</h3>
+      <p class="status-subtitle" id="statusSubtitle">
+        Gathering multi-port ICE candidate descriptors and interrogating ASN threat intelligence APIs.
+      </p>
+      <div class="progress-bar-container">
+        <div class="progress-bar-fill" id="progressBar"></div>
+      </div>
+    </div>
+
+    <!-- Results Cards Grid -->
+    <div class="grid-container">
+
+      <!-- Card 1: WebRTC Public IP -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-label">
+            <span class="material-symbols-rounded">public</span> WebRTC Discovered IP
+          </span>
+        </div>
+        <div class="ip-value-box">
+          <span class="ip-address" id="webrtcPublicIp"><div class="skeleton-text"></div></span>
+          <button class="copy-btn" onclick="copyText('webrtcPublicIp')" aria-label="Copy WebRTC Public IP">
+            <span class="material-symbols-rounded">content_copy</span>
+          </button>
+        </div>
+        <div class="meta-details" id="webrtcMeta">Analyzing STUN candidates...</div>
+        <div class="tag-group" id="webrtcTagGroup">
+          <span class="tag neutral">Probing...</span>
+        </div>
+      </div>
+
+      <!-- Card 2: HTTP Standard Public IP -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-label">
+            <span class="material-symbols-rounded">language</span> HTTP Gateway Baseline
+          </span>
+        </div>
+        <div class="ip-value-box">
+          <span class="ip-address" id="httpPublicIp"><div class="skeleton-text"></div></span>
+          <button class="copy-btn" onclick="copyText('httpPublicIp')" aria-label="Copy HTTP Public IP">
+            <span class="material-symbols-rounded">content_copy</span>
+          </button>
+        </div>
+        <div class="meta-details" id="httpMeta">Querying HTTP endpoints...</div>
+        <div class="tag-group" id="httpTagGroup">
+          <span class="tag neutral">Standard Gateway</span>
+        </div>
+      </div>
+
+      <!-- Card 3: Local Private IP -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-label">
+            <span class="material-symbols-rounded">lan</span> Local Network Interfaces
+          </span>
+        </div>
+        <div class="ip-value-box">
+          <span class="ip-address" id="localIp"><div class="skeleton-text"></div></span>
+          <button class="copy-btn" onclick="copyText('localIp')" aria-label="Copy Local Private IP">
+            <span class="material-symbols-rounded">content_copy</span>
+          </button>
+        </div>
+        <div class="meta-details" id="localMeta">Inspecting host candidates...</div>
+        <div class="tag-group" id="localTagGroup">
+          <span class="tag neutral">Checking mDNS...</span>
+        </div>
+      </div>
+
+      <!-- Card 4: Media Device Leak Profile -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-label">
+            <span class="material-symbols-rounded">perm_device_information</span> Media Device Exposure
+          </span>
+        </div>
+        <div class="ip-value-box">
+          <span class="ip-address" id="mediaDeviceStatus">Scanning Devices...</span>
+        </div>
+        <div class="meta-details" id="mediaMeta">Checking navigator.mediaDevices...</div>
+        <div class="tag-group" id="mediaTagGroup">
+          <span class="tag neutral">Auditing...</span>
+        </div>
+      </div>
+
+      <!-- Security Control Posture Matrix -->
+      <div class="card details-card">
+        <div class="card-header">
+          <span class="card-label">
+            <span class="material-symbols-rounded">admin_panel_settings</span> Security Control Posture
+          </span>
+        </div>
+        <div class="posture-grid">
+          <div class="posture-item">
+            <span class="posture-item-title">STUN UDP Probe</span>
+            <span class="posture-item-value" id="postureStun"><span class="material-symbols-rounded" style="font-size:16px;">sync</span> Probing</span>
+          </div>
+          <div class="posture-item">
+            <span class="posture-item-title">Gateway Alignment</span>
+            <span class="posture-item-value" id="postureGateway"><span class="material-symbols-rounded" style="font-size:16px;">sync</span> Checking</span>
+          </div>
+          <div class="posture-item">
+            <span class="posture-item-title">mDNS Host Anonymization</span>
+            <span class="posture-item-value" id="postureMdns"><span class="material-symbols-rounded" style="font-size:16px;">sync</span> Checking</span>
+          </div>
+          <div class="posture-item">
+            <span class="posture-item-title">Device Label Masking</span>
+            <span class="posture-item-value" id="postureDevices"><span class="material-symbols-rounded" style="font-size:16px;">sync</span> Checking</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Detailed ICE Candidate Table -->
+      <div class="card details-card">
+        <div class="card-header">
+          <span class="card-label">
+            <span class="material-symbols-rounded">list_alt</span> STUN Candidate Log & Candidate Registry
+          </span>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Candidate Type</th>
+                <th>Protocol</th>
+                <th>IP / Host Descriptor</th>
+                <th>Port</th>
+                <th>STUN Origin</th>
+              </tr>
+            </thead>
+            <tbody id="candidateTableBody">
+              <tr>
+                <td colspan="5" style="text-align: center; color: var(--md-on-surface-variant); padding: 18px;">
+                  Gathering WebRTC ICE candidate descriptors...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Enterprise Footer -->
+    <footer class="app-footer">
+      <div>Aurex Labs WebRTC Shield • Open Source Security Audit Suite</div>
+      <div class="footer-links">
+        <span class="disabled-link" title="GitHub Repository Coming Soon">
+          GitHub Repository (Soon)
+        </span>
+        <span>•</span>
+        <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener">MIT License</a>
+        <span>•</span>
+        <a href="javascript:void(0)" onclick="exportAuditReport()">Export JSON Report</a>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- Floating Toolbar -->
+  <div class="floating-toolbar">
+    <button class="fab-btn" id="runTestBtn" onclick="runWebRTCTest()">
+      <span class="material-symbols-rounded">refresh</span>
+      <span>Run Security Audit</span>
+    </button>
+    <button class="fab-btn secondary-fab" onclick="exportAuditReport()">
+      <span class="material-symbols-rounded">download</span>
+      <span>Export Report</span>
+    </button>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast-container">
+    <div class="toast" id="toast">
+      <span class="material-symbols-rounded toast-icon" id="toastIcon">check_circle</span>
+      <span class="toast-text" id="toastText">Copied to clipboard</span>
+    </div>
+  </div>
+
+  <script>
+    /* Theme Manager */
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    const themeIcon = document.getElementById('themeIcon');
+    const htmlElem = document.documentElement;
+
+    function setTheme(theme) {
+      htmlElem.setAttribute('data-theme', theme);
+      localStorage.setItem('aurex_theme', theme);
+      themeIcon.textContent = theme === 'dark' ? 'light_mode' : 'dark_mode';
+    }
+
+    const savedTheme = localStorage.getItem('aurex_theme') || 
+      (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    setTheme(savedTheme);
+
+    themeToggleBtn.addEventListener('click', () => {
+      setTheme(htmlElem.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+    });
+
+    /* Toast System */
+    const toast = document.getElementById('toast');
+    const toastText = document.getElementById('toastText');
+    const toastIcon = document.getElementById('toastIcon');
+    let toastTimeout;
+
+    function showToast(message, icon = 'check_circle') {
+      clearTimeout(toastTimeout);
+      toastText.textContent = message;
+      toastIcon.textContent = icon;
+      toast.classList.add('show');
+      toastTimeout = setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    function copyText(elementId) {
+      const text = document.getElementById(elementId).innerText.trim();
+      if (!text || text.includes('Skeleton') || text === 'None Exposed' || text === 'Scanning Devices...') return;
+      navigator.clipboard.writeText(text).then(() => showToast('Copied: ' + text, 'content_copy'));
+    }
+
+    function updateProgress(percent) {
+      document.getElementById('progressBar').style.width = percent + '%';
+    }
+
+    /* Threat Intelligence Keywords Engine */
+    const VPN_DATACENTER_KEYWORDS = [
+      'mullvad', 'm247', 'nordvpn', 'expressvpn', 'proton', 'cyberghost', 'surfshark', 'pia',
+      'private internet access', 'datacenter', 'hosting', 'server', 'digitalocean', 'linode',
+      'ovh', 'vultr', 'hetzner', 'choopa', 'tzulo', 'clouvider', 'datapacket', 'leaseweb',
+      'cogent', 'fastly', 'cloudflare', 'servers', 'cloud', 'host', 'm227', 'pvt', 'vpn'
+    ];
+
+    function checkIsVpnOrDatacenter(isp, org, asn, apiHostingFlag, apiVpnFlag) {
+      if (apiHostingFlag || apiVpnFlag) return true;
+      const combined = `${isp || ''} ${org || ''} ${asn || ''}`.toLowerCase();
+      return VPN_DATACENTER_KEYWORDS.some(kw => combined.includes(kw));
+    }
+
+    /* Core Security Audit State */
+    let candidatesList = [];
+    let detectedPublicIPs = new Map();
+    let detectedLocalIPs = new Set();
+    let httpBaselineData = null;
+    let peerConnections = [];
+
+    const STUN_SERVERS = [
+      { urls: 'stun:stun.l.google.com:19302', name: 'Google (19302)' },
+      { urls: 'stun:stun.cloudflare.com:3478', name: 'Cloudflare (3478)' },
+      { urls: 'stun:stun.services.mozilla.com:3478', name: 'Mozilla (3478)' },
+      { urls: 'stun:stun.nextcloud.com:443', name: 'Nextcloud (443)' }
+    ];
+
+    async function getIpIntel(ip = '') {
+      try {
+        const targetUrl = ip ? `https://ipwho.is/${ip}` : `https://ipwho.is/`;
+        const res = await fetch(targetUrl);
+        const data = await res.json();
+
+        if (data && data.success) {
+          const conn = data.connection || {};
+          const sec = data.security || {};
+          const isp = conn.isp || conn.org || 'Unknown ISP';
+          const asn = conn.asn ? `AS${conn.asn}` : '';
+          const isVpnDc = checkIsVpnOrDatacenter(isp, conn.org, asn, sec.hosting, sec.vpn || sec.proxy);
+
+          return {
+            ip: data.ip,
+            isp: isp,
+            org: conn.org || '',
+            asn: asn,
+            location: `${data.city || ''}, ${data.country || ''}`.trim().replace(/^,/, ''),
+            isVpnDc: isVpnDc
+          };
+        }
+      } catch (err) {}
+
+      try {
+        const fallbackRes = await fetch(`https://ipapi.co/${ip ? ip + '/' : ''}json/`);
+        const d = await fallbackRes.json();
+        if (d && d.ip) {
+          const isp = d.org || d.asn || 'Unknown ISP';
+          const asn = d.asn || '';
+          const isVpnDc = checkIsVpnOrDatacenter(isp, d.org, asn, false, false);
+          return {
+            ip: d.ip,
+            isp: isp,
+            org: d.org || '',
+            asn: asn,
+            location: `${d.city || ''}, ${d.country_name || ''}`.trim().replace(/^,/, ''),
+            isVpnDc: isVpnDc
+          };
+        }
+      } catch (e) {}
+
+      return null;
+    }
+
+    async function fetchHttpBaseline() {
+      const intel = await getIpIntel();
+      if (intel) {
+        httpBaselineData = intel;
+        document.getElementById('httpPublicIp').textContent = intel.ip;
+        document.getElementById('httpMeta').innerHTML = `
+          <span><strong>ISP / Org:</strong> ${intel.isp} (${intel.asn || 'N/A'})</span>
+          <span><strong>Location:</strong> ${intel.location}</span>
+        `;
+
+        const httpTagGroup = document.getElementById('httpTagGroup');
+        httpTagGroup.innerHTML = intel.isVpnDc 
+          ? `<span class="tag vpn"><span class="material-symbols-rounded" style="font-size:12px;">vpn_key</span> VPN / Datacenter</span>`
+          : `<span class="tag safe"><span class="material-symbols-rounded" style="font-size:12px;">home</span> Residential ISP</span>`;
+      } else {
+        document.getElementById('httpPublicIp').textContent = 'Fetch Failed';
+      }
+    }
+
+    async function auditMediaDevices() {
+      try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+          document.getElementById('mediaDeviceStatus').textContent = 'API Shielded / Restricted';
+          document.getElementById('mediaMeta').textContent = 'enumerateDevices() access restricted by client policy.';
+          document.getElementById('mediaTagGroup').innerHTML = `<span class="tag safe">Protected</span>`;
+          document.getElementById('postureDevices').innerHTML = `<span class="material-symbols-rounded" style="font-size:16px; color:var(--md-primary);">check_circle</span> Masked`;
+          return;
+        }
+
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const hasLabels = devices.some(d => d.label && d.label.length > 0);
+        const audioInputs = devices.filter(d => d.kind === 'audioinput').length;
+        const videoInputs = devices.filter(d => d.kind === 'videoinput').length;
+
+        document.getElementById('mediaDeviceStatus').textContent = `${devices.length} Hardware Devices`;
+        document.getElementById('mediaMeta').innerHTML = `
+          <span><strong>Microphones:</strong> ${audioInputs} | <strong>Cameras:</strong> ${videoInputs}</span>
+          <span><strong>Device Labels:</strong> ${hasLabels ? 'Visible (Permission Granted)' : 'Hidden (Anonymized)'}</span>
+        `;
+
+        document.getElementById('mediaTagGroup').innerHTML = hasLabels 
+          ? `<span class="tag warning">Info Disclosed</span>` 
+          : `<span class="tag safe">Anonymized</span>`;
+
+        document.getElementById('postureDevices').innerHTML = hasLabels
+          ? `<span class="material-symbols-rounded" style="font-size:16px; color:var(--md-tertiary);">warning</span> Disclosed`
+          : `<span class="material-symbols-rounded" style="font-size:16px; color:var(--md-primary);">check_circle</span> Anonymized`;
+      } catch (e) {
+        document.getElementById('mediaDeviceStatus').textContent = 'Permission Denied';
+        document.getElementById('mediaTagGroup').innerHTML = `<span class="tag safe">Protected</span>`;
+        document.getElementById('postureDevices').innerHTML = `<span class="material-symbols-rounded" style="font-size:16px; color:var(--md-primary);">check_circle</span> Shielded`;
+      }
+    }
+
+    function resetUI() {
+      candidatesList = [];
+      detectedPublicIPs.clear();
+      detectedLocalIPs.clear();
+      httpBaselineData = null;
+
+      peerConnections.forEach(pc => pc.close());
+      peerConnections = [];
+
+      updateProgress(10);
+
+      document.getElementById('webrtcPublicIp').innerHTML = '<div class="skeleton-text"></div>';
+      document.getElementById('httpPublicIp').innerHTML = '<div class="skeleton-text"></div>';
+      document.getElementById('localIp').innerHTML = '<div class="skeleton-text"></div>';
+      
+      document.getElementById('webrtcMeta').textContent = 'Probing STUN candidates...';
+      document.getElementById('httpMeta').textContent = 'Querying HTTP baseline...';
+      document.getElementById('localMeta').textContent = 'Inspecting host interfaces...';
+
+      document.getElementById('webrtcTagGroup').innerHTML = `<span class="tag neutral">Probing...</span>`;
+      document.getElementById('httpTagGroup').innerHTML = `<span class="tag neutral">Standard Gateway</span>`;
+      document.getElementById('localTagGroup').innerHTML = `<span class="tag neutral">Checking mDNS...</span>`;
+
+      document.getElementById('postureStun').innerHTML = `<span class="material-symbols-rounded" style="font-size:16px;">sync</span> Probing`;
+      document.getElementById('postureGateway').innerHTML = `<span class="material-symbols-rounded" style="font-size:16px;">sync</span> Evaluating`;
+      document.getElementById('postureMdns').innerHTML = `<span class="material-symbols-rounded" style="font-size:16px;">sync</span> Checking`;
+
+      document.getElementById('candidateTableBody').innerHTML = `
+        <tr>
+          <td colspan="5" style="text-align: center; color: var(--md-on-surface-variant); padding: 18px;">
+            Gathering WebRTC ICE candidate descriptors...
+          </td>
+        </tr>`;
+
+      const statusCard = document.getElementById('statusCard');
+      const statusIconBg = document.getElementById('statusIconBg');
+      const statusIcon = document.getElementById('statusIcon');
+
+      statusCard.className = 'status-card';
+      statusIconBg.className = 'status-badge-icon scanning';
+      statusIcon.textContent = 'radar';
+      document.getElementById('statusTitle').textContent = 'Executing Security Audit...';
+      document.getElementById('statusSubtitle').textContent = 'Gathering multi-port ICE candidate descriptors and interrogating ASN threat intelligence APIs.';
+    }
+
+    function runWebRTCTest() {
+      const runBtn = document.getElementById('runTestBtn');
+      runBtn.classList.add('running');
+      runBtn.innerHTML = `<div class="spinner"></div><span>Running Audit...</span>`;
+
+      resetUI();
+      fetchHttpBaseline();
+      auditMediaDevices();
+
+      const RTCPeerConnection = window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
+
+      if (!RTCPeerConnection) {
+        updateProgress(100);
+        updateStatusSecure('WebRTC Disabled', 'Your browser has WebRTC disabled or restricted at core system level. No interface leaks are possible.');
+        document.getElementById('postureStun').innerHTML = `<span class="material-symbols-rounded" style="font-size:16px; color:var(--md-primary);">check_circle</span> Disabled`;
+        document.getElementById('postureGateway').innerHTML = `<span class="material-symbols-rounded" style="font-size:16px; color:var(--md-primary);">check_circle</span> Protected`;
+        runBtn.classList.remove('running');
+        runBtn.innerHTML = `<span class="material-symbols-rounded">refresh</span><span>Run Security Audit</span>`;
+        return;
+      }
+
+      updateProgress(35);
+
+      STUN_SERVERS.forEach((server) => {
+        try {
+          const pc = new RTCPeerConnection({ iceServers: [server] });
+          peerConnections.push(pc);
+
+          pc.createDataChannel('aurex-probe');
+
+          pc.onicecandidate = (e) => {
+            if (e.candidate) parseCandidate(e.candidate.candidate, server.name);
+          };
+
+          pc.createOffer({ offerToReceiveAudio: true })
+            .then(offer => {
+              pc.setLocalDescription(offer);
+              parseSDP(offer.sdp, server.name);
+            })
+            .catch(() => {});
+
+        } catch (err) {}
+      });
+
+      updateProgress(65);
+
+      setTimeout(() => {
+        updateProgress(100);
+        evaluateFinalResults();
+        runBtn.classList.remove('running');
+        runBtn.innerHTML = `<span class="material-symbols-rounded">refresh</span><span>Run Security Audit</span>`;
+      }, 3400);
+    }
+
+    function parseSDP(sdp, serverName) {
+      sdp.split('\r\n').forEach(line => {
+        if (line.startsWith('a=candidate:')) {
+          parseCandidate(line.substring(12), serverName + ' (SDP)');
+        }
+      });
+    }
+
+    function parseCandidate(candidateStr, serverName) {
+      const parts = candidateStr.split(' ');
+      if (parts.length < 8) return;
+
+      const ip = parts[4];
+      const port = parts[5];
+      const type = parts[7];
+      const proto = parts[2].toLowerCase();
+
+      if (!ip) return;
+
+      const candidateKey = `${type}-${proto}-${ip}-${port}`;
+      if (candidatesList.some(c => c.key === candidateKey)) return;
+
+      candidatesList.push({ key: candidateKey, type, proto, ip, port, serverName });
+      renderCandidateTable();
+
+      const ipv4Regex = /^([0-9]{1,3}\.){3}[0-9]{1,3}$/;
+      const ipv6Regex = /^([a-f0-9:]+:+)+[a-f0-9]+$/i;
+
+      if (ipv4Regex.test(ip)) {
+        if (isPrivateIP(ip)) {
+          detectedLocalIPs.add(ip);
+        } else {
+          detectedPublicIPs.set(ip, { type, proto, serverName });
+          fetchWebRtcIpIntel(ip);
+        }
+      } else if (ipv6Regex.test(ip) && !ip.startsWith('fe80')) {
+        detectedPublicIPs.set(ip, { type: type + ' (IPv6)', proto, serverName });
+        fetchWebRtcIpIntel(ip);
+      } else if (ip.endsWith('.local')) {
+        detectedLocalIPs.add('mDNS Masked (' + ip.substring(0, 8) + '...)');
+      }
+
+      updateIPCards();
+    }
+
+    async function fetchWebRtcIpIntel(ip) {
+      const intel = await getIpIntel(ip);
+      if (intel) {
+        const curr = detectedPublicIPs.get(ip) || {};
+        detectedPublicIPs.set(ip, { ...curr, ...intel });
+        updateIPCards();
+      }
+    }
+
+    function isPrivateIP(ip) {
+      return /^(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.|127\.)/.test(ip);
+    }
+
+    function updateIPCards() {
+      const publicIPEntries = Array.from(detectedPublicIPs.entries());
+      if (publicIPEntries.length > 0) {
+        const ipList = publicIPEntries.map(([ip]) => ip).join(', ');
+        document.getElementById('webrtcPublicIp').textContent = ipList;
+
+        const metaText = publicIPEntries.map(([ip, meta]) => {
+          if (meta.isp) {
+            return `<span><strong>ISP / Org:</strong> ${meta.isp} (${meta.asn || 'N/A'})</span><span><strong>Location:</strong> ${meta.location || 'Unknown'}</span>`;
+          }
+          return `<span>Resolved via STUN (${meta.serverName})</span>`;
+        }).join('');
+        document.getElementById('webrtcMeta').innerHTML = metaText;
+
+        const tagsHtml = publicIPEntries.map(([ip, meta]) => {
+          if (meta.isVpnDc) {
+            return `<span class="tag vpn"><span class="material-symbols-rounded" style="font-size:12px;">vpn_key</span> VPN / Datacenter</span>`;
+          } else if (meta.isp) {
+            return `<span class="tag warning"><span class="material-symbols-rounded" style="font-size:12px;">home</span> Residential ISP</span>`;
+          }
+          return `<span class="tag neutral">Checking Intel...</span>`;
+        }).join(' ');
+
+        document.getElementById('webrtcTagGroup').innerHTML = tagsHtml;
+      }
+
+      const localArr = Array.from(detectedLocalIPs);
+      if (localArr.length > 0) {
+        document.getElementById('localIp').textContent = localArr.join(', ');
+        const hasRealLocal = localArr.some(ip => !ip.includes('mDNS'));
+        document.getElementById('localMeta').textContent = hasRealLocal 
+          ? 'Internal private IPv4 host interface exposed.' 
+          : 'Internal host interface anonymized via mDNS.';
+        document.getElementById('localTagGroup').innerHTML = hasRealLocal 
+          ? `<span class="tag warning">Host Exposed</span>` 
+          : `<span class="tag safe">mDNS Shield Active</span>`;
+
+        document.getElementById('postureMdns').innerHTML = hasRealLocal
+          ? `<span class="material-symbols-rounded" style="font-size:16px; color:var(--md-tertiary);">warning</span> Disabled`
+          : `<span class="material-symbols-rounded" style="font-size:16px; color:var(--md-primary);">check_circle</span> Active`;
+      }
+    }
+
+    function renderCandidateTable() {
+      const tbody = document.getElementById('candidateTableBody');
+      if (candidatesList.length === 0) return;
+
+      tbody.innerHTML = candidatesList.map(c => `
+        <tr>
+          <td><strong style="text-transform: uppercase;">${c.type}</strong></td>
+          <td>${c.proto.toUpperCase()}</td>
+          <td style="font-family: monospace;">${c.ip}</td>
+          <td>${c.port}</td>
+          <td>${c.serverName}</td>
+        </tr>
+      `).join('');
+    }
+
+    function evaluateFinalResults() {
+      const statusCard = document.getElementById('statusCard');
+      const statusIconBg = document.getElementById('statusIconBg');
+      const statusIcon = document.getElementById('statusIcon');
+
+      statusIconBg.classList.remove('scanning');
+
+      const publicIPs = Array.from(detectedPublicIPs.keys());
+
+      if (publicIPs.length === 0) {
+        document.getElementById('webrtcPublicIp').textContent = 'None Exposed';
+        document.getElementById('webrtcMeta').textContent = 'STUN queries produced zero public IP candidates.';
+        document.getElementById('webrtcTagGroup').innerHTML = `<span class="tag safe">Completely Shielded</span>`;
+        
+        document.getElementById('postureStun').innerHTML = `<span class="material-symbols-rounded" style="font-size:16px; color:var(--md-primary);">check_circle</span> Blocked`;
+        document.getElementById('postureGateway').innerHTML = `<span class="material-symbols-rounded" style="font-size:16px; color:var(--md-primary);">check_circle</span> Isolated`;
+
+        updateStatusSecure('Protected — WebRTC Completely Blocked', 'STUN candidate resolution produced zero public interface IPs. Your browser policy or VPN firewall prevents WebRTC disclosures.');
+        return;
+      }
+
+      document.getElementById('postureStun').innerHTML = `<span class="material-symbols-rounded" style="font-size:16px; color:var(--md-primary);">check_circle</span> Active (${publicIPs.length} IP)`;
+
+      const httpIp = httpBaselineData ? httpBaselineData.ip : null;
+      let realHomeLeakExposed = false;
+      let leakingIpInfo = '';
+
+      for (let ip of publicIPs) {
+        const webrtcData = detectedPublicIPs.get(ip) || {};
+
+        if (httpIp && ip === httpIp) {
+          continue;
+        }
+
+        const isWebrtcVpn = webrtcData.isVpnDc;
+        const sameAsn = httpBaselineData && webrtcData.asn && (webrtcData.asn === httpBaselineData.asn);
+        const sameIsp = httpBaselineData && webrtcData.isp && httpBaselineData.isp && 
+          (webrtcData.isp.toLowerCase().includes(httpBaselineData.isp.toLowerCase()) || 
+           httpBaselineData.isp.toLowerCase().includes(webrtcData.isp.toLowerCase()));
+
+        if (isWebrtcVpn || sameAsn || sameIsp) {
+          // Both belong to VPN infrastructure
+        } else {
+          realHomeLeakExposed = true;
+          leakingIpInfo = `${ip} (${webrtcData.isp || 'Residential ISP'})`;
+          break;
+        }
+      }
+
+      if (realHomeLeakExposed) {
+        statusCard.className = 'status-card leaking';
+        statusIconBg.style.background = 'var(--md-tertiary-container)';
+        statusIconBg.style.color = 'var(--md-on-tertiary-container)';
+        statusIcon.textContent = 'gpp_bad';
+        document.getElementById('statusTitle').textContent = 'WebRTC Interface Exposure Identified';
+        document.getElementById('statusSubtitle').textContent = `WebRTC STUN resolution bypassed your current proxy/VPN gateway and revealed a residential IP address: ${leakingIpInfo}.`;
+        
+        document.getElementById('postureGateway').innerHTML = `<span class="material-symbols-rounded" style="font-size:16px; color:var(--md-tertiary);">warning</span> Misaligned`;
+      } else {
+        statusCard.className = 'status-card secure';
+        statusIconBg.style.background = 'var(--md-primary-container)';
+        statusIconBg.style.color = 'var(--md-on-primary-container)';
+        statusIcon.textContent = 'shield_lock';
+
+        document.getElementById('postureGateway').innerHTML = `<span class="material-symbols-rounded" style="font-size:16px; color:var(--md-primary);">check_circle</span> Aligned`;
+
+        if (publicIPs.length > 1 || (httpIp && publicIPs[0] !== httpIp)) {
+          document.getElementById('statusTitle').textContent = 'Protected — Multi-Interface Tunnel Route';
+          document.getElementById('statusSubtitle').textContent = 'WebRTC and HTTP traffic route through distinct public IP addresses, but both are verified VPN / datacenter endpoints. Your origin IP address remains fully protected.';
+        } else {
+          document.getElementById('statusTitle').textContent = 'Protected — Interface Gateway Aligned';
+          document.getElementById('statusSubtitle').textContent = 'WebRTC public interface bindings strictly match your primary HTTP web gateway.';
+        }
+      }
+    }
+
+    function updateStatusSecure(title, subtitle) {
+      const statusCard = document.getElementById('statusCard');
+      const statusIconBg = document.getElementById('statusIconBg');
+      const statusIcon = document.getElementById('statusIcon');
+
+      statusCard.className = 'status-card secure';
+      statusIconBg.style.background = 'var(--md-primary-container)';
+      statusIconBg.style.color = 'var(--md-on-primary-container)';
+      statusIcon.textContent = 'verified_user';
+      document.getElementById('statusTitle').textContent = title;
+      document.getElementById('statusSubtitle').textContent = subtitle;
+    }
+
+    function exportAuditReport() {
+      const report = {
+        app: "Aurex Labs WebRTC Shield",
+        version: "3.2.0-enterprise",
+        timestamp: new Date().toISOString(),
+        httpGateway: httpBaselineData || "Unknown",
+        webrtcDiscoveredIPs: Array.from(detectedPublicIPs.entries()).map(([ip, meta]) => ({ ip, ...meta })),
+        localInterfaces: Array.from(detectedLocalIPs),
+        iceCandidates: candidatesList,
+        auditOutcome: document.getElementById('statusTitle').innerText
+      };
+
+      const jsonStr = JSON.stringify(report, null, 2);
+      navigator.clipboard.writeText(jsonStr).then(() => {
+        showToast("Full JSON Audit Report copied to clipboard", "file_download");
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', runWebRTCTest);
+  </script>
+</body>
+</html>

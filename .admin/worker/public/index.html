@@ -377,11 +377,11 @@ function renderServices(st) {
   const list = $("services-list");
   list.innerHTML = "";
   for (const [id, svc] of Object.entries(st.services || {})) {
-    const meta = (st.meta && st.meta[id]) || { name: id, url: "" };
+    const meta = (st.meta && st.meta[id]) || { name: id, url: "", icon: "shield" };
     const row = document.createElement("div");
     row.className = "svc-row" + (svc.locked ? " locked" : "");
     row.innerHTML = `
-      <div class="svc-icon"><span class="msymbol filled">mark_email_unread</span></div>
+      <div class="svc-icon"><span class="msymbol filled">${meta.icon || "shield"}</span></div>
       <div class="svc-info">
         <div class="svc-name">${meta.name} ${svc.locked ? '· <span style="color:var(--error);font-size:.78rem">LOCKED</span>' : ""}</div>
         ${meta.url ? `<a class="svc-url" href="${meta.url}" target="_blank" rel="noopener">${meta.url.replace("https://", "")}</a>` : ""}
@@ -390,7 +390,7 @@ function renderServices(st) {
         </div>
       </div>
       <div class="switch">
-        <input type="checkbox" class="svc-switch" data-svc="${id}" ${svc.locked ? "checked" : ""} aria-label="Blokada ${meta.name}">
+        <input type="checkbox" class="svc-switch" data-svc="${id}" ${svc.locked ? "checked" : ""} aria-label="Lock ${meta.name}">
         <span class="track"></span><span class="thumb"></span>
       </div>`;
     row.querySelector(".svc-switch").addEventListener("change", (e) => toggleService(id, e.target.checked));

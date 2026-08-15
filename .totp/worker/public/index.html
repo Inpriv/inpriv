@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com fonts.gstatic.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.googleapis.com fonts.gstatic.com https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https://hush.best; media-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; connect-src 'self'; worker-src 'none'; manifest-src 'self'">
+<title>Inpriv TOTP — Authenticator &amp; 2FA</title>
+<meta name="description" content="RFC 6238 time-based one-time passwords. Fully client-side, zero-knowledge. Your seeds never leave this browser.">
+<meta name="theme-color" content="#13140E" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#FAF9F0" media="(prefers-color-scheme: light)">
+<meta name="robots" content="noindex, nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Inpriv TOTP">
+<link rel="icon" href="https://hush.best/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:ital,opsz,wght@0,8..144,300..800;1,8..144,300..800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js" integrity="sha384-mZT2gIty7ZDdOGkxfP6joZcYdMW1Jvj9dRlfpTmaJAKKXTqzygtB22k7FLe+KZC1" crossorigin="anonymous"></script>
+<style>
+:root {
+  --ease-standard: cubic-bezier(0.2, 0.0, 0.0, 1.0);
+  --ease-spring: cubic-bezier(0.2, 1.3, 0.0, 1.0);
+  --ease-spring-soft: cubic-bezier(0.34, 1.3, 0.64, 1.0);
+  --font-sans: 'Roboto Flex', system-ui, -apple-system, sans-serif;
+  --font-icon: 'Material Symbols Rounded';
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+[data-theme="dark"], :root {
+  --md-primary: #ABD37A;
+  --md-on-primary: #173800;
+  --md-primary-container: #2E4F2F;
+  --md-on-primary-container: #C7EFA0;
+  --md-secondary: #BCCBAF;
+  --md-secondary-container: #3D4B34;
+  --md-on-secondary-container: #D8E7CB;
+  --md-tertiary: #FFB4A5;
+  --md-tertiary-container: #7E2D1E;
+  --md-on-tertiary-container: #FFDAD3;
+  --md-error: #FFB4AB;
+  --md-surface: #13140E;
+  --md-on-surface: #E3E2D3;
+  --md-on-surface-variant: #C3C8B6;
+  --md-surface-container-lowest: #0D0F09;
+  --md-surface-container-low: #1A1C17;
+  --md-surface-container: #1F211B;
+  --md-surface-container-high: #292B25;
+  --md-surface-container-highest: #34362F;
+  --md-outline: #8D9283;
+  --md-outline-variant: #43483D;
+  --md-shadow: rgba(0,0,0,0.4);
+  --md-shadow-strong: rgba(0,0,0,0.65);
+}
+
+[data-theme="light"] {
+  --md-primary: #466E47;
+  --md-on-primary: #FFFFFF;
+  --md-primary-container: #C7EFA0;
+  --md-on-primary-container: #0C2000;
+  --md-secondary: #55624C;
+  --md-secondary-container: #D8E7CB;
+  --md-on-secondary-container: #131F0C;
+  --md-tertiary: #9C4231;
+  --md-tertiary-container: #FFDAD3;
+  --md-on-tertiary-container: #3D0A03;
+  --md-error: #BA1A1A;
+  --md-surface: #FAF9F0;
+  --md-on-surface: #1A1C17;
+  --md-on-surface-variant: #43483D;
+  --md-surface-container-lowest: #FFFFFF;
+  --md-surface-container-low: #F4F3E7;
+  --md-surface-container: #EEEDDE;
+  --md-surface-container-high: #E9E7D9;
+  --md-surface-container-highest: #E3E2D3;
+  --md-outline: #74796C;
+  --md-outline-variant: #C3C8B6;
+  --md-shadow: rgba(20,25,15,0.15);
+  --md-shadow-strong: rgba(20,25,15,0.28);
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html { scroll-behavior:smooth; -webkit-text-size-adjust:100%; }
+
+body {
+  font-family:var(--font-sans);
+  font-optical-sizing:auto;
+  background:
+    radial-gradient(ellipse 80% 60% at 85% 0%, color-mix(in srgb, var(--md-primary-container) 50%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 0% 100%, color-mix(in srgb, var(--md-tertiary-container) 40%, transparent) 0%, transparent 70%),
+    var(--md-surface);
+  background-attachment:fixed;
+  color:var(--md-on-surface);
+  min-height:100dvh;
+  overflow-x:hidden;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  transition:background-color 0.5s var(--ease-standard), color 0.5s var(--ease-standard);
+}
+
+a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible { outline:2px solid var(--md-primary); outline-offset:2px; }
+button { font-family:inherit; }
+a, button, input, textarea { touch-action:manipulation; }
+
+.dot-grid {
+  position:fixed; inset:0; pointer-events:none; z-index:0;
+  background-image:radial-gradient(circle at 1px 1px, var(--md-outline-variant) 1px, transparent 0);
+  background-size:28px 28px;
+  opacity:0.18;
+  mask-image:radial-gradient(ellipse at center, black 30%, transparent 80%);
+  -webkit-mask-image:radial-gradient(ellipse at center, black 30%, transparent 80%);
+}
+
+.icon {
+  font-family:var(--font-icon);
+  font-weight:normal; font-style:normal;
+  display:inline-block; line-height:1;
+  text-transform:none; letter-spacing:normal; word-wrap:normal;
+  white-space:nowrap; direction:ltr;
+  -webkit-font-smoothing:antialiased;
+  font-variation-settings:'wght' 500, 'GRAD' 0, 'opsz' 24;
+}
+
+.container {
+  width:100%; max-width:680px; margin:0 auto;
+  padding:16px 16px calc(48px + env(safe-area-inset-bottom, 0px));
+  position:relative; z-index:1;
+  min-height:100dvh;
+  display:flex; flex-direction:column;
+}
+
+/* App Bar */
+.app-bar {
+  position:sticky; top:max(12px, env(safe-area-inset-top, 0px)); z-index:50;
+  width:100%; height:48px; padding:6px 6px 6px 16px;
+  margin-bottom:16px;
+  border-radius:9999px;
+  background:color-mix(in srgb, var(--md-surface-container) 75%, transparent);
+  backdrop-filter:blur(24px) saturate(180%);
+  -webkit-backdrop-filter:blur(24px) saturate(180%);
+  border:1px solid color-mix(in srgb, var(--md-outline-variant) 45%, transparent);
+  box-shadow:0 4px 20px -4px var(--md-shadow);
+  display:flex; align-items:center; justify-content:space-between;
+  animation:barIn 0.7s var(--ease-spring) both;
+}
+
+.app-bar-brand {
+  font-size:16px; font-weight:700; letter-spacing:-0.01em;
+  color:var(--md-on-surface); text-decoration:none;
+  display:flex; align-items:center; gap:6px; white-space:nowrap;
+}
+.app-bar-brand span { color:var(--md-primary); }
+.app-logo { width:26px; height:26px; border-radius:7px; object-fit:contain; }
+
+.bar-actions { display:flex; gap:2px; }
+
+.icon-btn {
+  width:40px; height:44px; border-radius:50%; border:none;
+  background:transparent; color:var(--md-on-surface-variant);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; position:relative; overflow:hidden;
+  transition:color 0.2s var(--ease-standard), transform 0.15s var(--ease-spring);
+}
+.icon-btn:hover { color:var(--md-on-surface); }
+.icon-btn:hover::before { content:''; position:absolute; inset:0; background:currentColor; opacity:0.08; border-radius:50%; }
+.icon-btn:active { transform:scale(0.92); }
+.icon-btn .icon { font-size:20px; }
+
+/* Hero */
+.hero { text-align:center; margin-bottom:16px; opacity:0; animation:fadeUp 0.8s var(--ease-spring) 0.1s both; }
+.hero-title { font-size:clamp(26px, 7vw, 36px); font-weight:800; letter-spacing:-0.025em; line-height:1.1; color:var(--md-on-surface); margin-bottom:6px; }
+.hero-title .accent { font-style:italic; font-weight:300; color:var(--md-primary); }
+.hero-desc { font-size:13px; color:var(--md-on-surface-variant); max-width:400px; margin:0 auto; }
+
+/* Empty state */
+.empty-state {
+  display:none; flex-direction:column; align-items:center; gap:12px;
+  text-align:center; padding:48px 16px; margin:auto;
+}
+.empty-state.visible { display:flex; }
+.empty-icon {
+  width:64px; height:64px; border-radius:20px;
+  background:var(--md-primary-container); color:var(--md-on-primary-container);
+  display:flex; align-items:center; justify-content:center;
+}
+.empty-icon .icon { font-size:32px; }
+.empty-title { font-size:17px; font-weight:700; color:var(--md-on-surface); }
+.empty-sub { font-size:13px; color:var(--md-on-surface-variant); max-width:300px; }
+
+/* Token list */
+.token-list { display:flex; flex-direction:column; gap:10px; }
+
+.token-card {
+  display:flex; align-items:center; gap:14px;
+  padding:12px 16px;
+  background:var(--md-surface-container-low);
+  border:1px solid var(--md-outline-variant);
+  border-radius:20px;
+  position:relative; overflow:hidden;
+  cursor:pointer;
+  transition:all 0.4s var(--ease-spring-soft);
+  opacity:0; animation:fadeUp 0.6s var(--ease-spring) both;
+}
+.token-card:hover { transform:translateY(-2px); background:var(--md-surface-container); border-color:var(--md-outline); }
+.token-card:active { transform:scale(0.98); }
+
+.token-info { flex:1; min-width:0; }
+.token-issuer { font-size:12px; font-weight:700; color:var(--md-on-surface); margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.token-account { font-size:11px; color:var(--md-on-surface-variant); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+.token-code {
+  font-family:var(--font-mono);
+  font-size:24px; font-weight:700; letter-spacing:0.06em;
+  color:var(--md-primary); font-variant-numeric:tabular-nums;
+  line-height:1;
+}
+
+.token-side { display:flex; flex-direction:column; align-items:center; gap:6px; flex-shrink:0; }
+
+.ring-wrap { position:relative; width:40px; height:40px; }
+.ring-svg { transform:rotate(-90deg); }
+.ring-bg { stroke:var(--md-surface-container-highest); }
+.ring-fg { stroke:var(--md-primary); transition:stroke-dashoffset 0.3s linear; }
+.ring-sec {
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:9px; font-weight:700; color:var(--md-on-surface-variant);
+  font-variant-numeric:tabular-nums;
+}
+
+.token-del {
+  width:32px; height:32px; border-radius:50%; border:none;
+  background:transparent; color:var(--md-on-surface-variant); opacity:0.4;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; flex-shrink:0;
+  transition:all 0.2s var(--ease-standard);
+}
+.token-del:hover { opacity:1; color:var(--md-error); background:color-mix(in srgb, var(--md-error) 12%, transparent); }
+.token-del .icon { font-size:18px; }
+
+/* FAB */
+.fab {
+  position:fixed; left:50%; transform:translateX(-50%);
+  bottom:calc(20px + env(safe-area-inset-bottom, 0px));
+  z-index:40;
+  display:inline-flex; align-items:center; gap:8px;
+  padding:0 24px; height:52px;
+  border:none; border-radius:9999px;
+  background:var(--md-primary); color:var(--md-on-primary);
+  font-size:15px; font-weight:600;
+  cursor:pointer;
+  box-shadow:0 6px 20px -4px var(--md-shadow);
+  transition:transform 0.2s var(--ease-spring), box-shadow 0.2s var(--ease-standard), filter 0.2s;
+}
+.fab:hover { transform:translateX(-50%) translateY(-2px); box-shadow:0 10px 28px -4px var(--md-shadow-strong); }
+.fab:active { transform:translateX(-50%) scale(0.96); }
+.fab .icon { font-size:20px; }
+
+/* Lock screen */
+.lock-screen {
+  display:none; flex-direction:column; align-items:center; gap:14px;
+  text-align:center; padding:48px 20px; margin:auto; width:100%;
+}
+.lock-screen.visible { display:flex; }
+.lock-title { font-size:20px; font-weight:800; color:var(--md-on-surface); }
+.lock-sub { font-size:13px; color:var(--md-on-surface-variant); }
+
+/* Inputs & Buttons */
+.field { margin-bottom:12px; text-align:left; }
+.field label { display:block; font-size:10px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--md-on-surface-variant); margin-bottom:6px; }
+.text-input {
+  width:100%; padding:12px 14px;
+  border-radius:14px;
+  border:1px solid var(--md-outline-variant);
+  background:var(--md-surface-container-low);
+  color:var(--md-on-surface);
+  font-family:inherit; font-size:14px;
+  transition:border-color 0.2s var(--ease-standard);
+}
+.text-input:focus { border-color:var(--md-primary); }
+.text-input::placeholder { color:var(--md-on-surface-variant); opacity:0.6; }
+textarea.text-input { min-height:64px; resize:vertical; font-family:var(--font-mono); font-size:12px; }
+
+.btn {
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  padding:12px 20px; border-radius:9999px;
+  font-size:14px; font-weight:600; cursor:pointer; border:none;
+  transition:all 0.2s var(--ease-standard);
+  width:100%;
+}
+.btn:active { transform:scale(0.97); }
+.btn.primary { background:var(--md-primary-container); color:var(--md-on-primary-container); }
+.btn.primary:hover { filter:brightness(1.15); }
+.btn.secondary { background:transparent; color:var(--md-on-surface-variant); border:1px solid var(--md-outline-variant); }
+.btn.secondary:hover { background:var(--md-surface-container-high); }
+.btn-row { display:flex; gap:8px; }
+.btn-row .btn { flex:1; }
+
+/* Modal */
+.modal-bg {
+  position:fixed; inset:0; z-index:100;
+  background:rgba(0,0,0,0.5);
+  backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+  display:none; align-items:flex-end; justify-content:center;
+}
+.modal-bg.visible { display:flex; }
+
+.modal {
+  width:100%; max-width:480px;
+  background:var(--md-surface-container-low);
+  border-radius:24px 24px 0 0;
+  border-top:1px solid var(--md-outline-variant);
+  padding:20px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+  animation:sheetIn 0.35s var(--ease-spring) both;
+  max-height:88vh; overflow-y:auto;
+}
+@media(min-width:600px) {
+  .modal-bg { align-items:center; padding:24px; }
+  .modal { border-radius:24px; }
+}
+.modal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+.modal-title { font-size:18px; font-weight:800; color:var(--md-on-surface); }
+.modal-close { width:36px; height:36px; border-radius:50%; border:none; background:var(--md-surface-container-high); color:var(--md-on-surface-variant); cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.modal-close:active { transform:scale(0.92); }
+
+.hint { font-size:11px; color:var(--md-on-surface-variant); margin-top:6px; line-height:1.4; }
+.hint code { font-family:var(--font-mono); background:var(--md-surface-container-high); padding:1px 5px; border-radius:6px; font-size:10px; }
+
+/* QR modal */
+.qr-box {
+  display:flex; flex-direction:column; align-items:center; gap:12px;
+  padding:20px; text-align:center;
+}
+.qr-box svg { border-radius:16px; background:#fff; padding:10px; box-shadow:0 8px 24px var(--md-shadow); }
+.qr-uri {
+  width:100%; font-family:var(--font-mono); font-size:10px; word-break:break-all;
+  background:var(--md-surface-container); border:1px solid var(--md-outline-variant);
+  border-radius:12px; padding:10px; color:var(--md-on-surface-variant);
+  text-align:left; max-height:80px; overflow-y:auto;
+}
+
+/* Toast */
+.toast {
+  position:fixed; left:50%; transform:translateX(-50%) translateY(20px);
+  bottom:calc(96px + env(safe-area-inset-bottom, 0px));
+  z-index:200;
+  background:var(--md-inverse-surface, #E3E2D3);
+  color:var(--md-inverse-on-surface, #2F312C);
+  padding:12px 18px; border-radius:12px;
+  font-size:13px; font-weight:600;
+  box-shadow:0 8px 24px var(--md-shadow-strong);
+  opacity:0; pointer-events:none;
+  transition:all 0.3s var(--ease-spring);
+  display:flex; align-items:center; gap:8px;
+}
+.toast.visible { opacity:1; transform:translateX(-50%) translateY(0); }
+.toast .icon { font-size:18px; }
+
+/* Animations */
+@keyframes barIn { from { opacity:0; transform:translateY(-12px); } to { opacity:1; transform:translateY(0); } }
+@keyframes fadeUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
+@keyframes sheetIn { from { opacity:0; transform:translateY(40px); } to { opacity:1; transform:translateY(0); } }
+@keyframes rippleAnim { to { transform:scale(4); opacity:0; } }
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+
+.ripple-span {
+  position:absolute; border-radius:50%;
+  background:currentColor; opacity:0.2;
+  transform:scale(0); animation:rippleAnim 0.6s var(--ease-standard) forwards;
+  pointer-events:none;
+}
+
+@media(min-width:600px) {
+  .container { max-width:680px; padding:20px 20px 64px; }
+  .app-bar { height:52px; margin-bottom:20px; }
+  .token-card { padding:14px 18px; }
+  .token-code { font-size:28px; }
+}
+
+@media(prefers-reduced-motion:reduce) {
+  *, *::before, *::after { animation-duration:0.01ms !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="dot-grid" aria-hidden="true"></div>
+
+<div class="container">
+  <nav class="app-bar" aria-label="Navigation">
+    <a href="https://inpriv.xyz" class="app-bar-brand">
+      <img src="https://hush.best/icon.png" alt="" class="app-logo"> Inpriv<span>.</span> TOTP
+    </a>
+    <div class="bar-actions">
+      <button class="icon-btn" id="lock-btn" aria-label="Lock vault" type="button" title="Lock vault">
+        <span class="icon" aria-hidden="true">lock_open</span>
+      </button>
+      <button class="icon-btn" id="theme-toggle" aria-label="Toggle theme" type="button">
+        <span class="icon" id="theme-icon" aria-hidden="true">light_mode</span>
+      </button>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <h1 class="hero-title">One-time codes.<br><span class="accent">Zero-knowledge.</span></h1>
+    <p class="hero-desc">RFC 6238 authenticator. Seeds stay in your browser — encrypted vault optional.</p>
+  </header>
+
+  <!-- Empty state -->
+  <div class="empty-state" id="empty-state">
+    <div class="empty-icon"><span class="icon" aria-hidden="true">timer</span></div>
+    <div class="empty-title">No authenticators yet</div>
+    <div class="empty-sub">Add your first account — paste an otpauth:// URI, scan a QR from another app, or generate a fresh secret.</div>
+  </div>
+
+  <!-- Token list -->
+  <main class="token-list" id="token-list"></main>
+
+  <!-- Lock screen -->
+  <div class="lock-screen" id="lock-screen">
+    <div class="lock-title">Vault locked</div>
+    <div class="lock-sub">Enter your passphrase to unlock your authenticators.</div>
+    <input type="password" class="text-input" id="lock-pass" placeholder="Passphrase" autocomplete="current-password" style="max-width:280px;">
+    <div class="btn-row" style="max-width:280px;">
+      <button class="btn primary" id="unlock-btn" type="button">Unlock</button>
+    </div>
+  </div>
+</div>
+
+<button class="fab" id="fab" type="button">
+  <span class="icon" aria-hidden="true">add</span> Add account
+</button>
+
+<!-- Add modal -->
+<div class="modal-bg" id="add-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Add authenticator</div>
+      <button class="modal-close" data-close="add-modal" type="button" aria-label="Close"><span class="icon" aria-hidden="true">close</span></button>
+    </div>
+    <div class="field">
+      <label for="acc-name">Account name</label>
+      <input class="text-input" id="acc-name" placeholder="example@proton.me" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="acc-secret">Secret or otpauth:// URI</label>
+      <textarea class="text-input" id="acc-secret" placeholder="otpauth://totp/Example:user?secret=JBSWY3DPEHPK3PXP&issuer=Example"></textarea>
+      <div class="hint">Paste a full <code>otpauth://</code> URI (exported from Google Authenticator, Aegis, etc.) or a raw Base32 secret.</div>
+    </div>
+    <div class="btn-row">
+      <button class="btn secondary" id="gen-secret" type="button">Generate</button>
+      <button class="btn primary" id="save-acc" type="button">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- QR modal -->
+<div class="modal-bg" id="qr-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Share / migrate</div>
+      <button class="modal-close" data-close="qr-modal" type="button" aria-label="Close"><span class="icon" aria-hidden="true">close</span></button>
+    </div>
+    <div class="qr-box">
+      <div id="qr-render"></div>
+      <div class="qr-uri" id="qr-uri"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span class="icon" id="toast-icon" aria-hidden="true">check_circle</span><span id="toast-text"></span></div>
+
+<script>
+(function() {
+  'use strict';
+
+  /* ─── Base32 ─── */
+  var B32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  function b32encode(bytes) {
+    var bits = 0, value = 0, out = '';
+    for (var i = 0; i < bytes.length; i++) {
+      value = (value << 8) | bytes[i];
+      bits += 8;
+      while (bits >= 5) { out += B32[(value >>> (bits - 5)) & 31]; bits -= 5; }
+    }
+    if (bits > 0) out += B32[(value << (5 - bits)) & 31];
+    return out;
+  }
+  function b32decode(str) {
+    var s = str.toUpperCase().replace(/[^A-Z2-7]/g, '');
+    var bits = 0, value = 0, out = [];
+    for (var i = 0; i < s.length; i++) {
+      var idx = B32.indexOf(s[i]);
+      if (idx === -1) continue;
+      value = (value << 5) | idx;
+      bits += 5;
+      if (bits >= 8) { out.push((value >>> (bits - 8)) & 255); bits -= 8; }
+    }
+    return new Uint8Array(out);
+  }
+
+  /* ─── TOTP (RFC 6238, HMAC-SHA1) ─── */
+  async function totpCode(secretB32, period, digits) {
+    var counter = Math.floor(Date.now() / 1000 / period);
+    var msg = new ArrayBuffer(8);
+    var view = new DataView(msg);
+    view.setUint32(4, counter, false);
+    var key = await crypto.subtle.importKey('raw', b32decode(secretB32), { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']);
+    var sig = new Uint8Array(await crypto.subtle.sign('HMAC', key, msg));
+    var offset = sig[sig.length - 1] & 0x0f;
+    var code = ((sig[offset] & 0x7f) << 24) | (sig[offset + 1] << 16) | (sig[offset + 2] << 8) | sig[offset + 3];
+    return String(code % Math.pow(10, digits)).padStart(digits, '0');
+  }
+
+  /* ─── Vault ─── */
+  var STORE_KEY = 'inpriv_totp_vault_v1';
+  var vault = { locked: false, passSet: false, accounts: [] };
+
+  function loadVault() {
+    try {
+      var raw = localStorage.getItem(STORE_KEY);
+      if (!raw) return;
+      var parsed = JSON.parse(raw);
+      if (parsed && parsed.passSet) {
+        vault = { locked: true, passSet: true, accounts: [] };
+      } else if (parsed && Array.isArray(parsed.accounts)) {
+        vault = { locked: false, passSet: false, accounts: parsed.accounts };
+      }
+    } catch (e) { /* corrupted — start fresh */ }
+  }
+
+  function persistPlain() {
+    localStorage.setItem(STORE_KEY, JSON.stringify({ passSet: false, accounts: vault.accounts }));
+  }
+
+  async function deriveKey(passphrase, salt) {
+    var base = await crypto.subtle.importKey('raw', new TextEncoder().encode(passphrase), 'PBKDF2', false, ['deriveKey']);
+    return crypto.subtle.deriveKey(
+      { name: 'PBKDF2', salt: salt, iterations: 100000, hash: 'SHA-256' },
+      base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']
+    );
+  }
+
+  async function encryptVault(passphrase) {
+    var salt = crypto.getRandomValues(new Uint8Array(16));
+    var iv = crypto.getRandomValues(new Uint8Array(12));
+    var key = await deriveKey(passphrase, salt);
+    var ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, key, new TextEncoder().encode(JSON.stringify(vault.accounts)));
+    localStorage.setItem(STORE_KEY, JSON.stringify({
+      passSet: true,
+      salt: b64url(new Uint8Array(salt)),
+      iv: b64url(iv),
+      ct: b64url(new Uint8Array(ct))
+    }));
+  }
+
+  async function decryptVault(passphrase, data) {
+    var salt = b64urlDecode(data.salt);
+    var iv = b64urlDecode(data.iv);
+    var ct = b64urlDecode(data.ct);
+    var key = await deriveKey(passphrase, salt);
+    var pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv }, key, ct);
+    return JSON.parse(new TextDecoder().decode(pt));
+  }
+
+  function b64url(buf) {
+    var s = '';
+    for (var i = 0; i < buf.length; i++) s += String.fromCharCode(buf[i]);
+    return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  function b64urlDecode(str) {
+    var s = str.replace(/-/g, '+').replace(/_/g, '/');
+    while (s.length % 4 !== 0) s += '=';
+    var bin = atob(s), out = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+
+  /* ─── otpauth parsing ─── */
+  function parseOtpauth(uri) {
+    var m = uri.match(/^otpauth:\/\/totp\/([^?]+)\?([\s\S]+)$/i);
+    if (!m) return null;
+    var label = decodeURIComponent(m[1]).replace(/^[^:]*:/, ''); // strip issuer prefix if duplicated
+    var params = {};
+    m[2].split('&').forEach(function(p) {
+      var kv = p.split('=');
+      if (kv.length === 2) params[decodeURIComponent(kv[0]).toLowerCase()] = decodeURIComponent(kv[1]);
+    });
+    if (!params.secret) return null;
+    return {
+      account: label || 'account',
+      secret: params.secret.toUpperCase().replace(/\s/g, ''),
+      period: parseInt(params.period, 10) || 30,
+      digits: parseInt(params.digits, 10) || 6
+    };
+  }
+
+  function buildUri(acc) {
+    var label = encodeURIComponent((acc.issuer ? acc.issuer + ':' : '') + acc.account);
+    return 'otpauth://totp/' + label + '?secret=' + acc.secret + '&issuer=' + encodeURIComponent(acc.issuer || '') + '&algorithm=SHA1&digits=' + acc.digits + '&period=' + acc.period;
+  }
+
+  /* ─── UI helpers ─── */
+  var $ = function(id) { return document.getElementById(id); };
+  var tokenList = $('token-list'), emptyState = $('empty-state');
+
+  function escapeHTML(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function showToast(text, icon) {
+    var t = $('toast');
+    $('toast-text').textContent = text;
+    $('toast-icon').textContent = icon || 'check_circle';
+    t.classList.add('visible');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(function() { t.classList.remove('visible'); }, 2200);
+  }
+
+  function openModal(id) { $(id).classList.add('visible'); }
+  function closeModal(id) { $(id).classList.remove('visible'); }
+
+  function ringSVG(remaining, period) {
+    var r = 16, c = 2 * Math.PI * r;
+    var frac = remaining / period;
+    var off = c * (1 - frac);
+    return '<div class="ring-wrap">' +
+      '<svg class="ring-svg" width="40" height="40" viewBox="0 0 40 40">' +
+      '<circle class="ring-bg" cx="20" cy="20" r="' + r + '" fill="none" stroke-width="3"/>' +
+      '<circle class="ring-fg" cx="20" cy="20" r="' + r + '" fill="none" stroke-width="3" stroke-linecap="round" stroke-dasharray="' + c + '" stroke-dashoffset="' + off + '"/>' +
+      '</svg><div class="ring-sec">' + Math.ceil(remaining) + '</div></div>';
+  }
+
+  function render() {
+    tokenList.innerHTML = '';
+    if (vault.locked) {
+      $('lock-screen').classList.add('visible');
+      tokenList.style.display = 'none';
+      emptyState.classList.remove('visible');
+      $('fab').style.display = 'none';
+      $('lock-btn').querySelector('.icon').textContent = 'lock';
+      return;
+    }
+    $('lock-screen').classList.remove('visible');
+    tokenList.style.display = '';
+    $('lock-btn').querySelector('.icon').textContent = vault.passSet ? 'lock' : 'lock_open';
+    $('lock-btn').style.display = vault.passSet ? '' : 'none';
+    $('fab').style.display = '';
+
+    if (vault.accounts.length === 0) {
+      emptyState.classList.add('visible');
+      return;
+    }
+    emptyState.classList.remove('visible');
+
+    vault.accounts.forEach(function(acc, i) {
+      var card = document.createElement('div');
+      card.className = 'token-card';
+      card.style.animationDelay = (0.05 * i) + 's';
+      card.innerHTML =
+        '<div class="token-info">' +
+          '<div class="token-issuer">' + escapeHTML(acc.issuer || acc.account) + '</div>' +
+          '<div class="token-account">' + escapeHTML(acc.issuer ? acc.account : 'TOTP') + '</div>' +
+        '</div>' +
+        '<div class="token-code" id="code-' + i + '">······</div>' +
+        '<div class="token-side" id="side-' + i + '"></div>' +
+        '<button class="token-del token-share" data-share="' + i + '" type="button" aria-label="Share"><span class="icon" aria-hidden="true">qr_code_2</span></button>' +
+        '<button class="token-del" data-del="' + i + '" type="button" aria-label="Delete"><span class="icon" aria-hidden="true">delete</span></button>';
+      card.addEventListener('click', function(e) {
+        if (e.target.closest('.token-del')) return;
+        copyCode(i);
+      });
+      tokenList.appendChild(card);
+    });
+    refreshCodes();
+  }
+
+  async function refreshCodes() {
+    if (vault.locked) return;
+    var now = Date.now() / 1000;
+    for (var i = 0; i < vault.accounts.length; i++) {
+      var acc = vault.accounts[i];
+      var remaining = acc.period - (now % acc.period);
+      var el = $('code-' + i), side = $('side-' + i);
+      if (!el) continue;
+      try {
+        var code = await totpCode(acc.secret, acc.period, acc.digits);
+        if (el.textContent !== code) el.textContent = code;
+      } catch (e) {
+        el.textContent = 'ERROR';
+      }
+      if (side && side.innerHTML.indexOf('ring-wrap') === -1 || (side && !side._tick)) {
+        side.innerHTML = ringSVG(remaining, acc.period);
+        side._tick = true;
+      } else if (side) {
+        var r = 16, c = 2 * Math.PI * r;
+        var fg = side.querySelector('.ring-fg');
+        if (fg) fg.style.strokeDashoffset = c * (1 - remaining / acc.period);
+        var sec = side.querySelector('.ring-sec');
+        if (sec) sec.textContent = Math.ceil(remaining);
+      }
+    }
+  }
+
+  async function copyCode(i) {
+    var acc = vault.accounts[i];
+    try {
+      var code = await totpCode(acc.secret, acc.period, acc.digits);
+      await navigator.clipboard.writeText(code);
+      showToast('Code copied', 'check_circle');
+    } catch (e) {
+      showToast('Copy failed', 'error');
+    }
+  }
+
+  /* ─── Add / delete ─── */
+  $('fab').addEventListener('click', function() { openModal('add-modal'); });
+
+  $('gen-secret').addEventListener('click', function() {
+    var bytes = crypto.getRandomValues(new Uint8Array(20));
+    var secret = b32encode(bytes);
+    var name = $('acc-name').value.trim();
+    $('acc-secret').value = secret;
+    if (!name) $('acc-name').value = 'generated';
+    showToast('Secret generated', 'autorenew');
+  });
+
+  $('save-acc').addEventListener('click', async function() {
+    var name = $('acc-name').value.trim();
+    var input = $('acc-secret').value.trim();
+    if (!name || !input) { showToast('Fill both fields', 'error'); return; }
+    var parsed = parseOtpauth(input);
+    var acc;
+    if (parsed) {
+      acc = parsed;
+    } else {
+      var clean = input.toUpperCase().replace(/[^A-Z2-7]/g, '');
+      if (clean.length < 16) { showToast('Invalid secret', 'error'); return; }
+      acc = { account: name, secret: clean, period: 30, digits: 6 };
+    }
+    acc.issuer = parsed ? (parseUriIssuer(input) || name) : name;
+    acc.id = Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+    vault.accounts.push(acc);
+    $('acc-name').value = ''; $('acc-secret').value = '';
+    closeModal('add-modal');
+    if (vault.passSet) await encryptVault(pendingPass || '');
+    else persistPlain();
+    render();
+    showToast('Authenticator added', 'check_circle');
+  });
+
+  function parseUriIssuer(uri) {
+    var m = uri.match(/[?&]issuer=([^&]+)/i);
+    return m ? decodeURIComponent(m[1]) : null;
+  }
+
+  var pendingPass = null;
+
+  document.addEventListener('click', function(e) {
+    var del = e.target.closest('[data-del]');
+    if (del) {
+      e.stopPropagation();
+      var i = parseInt(del.getAttribute('data-del'), 10);
+      if (confirm('Delete this authenticator?')) {
+        vault.accounts.splice(i, 1);
+        if (vault.passSet && pendingPass) encryptVault(pendingPass);
+        else persistPlain();
+        render();
+      }
+      return;
+    }
+    var close = e.target.closest('[data-close]');
+    if (close) closeModal(close.getAttribute('data-close'));
+    if (e.target.classList && e.target.classList.contains('modal-bg') && !e.target.classList.contains('visible') === false && e.target === e.currentTarget) return;
+  });
+
+  document.querySelectorAll('.modal-bg').forEach(function(bg) {
+    bg.addEventListener('click', function(e) {
+      if (e.target === bg) closeModal(bg.id);
+    });
+  });
+
+  /* ─── Lock / unlock ─── */
+  $('lock-btn').addEventListener('click', function() {
+    if (!vault.passSet) return;
+    vault.locked = true;
+    render();
+  });
+
+  $('unlock-btn').addEventListener('click', async function() {
+    var pass = $('lock-pass').value;
+    if (!pass) return;
+    try {
+      var data = JSON.parse(localStorage.getItem(STORE_KEY));
+      var accounts = await decryptVault(pass, data);
+      vault.locked = false;
+      vault.accounts = accounts;
+      pendingPass = pass;
+      $('lock-pass').value = '';
+      render();
+      showToast('Vault unlocked', 'lock_open');
+    } catch (e) {
+      showToast('Wrong passphrase', 'error');
+    }
+  });
+
+  $('lock-pass').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') $('unlock-btn').click();
+  });
+
+  /* ─── QR share ─── */
+  /* ─── QR share (via share button on card) ─── */
+  tokenList.addEventListener('click', function(e) {
+    var btn = e.target.closest('[data-share]');
+    if (!btn) return;
+    var idx = parseInt(btn.getAttribute('data-share'), 10);
+    var acc = vault.accounts[idx];
+    if (!acc) return;
+    var uri = buildUri(acc);
+    $('qr-uri').textContent = uri;
+    var box = $('qr-render');
+    box.innerHTML = '';
+    try {
+      var qr = qrcode(0, 'M');
+      qr.addData(uri);
+      qr.make();
+      box.innerHTML = qr.createSvgTag({ cellSize: 6, margin: 0 });
+    } catch (err) {
+      box.innerHTML = '<div class="hint">QR unavailable — use the URI below.</div>';
+    }
+    openModal('qr-modal');
+  });
+
+  /* ─── Theme ─── */
+  var themeBtn = $('theme-toggle'), themeIcon = $('theme-icon');
+  function setTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    localStorage.setItem('inpriv_totp_theme', t);
+    themeIcon.textContent = t === 'dark' ? 'light_mode' : 'dark_mode';
+  }
+  var saved = localStorage.getItem('inpriv_totp_theme') || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  setTheme(saved);
+  themeBtn.addEventListener('click', function() {
+    setTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+  });
+
+  /* ─── Ripple ─── */
+  document.addEventListener('click', function(e) {
+    var t = e.target.closest('.btn, .icon-btn, .fab, .token-card');
+    if (!t) return;
+    var r = t.getBoundingClientRect();
+    var c = document.createElement('span');
+    var d = Math.max(r.width, r.height);
+    c.style.width = c.style.height = d + 'px';
+    c.style.left = (e.clientX - r.left - d / 2) + 'px';
+    c.style.top = (e.clientY - r.top - d / 2) + 'px';
+    c.classList.add('ripple-span');
+    var ex = t.querySelector('.ripple-span');
+    if (ex) ex.remove();
+    t.appendChild(c);
+    setTimeout(function() { c.remove(); }, 600);
+  });
+
+  /* ─── Init ─── */
+  loadVault();
+  render();
+  setInterval(refreshCodes, 250);
+  setInterval(function() {
+    // re-render ring structure when period boundary passes
+    if (!vault.locked && vault.accounts.length) refreshCodes();
+  }, 1000);
+})();
+</script>
+</body>
+</html>

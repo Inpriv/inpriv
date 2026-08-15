@@ -3,10 +3,15 @@ main = "src/index.js"
 compatibility_date = "2025-08-01"
 workers_dev = true
 
+routes = [
+  { pattern = "burn.inpriv.xyz", custom_domain = true }
+]
+
 # Static frontend served from ./public
 [assets]
 directory = "./public"
 binding = "ASSETS"
+run_worker_first = true
 
 # KV namespace for ephemeral encrypted note storage
 # Create your own: npx wrangler kv namespace create BURN_KV

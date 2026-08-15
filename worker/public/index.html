@@ -1098,8 +1098,7 @@
     localStorage.setItem('inpriv_lang', lang);
   }
 
-  const savedLang = localStorage.getItem('inpriv_lang')
-    || ((navigator.language || '').toLowerCase().startsWith('pl') ? 'pl' : 'en');
+  const savedLang = localStorage.getItem('inpriv_lang') || 'en';
   applyLang(savedLang);
 
   document.getElementById('lang-toggle').addEventListener('click', () => {

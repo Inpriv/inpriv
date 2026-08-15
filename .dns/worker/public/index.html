@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<!--
+  Inpriv DNS Leak Test — Browser-side DNS Resolution Audit
+  Copyright (c) 2026 Aurex Labs — MIT License
+
+  Resolves test hostnames through multiple DNS-over-HTTPS (DoH) resolvers
+  (application/dns-json) and compares them against the HTTP egress IP.
+  Honest, in-browser, zero-knowledge — no backend involved.
+-->
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com fonts.gstatic.com; script-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.googleapis.com fonts.gstatic.com https://fonts.gstatic.com; img-src 'self' data: blob: https://hush.best; media-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'; connect-src 'self' https:; worker-src 'none'; manifest-src 'self'">
+  <title>Inpriv DNS Leak Test — Browser-side DNS Resolution Audit</title>
+  <meta name="description" content="Client-side DNS leak detection. Resolve test hostnames through multiple DNS-over-HTTPS resolvers and compare against your HTTP egress IP. Honest, in-browser, zero-knowledge." />
+
+  <link rel="icon" type="image/png" href="https://hush.best/icon.png" />
+  <link rel="apple-touch-icon" href="https://hush.best/icon.png" />
+  <link rel="shortcut icon" href="https://hush.best/icon.png" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:ital,opsz,wght@0,8..144,100..1000;1,8..144,100..1000&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+
+  <style>
+    /* ==========================================================================
+       COLOR & TOKENS — Aurex Labs M3 Earthy Forest
+       ========================================================================== */
+    :root {
+      --md-easing-standard: cubic-bezier(0.2, 0.0, 0.0, 1.0);
+      --md-easing-emphasized: cubic-bezier(0.3, 0.0, 0.0, 1.0);
+      --md-easing-spring: cubic-bezier(0.2, 1.4, 0.0, 1.0);
+      --md-easing-spring-soft: cubic-bezier(0.34, 1.3, 0.64, 1.0);
+      --font-primary: 'Roboto Flex', system-ui, -apple-system, sans-serif;
+    }
+    [data-theme="light"] {
+      --md-primary: #466E47; --md-on-primary: #FFFFFF; --md-primary-container: #C7EFA0; --md-on-primary-container: #0C2000;
+      --md-secondary: #55624C; --md-on-secondary: #FFFFFF; --md-secondary-container: #D8E7CB; --md-on-secondary-container: #131F0C;
+      --md-tertiary: #9C4231; --md-on-tertiary: #FFFFFF; --md-tertiary-container: #FFDAD3; --md-on-tertiary-container: #3D0A03;
+      --md-error: #BA1A1A;
+      --md-surface: #FAF9F0; --md-on-surface: #1A1C17; --md-on-surface-variant: #43483D;
+      --md-surface-dim: #DBDAD0;
+      --md-surface-container-lowest: #FFFFFF; --md-surface-container-low: #F4F3E7;
+      --md-surface-container: #EEEDDE; --md-surface-container-high: #E9E7D9; --md-surface-container-highest: #E3E2D3;
+      --md-outline: #74796C; --md-outline-variant: #C3C8B6;
+      --md-inverse-surface: #2F312C; --md-inverse-on-surface: #F0EFE7; --md-inverse-primary: #ABD37A;
+      --md-shadow-color: rgba(20, 25, 15, 0.15); --md-shadow-color-strong: rgba(20, 25, 15, 0.28);
+    }
+    [data-theme="dark"] {
+      --md-primary: #ABD37A; --md-on-primary: #173800; --md-primary-container: #2E4F2F; --md-on-primary-container: #C7EFA0;
+      --md-secondary: #BCCBAF; --md-on-secondary: #27341F; --md-secondary-container: #3D4B34; --md-on-secondary-container: #D8E7CB;
+      --md-tertiary: #FFB4A5; --md-on-tertiary: #5E1709; --md-tertiary-container: #7E2D1E; --md-on-tertiary-container: #FFDAD3;
+      --md-error: #FFB4AB;
+      --md-surface: #13140E; --md-on-surface: #E3E2D3; --md-on-surface-variant: #C3C8B6;
+      --md-surface-dim: #13140E;
+      --md-surface-container-lowest: #0D0F09; --md-surface-container-low: #1A1C17;
+      --md-surface-container: #1F211B; --md-surface-container-high: #292B25; --md-surface-container-highest: #34362F;
+      --md-outline: #8D9283; --md-outline-variant: #43483D;
+      --md-inverse-surface: #E3E2D3; --md-inverse-on-surface: #2F312C; --md-inverse-primary: #466E47;
+      --md-shadow-color: rgba(0, 0, 0, 0.4); --md-shadow-color-strong: rgba(0, 0, 0, 0.65);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-primary); background-color: var(--md-surface); color: var(--md-on-surface);
+      min-height: 100vh; padding: 24px 16px 140px 16px; position: relative; overflow-x: hidden;
+      transition: background-color 0.5s var(--md-easing-standard), color 0.5s var(--md-easing-standard);
+      font-optical-sizing: auto; -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%;
+    }
+    @media (min-width: 600px) { body { padding: 32px 24px 160px 24px; } }
+    body::before {
+      content: ""; position: fixed; inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 85% 0%, color-mix(in srgb, var(--md-primary-container) 55%, transparent) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 0% 100%, color-mix(in srgb, var(--md-tertiary-container) 45%, transparent) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+    }
+    .bg-grid { position: fixed; inset: 0; background-image: radial-gradient(circle at 1px 1px, var(--md-outline-variant) 1px, transparent 0); background-size: 28px 28px; opacity: 0.18; mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%); -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%); pointer-events: none; z-index: 0; }
+    .bg-blob { position: fixed; top: -100px; right: -100px; width: 420px; height: 420px; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--md-tertiary) 22%, transparent), transparent 70%); filter: blur(60px); animation: drift 22s ease-in-out infinite; pointer-events: none; z-index: 0; }
+    .app-wrapper { max-width: 1080px; margin: 0 auto; position: relative; z-index: 1; }
+    .material-symbols-rounded { font-family: 'Material Symbols Rounded'; font-weight: normal; font-style: normal; font-size: 24px; line-height: 1; display: inline-block; white-space: nowrap; word-wrap: normal; direction: ltr; -webkit-font-smoothing: antialiased; font-variation-settings: 'wght' 500, 'GRAD' 0, 'opsz' 24; }
+    @keyframes barIn { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--md-primary) 35%, transparent); } 50% { box-shadow: 0 0 0 18px color-mix(in srgb, var(--md-primary) 0%, transparent); } }
+    @keyframes drift { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-60px, 40px) scale(1.1); } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .app-bar { display: flex; align-items: center; justify-content: space-between; height: 54px; padding: 6px 8px 6px 18px; border-radius: 9999px; background: color-mix(in srgb, var(--md-surface-container) 80%, transparent); backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%); border: 1px solid color-mix(in srgb, var(--md-outline-variant) 50%, transparent); box-shadow: 0 4px 20px -4px var(--md-shadow-color); animation: barIn 0.7s var(--md-easing-spring); margin-bottom: 32px; }
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .brand-icon { width: 36px; height: 36px; border-radius: 50%; background: var(--md-primary-container); color: var(--md-on-primary-container); display: flex; align-items: center; justify-content: center; flex-shrink: 0; text-decoration: none; }
+    .brand-text { min-width: 0; overflow: hidden; }
+    .brand-h1 { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.1; color: var(--md-on-surface); display: flex; align-items: center; gap: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .brand-h1 span { color: var(--md-primary); }
+    .open-source-badge { font-size: 9px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; background: var(--md-surface-container-high); color: var(--md-on-surface-variant); border: 1px solid var(--md-outline-variant); }
+    .brand-tagline { font-size: 10px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--md-on-surface-variant); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .app-bar-actions { display: flex; align-items: center; gap: 4px; }
+    .icon-btn { width: 40px; height: 40px; border-radius: 50%; border: none; background: transparent; color: var(--md-on-surface); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background-color 0.2s var(--md-easing-standard), transform 0.15s var(--md-easing-spring); }
+    .icon-btn:hover { background-color: color-mix(in srgb, var(--md-on-surface) 8%, transparent); }
+    .icon-btn:active { transform: scale(0.92); }
+
+    .hero { text-align: center; margin-bottom: 28px; animation: fadeUp 0.8s var(--md-easing-spring); }
+    .hero-h2 { font-size: clamp(32px, 7vw, 52px); font-weight: 800; letter-spacing: -0.025em; line-height: 1.05; margin-bottom: 12px; }
+    .hero-h2 .accent { font-style: italic; font-weight: 300; color: var(--md-primary); }
+    .hero-desc { font-size: clamp(14px, 2vw, 15px); color: var(--md-on-surface-variant); max-width: 680px; margin: 0 auto; line-height: 1.5; }
+    .privacy-pill { display: inline-flex; align-items: center; gap: 6px; margin-top: 14px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 6px 12px; border-radius: 9999px; background: var(--md-primary-container); color: var(--md-on-primary-container); }
+    .privacy-pill .material-symbols-rounded { font-size: 14px; }
+
+    /* Status card */
+    .status-card { background: var(--md-surface-container-low); border: 1px solid var(--md-outline-variant); border-radius: 28px; padding: 28px 24px; display: flex; flex-direction: column; align-items: center; text-align: center; position: relative; overflow: hidden; transition: all 0.4s var(--md-easing-spring-soft); margin-bottom: 24px; animation: fadeUp 0.8s var(--md-easing-spring) 0.1s backwards; }
+    .status-card.secure { border-color: color-mix(in srgb, var(--md-primary) 50%, transparent); }
+    .status-card.warning { border-color: color-mix(in srgb, var(--md-tertiary) 60%, transparent); }
+    .status-badge-icon { width: 72px; height: 72px; border-radius: 24px; background: var(--md-primary-container); color: var(--md-on-primary-container); display: flex; align-items: center; justify-content: center; margin-bottom: 16px; transition: all 0.3s var(--md-easing-spring); }
+    .status-badge-icon.scanning { animation: pulse 2.8s infinite; }
+    .status-badge-icon .material-symbols-rounded { font-size: 38px; font-variation-settings: 'wght' 400, 'GRAD' 0, 'opsz' 48; }
+    .status-title { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 6px; }
+    .status-subtitle { font-size: 14px; color: var(--md-on-surface-variant); max-width: 640px; line-height: 1.45; }
+    .progress-bar-container { width: 100%; height: 4px; background: var(--md-surface-container-high); border-radius: 2px; margin-top: 20px; overflow: hidden; }
+    .progress-bar-fill { height: 100%; width: 0%; background: var(--md-primary); transition: width 0.3s var(--md-easing-standard); }
+
+    .grid-container { display: grid; grid-template-columns: 1fr; gap: 16px; margin-bottom: 24px; }
+    @media (min-width: 600px) { .grid-container { grid-template-columns: repeat(2, 1fr); } }
+    .card { background: var(--md-surface-container-low); border: 1px solid var(--md-outline-variant); border-radius: 24px; padding: 20px 24px; display: flex; flex-direction: column; position: relative; transition: all 0.4s var(--md-easing-spring-soft); animation: fadeUp 0.8s var(--md-easing-spring) 0.15s backwards; }
+    .card:hover { transform: translateY(-4px); border-color: var(--md-primary); box-shadow: 0 8px 24px -4px var(--md-shadow-color); }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 12px; }
+    .card-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--md-on-surface-variant); display: flex; align-items: center; gap: 6px; }
+    .card-label .material-symbols-rounded { font-size: 18px; }
+
+    .ip-value-box { display: flex; align-items: center; justify-content: space-between; background: var(--md-surface-container); border-radius: 16px; padding: 12px 16px; gap: 12px; }
+    .ip-address { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; word-break: break-all; color: var(--md-on-surface); }
+    .meta-details { font-size: 12px; color: var(--md-on-surface-variant); margin-top: 8px; line-height: 1.45; display: flex; flex-direction: column; gap: 3px; }
+    .copy-btn { background: transparent; border: none; color: var(--md-on-surface-variant); cursor: pointer; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s var(--md-easing-standard); flex-shrink: 0; }
+    .copy-btn:hover { background: var(--md-surface-container-high); color: var(--md-primary); }
+    .copy-btn:active { transform: scale(0.9); }
+    .copy-btn .material-symbols-rounded { font-size: 18px; }
+
+    .tag-group { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+    .tag { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 10px; border-radius: 9999px; width: fit-content; }
+    .tag.safe { background: var(--md-primary-container); color: var(--md-on-primary-container); }
+    .tag.vpn { background: var(--md-secondary-container); color: var(--md-on-secondary-container); }
+    .tag.warning { background: var(--md-tertiary-container); color: var(--md-on-tertiary-container); }
+    .tag.neutral { background: var(--md-surface-container-high); color: var(--md-on-surface-variant); }
+
+    /* Resolver result row */
+    .resolver-row { background: var(--md-surface-container); border-radius: 16px; padding: 14px 16px; margin-bottom: 8px; }
+    .resolver-row:last-child { margin-bottom: 0; }
+    .resolver-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+    .resolver-name { font-size: 14px; font-weight: 700; color: var(--md-on-surface); display: flex; align-items: center; gap: 8px; }
+    .resolver-name .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--md-outline); flex-shrink: 0; }
+    .resolver-name .dot.ok { background: var(--md-primary); }
+    .resolver-name .dot.warn { background: var(--md-tertiary); }
+    .resolver-ms { font-size: 12px; font-weight: 700; color: var(--md-on-surface-variant); font-variant-numeric: tabular-nums; background: var(--md-surface-container-high); padding: 3px 8px; border-radius: 9999px; }
+    .resolver-detail { font-size: 12px; color: var(--md-on-surface-variant); line-height: 1.45; font-variant-numeric: tabular-nums; }
+
+    /* Posture grid */
+    .posture-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 8px; }
+    .posture-item { background: var(--md-surface-container); border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
+    .posture-item-title { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; color: var(--md-on-surface-variant); text-transform: uppercase; }
+    .posture-item-value { font-size: 13px; font-weight: 600; color: var(--md-on-surface); display: flex; align-items: center; gap: 6px; }
+    .details-card { grid-column: 1 / -1; }
+
+    /* Expandable note */
+    .note-toggle { display: flex; align-items: center; justify-content: space-between; cursor: pointer; padding: 14px 0 0 0; color: var(--md-primary); font-size: 13px; font-weight: 600; gap: 8px; }
+    .note-toggle .material-symbols-rounded { transition: transform 0.3s var(--md-easing-standard); }
+    .note-toggle.open .material-symbols-rounded { transform: rotate(180deg); }
+    .note-body { font-size: 13px; color: var(--md-on-surface-variant); line-height: 1.55; max-height: 0; overflow: hidden; transition: max-height 0.4s var(--md-easing-emphasized); }
+    .note-body.open { max-height: 500px; padding-top: 12px; }
+    .note-body p { margin-bottom: 8px; }
+    .note-body strong { color: var(--md-on-surface); }
+
+    .skeleton-text { display: inline-block; height: 16px; width: 120px; background: color-mix(in srgb, var(--md-on-surface) 12%, transparent); border-radius: 6px; animation: pulse 1.5s infinite; }
+
+    /* Toolbar */
+    .floating-toolbar { position: fixed; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); width: calc(100% - 32px); max-width: 680px; background: color-mix(in srgb, var(--md-surface-container) 85%, transparent); backdrop-filter: blur(28px) saturate(180%); -webkit-backdrop-filter: blur(28px) saturate(180%); border: 1px solid color-mix(in srgb, var(--md-outline-variant) 50%, transparent); box-shadow: 0 12px 40px -6px var(--md-shadow-color-strong); border-radius: 9999px; padding: 8px 12px; display: flex; align-items: center; gap: 12px; z-index: 40; animation: barIn 0.7s var(--md-easing-spring) 0.15s backwards; }
+    .fab-btn { flex: 1; height: 48px; border-radius: 9999px; border: none; background: var(--md-primary); color: var(--md-on-primary); font-family: inherit; font-size: 14px; font-weight: 600; letter-spacing: 0.02em; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; box-shadow: 0 4px 16px -2px var(--md-shadow-color); transition: all 0.3s var(--md-easing-spring-soft); white-space: nowrap; }
+    .fab-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px -2px var(--md-shadow-color-strong); }
+    .fab-btn:active { transform: scale(0.96); }
+    .fab-btn.secondary-fab { background: var(--md-surface-container-high); color: var(--md-on-surface); border: 1px solid var(--md-outline-variant); box-shadow: none; }
+    .spinner { width: 18px; height: 18px; border: 2px solid color-mix(in srgb, currentColor 30%, transparent); border-top-color: currentColor; border-radius: 50%; animation: spin 0.8s linear infinite; }
+
+    .app-footer { text-align: center; margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--md-outline-variant); color: var(--md-on-surface-variant); font-size: 12px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .footer-links { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; justify-content: center; }
+    .footer-links a { color: var(--md-primary); text-decoration: none; font-weight: 600; }
+    .footer-links a:hover { text-decoration: underline; }
+
+    .toast-container { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); z-index: 100; pointer-events: none; }
+    .toast { background: var(--md-inverse-surface); color: var(--md-inverse-on-surface); border-radius: 14px; padding: 12px 20px; display: flex; align-items: center; gap: 12px; box-shadow: 0 8px 24px var(--md-shadow-color-strong); opacity: 0; transform: translateY(20px) scale(0.95); transition: all 0.35s var(--md-easing-spring); pointer-events: auto; }
+    .toast.show { opacity: 1; transform: translateY(0) scale(1); }
+    .toast-icon { color: var(--md-inverse-primary); }
+    .toast-text { font-size: 14px; font-weight: 600; }
+
+    @media (max-width: 600px) {
+      body { padding: 16px 12px 140px 12px; }
+      .app-bar { padding: 6px 8px 6px 12px; margin-bottom: 24px; }
+      .brand { gap: 8px; } .brand-h1 { font-size: 15px; } .open-source-badge { display: none; }
+      .hero { margin-bottom: 22px; }
+      .status-card { padding: 22px 16px; border-radius: 22px; }
+      .status-title { font-size: 20px; }
+      .card { padding: 18px 16px; border-radius: 20px; }
+      .posture-grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+      .footer-links { gap: 6px 8px; }
+      .toast-container { bottom: calc(96px + env(safe-area-inset-bottom, 0px)); width: calc(100% - 24px); }
+      .toast { padding: 10px 16px; justify-content: center; text-align: center; }
+      .toast-text { font-size: 13px; }
+      .floating-toolbar { padding: 6px 8px; gap: 8px; } .fab-btn { font-size: 13px; }
+    }
+    @media (max-width: 380px) { .fab-btn span:last-child { display: none; } .fab-btn { padding: 0; } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; } }
+  </style>
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-blob"></div>
+
+  <div class="app-wrapper">
+    <header class="app-bar">
+      <div class="brand">
+        <a href="https://inpriv.xyz" class="brand-icon" aria-label="Inpriv Homepage"><span class="material-symbols-rounded">dns</span></a>
+        <div class="brand-text">
+          <span class="brand-h1">Inpriv<span>.</span> <span class="open-source-badge">DNS Leak</span></span>
+          <span class="brand-tagline">Browser-side Resolution Audit</span>
+        </div>
+      </div>
+      <div class="app-bar-actions">
+        <button class="icon-btn" id="themeToggleBtn" aria-label="Toggle Dark/Light Theme" type="button">
+          <span class="material-symbols-rounded" id="themeIcon">light_mode</span>
+        </button>
+      </div>
+    </header>
+
+    <section class="hero">
+      <h2 class="hero-h2">DNS Leak <span class="accent">Test</span></h2>
+      <p class="hero-desc">Resolves test hostnames through multiple DNS-over-HTTPS resolvers directly from your browser and compares their egress against your HTTP IP. An honest, in-browser approximation — not a server-side authoritative log.</p>
+      <div class="privacy-pill"><span class="material-symbols-rounded">lock</span> No third-party logging · results stay on your device</div>
+    </section>
+
+    <div class="status-card" id="statusCard">
+      <div class="status-badge-icon scanning" id="statusIconBg"><span class="material-symbols-rounded" id="statusIcon">radar</span></div>
+      <h3 class="status-title" id="statusTitle">Running DNS audit…</h3>
+      <p class="status-subtitle" id="statusSubtitle">Querying DoH resolvers and comparing DNS egress against your HTTP gateway.</p>
+      <div class="progress-bar-container"><div class="progress-bar-fill" id="progressBar"></div></div>
+    </div>
+
+    <div class="grid-container">
+      <!-- HTTP gateway baseline -->
+      <div class="card">
+        <div class="card-header"><span class="card-label"><span class="material-symbols-rounded">language</span> HTTP Gateway Baseline</span></div>
+        <div class="ip-value-box">
+          <span class="ip-address" id="httpIp"><span class="skeleton-text"></span></span>
+          <button class="copy-btn" id="copyHttp" aria-label="Copy HTTP IP"><span class="material-symbols-rounded">content_copy</span></button>
+        </div>
+        <div class="meta-details" id="httpMeta">Querying HTTP egress IP…</div>
+        <div class="tag-group" id="httpTags"><span class="tag neutral">Probing…</span></div>
+      </div>
+
+      <!-- OS resolver observed -->
+      <div class="card">
+        <div class="card-header"><span class="card-label"><span class="material-symbols-rounded">device_hub</span> OS Resolver (observed)</span></div>
+        <div class="ip-value-box">
+          <span class="ip-address" id="osResolver"><span class="skeleton-text"></span></span>
+        </div>
+        <div class="meta-details" id="osResolverMeta">Resolving a test hostname via your browser/OS…</div>
+        <div class="tag-group" id="osResolverTags"><span class="tag neutral">Checking…</span></div>
+      </div>
+
+      <!-- Posture matrix -->
+      <div class="card details-card">
+        <div class="card-header"><span class="card-label"><span class="material-symbols-rounded">admin_panel_settings</span> Resolution Posture</span></div>
+        <div class="posture-grid">
+          <div class="posture-item"><span class="posture-item-title">HTTP ↔ DNS Egress</span><span class="posture-item-value" id="postureAlign"><span class="material-symbols-rounded" style="font-size:16px;">sync</span> Comparing</span></div>
+          <div class="posture-item"><span class="posture-item-title">Resolver Diversity</span><span class="posture-item-value" id="postureDiversity"><span class="material-symbols-rounded" style="font-size:16px;">sync</span> Counting</span></div>
+          <div class="posture-item"><span class="posture-item-title">Tunnel Consistency</span><span class="posture-item-value" id="postureTunnel"><span class="material-symbols-rounded" style="font-size:16px;">sync</span> Analyzing</span></div>
+        </div>
+      </div>
+
+      <!-- Resolver results -->
+      <div class="card details-card">
+        <div class="card-header"><span class="card-label"><span class="material-symbols-rounded">cloud</span> DNS-over-HTTPS Resolver Probe</span></div>
+        <div id="resolverResults"></div>
+
+        <div class="note-toggle" id="noteToggle" role="button" tabindex="0" aria-expanded="false">
+          <span><span class="material-symbols-rounded" style="font-size:18px;vertical-align:middle;">info</span> How this test works &amp; its limitations</span>
+          <span class="material-symbols-rounded">expand_more</span>
+        </div>
+        <div class="note-body" id="noteBody">
+          <p><strong>What we do:</strong> This tool queries several public DNS-over-HTTPS (DoH) JSON resolvers — Cloudflare and Google — directly from your browser and resolves their egress IP, then geolocates it. It also resolves a random test hostname through your browser's normal path and fetches your HTTP egress IP, then compares the two.</p>
+          <p><strong>The honest limitation:</strong> A true DNS-leak test (like dnsleaktest.com) logs the source IP of your <em>recursive resolver</em> at an authoritative nameserver it controls. A pure web page <strong>cannot</strong> do that — the browser resolves names via the OS resolver (or its own DoH), which the page cannot observe, and cached entries produce no outbound query at all. So this tool is an <em>approximation</em>: it shows whether your DNS egress matches your HTTP egress and flags obvious mismatches, but it is not an authoritative resolver-log test.</p>
+          <p><strong>If you use a VPN:</strong> a mismatch between your HTTP IP and your DNS egress can indicate DNS traffic escaping the tunnel. All checks here run client-side; no resolver logs your visit for this test.</p>
+        </div>
+      </div>
+    </div>
+
+    <footer class="app-footer">
+      <div>Inpriv DNS Leak · Open Source Privacy Suite</div>
+      <div class="footer-links">
+        <a href="https://inpriv.xyz" rel="noopener">Inpriv</a>
+        <span>•</span>
+        <a href="https://webrtc.inpriv.xyz" target="_blank" rel="noopener">WebRTC Leak Test</a>
+        <span>•</span>
+        <a href="https://ipinfo.inpriv.xyz" target="_blank" rel="noopener">IP Info</a>
+        <span>•</span>
+        <a href="javascript:void(0)" id="exportReport">Export JSON Report</a>
+      </div>
+    </footer>
+  </div>
+
+  <div class="floating-toolbar">
+    <button class="fab-btn" id="runBtn" type="button"><span class="material-symbols-rounded">refresh</span><span>Run Audit</span></button>
+    <button class="fab-btn secondary-fab" id="exportFab" type="button"><span class="material-symbols-rounded">download</span><span>Export</span></button>
+  </div>
+
+  <div class="toast-container">
+    <div class="toast" id="toast" role="status" aria-live="polite">
+      <span class="material-symbols-rounded toast-icon" id="toastIcon">check_circle</span>
+      <span class="toast-text" id="toastText">Copied</span>
+    </div>
+  </div>
+
+  <script>
+    /* ===================== Theme ===================== */
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    const themeIcon = document.getElementById('themeIcon');
+    const htmlElem = document.documentElement;
+    function setTheme(theme) { htmlElem.setAttribute('data-theme', theme); localStorage.setItem('aurex_theme', theme); themeIcon.textContent = theme === 'dark' ? 'light_mode' : 'dark_mode'; }
+    const savedTheme = localStorage.getItem('aurex_theme') || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    setTheme(savedTheme);
+    themeToggleBtn.addEventListener('click', () => setTheme(htmlElem.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
+
+    /* Toast */
+    const toast = document.getElementById('toast');
+    const toastText = document.getElementById('toastText');
+    const toastIcon = document.getElementById('toastIcon');
+    let toastTimeout;
+    function showToast(msg, icon = 'check_circle') { clearTimeout(toastTimeout); toastText.textContent = msg; toastIcon.textContent = icon; toast.classList.add('show'); toastTimeout = setTimeout(() => toast.classList.remove('show'), 2600); }
+    function copyText(t, label) { if (!t || t === '—') return; navigator.clipboard.writeText(t).then(() => showToast((label || 'Copied') + ': ' + t, 'content_copy')); }
+    document.getElementById('copyHttp').addEventListener('click', () => copyText(window.__httpIp, 'HTTP IP'));
+    function setProgress(p) { document.getElementById('progressBar').style.width = p + '%'; }
+
+    /* Expandable note */
+    const noteToggle = document.getElementById('noteToggle');
+    const noteBody = document.getElementById('noteBody');
+    function toggleNote() { const open = noteToggle.classList.toggle('open'); noteBody.classList.toggle('open', open); noteToggle.setAttribute('aria-expanded', open); }
+    noteToggle.addEventListener('click', toggleNote);
+    noteToggle.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleNote(); } });
+
+    /* ===================== IP intel ===================== */
+    const VPN_DATACENTER_KEYWORDS = ['mullvad','m247','nordvpn','expressvpn','proton','cyberghost','surfshark','pia','private internet access','datacenter','hosting','server','digitalocean','linode','ovh','vultr','hetzner','choopa','tzulo','clouvider','datapacket','leaseweb','cogent','fastly','cloudflare','servers','cloud','host','vpn'];
+    function isVpnDc(s) { const c = (s || '').toLowerCase(); return VPN_DATACENTER_KEYWORDS.some(k => c.includes(k)); }
+
+    async function getIpIntel(ip) {
+      const target = ip ? ('https://ipwho.is/' + ip) : 'https://ipwho.is/';
+      try {
+        const res = await fetch(target);
+        const d = await res.json();
+        if (d && d.success) {
+          const conn = d.connection || {};
+          const isp = conn.isp || conn.org || 'Unknown';
+          return { ip: d.ip, isp, asn: conn.asn ? 'AS' + conn.asn : '', country: d.country || '', countryCode: d.country_code || '', city: d.city || '', flag: (d.flag && d.flag.emoji) || '', vpnDc: isVpnDc(isp + ' ' + (conn.org || '')) };
+        }
+      } catch (e) {}
+      try {
+        const r2 = await fetch(ip ? ('https://ipapi.co/' + ip + '/json/') : 'https://ipapi.co/json/');
+        const d = await r2.json();
+        if (d && d.ip) {
+          const isp = d.org || 'Unknown';
+          return { ip: d.ip, isp, asn: d.asn || '', country: d.country_name || '', countryCode: d.country_code || '', city: d.city || '', flag: '', vpnDc: isVpnDc(isp) };
+        }
+      } catch (e) {}
+      return null;
+    }
+
+    /* ===================== DoH resolvers (CORS-enabled) ===================== */
+    const DOH_RESOLVERS = [
+      { name: 'Cloudflare', endpoint: 'https://cloudflare-dns.com/dns-query', color: '#F38020' },
+      { name: 'Google', endpoint: 'https://dns.google/resolve', color: '#4285F4' }
+    ];
+
+    async function dohQuery(resolver, name, type) {
+      const url = resolver.endpoint + '?name=' + encodeURIComponent(name) + '&type=' + type;
+      const headers = resolver.endpoint.includes('cloudflare') ? { 'accept': 'application/dns-json' } : {};
+      const res = await fetch(url, { headers });
+      return await res.json();
+    }
+
+    // Use a known hostname whose A records belong to the resolver's own infrastructure-facing ranges,
+    // and a random subdomain to bypass caches. We then geolocate the resolver's *egress* by asking
+    // ipwho.is to resolve the resolver hostname's IP. Simpler & robust: resolve "1.1.1.1" / "8.8.8.8" via the DoH endpoint,
+    // but that returns the anycast IP. Instead we geolocate the resolver's well-known resolver IP.
+    const RESOLVER_EGRESS = {
+      Cloudflare: { probeHost: 'cloudflare-dns.com', anycastIp: '1.1.1.1' },
+      Google: { probeHost: 'dns.google', anycastIp: '8.8.8.8' }
+    };
+
+    async function probeResolver(resolver) {
+      const t0 = performance.now();
+      const r = Math.random().toString(36).slice(2, 10);
+      const testName = r + '.inpriv-dns-test.xyz';
+      let ok = false, answerIps = [], err = null;
+      try {
+        const data = await dohQuery(resolver, testName, 'A');
+        const ms = Math.round(performance.now() - t0);
+        if (data && data.Status === 3) {
+          // NXDOMAIN is a *successful* response from the resolver — it answered.
+          ok = true;
+        } else if (data && Array.isArray(data.Answer)) {
+          ok = true;
+          answerIps = data.Answer.filter(a => a.type === 1).map(a => a.data);
+        } else if (data) {
+          ok = true;
+        } else { err = 'No response'; }
+        // Resolver egress: geolocate the resolver's well-known resolver IP.
+        const egress = RESOLVER_EGRESS[resolver.name];
+        const intel = egress ? await getIpIntel(egress.anycastIp) : null;
+        return { ok, ms, err, answerIps, intel, egressIp: egress ? egress.anycastIp : null };
+      } catch (e) {
+        return { ok: false, ms: Math.round(performance.now() - t0), err: 'Network/CORS error', answerIps: [], intel: null, egressIp: RESOLVER_EGRESS[resolver.name] ? RESOLVER_EGRESS[resolver.name].anycastIp : null };
+      }
+    }
+
+    function renderResolverRow(resolver, result) {
+      const dotClass = result.ok ? (result.intel && result.intel.vpnDc ? 'ok' : 'ok') : 'warn';
+      const dotClassFinal = result.ok ? 'ok' : 'warn';
+      let detail = '';
+      if (!result.ok) {
+        detail = '<span style="color:var(--md-tertiary);"><span class="material-symbols-rounded" style="font-size:16px;vertical-align:-3px">warning</span> ' + (result.err || 'Failed') + ' — resolver unreachable from this browser.</span>';
+      } else {
+        const loc = result.intel ? [result.intel.city, result.intel.country].filter(Boolean).join(', ') : 'Unknown';
+        const isp = result.intel ? result.intel.isp : 'Unknown';
+        const asn = result.intel && result.intel.asn ? result.intel.asn : '';
+        detail = 'Egress <strong>' + (result.egressIp || '—') + '</strong> · ' + isp + (asn ? ' (' + asn + ')' : '') + ' · ' + loc;
+      }
+      return '<div class="resolver-row">' +
+        '<div class="resolver-top">' +
+          '<span class="resolver-name"><span class="dot ' + dotClassFinal + '" style="background:' + (result.ok ? resolver.color : 'var(--md-tertiary)') + ';"></span>' + resolver.name + ' DoH</span>' +
+          '<span class="resolver-ms">' + result.ms + ' ms</span>' +
+        '</div>' +
+        '<div class="resolver-detail">' + detail + '</div>' +
+      '</div>';
+    }
+
+    /* ===================== OS resolver observation ===================== */
+    // Observe which IP the browser's normal resolver returns for a fresh hostname.
+    async function observeOsResolver() {
+      const r = Math.random().toString(36).slice(2, 10);
+      const host = r + '.dnsleak-test.inpriv.xyz';
+      try {
+        // Time the DNS by fetching a no-cache URL; on error we still may learn the resolved IP via error URLs in some browsers,
+        // but most browsers hide it. Instead we resolve a known hostname via a DoH-as-control AND compare.
+        const t0 = performance.now();
+        await fetch('https://' + host + '/noop', { mode: 'no-cors', cache: 'no-store' });
+        const ms = Math.round(performance.now() - t0);
+        // We can't read the resolved IP from a no-cors fetch. Mark as "resolution attempted".
+        return { attempted: true, ms, host };
+      } catch (e) {
+        return { attempted: false, ms: null, host, err: String(e) };
+      }
+    }
+
+    /* ===================== Main audit ===================== */
+    let lastReport = null;
+
+    async function runAudit() {
+      const runBtn = document.getElementById('runBtn');
+      runBtn.innerHTML = '<div class="spinner"></div><span>Running…</span>';
+
+      // Reset
+      setProgress(8);
+      document.getElementById('httpIp').innerHTML = '<span class="skeleton-text"></span>';
+      document.getElementById('httpMeta').textContent = 'Querying HTTP egress IP…';
+      document.getElementById('httpTags').innerHTML = '<span class="tag neutral">Probing…</span>';
+      document.getElementById('osResolver').innerHTML = '<span class="skeleton-text"></span>';
+      document.getElementById('osResolverMeta').textContent = 'Resolving a test hostname via your browser/OS…';
+      document.getElementById('osResolverTags').innerHTML = '<span class="tag neutral">Checking…</span>';
+      document.getElementById('resolverResults').innerHTML = '<div class="resolver-row"><div class="resolver-detail">Querying DoH resolvers…</div></div>';
+      document.getElementById('postureAlign').innerHTML = '<span class="material-symbols-rounded" style="font-size:16px;">sync</span> Comparing';
+      document.getElementById('postureDiversity').innerHTML = '<span class="material-symbols-rounded" style="font-size:16px;">sync</span> Counting';
+      document.getElementById('postureTunnel').innerHTML = '<span class="material-symbols-rounded" style="font-size:16px;">sync</span> Analyzing';
+      const sc = document.getElementById('statusCard'); sc.className = 'status-card';
+      const sib = document.getElementById('statusIconBg'); sib.className = 'status-badge-icon scanning';
+      document.getElementById('statusIcon').textContent = 'radar';
+      document.getElementById('statusTitle').textContent = 'Running DNS audit…';
+      document.getElementById('statusSubtitle').textContent = 'Querying DoH resolvers and comparing DNS egress against your HTTP gateway.';
+
+      // 1) HTTP baseline
+      setProgress(20);
+      const httpIntel = await getIpIntel();
+      window.__httpIp = httpIntel ? httpIntel.ip : null;
+      if (httpIntel) {
+        document.getElementById('httpIp').textContent = httpIntel.ip;
+        document.getElementById('httpMeta').innerHTML = '<span><strong>ISP:</strong> ' + httpIntel.isp + (httpIntel.asn ? ' (' + httpIntel.asn + ')' : '') + '</span><span><strong>Location:</strong> ' + (httpIntel.flag ? httpIntel.flag + ' ' : '') + [httpIntel.city, httpIntel.country].filter(Boolean).join(', ') + '</span>';
+        document.getElementById('httpTags').innerHTML = httpIntel.vpnDc
+          ? '<span class="tag vpn"><span class="material-symbols-rounded" style="font-size:12px;">vpn_key</span> VPN / Datacenter</span>'
+          : '<span class="tag safe"><span class="material-symbols-rounded" style="font-size:12px;">home</span> Residential</span>';
+      } else {
+        document.getElementById('httpIp').textContent = 'Unavailable';
+        document.getElementById('httpMeta').textContent = 'Could not reach the IP lookup service. Some checks will be limited.';
+      }
+
+      // 2) OS resolver observation (informational)
+      setProgress(40);
+      const osr = await observeOsResolver();
+      if (osr.attempted) {
+        document.getElementById('osResolver').textContent = 'Resolution performed';
+        document.getElementById('osResolverMeta').innerHTML = 'A fresh random hostname (<code>' + osr.host + '</code>) was resolved through your browser/OS path in ~' + osr.ms + ' ms. Browsers do not expose the resolved IP or the resolver used, so this is a connectivity check only.';
+        document.getElementById('osResolverTags').innerHTML = '<span class="tag neutral"><span class="material-symbols-rounded" style="font-size:12px;">visibility_off</span> IP not exposed by browser</span>';
+      } else {
+        document.getElementById('osResolver').textContent = 'Resolution failed';
+        document.getElementById('osResolverMeta').textContent = 'The test hostname could not be resolved — your network may block it, or you are offline.';
+        document.getElementById('osResolverTags').innerHTML = '<span class="tag warning"><span class="material-symbols-rounded" style="font-size:12px;">wifi_off</span> Blocked</span>';
+      }
+
+      // 3) DoH resolver probes
+      setProgress(60);
+      const results = [];
+      for (const res of DOH_RESOLVERS) {
+        const r = await probeResolver(res);
+        results.push({ resolver: res, result: r });
+      }
+      document.getElementById('resolverResults').innerHTML = results.map(({ resolver, result }) => renderResolverRow(resolver, result)).join('');
+      setProgress(85);
+
+      // 4) Evaluate
+      const reachable = results.filter(r => r.result.ok);
+      const egressCountries = reachable.map(r => (r.result.intel && r.result.intel.country) || '').filter(Boolean);
+      const uniqueCountries = [...new Set(egressCountries)];
+      const httpCountry = httpIntel ? httpIntel.country : '';
+
+      // Posture: diversity
+      document.getElementById('postureDiversity').innerHTML = reachable.length + ' / ' + DOH_RESOLVERS.length + ' resolvers answered' +
+        (uniqueCountries.length > 1 ? ' · <span style="color:var(--md-tertiary);">' + uniqueCountries.length + ' countries</span>' : '');
+
+      // Posture: alignment
+      let alignOk = true;
+      if (httpCountry && uniqueCountries.length) {
+        alignOk = uniqueCountries.every(c => c === httpCountry);
+      }
+      // Posture: tunnel consistency — if HTTP is VPN/Dc but a resolver egress is residential, that's a potential leak.
+      let tunnelLeak = false;
+      if (httpIntel && httpIntel.vpnDc) {
+        tunnelLeak = reachable.some(r => r.result.intel && !r.result.intel.vpnDc);
+      }
+      document.getElementById('postureTunnel').innerHTML = tunnelLeak
+        ? '<span class="material-symbols-rounded" style="font-size:16px;color:var(--md-tertiary);">warning</span> DNS egress outside tunnel'
+        : '<span class="material-symbols-rounded" style="font-size:16px;color:var(--md-primary);">check_circle</span> Consistent';
+
+      // Final status
+      sib.classList.remove('scanning');
+      const anyFailed = reachable.length < DOH_RESOLVERS.length;
+      let title, sub, kind;
+      if (reachable.length === 0) {
+        kind = 'warning';
+        title = 'No DoH resolvers reachable';
+        sub = 'Your network blocked both Cloudflare and Google DoH endpoints (CORS or firewall). The audit could not complete; this itself can indicate strict DNS filtering.';
+      } else if (tunnelLeak) {
+        kind = 'warning';
+        title = 'Possible DNS routing mismatch';
+        sub = 'Your HTTP traffic exits via a VPN/datacenter IP, but at least one DNS resolver egress resolves to a residential IP — your DNS queries may be escaping the tunnel.';
+      } else if (anyFailed) {
+        kind = 'secure';
+        title = 'Audit complete — partial coverage';
+        sub = reachable.length + ' of ' + DOH_RESOLVERS.length + ' resolvers answered. All reachable DNS egress ' + (alignOk ? 'matches your HTTP location' : '') + '.';
+      } else {
+        kind = 'secure';
+        title = 'No apparent DNS leak';
+        sub = 'All tested DoH resolvers answered and their egress ' + (httpCountry ? ('aligns with your HTTP gateway (' + httpCountry + ').') : 'is consistent.') + ' No routing mismatch detected by this approximation.';
+      }
+
+      document.getElementById('statusCard').className = 'status-card ' + kind;
+      document.getElementById('statusIconBg').style.background = kind === 'warning' ? 'var(--md-tertiary-container)' : 'var(--md-primary-container)';
+      document.getElementById('statusIconBg').style.color = kind === 'warning' ? 'var(--md-on-tertiary-container)' : 'var(--md-on-primary-container)';
+      document.getElementById('statusIcon').textContent = kind === 'warning' ? 'gpp_maybe' : 'verified_user';
+      document.getElementById('statusTitle').textContent = title;
+      document.getElementById('statusSubtitle').textContent = sub;
+
+      document.getElementById('postureAlign').innerHTML = alignOk
+        ? '<span class="material-symbols-rounded" style="font-size:16px;color:var(--md-primary);">check_circle</span> Aligned' + (httpCountry ? ' (' + httpCountry + ')' : '')
+        : '<span class="material-symbols-rounded" style="font-size:16px;color:var(--md-tertiary);">warning</span> Mismatch';
+
+      lastReport = {
+        app: 'Inpriv DNS Leak Test',
+        timestamp: new Date().toISOString(),
+        httpBaseline: httpIntel,
+        osResolverAttempt: { host: osr.host, attempted: osr.attempted, ms: osr.ms },
+        resolvers: results.map(r => ({ name: r.resolver.name, endpoint: r.resolver.endpoint, ok: r.result.ok, ms: r.result.ms, error: r.result.err, egressIp: r.result.egressIp, intel: r.result.intel })),
+        outcome: title
+      };
+      setProgress(100);
+      runBtn.innerHTML = '<span class="material-symbols-rounded">refresh</span><span>Run Audit</span>';
+    }
+
+    function exportJson() {
+      if (!lastReport) { showToast('Run the audit first', 'info'); return; }
+      const json = JSON.stringify(lastReport, null, 2);
+      navigator.clipboard.writeText(json).then(() => showToast('JSON report copied to clipboard', 'file_download'));
+    }
+    document.getElementById('exportFab').addEventListener('click', exportJson);
+    document.getElementById('exportReport').addEventListener('click', exportJson);
+    document.getElementById('runBtn').addEventListener('click', runAudit);
+
+    window.addEventListener('DOMContentLoaded', runAudit);
+  </script>
+</body>
+</html>

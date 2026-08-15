@@ -14,9 +14,39 @@
 //   GET /public/state → { global, services, ts }
 
 // ── config ───────────────────────────────────────────────────────────────────
-const SERVICES = ["temp"];
+const SERVICES = [
+  "landing",
+  "temp",
+  "burn",
+  "qr",
+  "stego",
+  "brute",
+  "compress",
+  "dns",
+  "hash",
+  "ipinfo",
+  "keyring",
+  "pay",
+  "totp",
+  "webrtc",
+  "wipe",
+];
 const SERVICES_META = {
-  temp: { name: "Temp Mail", url: "https://temp.inpriv.xyz" },
+  landing:  { name: "Landing (inpriv.xyz)", url: "https://inpriv.xyz", icon: "home" },
+  temp:     { name: "Temp Mail", url: "https://temp.inpriv.xyz", icon: "mark_email_unread" },
+  burn:     { name: "Burn Messages", url: "https://burn.inpriv.xyz", icon: "local_fire_department" },
+  qr:       { name: "Private QR", url: "https://qr.inpriv.xyz", icon: "qr_code_2" },
+  stego:    { name: "Steganography", url: "https://stego.inpriv.xyz", icon: "visibility_off" },
+  brute:    { name: "Brute / Password", url: "https://brute.inpriv.xyz", icon: "shield" },
+  compress: { name: "Compress", url: "https://compress.inpriv.xyz", icon: "folder_zip" },
+  dns:      { name: "DNS Leak Test", url: "https://dns.inpriv.xyz", icon: "dns" },
+  hash:     { name: "Hash & Checksum", url: "https://hash.inpriv.xyz", icon: "tag" },
+  ipinfo:   { name: "IP & Network", url: "https://ipinfo.inpriv.xyz", icon: "public" },
+  keyring:  { name: "Keyring", url: "https://keyring.inpriv.xyz", icon: "vpn_key" },
+  pay:      { name: "Crypto Pay", url: "https://pay.inpriv.xyz", icon: "payments" },
+  totp:     { name: "TOTP / 2FA", url: "https://totp.inpriv.xyz", icon: "pin" },
+  webrtc:   { name: "WebRTC Leak Test", url: "https://webrtc.inpriv.xyz", icon: "stream" },
+  wipe:     { name: "Metadata Wipe", url: "https://wipe.inpriv.xyz", icon: "auto_fix_high" },
 };
 const SESSION_TTL = 7 * 24 * 3600; // seconds
 const COOKIE = "inpriv_admin";

@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<!--
+  Inpriv Brute — Hash Brute Force Matcher
+  Copyright (c) 2026 Aurex Labs — MIT License
+
+  Matches a target hash against a user-supplied wordlist using MD5, SHA-1,
+  SHA-256, SHA-384, SHA-512. All computation runs entirely in the browser via
+  Web Crypto API (SHA family) and a bundled pure-JS MD5 implementation.
+  For educational purposes — understand why weak passwords fail.
+-->
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com fonts.gstatic.com; script-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.googleapis.com fonts.gstatic.com https://fonts.gstatic.com; img-src 'self' data: blob: https://hush.best; media-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'; connect-src 'self'; worker-src 'none'; manifest-src 'self'">
+  <title>Inpriv Brute — Hash Brute Force Matcher</title>
+  <meta name="description" content="Match a hash against a wordlist using MD5, SHA-1, SHA-256, SHA-384 and SHA-512. Entirely client-side — for educational purposes." />
+
+  <link rel="icon" type="image/png" href="https://hush.best/icon.png" />
+  <link rel="apple-touch-icon" href="https://hush.best/icon.png" />
+  <link rel="shortcut icon" href="https://hush.best/icon.png" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:ital,opsz,wght@0,8..144,100..1000;1,8..144,100..1000&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+
+  <style>
+    /* ==========================================================================
+       1. COLOR PALETTE & DESIGN TOKENS (Aurex Labs M3 Earthy Forest)
+       ========================================================================== */
+    :root {
+      --md-easing-standard: cubic-bezier(0.2, 0.0, 0.0, 1.0);
+      --md-easing-emphasized: cubic-bezier(0.3, 0.0, 0.0, 1.0);
+      --md-easing-spring: cubic-bezier(0.2, 1.4, 0.0, 1.0);
+      --md-easing-spring-soft: cubic-bezier(0.34, 1.3, 0.64, 1.0);
+      --font-primary: 'Roboto Flex', system-ui, -apple-system, sans-serif;
+    }
+
+    [data-theme="light"] {
+      --md-primary: #466E47; --md-on-primary: #FFFFFF;
+      --md-primary-container: #C7EFA0; --md-on-primary-container: #0C2000;
+      --md-secondary: #55624C; --md-on-secondary: #FFFFFF;
+      --md-secondary-container: #D8E7CB; --md-on-secondary-container: #131F0C;
+      --md-tertiary: #9C4231; --md-on-tertiary: #FFFFFF;
+      --md-tertiary-container: #FFDAD3; --md-on-tertiary-container: #3D0A03;
+      --md-error: #BA1A1A; --md-on-error: #FFFFFF;
+      --md-surface: #FAF9F0; --md-on-surface: #1A1C17; --md-on-surface-variant: #43483D;
+      --md-surface-dim: #DBDAD0;
+      --md-surface-container-lowest: #FFFFFF;
+      --md-surface-container-low: #F4F3E7;
+      --md-surface-container: #EEEDDE;
+      --md-surface-container-high: #E9E7D9;
+      --md-surface-container-highest: #E3E2D3;
+      --md-outline: #74796C; --md-outline-variant: #C3C8B6;
+      --md-inverse-surface: #2F312C; --md-inverse-on-surface: #F0EFE7; --md-inverse-primary: #ABD37A;
+      --md-shadow-color: rgba(20, 25, 15, 0.15);
+      --md-shadow-color-strong: rgba(20, 25, 15, 0.28);
+    }
+
+    [data-theme="dark"] {
+      --md-primary: #ABD37A; --md-on-primary: #173800;
+      --md-primary-container: #2E4F2F; --md-on-primary-container: #C7EFA0;
+      --md-secondary: #BCCBAF; --md-on-secondary: #27341F;
+      --md-secondary-container: #3D4B34; --md-on-secondary-container: #D8E7CB;
+      --md-tertiary: #FFB4A5; --md-on-tertiary: #5E1709;
+      --md-tertiary-container: #7E2D1E; --md-on-tertiary-container: #FFDAD3;
+      --md-error: #FFB4AB; --md-on-error: #690005;
+      --md-surface: #13140E; --md-on-surface: #E3E2D3; --md-on-surface-variant: #C3C8B6;
+      --md-surface-dim: #13140E;
+      --md-surface-container-lowest: #0D0F09;
+      --md-surface-container-low: #1A1C17;
+      --md-surface-container: #1F211B;
+      --md-surface-container-high: #292B25;
+      --md-surface-container-highest: #34362F;
+      --md-outline: #8D9283; --md-outline-variant: #43483D;
+      --md-inverse-surface: #E3E2D3; --md-inverse-on-surface: #2F312C; --md-inverse-primary: #466E47;
+      --md-shadow-color: rgba(0, 0, 0, 0.4);
+      --md-shadow-color-strong: rgba(0, 0, 0, 0.65);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-primary);
+      background-color: var(--md-surface);
+      color: var(--md-on-surface);
+      min-height: 100vh;
+      padding: 24px 16px 140px 16px;
+      position: relative;
+      overflow-x: hidden;
+      transition: background-color 0.5s var(--md-easing-standard), color 0.5s var(--md-easing-standard);
+      font-optical-sizing: auto;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    @media (min-width: 600px) { body { padding: 32px 24px 160px 24px; } }
+
+    body::before {
+      content: ""; position: fixed; inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 85% 0%, color-mix(in srgb, var(--md-primary-container) 55%, transparent) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 0% 100%, color-mix(in srgb, var(--md-tertiary-container) 45%, transparent) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+    }
+
+    .bg-grid {
+      position: fixed; inset: 0;
+      background-image: radial-gradient(circle at 1px 1px, var(--md-outline-variant) 1px, transparent 0);
+      background-size: 28px 28px; opacity: 0.18;
+      mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+      -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+      pointer-events: none; z-index: 0;
+    }
+
+    .bg-blob {
+      position: fixed; top: -100px; right: -100px;
+      width: 420px; height: 420px; border-radius: 50%;
+      background: radial-gradient(circle, color-mix(in srgb, var(--md-tertiary) 22%, transparent), transparent 70%);
+      filter: blur(60px);
+      animation: drift 22s ease-in-out infinite;
+      pointer-events: none; z-index: 0;
+    }
+
+    .app-wrapper { max-width: 860px; margin: 0 auto; position: relative; z-index: 1; }
+
+    .material-symbols-rounded {
+      font-family: 'Material Symbols Rounded';
+      font-weight: normal; font-style: normal;
+      font-size: 24px; line-height: 1; display: inline-block;
+      white-space: nowrap; word-wrap: normal; direction: ltr;
+      -webkit-font-smoothing: antialiased;
+      font-variation-settings: 'wght' 500, 'GRAD' 0, 'opsz' 24;
+    }
+
+    @keyframes barIn { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--md-primary) 35%, transparent); } 50% { box-shadow: 0 0 0 18px color-mix(in srgb, var(--md-primary) 0%, transparent); } }
+    @keyframes drift { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-60px, 40px) scale(1.1); } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes fabPop { 0% { transform: scale(1); } 40% { transform: scale(0.92); } 70% { transform: scale(1.05); } 100% { transform: scale(1); } }
+    @keyframes shakeX { 0%,100% { transform: translateX(0); } 20%,60% { transform: translateX(-6px); } 40%,80% { transform: translateX(6px); } }
+    @keyframes matchGlow { 0%,100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--md-primary) 40%, transparent); } 50% { box-shadow: 0 0 0 12px color-mix(in srgb, var(--md-primary) 0%, transparent); } }
+
+    /* App Bar */
+    .app-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      height: 54px; padding: 6px 8px 6px 18px;
+      border-radius: 9999px;
+      background: color-mix(in srgb, var(--md-surface-container) 80%, transparent);
+      backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 1px solid color-mix(in srgb, var(--md-outline-variant) 50%, transparent);
+      box-shadow: 0 4px 20px -4px var(--md-shadow-color);
+      animation: barIn 0.7s var(--md-easing-spring);
+      margin-bottom: 32px;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .brand-icon {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--md-primary-container); color: var(--md-on-primary-container);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .brand-text { min-width: 0; overflow: hidden; }
+    .brand-h1 {
+      font-size: 16px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.1;
+      color: var(--md-on-surface); display: flex; align-items: center; gap: 8px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .brand-h1 span { color: var(--md-primary); }
+    .open-source-badge {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 2px 6px; border-radius: 4px;
+      background: var(--md-surface-container-high); color: var(--md-on-surface-variant);
+      border: 1px solid var(--md-outline-variant);
+    }
+    .brand-tagline {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+      color: var(--md-on-surface-variant); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .app-bar-actions { display: flex; align-items: center; gap: 4px; }
+
+    .icon-btn {
+      width: 40px; height: 40px; border-radius: 50%; border: none; background: transparent;
+      color: var(--md-on-surface); cursor: pointer;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      transition: background-color 0.2s var(--md-easing-standard), transform 0.15s var(--md-easing-spring);
+    }
+    .icon-btn:hover { background-color: color-mix(in srgb, var(--md-on-surface) 8%, transparent); }
+    .icon-btn:active { transform: scale(0.92); }
+
+    /* Hero */
+    .hero { text-align: center; margin-bottom: 28px; animation: fadeUp 0.8s var(--md-easing-spring); }
+    .hero-h2 { font-size: clamp(32px, 7vw, 52px); font-weight: 800; letter-spacing: -0.025em; line-height: 1.05; margin-bottom: 12px; }
+    .hero-h2 .accent { font-style: italic; font-weight: 300; color: var(--md-primary); }
+    .hero-desc { font-size: clamp(14px, 2vw, 15px); color: var(--md-on-surface-variant); max-width: 620px; margin: 0 auto; line-height: 1.5; }
+    .privacy-pill {
+      display: inline-flex; align-items: center; gap: 6px; margin-top: 14px;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 6px 12px; border-radius: 9999px;
+      background: var(--md-primary-container); color: var(--md-on-primary-container);
+    }
+    .privacy-pill .material-symbols-rounded { font-size: 14px; }
+
+    /* Card */
+    .card {
+      background: var(--md-surface-container-low);
+      border: 1px solid var(--md-outline-variant);
+      border-radius: 24px; padding: 22px 24px;
+      display: flex; flex-direction: column;
+      position: relative; transition: all 0.4s var(--md-easing-spring-soft);
+      animation: fadeUp 0.8s var(--md-easing-spring) 0.1s backwards;
+      margin-bottom: 16px;
+    }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 12px; }
+    .card-label {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--md-on-surface-variant); display: flex; align-items: center; gap: 6px;
+    }
+    .card-label .material-symbols-rounded { font-size: 18px; }
+
+    .text-input {
+      width: 100%; min-height: 100px; resize: vertical;
+      font-family: 'Roboto Flex', monospace; font-size: 14px; line-height: 1.6;
+      color: var(--md-on-surface);
+      background: var(--md-surface-container);
+      border: 1px solid var(--md-outline-variant); border-radius: 16px;
+      padding: 14px 16px; outline: none;
+      transition: border-color 0.2s var(--md-easing-standard), box-shadow 0.2s var(--md-easing-standard);
+    }
+    .text-input:focus { border-color: var(--md-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-primary) 18%, transparent); }
+    .text-input::placeholder { color: var(--md-on-surface-variant); opacity: 0.6; }
+    .text-input.hash-input { min-height: 0; height: 48px; resize: none; }
+
+    .text-input-lg {
+      width: 100%; min-height: 160px; resize: vertical;
+      font-family: var(--font-primary); font-size: 14px; line-height: 1.5;
+      color: var(--md-on-surface);
+      background: var(--md-surface-container);
+      border: 1px solid var(--md-outline-variant); border-radius: 16px;
+      padding: 14px 16px; outline: none;
+      transition: border-color 0.2s var(--md-easing-standard), box-shadow 0.2s var(--md-easing-standard);
+    }
+    .text-input-lg:focus { border-color: var(--md-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-primary) 18%, transparent); }
+    .text-input-lg::placeholder { color: var(--md-on-surface-variant); opacity: 0.6; }
+
+    /* Streamed-file banner — shown in place of the textarea contents when a
+       large file is loaded in streaming mode, so it's obvious something loaded. */
+    .streamed-banner {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--md-primary-container); color: var(--md-on-primary-container);
+      border: 1px solid color-mix(in srgb, var(--md-primary) 30%, transparent);
+      border-radius: 16px; padding: 12px 8px 12px 14px; margin-top: 12px;
+      animation: fadeUp 0.4s var(--md-easing-spring-soft);
+    }
+    .streamed-banner-icon { font-size: 22px; flex-shrink: 0; opacity: 0.85; }
+    .streamed-banner-text { flex: 1; min-width: 0; }
+    .streamed-banner-title {
+      font-size: 14px; font-weight: 700; line-height: 1.2;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .streamed-banner-sub {
+      font-size: 11px; font-weight: 500; opacity: 0.8; margin-top: 2px;
+      line-height: 1.3;
+    }
+    .streamed-banner-remove {
+      width: 32px; height: 32px; flex-shrink: 0; color: var(--md-on-primary-container);
+    }
+    .streamed-banner-remove:hover { background: color-mix(in srgb, var(--md-on-primary-container) 15%, transparent); }
+    .streamed-banner-remove .material-symbols-rounded { font-size: 20px; }
+
+    .input-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+    .meta-chip {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+      padding: 5px 10px; border-radius: 9999px;
+      background: var(--md-surface-container-high); color: var(--md-on-surface-variant);
+      font-variant-numeric: tabular-nums;
+    }
+    .meta-chip.accent-chip { background: var(--md-primary-container); color: var(--md-on-primary-container); }
+    .meta-chip.error-chip { background: var(--md-tertiary-container); color: var(--md-on-tertiary-container); }
+
+    /* Plaintext-password suggestion banner — shown when the input isn't a hash */
+    .suggest-banner {
+      display: flex; align-items: flex-start; gap: 12px;
+      background: var(--md-tertiary-container); color: var(--md-on-tertiary-container);
+      border: 1px solid color-mix(in srgb, var(--md-tertiary) 35%, transparent);
+      border-radius: 16px; padding: 12px 14px; margin-top: 12px;
+      animation: fadeUp 0.4s var(--md-easing-spring-soft);
+    }
+    .suggest-banner-icon { font-size: 22px; flex-shrink: 0; margin-top: 1px; opacity: 0.9; }
+    .suggest-banner-text { flex: 1; min-width: 0; }
+    .suggest-banner-title { font-size: 13px; font-weight: 700; line-height: 1.2; }
+    .suggest-banner-sub { font-size: 11px; font-weight: 500; opacity: 0.8; margin-top: 2px; margin-bottom: 8px; line-height: 1.3; }
+    .suggest-options { display: flex; flex-direction: column; gap: 6px; }
+    .suggest-opt {
+      display: flex; align-items: center; gap: 8px;
+      background: color-mix(in srgb, var(--md-on-tertiary-container) 8%, transparent);
+      border: 1px solid color-mix(in srgb, var(--md-on-tertiary-container) 18%, transparent);
+      border-radius: 10px; padding: 7px 10px; cursor: pointer; text-align: left;
+      font-family: inherit; color: var(--md-on-tertiary-container);
+      transition: background 0.2s var(--md-easing-standard);
+      width: 100%;
+    }
+    .suggest-opt:hover { background: color-mix(in srgb, var(--md-on-tertiary-container) 16%, transparent); }
+    .suggest-opt:active { transform: scale(0.99); }
+    .suggest-opt-algo { font-size: 11px; font-weight: 700; flex-shrink: 0; min-width: 54px; }
+    .suggest-opt-hash {
+      font-family: 'Roboto Flex', monospace; font-size: 12px; font-weight: 500;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1;
+    }
+    .suggest-opt-copy { font-size: 14px; flex-shrink: 0; opacity: 0.7; }
+
+    /* Select dropdown */
+    .algo-select {
+      font-family: var(--font-primary); font-size: 13px; font-weight: 600;
+      color: var(--md-on-surface); background: var(--md-surface-container);
+      border: 1px solid var(--md-outline-variant); border-radius: 12px;
+      padding: 8px 14px; outline: none; cursor: pointer;
+      appearance: none; -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='%23999'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 10px center;
+      padding-right: 30px;
+      transition: border-color 0.2s var(--md-easing-standard);
+    }
+    .algo-select:focus { border-color: var(--md-primary); }
+
+    /* Preset buttons row */
+    .preset-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .preset-btn {
+      font-family: inherit; font-size: 12px; font-weight: 600;
+      color: var(--md-on-surface-variant); background: var(--md-surface-container-high);
+      border: 1px solid var(--md-outline-variant); border-radius: 9999px;
+      padding: 6px 14px; cursor: pointer;
+      display: flex; align-items: center; gap: 5px;
+      transition: all 0.2s var(--md-easing-spring-soft);
+    }
+    .preset-btn:hover { background: var(--md-surface-container); border-color: var(--md-primary); color: var(--md-primary); transform: translateY(-1px); }
+    .preset-btn:active { transform: scale(0.96); }
+    .preset-btn .material-symbols-rounded { font-size: 14px; }
+
+    /* File upload button */
+    .file-upload-btn {
+      font-family: inherit; font-size: 12px; font-weight: 600;
+      color: var(--md-primary); background: transparent;
+      border: 1px dashed var(--md-outline-variant); border-radius: 12px;
+      padding: 6px 14px; cursor: pointer;
+      display: flex; align-items: center; gap: 5px;
+      transition: all 0.2s var(--md-easing-spring-soft);
+    }
+    .file-upload-btn:hover { border-color: var(--md-primary); background: var(--md-primary-container); }
+    .file-upload-btn .material-symbols-rounded { font-size: 14px; }
+
+    /* Progress */
+    .progress-section { margin-top: 16px; }
+    .progress-bar-container { width: 100%; height: 6px; background: var(--md-surface-container-high); border-radius: 3px; overflow: hidden; }
+    .progress-bar-fill { height: 100%; width: 0%; background: var(--md-primary); transition: width 0.15s var(--md-easing-standard); border-radius: 3px; }
+    .progress-stats {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 10px; flex-wrap: wrap; gap: 8px;
+    }
+    .stat-item {
+      font-size: 11px; font-weight: 600; color: var(--md-on-surface-variant);
+      display: flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums;
+    }
+    .stat-item .material-symbols-rounded { font-size: 14px; }
+    .stat-value { color: var(--md-on-surface); font-weight: 700; }
+
+    /* Result states */
+    .result-idle {
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+      padding: 32px 20px; text-align: center;
+    }
+    .result-idle .material-symbols-rounded { font-size: 48px; color: var(--md-on-surface-variant); opacity: 0.4; font-variation-settings: 'wght' 300, 'GRAD' 0, 'opsz' 48; }
+    .result-idle-text { font-size: 14px; color: var(--md-on-surface-variant); }
+
+    .result-found {
+      background: var(--md-primary-container); border-radius: 16px;
+      padding: 20px; animation: matchGlow 2s ease-in-out infinite;
+    }
+    .result-found-header {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 14px;
+    }
+    .result-found-header .material-symbols-rounded { font-size: 22px; color: var(--md-on-primary-container); }
+    .result-found-label { font-size: 13px; font-weight: 700; color: var(--md-on-primary-container); text-transform: uppercase; letter-spacing: 0.06em; }
+    .result-password {
+      display: flex; align-items: center; gap: 10px;
+      background: color-mix(in srgb, var(--md-on-primary-container) 15%, transparent);
+      border-radius: 12px; padding: 12px 14px;
+    }
+    .result-password-value {
+      flex: 1; font-family: 'Roboto Flex', monospace; font-size: 18px; font-weight: 800;
+      color: var(--md-on-primary-container); word-break: break-all;
+      user-select: all;
+    }
+    .result-password .copy-btn { color: var(--md-on-primary-container); }
+    .result-password .copy-btn:hover { background: color-mix(in srgb, var(--md-on-primary-container) 15%, transparent); }
+    .result-meta { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .result-not-found {
+      background: var(--md-tertiary-container); border-radius: 16px;
+      padding: 20px; animation: shakeX 0.6s var(--md-easing-spring);
+    }
+    .result-not-found-header {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+    }
+    .result-not-found-header .material-symbols-rounded { font-size: 22px; color: var(--md-on-tertiary-container); }
+    .result-not-found-label { font-size: 13px; font-weight: 700; color: var(--md-on-tertiary-container); text-transform: uppercase; letter-spacing: 0.06em; }
+    .result-not-found-text { font-size: 14px; color: var(--md-on-tertiary-container); line-height: 1.5; }
+
+    .result-running {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--md-surface-container); border-radius: 16px;
+      padding: 16px 18px;
+    }
+    .spinner {
+      width: 20px; height: 20px; flex-shrink: 0;
+      border: 2.5px solid color-mix(in srgb, var(--md-primary) 30%, transparent);
+      border-top-color: var(--md-primary); border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    .result-running-text { font-size: 14px; font-weight: 600; color: var(--md-on-surface-variant); }
+
+    .copy-btn {
+      background: transparent; border: none; color: var(--md-on-surface-variant); cursor: pointer;
+      border-radius: 50%; width: 36px; height: 36px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s var(--md-easing-standard);
+    }
+    .copy-btn:hover { background: var(--md-surface-container-high); color: var(--md-primary); }
+    .copy-btn:active { transform: scale(0.9); }
+    .copy-btn .material-symbols-rounded { font-size: 18px; }
+
+    /* Disclaimer banner */
+    .disclaimer {
+      display: flex; align-items: flex-start; gap: 10px;
+      background: var(--md-surface-container); border: 1px solid var(--md-outline-variant);
+      border-radius: 16px; padding: 14px 16px; margin-bottom: 16px;
+      animation: fadeUp 0.8s var(--md-easing-spring) 0.08s backwards;
+    }
+    .disclaimer .material-symbols-rounded { font-size: 20px; color: var(--md-tertiary); flex-shrink: 0; margin-top: 1px; }
+    .disclaimer-text { font-size: 12px; color: var(--md-on-surface-variant); line-height: 1.5; }
+    .disclaimer-text strong { color: var(--md-on-surface); font-weight: 700; }
+
+    /* Floating Toolbar */
+    .floating-toolbar {
+      position: fixed; bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+      left: 50%; transform: translateX(-50%);
+      width: calc(100% - 32px); max-width: 680px;
+      background: color-mix(in srgb, var(--md-surface-container) 85%, transparent);
+      backdrop-filter: blur(28px) saturate(180%); -webkit-backdrop-filter: blur(28px) saturate(180%);
+      border: 1px solid color-mix(in srgb, var(--md-outline-variant) 50%, transparent);
+      box-shadow: 0 12px 40px -6px var(--md-shadow-color-strong);
+      border-radius: 9999px; padding: 8px 12px;
+      display: flex; align-items: center; gap: 12px; z-index: 40;
+      animation: barIn 0.7s var(--md-easing-spring) 0.15s backwards;
+    }
+    .fab-btn {
+      flex: 1; height: 48px; border-radius: 9999px; border: none;
+      background: var(--md-primary); color: var(--md-on-primary);
+      font-family: inherit; font-size: 14px; font-weight: 600; letter-spacing: 0.02em;
+      display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;
+      box-shadow: 0 4px 16px -2px var(--md-shadow-color);
+      transition: all 0.3s var(--md-easing-spring-soft); white-space: nowrap;
+    }
+    .fab-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px -2px var(--md-shadow-color-strong); }
+    .fab-btn:active { transform: scale(0.96); }
+    .fab-btn.success { background: var(--md-secondary-container); color: var(--md-on-secondary-container); animation: fabPop 0.5s var(--md-easing-spring); }
+    .fab-btn.danger { background: var(--md-tertiary-container); color: var(--md-on-tertiary-container); box-shadow: none; }
+    .fab-btn.secondary-fab { background: var(--md-surface-container-high); color: var(--md-on-surface); border: 1px solid var(--md-outline-variant); box-shadow: none; }
+    .fab-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none !important; box-shadow: none; }
+
+    /* Footer */
+    .app-footer {
+      text-align: center; margin-top: 40px; padding-top: 24px;
+      border-top: 1px solid var(--md-outline-variant);
+      color: var(--md-on-surface-variant); font-size: 12px;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+    }
+    .footer-links { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; justify-content: center; }
+    .footer-links a { color: var(--md-primary); text-decoration: none; font-weight: 600; }
+    .footer-links a:hover { text-decoration: underline; }
+
+    /* Toast */
+    .toast-container { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); z-index: 100; pointer-events: none; }
+    .toast {
+      background: var(--md-inverse-surface); color: var(--md-inverse-on-surface);
+      border-radius: 14px; padding: 12px 20px;
+      display: flex; align-items: center; gap: 12px;
+      box-shadow: 0 8px 24px var(--md-shadow-color-strong);
+      opacity: 0; transform: translateY(20px) scale(0.95);
+      transition: all 0.35s var(--md-easing-spring); pointer-events: auto;
+    }
+    .toast.show { opacity: 1; transform: translateY(0) scale(1); }
+    .toast-icon { color: var(--md-inverse-primary); }
+    .toast-text { font-size: 14px; font-weight: 600; }
+
+    /* Mobile */
+    @media (max-width: 600px) {
+      body { padding: 16px 12px 140px 12px; }
+      .app-bar { padding: 6px 8px 6px 12px; margin-bottom: 24px; }
+      .brand { gap: 8px; }
+      .brand-h1 { font-size: 15px; }
+      .open-source-badge { display: none; }
+      .hero { margin-bottom: 22px; }
+      .card { padding: 18px 16px; border-radius: 20px; }
+      .toast-container { bottom: calc(96px + env(safe-area-inset-bottom, 0px)); width: calc(100% - 24px); }
+      .toast { padding: 10px 16px; justify-content: center; text-align: center; }
+      .toast-text { font-size: 13px; }
+      .floating-toolbar { padding: 6px 8px; gap: 8px; }
+      .fab-btn { font-size: 13px; }
+      .result-password-value { font-size: 15px; }
+    }
+    @media (max-width: 380px) {
+      .fab-btn span:last-child { display: none; }
+      .fab-btn { padding: 0; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-blob"></div>
+
+  <div class="app-wrapper">
+
+    <!-- App Bar -->
+    <header class="app-bar">
+      <div class="brand">
+        <a href="https://inpriv.xyz" class="brand-icon" aria-label="Inpriv Homepage" style="text-decoration:none">
+          <span class="material-symbols-rounded">lock_open</span>
+        </a>
+        <div class="brand-text">
+          <span class="brand-h1">Inpriv<span>.</span> <span class="open-source-badge">Brute</span></span>
+          <span class="brand-tagline">Hash Brute Force Matcher</span>
+        </div>
+      </div>
+      <div class="app-bar-actions">
+        <button class="icon-btn" id="themeToggleBtn" aria-label="Toggle Dark/Light Theme" type="button">
+          <span class="material-symbols-rounded" id="themeIcon">light_mode</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Hero -->
+    <section class="hero">
+      <h2 class="hero-h2">Hash <span class="accent">Brute Force</span></h2>
+      <p class="hero-desc">
+        Paste a hash and a wordlist to find which password produced it.
+        Supports MD5, SHA-1, SHA-256, SHA-384 and SHA-512 — all computed locally in your browser.
+      </p>
+      <div class="privacy-pill">
+        <span class="material-symbols-rounded">lock</span>
+        100% local · nothing leaves your device
+      </div>
+    </section>
+
+    <!-- Disclaimer -->
+    <div class="disclaimer">
+      <span class="material-symbols-rounded">warning</span>
+      <div class="disclaimer-text">
+        <strong>For educational purposes only.</strong> This tool demonstrates why weak, common passwords are vulnerable to dictionary attacks.
+        Use it to test your own password hashes and understand the importance of strong, unique passwords with salted hashing.
+      </div>
+    </div>
+
+    <!-- Hash Input Card -->
+    <div class="card" style="animation-delay: 0.12s;">
+      <div class="card-header">
+        <span class="card-label"><span class="material-symbols-rounded">fingerprint</span> Target Hash</span>
+        <span class="meta-chip" id="hashTypeChip">No hash</span>
+      </div>
+      <input type="text" class="text-input hash-input" id="hashInput" placeholder="Paste a hash here (e.g. 5f4dcc3b5aa765d61d8327deb882cf99)" autocomplete="off" spellcheck="false" />
+      <div class="input-row">
+        <span class="meta-chip" id="hashLenChip">0 chars</span>
+        <select class="algo-select" id="algoSelect" aria-label="Algorithm selection">
+          <option value="auto">Auto-detect</option>
+          <option value="all">Try all algorithms</option>
+          <option value="MD5">MD5</option>
+          <option value="SHA-1">SHA-1</option>
+          <option value="SHA-256">SHA-256</option>
+          <option value="SHA-384">SHA-384</option>
+          <option value="SHA-512">SHA-512</option>
+        </select>
+      </div>
+      <!-- Shown when the input looks like a plaintext password, not a hash -->
+      <div class="suggest-banner" id="suggestBanner" style="display:none;">
+        <span class="material-symbols-rounded suggest-banner-icon">lightbulb</span>
+        <div class="suggest-banner-text">
+          <div class="suggest-banner-title">That looks like a password, not a hash</div>
+          <div class="suggest-banner-sub">Brute matches against hashes. Pick a hash of your input:</div>
+          <div class="suggest-options" id="suggestOptions"><!-- hash buttons injected here --></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Wordlist Card -->
+    <div class="card" style="animation-delay: 0.18s;">
+      <div class="card-header">
+        <span class="card-label"><span class="material-symbols-rounded">list_alt</span> Wordlist</span>
+        <span class="meta-chip" id="wordCountChip">0 entries</span>
+      </div>
+      <textarea class="text-input-lg" id="wordlistInput" placeholder="Enter one password per line…" autocomplete="off" spellcheck="false"></textarea>
+      <!-- Banner shown when a large file is loaded in streaming mode -->
+      <div class="streamed-banner" id="streamedBanner" style="display:none;">
+        <span class="material-symbols-rounded streamed-banner-icon">draft</span>
+        <div class="streamed-banner-text">
+          <div class="streamed-banner-title" id="streamedBannerTitle">Streaming file</div>
+          <div class="streamed-banner-sub">Read line-by-line during cracking · not held in memory</div>
+        </div>
+        <button class="copy-btn streamed-banner-remove" id="streamedBannerRemove" type="button" aria-label="Remove streamed file" title="Remove">
+          <span class="material-symbols-rounded">close</span>
+        </button>
+      </div>
+      <div class="preset-row">
+        <button class="preset-btn" id="presetCommonBtn" type="button">
+          <span class="material-symbols-rounded">speed</span> Top 100 Common
+        </button>
+        <button class="preset-btn" id="presetRockyouBtn" type="button">
+          <span class="material-symbols-rounded">public</span> Top 100 RockYou
+        </button>
+        <label class="file-upload-btn" tabindex="0" role="button" aria-label="Upload a wordlist file">
+          <span class="material-symbols-rounded">upload_file</span> Load file
+          <input type="file" id="fileInput" accept=".txt,.csv,.lst" style="display:none;" />
+        </label>
+      </div>
+    </div>
+
+    <!-- Results Card -->
+    <div class="card" id="resultsCard" style="animation-delay: 0.24s;">
+      <div class="card-header">
+        <span class="card-label"><span class="material-symbols-rounded">search</span> Results</span>
+      </div>
+      <div id="resultsContent">
+        <div class="result-idle">
+          <span class="material-symbols-rounded">manage_search</span>
+          <div class="result-idle-text">Enter a hash and wordlist, then hit <strong>Crack</strong> to begin matching.</div>
+        </div>
+      </div>
+      <!-- Progress (hidden by default) -->
+      <div id="progressSection" class="progress-section" style="display:none;">
+        <div class="progress-bar-container"><div class="progress-bar-fill" id="progressBar"></div></div>
+        <div class="progress-stats">
+          <span class="stat-item"><span class="material-symbols-rounded">timer</span> <span class="stat-value" id="statElapsed">0.0s</span></span>
+          <span class="stat-item"><span class="material-symbols-rounded">bolt</span> <span class="stat-value" id="statSpeed">0</span> <span>h/s</span></span>
+          <span class="stat-item"><span class="material-symbols-rounded">format_list_numbered</span> <span class="stat-value" id="statChecked">0</span><span id="statTotal"></span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <div>Inpriv Brute · Open Source Privacy Suite</div>
+      <div class="footer-links">
+        <a href="https://inpriv.xyz" rel="noopener">Inpriv</a>
+        <span>·</span>
+        <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener">MIT License</a>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Floating Toolbar -->
+  <div class="floating-toolbar">
+    <button class="fab-btn" id="crackBtn" type="button" disabled>
+      <span class="material-symbols-rounded" id="crackBtnIcon">bolt</span>
+      <span id="crackBtnLabel">Crack</span>
+    </button>
+    <button class="fab-btn secondary-fab" id="clearBtn" type="button">
+      <span class="material-symbols-rounded">delete</span>
+      <span>Clear</span>
+    </button>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast-container">
+    <div class="toast" id="toast" role="status" aria-live="polite">
+      <span class="material-symbols-rounded toast-icon" id="toastIcon">check_circle</span>
+      <span class="toast-text" id="toastText">Copied</span>
+    </div>
+  </div>
+
+  <script>
+    /* ===================== Theme Manager ===================== */
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    const themeIcon = document.getElementById('themeIcon');
+    const htmlElem = document.documentElement;
+    function setTheme(theme) {
+      htmlElem.setAttribute('data-theme', theme);
+      localStorage.setItem('aurex_theme', theme);
+      themeIcon.textContent = theme === 'dark' ? 'light_mode' : 'dark_mode';
+    }
+    const savedTheme = localStorage.getItem('aurex_theme') || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    setTheme(savedTheme);
+    themeToggleBtn.addEventListener('click', () => setTheme(htmlElem.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
+
+    /* ===================== Toast ===================== */
+    const toast = document.getElementById('toast');
+    const toastText = document.getElementById('toastText');
+    const toastIcon = document.getElementById('toastIcon');
+    let toastTimeout;
+    function showToast(message, icon = 'check_circle') {
+      clearTimeout(toastTimeout);
+      toastText.textContent = message;
+      toastIcon.textContent = icon;
+      toast.classList.add('show');
+      toastTimeout = setTimeout(() => toast.classList.remove('show'), 2600);
+    }
+
+    /* ===================== MD5 (self-contained, RFC 1321) ===================== */
+    var md5 = (function () {
+      function rl(n, c) { return (n << c) | (n >>> (32 - c)); }
+      function au(x, y) { const lsw = (x & 0xFFFF) + (y & 0xFFFF); const msw = (x >> 16) + (y >> 16) + (lsw >> 16); return (msw << 16) | (lsw & 0xFFFF); }
+      function cmn(q, a, b, x, s, t) { return au(rl(au(au(a, q), au(x, t)), s), b); }
+      function ff(a, b, c, d, x, s, t) { return cmn((b & c) | ((~b) & d), a, b, x, s, t); }
+      function gg(a, b, c, d, x, s, t) { return cmn((b & d) | (c & (~d)), a, b, x, s, t); }
+      function hh(a, b, c, d, x, s, t) { return cmn(b ^ c ^ d, a, b, x, s, t); }
+      function ii(a, b, c, d, x, s, t) { return cmn(c ^ (b | (~d)), a, b, x, s, t); }
+      function core(x, len) {
+        x[len >> 5] |= 0x80 << (len % 32);
+        x[(((len + 64) >>> 9) << 4) + 14] = len;
+        let a = 1732584193, b = -271733879, c = -1732584194, d = 271733878;
+        for (let i = 0; i < x.length; i += 16) {
+          const oa = a, ob = b, oc = c, od = d;
+          a = ff(a, b, c, d, x[i], 7, -680876936); d = ff(d, a, b, c, x[i+1], 12, -389564586);
+          c = ff(c, d, a, b, x[i+2], 17, 606105819); b = ff(b, c, d, a, x[i+3], 22, -1044525330);
+          a = ff(a, b, c, d, x[i+4], 7, -176418897); d = ff(d, a, b, c, x[i+5], 12, 1200080426);
+          c = ff(c, d, a, b, x[i+6], 17, -1473231341); b = ff(b, c, d, a, x[i+7], 22, -45705983);
+          a = ff(a, b, c, d, x[i+8], 7, 1770035416); d = ff(d, a, b, c, x[i+9], 12, -1958414417);
+          c = ff(c, d, a, b, x[i+10], 17, -42063); b = ff(b, c, d, a, x[i+11], 22, -1990404162);
+          a = ff(a, b, c, d, x[i+12], 7, 1804603682); d = ff(d, a, b, c, x[i+13], 12, -40341101);
+          c = ff(c, d, a, b, x[i+14], 17, -1502002290); b = ff(b, c, d, a, x[i+15], 22, 1236535329);
+          a = gg(a, b, c, d, x[i+1], 5, -165796510); d = gg(d, a, b, c, x[i+6], 9, -1069501632);
+          c = gg(c, d, a, b, x[i+11], 14, 643717713); b = gg(b, c, d, a, x[i], 20, -373897302);
+          a = gg(a, b, c, d, x[i+5], 5, -701558691); d = gg(d, a, b, c, x[i+10], 9, 38016083);
+          c = gg(c, d, a, b, x[i+15], 14, -660478335); b = gg(b, c, d, a, x[i+4], 20, -405537848);
+          a = gg(a, b, c, d, x[i+9], 5, 568446438); d = gg(d, a, b, c, x[i+14], 9, -1019803690);
+          c = gg(c, d, a, b, x[i+3], 14, -187363961); b = gg(b, c, d, a, x[i+8], 20, 1163531501);
+          a = gg(a, b, c, d, x[i+13], 5, -1444681467); d = gg(d, a, b, c, x[i+2], 9, -51403784);
+          c = gg(c, d, a, b, x[i+7], 14, 1735328473); b = gg(b, c, d, a, x[i+12], 20, -1926607734);
+          a = hh(a, b, c, d, x[i+5], 4, -378558); d = hh(d, a, b, c, x[i+8], 11, -2022574463);
+          c = hh(c, d, a, b, x[i+11], 16, 1839030562); b = hh(b, c, d, a, x[i+14], 23, -35309556);
+          a = hh(a, b, c, d, x[i+1], 4, -1530992060); d = hh(d, a, b, c, x[i+4], 11, 1272893353);
+          c = hh(c, d, a, b, x[i+7], 16, -155497632); b = hh(b, c, d, a, x[i+10], 23, -1094730640);
+          a = hh(a, b, c, d, x[i+13], 4, 681279174); d = hh(d, a, b, c, x[i], 11, -358537222);
+          c = hh(c, d, a, b, x[i+3], 16, -722521979); b = hh(b, c, d, a, x[i+6], 23, 76029189);
+          a = hh(a, b, c, d, x[i+9], 4, -640364487); d = hh(d, a, b, c, x[i+12], 11, -421815835);
+          c = hh(c, d, a, b, x[i+15], 16, 530742520); b = hh(b, c, d, a, x[i+2], 23, -995338651);
+          a = ii(a, b, c, d, x[i], 6, -198630844); d = ii(d, a, b, c, x[i+7], 10, 1126891415);
+          c = ii(c, d, a, b, x[i+14], 15, -1416354905); b = ii(b, c, d, a, x[i+5], 21, -57434055);
+          a = ii(a, b, c, d, x[i+12], 6, 1700485571); d = ii(d, a, b, c, x[i+3], 10, -1894986606);
+          c = ii(c, d, a, b, x[i+10], 15, -1051523); b = ii(b, c, d, a, x[i+1], 21, -2054922799);
+          a = ii(a, b, c, d, x[i+8], 6, 1873313359); d = ii(d, a, b, c, x[i+15], 10, -30611744);
+          c = ii(c, d, a, b, x[i+6], 15, -1560198380); b = ii(b, c, d, a, x[i+13], 21, 1309151649);
+          a = ii(a, b, c, d, x[i+4], 6, -145523070); d = ii(d, a, b, c, x[i+11], 10, -1120210379);
+          c = ii(c, d, a, b, x[i+2], 15, 718787259); b = ii(b, c, d, a, x[i+9], 21, -343485551);
+          a = au(a, oa); b = au(b, ob); c = au(c, oc); d = au(d, od);
+        }
+        return [a, b, c, d];
+      }
+      function bytesToWords(bytes) {
+        const w = []; for (let i = 0; i < bytes.length * 8; i += 8) w[i >> 5] |= (bytes[i / 8] & 0xFF) << (i % 32); return w;
+      }
+      function wordsToHex(w) {
+        const hex = '0123456789abcdef'; let out = '';
+        for (let i = 0; i < w.length * 4; i++) { out += hex.charAt((w[i >> 2] >> ((i % 4) * 8 + 4)) & 0x0F) + hex.charAt((w[i >> 2] >> ((i % 4) * 8)) & 0x0F); }
+        return out;
+      }
+      return function (bytes) {
+        const x = bytesToWords(bytes); const out = core(x, bytes.length * 8);
+        return wordsToHex(out);
+      };
+    })();
+
+    /* ===================== SHA hashing via Web Crypto ===================== */
+    function bufToHex(buf) {
+      return Array.prototype.map.call(new Uint8Array(buf), b => b.toString(16).padStart(2, '0')).join('');
+    }
+    async function sha(algo, bytes) {
+      const digest = await crypto.subtle.digest(algo, bytes);
+      return bufToHex(digest);
+    }
+    function utf8Bytes(str) { return new TextEncoder().encode(str); }
+
+    /* ===================== Hash type detection ===================== */
+    const HASH_LENGTHS = {
+      'MD5': 32, 'SHA-1': 40, 'SHA-256': 64, 'SHA-384': 96, 'SHA-512': 128
+    };
+    const HEX_RE = /^[0-9a-fA-F]+$/;
+
+    function detectHashType(hash) {
+      const h = hash.trim();
+      if (!HEX_RE.test(h)) return null;
+      for (const [name, len] of Object.entries(HASH_LENGTHS)) {
+        if (h.length === len) return name;
+      }
+      return null;
+    }
+
+    function getAlgorithms(selection, hash) {
+      if (selection === 'all') return Object.keys(HASH_LENGTHS);
+      if (selection !== 'auto') return [selection];
+      // Auto-detect
+      const detected = detectHashType(hash);
+      if (detected) return [detected];
+      // Unknown length — try all
+      return Object.keys(HASH_LENGTHS);
+    }
+
+    /* ===================== DOM references ===================== */
+    const hashInput = document.getElementById('hashInput');
+    const hashTypeChip = document.getElementById('hashTypeChip');
+    const hashLenChip = document.getElementById('hashLenChip');
+    const algoSelect = document.getElementById('algoSelect');
+    const wordlistInput = document.getElementById('wordlistInput');
+    const wordCountChip = document.getElementById('wordCountChip');
+    const resultsContent = document.getElementById('resultsContent');
+    const progressSection = document.getElementById('progressSection');
+    const progressBar = document.getElementById('progressBar');
+    const statElapsed = document.getElementById('statElapsed');
+    const statSpeed = document.getElementById('statSpeed');
+    const statChecked = document.getElementById('statChecked');
+    const statTotal = document.getElementById('statTotal');
+    const crackBtn = document.getElementById('crackBtn');
+    const crackBtnIcon = document.getElementById('crackBtnIcon');
+    const crackBtnLabel = document.getElementById('crackBtnLabel');
+    const clearBtn = document.getElementById('clearBtn');
+    const fileInput = document.getElementById('fileInput');
+    const streamedBanner = document.getElementById('streamedBanner');
+    const streamedBannerTitle = document.getElementById('streamedBannerTitle');
+    const streamedBannerRemove = document.getElementById('streamedBannerRemove');
+    const suggestBanner = document.getElementById('suggestBanner');
+    const suggestOptions = document.getElementById('suggestOptions');
+
+    /* ===================== Input state management ===================== */
+    let isRunning = false;
+    let shouldCancel = false;
+
+    function updateHashInfo() {
+      const val = hashInput.value.trim();
+      hashLenChip.textContent = val.length + ' chars';
+      const detected = detectHashType(val);
+      if (detected) {
+        hashTypeChip.textContent = detected;
+        hashTypeChip.className = 'meta-chip accent-chip';
+      } else if (val.length > 0) {
+        hashTypeChip.textContent = 'Unknown';
+        hashTypeChip.className = 'meta-chip error-chip';
+      } else {
+        hashTypeChip.textContent = 'No hash';
+        hashTypeChip.className = 'meta-chip';
+      }
+      scheduleSuggestion();
+      updateCrackBtn();
+    }
+
+    /* ---- Plaintext-password suggestion ----
+       If the input isn't a valid hash, assume the user pasted a plaintext
+       password and offer the hashes of it. Debounced (hashing is async) and
+       staleness-guarded so fast typing doesn't show stale suggestions. */
+    const SUGGEST_ALGOS = ['MD5', 'SHA-1', 'SHA-256', 'SHA-384', 'SHA-512'];
+    let suggestTimer = null;
+    let suggestSeq = 0; // increments per scheduled check; stale results ignored
+
+    function scheduleSuggestion() {
+      const val = hashInput.value.trim();
+      // Show only when the input is non-empty and NOT a recognised hash.
+      if (!val || detectHashType(val)) { hideSuggestion(); return; }
+      if (suggestTimer) clearTimeout(suggestTimer);
+      suggestTimer = setTimeout(() => maybeSuggestHash(val), 250);
+    }
+
+    function hideSuggestion() {
+      if (suggestTimer) { clearTimeout(suggestTimer); suggestTimer = null; }
+      suggestBanner.style.display = 'none';
+      suggestOptions.innerHTML = '';
+    }
+
+    async function maybeSuggestHash(val) {
+      const seq = ++suggestSeq;
+      const bytes = utf8Bytes(val);
+      // Render buttons as each hash resolves so MD5 (instant) shows first.
+      suggestBanner.style.display = '';
+      suggestOptions.innerHTML = '';
+      for (const algo of SUGGEST_ALGOS) {
+        const hex = algo === 'MD5' ? md5(bytes) : await sha('SHA-' + algo.replace('SHA-', ''), bytes);
+        if (seq !== suggestSeq) return; // input changed mid-computation — abort
+        addSuggestionOption(algo, hex, val);
+      }
+    }
+
+    function addSuggestionOption(algo, hex, source) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'suggest-opt';
+      btn.title = 'Use this hash (copied from "' + source + '")';
+      btn.innerHTML =
+        '<span class="suggest-opt-algo">' + algo + '</span>' +
+        '<span class="suggest-opt-hash">' + esc(hex) + '</span>' +
+        '<span class="material-symbols-rounded suggest-opt-copy">arrow_forward</span>';
+      btn.addEventListener('click', () => {
+        hashInput.value = hex;
+        updateHashInfo();          // hides banner since this is now a valid hash
+        showToast('Replaced with ' + algo + ' hash', 'check_circle');
+        hashInput.focus();
+      });
+      suggestOptions.appendChild(btn);
+    }
+
+    function updateWordCount() {
+      // Show/hide the streamed-file banner so it's obvious a large file loaded
+      // (the textarea stays blank in streaming mode).
+      if (streamedFile) {
+        streamedBanner.style.display = '';
+        streamedBannerTitle.textContent = 'Streaming "' + streamedFile.name + '" · ' + formatBytes(streamedFile.size);
+        wordlistInput.placeholder = 'Large file loaded — streamed line-by-line during cracking. Type here to switch to manual entry.';
+        wordCountChip.textContent = 'Streamed file · ' + formatBytes(streamedFile.size);
+        updateCrackBtn();
+        return;
+      }
+      streamedBanner.style.display = 'none';
+      wordlistInput.placeholder = 'Enter one password per line…';
+      const words = parseWordlist(wordlistInput.value);
+      wordCountChip.textContent = words.length + ' entr' + (words.length === 1 ? 'y' : 'ies');
+      updateCrackBtn();
+    }
+
+    function parseWordlist(text) {
+      return text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    }
+
+    function updateCrackBtn() {
+      const hasHash = hashInput.value.trim().length > 0;
+      const hasWords = streamedFile ? true : parseWordlist(wordlistInput.value).length > 0;
+      crackBtn.disabled = !hasHash || !hasWords || isRunning;
+    }
+
+    hashInput.addEventListener('input', updateHashInfo);
+    wordlistInput.addEventListener('input', () => {
+      // Manual typing overrides the streamed file — user clearly wants inline.
+      if (streamedFile) streamedFile = null;
+      updateWordCount();
+    });
+    algoSelect.addEventListener('change', () => {
+      if (algoSelect.value !== 'auto') {
+        const detected = detectHashType(hashInput.value.trim());
+        if (detected) hashTypeChip.textContent = detected + ' (override: ' + algoSelect.value + ')';
+      }
+    });
+
+    /* ===================== Preset wordlists ===================== */
+    const PRESET_COMMON = [
+      'password','123456','12345678','qwerty','abc123','monkey','1234567','letmein',
+      'trustno1','dragon','baseball','iloveyou','master','sunshine','ashley',
+      'bailey','shadow','123456789','654321','superman','qazwsx','michael',
+      'football','password1','password123','batman','welcome','1234567890',
+      'admin','login','princess','starwars','solo','passw0rd','hello','charlie',
+      'donald','whatever','access','freedom','master','thunder','qwerty123',
+      'admin123','letmein123','password1!','123qwe','mustang','0987654321',
+      'joshua','pepper','ninja','summer','winter','spring','autumn',
+      'corvette','hunter','soccer','harley','ranger','daniel','zxcvbn',
+      'asdfgh','qwertyuiop','1q2w3e4r','1qaz2wsx','pass','test','test123',
+      'demo','guest','root','toor','changeme','default','111111','000000',
+      'james','matrix','patrick','computer','internet','service','canada',
+      'hello123','abcdef','abcdefg','fuckyou','secret','lovely','aaron'
+    ];
+
+    const PRESET_ROCKYOU = [
+      '123456','12345','123456789','password','iloveyou','princess','abc123',
+      'nicole','daniel','babygirl','monkey','lovely','jessica','654321',
+      'michael','ashley','qwerty','111111','iloveu','000000','ashley',
+      'nicole','daniel','babygirl','monkey','lovely','jessica','654321',
+      'michael','qwerty','1234567','12345678','12345','123456','iloveyou',
+      'princess','abc123','nicole','daniel','babygirl','monkey','lovely',
+      'joshua','jessica','12345','12345','jennifer','12345','12345','superman',
+      'password1','jordan','trustno1','password','!@#$%^','charlie',
+      'master','donald','access','shadow','123123','batman','hello','thunder',
+      'pepper','cookie','qwerty','whatever','freedom','fuckyou','fuck',
+      'money','summer','love','sunshine','mustang','letmein','welcome',
+      'desktop','computer','internet','service','canada','hello','ranger',
+      'hammer','yankees','soccer','hockey','killer','george','andrew',
+      'secret','andrea','joshua','daniel','starwars','fishing','biteme',
+      'matrix','junior','knight','turtle','chicken','robert','sparky'
+    ];
+
+    document.getElementById('presetCommonBtn').addEventListener('click', () => {
+      streamedFile = null;
+      wordlistInput.value = PRESET_COMMON.join('\n');
+      updateWordCount();
+      showToast('Loaded 100 common passwords', 'list_alt');
+    });
+
+    document.getElementById('presetRockyouBtn').addEventListener('click', () => {
+      streamedFile = null;
+      wordlistInput.value = PRESET_ROCKYOU.join('\n');
+      updateWordCount();
+      showToast('Loaded 100 RockYou passwords', 'list_alt');
+    });
+
+    /* File upload — streams large files instead of loading them whole.
+       Files above STREAM_THRESHOLD are kept as a File reference and read
+       chunk-by-chunk during cracking, so multi-GB wordlists never sit in
+       memory (that's what caused the "Failed to read file" / freeze). */
+    const STREAM_THRESHOLD = 2 * 1024 * 1024; // 2 MB — above this, stream on demand
+    let streamedFile = null;                  // { file, name, size } when streaming
+
+    function formatBytes(n) {
+      if (n < 1024) return n + ' B';
+      if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+      if (n < 1024 * 1024 * 1024) return (n / (1024 * 1024)).toFixed(1) + ' MB';
+      return (n / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+    }
+
+    fileInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      // Large file → stream on demand. Keep just the File handle.
+      if (file.size > STREAM_THRESHOLD) {
+        streamedFile = { file, name: file.name, size: file.size };
+        wordlistInput.value = '';   // textarea no longer the source
+        updateWordCount();
+        showToast('Loaded "' + file.name + '" (' + formatBytes(file.size) + ') — streamed', 'upload_file');
+        fileInput.value = '';
+        return;
+      }
+
+      // Small file → read into textarea as before (stays editable).
+      try {
+        const text = await file.text();
+        streamedFile = null;
+        wordlistInput.value = text;
+        updateWordCount();
+        showToast('Loaded ' + parseWordlist(text).length + ' entries from ' + file.name, 'upload_file');
+      } catch (err) {
+        showToast('Failed to read file', 'error');
+      }
+      fileInput.value = '';
+    });
+
+    /* Keyboard accessible file label */
+    const fileLabel = fileInput.closest('.file-upload-btn');
+    if (fileLabel) {
+      fileLabel.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); }
+      });
+    }
+
+    /* Remove the streamed file and return to manual textarea entry */
+    streamedBannerRemove.addEventListener('click', () => {
+      if (isRunning) { showToast('Cancel the run first', 'stop_circle'); return; }
+      streamedFile = null;
+      wordlistInput.value = '';
+      updateWordCount();
+      showToast('Streamed file removed', 'delete');
+    });
+
+    /* ===================== Core cracking engine ===================== */
+    function showResults(html) { resultsContent.innerHTML = html; }
+
+    function showIdle() {
+      resultsContent.innerHTML = `
+        <div class="result-idle">
+          <span class="material-symbols-rounded">manage_search</span>
+          <div class="result-idle-text">Enter a hash and wordlist, then hit <strong>Crack</strong> to begin matching.</div>
+        </div>`;
+    }
+
+    function showRunning() {
+      resultsContent.innerHTML = `
+        <div class="result-running">
+          <div class="spinner"></div>
+          <div class="result-running-text">Cracking in progress… checking wordlist entries</div>
+        </div>`;
+    }
+
+    function showFound(password, algo, elapsed, checked) {
+      resultsContent.innerHTML = `
+        <div class="result-found">
+          <div class="result-found-header">
+            <span class="material-symbols-rounded">check_circle</span>
+            <span class="result-found-label">Match Found</span>
+          </div>
+          <div class="result-password">
+            <span class="result-password-value" id="foundPassword">${esc(password)}</span>
+            <button class="copy-btn" id="copyFoundBtn" aria-label="Copy cracked password" title="Copy">
+              <span class="material-symbols-rounded">content_copy</span>
+            </button>
+          </div>
+          <div class="result-meta">
+            <span class="meta-chip accent-chip">${esc(algo)}</span>
+            <span class="meta-chip">${checked} checked</span>
+            <span class="meta-chip">${elapsed.toFixed(2)}s</span>
+          </div>
+        </div>`;
+      document.getElementById('copyFoundBtn').addEventListener('click', () => {
+        navigator.clipboard.writeText(password).then(() => showToast('Password copied', 'content_copy'));
+      });
+    }
+
+    function showNotFound(algos, elapsed, checked) {
+      resultsContent.innerHTML = `
+        <div class="result-not-found">
+          <div class="result-not-found-header">
+            <span class="material-symbols-rounded">cancel</span>
+            <span class="result-not-found-label">No Match Found</span>
+          </div>
+          <div class="result-not-found-text">
+            Checked <strong>${checked.toLocaleString()}</strong> entries across <strong>${algos.length}</strong> algorithm${algos.length > 1 ? 's' : ''}
+            in <strong>${elapsed.toFixed(2)}s</strong>.<br>
+            The password is not in your wordlist. Try a larger list or a different hash.
+          </div>
+        </div>`;
+    }
+
+    function esc(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    /* -------------------- Word sources --------------------
+       Inline (textarea/preset) and streamed (large file) are both exposed as
+       async iterables of word-bytes, so the cracking loop never cares where
+       the data came from — and never holds the whole file in memory. */
+
+    // Yields each line of a File as raw UTF-8 bytes, trimming whitespace and
+    // skipping empty lines (matches the old parseWordlist behaviour). Calls
+    // onProgress(bytesRead) once per chunk read so callers can drive a bar.
+    async function* streamLines(file, onProgress) {
+      const reader = file.stream().getReader();
+      let buf = new Uint8Array(0);
+      let bytesRead = 0;
+      const isWs = b => b === 0x20 || b === 0x09 || b === 0x0D;
+      try {
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          bytesRead += value.length;
+          if (onProgress) onProgress(bytesRead);
+
+          // Append chunk to the carry-over buffer.
+          const next = new Uint8Array(buf.length + value.length);
+          next.set(buf, 0);
+          next.set(value, buf.length);
+          buf = next;
+
+          // Emit every complete line (split on 0x0A).
+          let segStart = 0;
+          for (let i = 0; i < buf.length; i++) {
+            if (buf[i] !== 0x0A) continue;
+            let s = segStart, e = i;
+            while (s < e && isWs(buf[s])) s++;
+            while (e > s && isWs(buf[e - 1])) e--;
+            if (e > s) yield buf.subarray(s, e);
+            segStart = i + 1;
+          }
+          if (segStart > 0) buf = buf.slice(segStart); // keep the tail
+        }
+        // Final line (file with no trailing newline).
+        let s = 0, e = buf.length;
+        while (s < e && isWs(buf[s])) s++;
+        while (e > s && isWs(buf[e - 1])) e--;
+        if (e > s) yield buf.subarray(s, e);
+      } finally {
+        reader.releaseLock();
+      }
+    }
+
+    function inlineSource(strings) {
+      return {
+        isBytes: false,
+        total: strings.length,
+        async *[Symbol.asyncIterator]() { for (const s of strings) yield utf8Bytes(s); }
+      };
+    }
+    function streamSource(file) {
+      let bytesDone = 0;
+      return {
+        isBytes: true,
+        total: file.size,
+        get bytesDone() { return bytesDone; },
+        async *[Symbol.asyncIterator]() { yield* streamLines(file, b => { bytesDone = b; }); }
+      };
+    }
+
+    /* Main crack routine — streams words and yields to the UI on a time
+       budget (~20×/s) instead of per batch, so a multi-GB run with hundreds
+       of millions of entries stays responsive without timer overhead. */
+    async function crackHash() {
+      if (isRunning) return;
+
+      const targetHash = hashInput.value.trim().toLowerCase();
+      if (!targetHash) return;
+      const algos = getAlgorithms(algoSelect.value, targetHash);
+
+      const isStream = !!streamedFile;
+      let source;
+      if (isStream) {
+        source = streamSource(streamedFile.file);
+      } else {
+        const words = parseWordlist(wordlistInput.value);
+        if (words.length === 0) return;
+        source = inlineSource(words);
+      }
+
+      isRunning = true;
+      shouldCancel = false;
+
+      // Update toolbar button
+      crackBtnIcon.textContent = 'stop';
+      crackBtnLabel.textContent = 'Cancel';
+      crackBtn.classList.remove('success', 'danger');
+      crackBtn.disabled = false;
+
+      showRunning();
+      progressSection.style.display = '';
+      progressBar.style.width = '0%';
+      statChecked.textContent = '0';
+      statTotal.textContent = isStream ? '' : ' / ' + source.total.toLocaleString();
+      statElapsed.textContent = '0.0s';
+      statSpeed.textContent = '0';
+
+      const startTime = performance.now();
+      let checked = 0;
+      let lastPaint = startTime;
+      const PAINT_INTERVAL = 50; // ms — repaint ~20×/s
+
+      function paint(now) {
+        const elapsed = (now - startTime) / 1000;
+        const speed = elapsed > 0 ? Math.round(checked / elapsed) : 0;
+        const denom = source.isBytes ? source.total : source.total;
+        const progress = source.isBytes ? source.bytesDone : checked;
+        const pct = denom > 0 ? Math.min(100, (progress / denom) * 100) : 0;
+        progressBar.style.width = pct + '%';
+        statChecked.textContent = checked.toLocaleString();
+        statElapsed.textContent = elapsed.toFixed(1) + 's';
+        statSpeed.textContent = speed.toLocaleString();
+      }
+
+      try {
+        for await (const wordBytes of source) {
+          if (shouldCancel) break;
+
+          for (let a = 0; a < algos.length; a++) {
+            if (shouldCancel) break;
+            const algo = algos[a];
+
+            let computed;
+            if (algo === 'MD5') {
+              computed = md5(wordBytes);
+            } else {
+              computed = await sha('SHA-' + algo.replace('SHA-', ''), wordBytes);
+            }
+            checked++;
+
+            if (computed === targetHash) { // both already lowercase hex
+              const elapsed = (performance.now() - startTime) / 1000;
+              // Decode the matched bytes back to a string for display.
+              const word = new TextDecoder().decode(wordBytes);
+              isRunning = false;
+              progressSection.style.display = 'none';
+              resetCrackBtn();
+              showFound(word, algo, elapsed, checked);
+              showToast('Password cracked!', 'check_circle');
+              crackBtn.classList.add('success');
+              crackBtnIcon.textContent = 'check_circle';
+              crackBtnLabel.textContent = 'Cracked!';
+              setTimeout(() => resetCrackBtn(), 3000);
+              return;
+            }
+          }
+
+          // Yield to the UI on a time budget so the tab stays responsive
+          // (lets the browser repaint and process the Cancel click).
+          const now = performance.now();
+          if (now - lastPaint >= PAINT_INTERVAL) {
+            paint(now);
+            await new Promise(r => setTimeout(r, 0));
+            lastPaint = performance.now();
+          }
+        }
+      } catch (err) {
+        // A mid-stream read failure (file moved/locked) shouldn't crash silently.
+        console.error('Stream error during crack:', err);
+      }
+
+      // Done — cancelled, exhausted, or errored.
+      const elapsed = (performance.now() - startTime) / 1000;
+      isRunning = false;
+      progressSection.style.display = 'none';
+
+      if (shouldCancel) {
+        showIdle();
+        showToast('Cancelled', 'stop_circle');
+      } else {
+        showNotFound(algos, elapsed, checked);
+        showToast('No match found', 'search_off');
+      }
+
+      resetCrackBtn();
+    }
+
+    function resetCrackBtn() {
+      crackBtnIcon.textContent = 'bolt';
+      crackBtnLabel.textContent = 'Crack';
+      crackBtn.classList.remove('success', 'danger');
+      updateCrackBtn();
+    }
+
+    /* ===================== Event listeners ===================== */
+    crackBtn.addEventListener('click', () => {
+      if (isRunning) {
+        shouldCancel = true;
+        crackBtn.disabled = true;
+      } else {
+        crackHash();
+      }
+    });
+
+    clearBtn.addEventListener('click', () => {
+      const doClear = () => {
+        streamedFile = null;
+        hashInput.value = '';
+        wordlistInput.value = '';
+        algoSelect.value = 'auto';
+        updateHashInfo();
+        updateWordCount();
+        showIdle();
+        progressSection.style.display = 'none';
+      };
+      if (isRunning) {
+        shouldCancel = true;
+        setTimeout(doClear, 100);
+      } else {
+        doClear();
+      }
+      showToast('Cleared', 'delete');
+    });
+
+    /* ===================== Init ===================== */
+    updateHashInfo();
+    updateWordCount();
+  </script>
+</body>
+</html>
