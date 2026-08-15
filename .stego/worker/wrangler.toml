@@ -1,0 +1,14 @@
+name = "stego"
+main = "src/index.js"
+compatibility_date = "2025-08-01"
+workers_dev = true
+
+# Custom domain — serves the Stego tool on stego.inpriv.xyz
+routes = [
+  { pattern = "stego.inpriv.xyz", custom_domain = true }
+]
+
+# Static frontend served from ./public (the single-file stego tool)
+[assets]
+directory = "./public"
+binding = "ASSETS"
