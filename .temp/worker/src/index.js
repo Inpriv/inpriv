@@ -100,8 +100,8 @@ a{color:#ABD37A}
 </style></head>
 <body><div class="box">
 <div class="icon">🔒</div>
-<h1>Inpriv Temp jest tymczasowo niedostępne</h1>
-<p>Usługa została zablokowana przez administratora.<br>Skrzynki i wiadomości są bezpieczne — wróć później.</p>
+<h1>Inpriv Temp is temporarily unavailable</h1>
+<p>This service has been locked by the administrator.<br>Your inboxes and messages are safe — check back later.</p>
 ${msg}
 <p style="margin-top:24px;font-size:.8rem"><a href="https://inpriv.xyz">← inpriv.xyz</a></p>
 </div></body></html>`, {

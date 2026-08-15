@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
-<title>Inpriv Admin — Panel sterowania</title>
+<title>Inpriv Admin — Control Panel</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..700&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..600,0..1,0&display=swap" rel="stylesheet">
@@ -179,19 +179,19 @@ input[type="text"]:focus,textarea:focus{border-color:var(--primary)}
   <form class="login-card" id="login-form" autocomplete="off">
     <div class="brand">
       <div class="logo"><span class="msymbol filled">shield_lock</span></div>
-      <div><h1>Inpriv Admin</h1><p>Panel sterowania · dostęp tylko dla saloyek</p></div>
+      <div><h1>Inpriv Admin</h1><p>Control panel · saloyek only</p></div>
     </div>
     <div class="field">
       <input type="text" id="l-user" placeholder=" " autocomplete="username" spellcheck="false">
-      <label for="l-user">Nick</label>
+      <label for="l-user">Username</label>
     </div>
     <div class="field">
       <input class="otp-input" type="text" id="l-code" placeholder=" " inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" spellcheck="false">
-      <label for="l-code">Kod z Google Authenticator</label>
+      <label for="l-code">Authenticator code</label>
     </div>
     <p class="login-error" id="login-error"></p>
     <button class="btn btn-filled btn-block" type="submit" id="login-btn">
-      <span class="msymbol">login</span> Zaloguj
+      <span class="msymbol">login</span> Sign in
     </button>
     <p class="countdown" id="retry-note"></p>
   </form>
@@ -203,56 +203,56 @@ input[type="text"]:focus,textarea:focus{border-color:var(--primary)}
     <div class="header-in">
       <div class="logo"><span class="msymbol filled">tune</span></div>
  <h1>Inpriv Admin</h1>
-      <button class="icon-btn" id="theme-btn" title="Motyw"><span class="msymbol">dark_mode</span></button>
-      <button class="icon-btn" id="logout-btn" title="Wyloguj"><span class="msymbol">logout</span></button>
+      <button class="icon-btn" id="theme-btn" title="Theme"><span class="msymbol">dark_mode</span></button>
+      <button class="icon-btn" id="logout-btn" title="Sign out"><span class="msymbol">logout</span></button>
     </div>
   </header>
   <main>
     <!-- global kill -->
     <section class="card" id="card-global">
-      <h2><span class="msymbol">lock</span> Blokada globalna</h2>
-      <p class="sub">Blokuje <strong>wszystkie usługi naraz</strong>. Nadpisuje przełączniki poniżej.</p>
+      <h2><span class="msymbol">lock</span> Global kill switch</h2>
+      <p class="sub">Locks <strong>every service at once</strong>. Overrides the switches below.</p>
       <div class="lock-row">
-        <span class="lock-status off" id="global-status"><span class="msymbol filled">check_circle</span> Wszystko działa</span>
+        <span class="lock-status off" id="global-status"><span class="msymbol filled">check_circle</span> All systems operational</span>
         <span class="grow"></span>
         <div class="switch">
-          <input type="checkbox" id="global-switch" aria-label="Blokada globalna">
+          <input type="checkbox" id="global-switch" aria-label="Global kill switch">
           <span class="track"></span><span class="thumb"></span>
         </div>
       </div>
       <div style="margin-top:16px">
-        <input type="text" id="global-msg" maxlength="500" placeholder="Komunikat pokazywany na zablokowanych stronach (opcjonalny)">
+        <input type="text" id="global-msg" maxlength="500" placeholder="Message shown on locked pages (optional)">
       </div>
     </section>
 
     <!-- global info -->
     <section class="card" id="card-info">
-      <h2><span class="msymbol">campaign</span> Globalne info</h2>
-      <p class="sub">Banner informacyjny widoczny na wszystkich stronach — <strong>nie blokuje</strong> usług.</p>
+      <h2><span class="msymbol">campaign</span> Global info</h2>
+      <p class="sub">Info banner visible on all pages — <strong>does not block</strong> services.</p>
       <div class="lock-row">
-        <span class="lock-status off" id="info-status"><span class="msymbol filled">visibility_off</span> Ukryty</span>
+        <span class="lock-status off" id="info-status"><span class="msymbol filled">visibility_off</span> Hidden</span>
         <span class="grow"></span>
         <div class="switch">
-          <input type="checkbox" id="info-switch" aria-label="Globalne info">
+          <input type="checkbox" id="info-switch" aria-label="Global info">
           <span class="track"></span><span class="thumb"></span>
         </div>
       </div>
       <div style="margin-top:16px">
-        <input type="text" id="info-msg" maxlength="500" placeholder="Treść komunikatu, np. „Planowana przerwa techniczna w niedzielę 3:00–4:00”">
+        <input type="text" id="info-msg" maxlength="500" placeholder="Message text, e.g. “Planned maintenance on Sunday 3:00–4:00 AM”">
       </div>
     </section>
 
     <!-- services -->
     <section class="card" id="card-services">
-      <h2><span class="msymbol">apps</span> Usługi</h2>
-      <p class="sub">Przełącznik blokuje pojedynczą usługę. Komunikat per-usługa wpisujesz w polu pod kartą usługi.</p>
+      <h2><span class="msymbol">apps</span> Services</h2>
+      <p class="sub">Each switch locks a single service. Set a per-service message in the field under the service card.</p>
       <div id="services-list"></div>
     </section>
 
     <!-- audit -->
     <section class="card" id="card-audit">
-      <h2><span class="msymbol">history</span> Historia działań</h2>
-      <p class="sub">Ostatnie 50 zdarzeń: logowania, blokady, zmiany komunikatów.</p>
+      <h2><span class="msymbol">history</span> Audit log</h2>
+      <p class="sub">Last 50 events: logins, locks, message changes.</p>
       <div id="audit-list"></div>
     </section>
   </main>
@@ -302,15 +302,15 @@ $("login-form").addEventListener("submit", async (e) => {
     const body = await res.json().catch(() => ({}));
     if (res.status === 429) {
       const s = body.retry_after || 60;
-      $("login-error").textContent = `Zbyt wiele prób. Odczekaj ${s} s.`;
+      $("login-error").textContent = `Too many attempts. Wait ${s} s.`;
       startRetryCountdown(s);
     } else if (body.error === "invalid_credentials") {
-      $("login-error").textContent = "Zły nick lub format kodu.";
+      $("login-error").textContent = "Wrong username or code format.";
     } else {
-      $("login-error").textContent = "Nieprawidłowy kod TOTP. Sprawdź Authenticatora.";
+      $("login-error").textContent = "Invalid TOTP code. Check your Authenticator.";
     }
     $("l-code").value = "";
-  } catch { $("login-error").textContent = "Błąd sieci — spróbuj ponownie."; }
+  } catch { $("login-error").textContent = "Network error — try again."; }
   finally { btn.disabled = false; }
 });
 
@@ -320,7 +320,7 @@ function startRetryCountdown(sec) {
   const note = $("retry-note");
   const tick = () => {
     if (sec <= 0) { note.textContent = ""; clearInterval(retryTimer); return; }
-    note.textContent = `Kolejna próba za ${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
+    note.textContent = `Next attempt in ${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
     sec--;
   };
   tick(); retryTimer = setInterval(tick, 1000);
@@ -347,7 +347,7 @@ async function refresh() {
     renderInfo(st);
     renderServices(st);
     renderAudit(st.audit || []);
-  } catch { toast("Nie udało się pobrać stanu", true); }
+  } catch { toast("Failed to fetch state", true); }
   finally { busy(false); }
 }
 
@@ -357,8 +357,8 @@ function renderGlobal(st) {
   const s = $("global-status");
   s.className = "lock-status " + (on ? "on" : "off");
   s.innerHTML = on
-    ? '<span class="msymbol filled">lock</span> WSZYSTKO ZABLOKOWANE'
-    : '<span class="msymbol filled">check_circle</span> Wszystko działa';
+    ? '<span class="msymbol filled">lock</span> EVERYTHING LOCKED'
+    : '<span class="msymbol filled">check_circle</span> All systems operational';
   if (document.activeElement !== $("global-msg")) $("global-msg").value = st.global.message || "";
 }
 
@@ -368,8 +368,8 @@ function renderInfo(st) {
   const s = $("info-status");
   s.className = "lock-status " + (on ? "on" : "off");
   s.innerHTML = on
-    ? '<span class="msymbol filled">campaign</span> Widoczny'
-    : '<span class="msymbol filled">visibility_off</span> Ukryty';
+    ? '<span class="msymbol filled">campaign</span> Visible'
+    : '<span class="msymbol filled">visibility_off</span> Hidden';
   if (document.activeElement !== $("info-msg")) $("info-msg").value = st.info.message || "";
 }
 
@@ -383,10 +383,10 @@ function renderServices(st) {
     row.innerHTML = `
       <div class="svc-icon"><span class="msymbol filled">mark_email_unread</span></div>
       <div class="svc-info">
-        <div class="svc-name">${meta.name} ${svc.locked ? '· <span style="color:var(--error);font-size:.78rem">ZABLOKOWANA</span>' : ""}</div>
+        <div class="svc-name">${meta.name} ${svc.locked ? '· <span style="color:var(--error);font-size:.78rem">LOCKED</span>' : ""}</div>
         ${meta.url ? `<a class="svc-url" href="${meta.url}" target="_blank" rel="noopener">${meta.url.replace("https://", "")}</a>` : ""}
         <div style="margin-top:8px">
-          <input type="text" class="svc-msg" data-svc="${id}" maxlength="500" placeholder="Komunikat dla tej usługi (opcjonalny)" value="${(svc.message || "").replace(/"/g, "&quot;")}">
+          <input type="text" class="svc-msg" data-svc="${id}" maxlength="500" placeholder="Custom message for this service (optional)" value="${(svc.message || "").replace(/"/g, "&quot;")}">
         </div>
       </div>
       <div class="switch">
@@ -400,15 +400,15 @@ function renderServices(st) {
 
 function renderAudit(rows) {
   const el = $("audit-list");
-  if (!rows.length) { el.innerHTML = '<p style="color:var(--on-surface-var)">Brak zdarzeń.</p>'; return; }
+  if (!rows.length) { el.innerHTML = '<p style="color:var(--on-surface-var)">No events yet.</p>'; return; }
   const danger = /lock|info_on/;
   el.innerHTML = rows.map((r) => {
     const d = new Date(r.ts);
     const label = {
-      login: "logowanie", global_lock: "blokada globalna", global_unlock: "odblokowanie globalne",
-      info_on: "info włączone", info_off: "info wyłączone",
-    }[r.action] || (r.action.startsWith("lock_") ? `blokada: ${r.action.slice(5)}` : r.action.startsWith("unlock_") ? `odblokowanie: ${r.action.slice(7)}` : r.action);
-    const msg = r.message ? ` — „${escapeHtml(r.message.slice(0, 60))}”` : "";
+      login: "login", global_lock: "global lock", global_unlock: "global unlock",
+      info_on: "info on", info_off: "info off",
+    }[r.action] || (r.action.startsWith("lock_") ? `lock: ${r.action.slice(5)}` : r.action.startsWith("unlock_") ? `unlock: ${r.action.slice(7)}` : r.action);
+    const msg = r.message ? ` — “${escapeHtml(r.message.slice(0, 60))}”` : "";
     return `<div class="a-row"><span class="a-ts">${d.toLocaleString("pl-PL")}</span><span class="a-action ${danger.test(r.action) ? "danger" : ""}">${label}${msg}</span></div>`;
   }).join("");
 }
@@ -431,16 +431,16 @@ $("global-switch").addEventListener("change", async (e) => {
     await post("/api/global", { locked: e.target.checked, message: $("global-msg").value });
     toast(e.target.checked ? "Zablokowano wszystko" : "Odblokowano wszystko");
     await refresh();
-  } catch (err) { toast("Błąd: " + err.message, true); e.target.checked = !e.target.checked; }
+  } catch (err) { toast("Error: " + err.message, true); e.target.checked = !e.target.checked; }
   finally { busy(false); }
 });
 $("info-switch").addEventListener("change", async (e) => {
   busy(true);
   try {
     await post("/api/info", { active: e.target.checked, message: $("info-msg").value });
-    toast(e.target.checked ? "Info włączone" : "Info wyłączone");
+    toast(e.target.checked ? "Info enabled" : "Info disabled");
     await refresh();
-  } catch (err) { toast("Błąd: " + err.message, true); e.target.checked = !e.target.checked; }
+  } catch (err) { toast("Error: " + err.message, true); e.target.checked = !e.target.checked; }
   finally { busy(false); }
 });
 async function toggleService(id, locked) {
@@ -448,13 +448,13 @@ async function toggleService(id, locked) {
   try {
     const input = document.querySelector(`.svc-msg[data-svc="${id}"]`);
     await post("/api/service", { service: id, locked, message: input ? input.value : "" });
-    toast(locked ? "Usługa zablokowana" : "Usługa odblokowana");
+    toast(locked ? "Service locked" : "Service unlocked");
     await refresh();
-  } catch (err) { toast("Błąd: " + err.message, true); }
+  } catch (err) { toast("Error: " + err.message, true); }
   finally { busy(false); }
 }
 
-// Enter w polu komunikatu = zapis
+// Enter in a message field = save
 $("global-msg").addEventListener("keydown", (e) => { if (e.key === "Enter") { $("global-switch").dispatchEvent(new Event("change")); } });
 $("info-msg").addEventListener("keydown", (e) => { if (e.key === "Enter") { const s = $("info-switch"); s.checked = !s.checked; s.dispatchEvent(new Event("change")); } });
 
