@@ -1,0 +1,1801 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com fonts.gstatic.com; script-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.googleapis.com fonts.gstatic.com https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'; connect-src 'self'; worker-src 'none'; manifest-src 'self' data:">
+<title>Inpriv Stego — Hide Messages Inside Images</title>
+<meta name="description" content="Stego is a zero-knowledge steganography tool. Hide encrypted messages inside PNG images using LSB steganography — everything happens in your browser, nothing is uploaded.">
+<meta name="theme-color" content="#13140E" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#FAF9F0" media="(prefers-color-scheme: light)">
+<meta name="robots" content="noindex, nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Inpriv Stego">
+<link rel="apple-touch-icon" href="https://hush.best/icon.png">
+<link rel="manifest" href="data:application/json,{&quot;name&quot;:&quot;Inpriv Stego&quot;,&quot;short_name&quot;:&quot;Stego&quot;,&quot;start_url&quot;:&quot;https://stego.inpriv.xyz&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;background_color&quot;:&quot;#13140E&quot;,&quot;theme_color&quot;:&quot;#13140E&quot;,&quot;icons&quot;:[{&quot;src&quot;:&quot;https://hush.best/icon.png&quot;,&quot;sizes&quot;:&quot;512x512&quot;,&quot;type&quot;:&quot;image/png&quot;}]}">
+<link rel="icon" href="https://hush.best/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:ital,opsz,wght@0,8..144,300..800;1,8..144,300..800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<style>
+:root {
+  --ease-standard: cubic-bezier(0.2, 0.0, 0.0, 1.0);
+  --ease-spring: cubic-bezier(0.2, 1.4, 0.0, 1.0);
+  --ease-spring-soft: cubic-bezier(0.34, 1.3, 0.64, 1.0);
+  --font-sans: 'Roboto Flex', system-ui, -apple-system, sans-serif;
+  --font-icon: 'Material Symbols Rounded';
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+[data-theme="dark"], :root {
+  --md-primary: #ABD37A;
+  --md-on-primary: #173800;
+  --md-primary-container: #2E4F2F;
+  --md-on-primary-container: #C7EFA0;
+  --md-secondary: #BCCBAF;
+  --md-secondary-container: #3D4B34;
+  --md-on-secondary-container: #D8E7CB;
+  --md-tertiary: #FFB4A5;
+  --md-tertiary-container: #7E2D1E;
+  --md-on-tertiary-container: #FFDAD3;
+  --md-error: #FFB4AB;
+  --md-error-container: #410002;
+  --md-on-error-container: #FFDAD6;
+  --md-surface: #13140E;
+  --md-on-surface: #E3E2D3;
+  --md-on-surface-variant: #C3C8B6;
+  --md-surface-container-lowest: #0D0F09;
+  --md-surface-container-low: #1A1C17;
+  --md-surface-container: #1F211B;
+  --md-surface-container-high: #292B25;
+  --md-surface-container-highest: #34362F;
+  --md-outline: #8D9283;
+  --md-outline-variant: #43483D;
+  --md-shadow: rgba(0,0,0,0.4);
+  --md-shadow-strong: rgba(0,0,0,0.65);
+  --md-inverse-surface: #E3E2D3;
+  --md-inverse-on-surface: #2F312C;
+  --md-inverse-primary: #466E47;
+}
+
+[data-theme="light"] {
+  --md-primary: #466E47;
+  --md-on-primary: #FFFFFF;
+  --md-primary-container: #C7EFA0;
+  --md-on-primary-container: #0C2000;
+  --md-secondary: #55624C;
+  --md-secondary-container: #D8E7CB;
+  --md-on-secondary-container: #131F0C;
+  --md-tertiary: #9C4231;
+  --md-tertiary-container: #FFDAD3;
+  --md-on-tertiary-container: #3D0A03;
+  --md-error: #BA1A1A;
+  --md-error-container: #FFDAD6;
+  --md-on-error-container: #410002;
+  --md-surface: #FAF9F0;
+  --md-on-surface: #1A1C17;
+  --md-on-surface-variant: #43483D;
+  --md-surface-container-lowest: #FFFFFF;
+  --md-surface-container-low: #F4F3E7;
+  --md-surface-container: #EEEDDE;
+  --md-surface-container-high: #E9E7D9;
+  --md-surface-container-highest: #E3E2D3;
+  --md-outline: #74796C;
+  --md-outline-variant: #C3C8B6;
+  --md-shadow: rgba(20,25,15,0.15);
+  --md-shadow-strong: rgba(20,25,15,0.28);
+  --md-inverse-surface: #2F312C;
+  --md-inverse-on-surface: #F0EFE7;
+  --md-inverse-primary: #ABD37A;
+}
+
+*, *::before, *::after {
+  margin: 0; padding: 0; box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  font-family: var(--font-sans);
+  font-optical-sizing: auto;
+  background:
+    radial-gradient(ellipse 80% 60% at 85% 0%, color-mix(in srgb, var(--md-primary-container) 55%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 0% 100%, color-mix(in srgb, var(--md-tertiary-container) 45%, transparent) 0%, transparent 70%),
+    var(--md-surface);
+  background-attachment: fixed;
+  color: var(--md-on-surface);
+  min-height: 100dvh;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.5s var(--ease-standard), color 0.5s var(--ease-standard);
+}
+
+a:focus-visible, button:focus-visible, textarea:focus-visible, input:focus-visible, [tabindex]:focus-visible {
+  outline: 2px solid var(--md-primary);
+  outline-offset: 3px;
+}
+
+.icon {
+  font-family: var(--font-icon);
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  font-variation-settings: 'wght' 500, 'GRAD' 200, 'opsz' 24;
+  user-select: none;
+}
+
+/* ─── Background effects ─────────────────────────────── */
+
+.dot-grid {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: radial-gradient(circle at 1px 1px, var(--md-outline-variant) 1px, transparent 0);
+  background-size: 28px 28px;
+  opacity: 0.18;
+  mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+}
+
+.blur-blob {
+  position: fixed;
+  top: -120px;
+  right: -120px;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--md-tertiary) 22%, transparent), transparent 70%);
+  filter: blur(60px);
+  animation: drift 22s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-60px, 40px) scale(1.1); }
+}
+
+/* ─── Layout ─────────────────────────────────────────── */
+
+.container {
+  position: relative;
+  z-index: 1;
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 12px 16px calc(200px + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 600px) {
+  .container { padding: 18px 24px calc(180px + env(safe-area-inset-bottom)); }
+}
+
+/* ─── App bar ────────────────────────────────────────── */
+
+.app-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 46px;
+  padding: 6px 6px 6px 14px;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--md-surface-container) 75%, transparent);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid color-mix(in srgb, var(--md-outline-variant) 50%, transparent);
+  box-shadow: 0 4px 20px -4px var(--md-shadow);
+  animation: barIn 0.7s var(--ease-spring);
+  margin-bottom: 32px;
+}
+
+@media (min-width: 600px) {
+  .app-bar { height: 54px; padding: 8px 8px 8px 20px; margin-bottom: 40px; }
+}
+
+@keyframes barIn {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.app-bar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--md-on-surface);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+@media (min-width: 600px) {
+  .app-bar-brand { font-size: 19px; }
+}
+
+.app-bar-brand .accent { color: var(--md-primary); }
+
+.app-logo {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.bar-actions { display: flex; align-items: center; gap: 4px; }
+
+.icon-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: none;
+  color: var(--md-on-surface-variant);
+  cursor: pointer;
+  transition: color 0.2s var(--ease-standard), transform 0.15s var(--ease-spring);
+}
+
+.icon-btn:hover { color: var(--md-on-surface); }
+.icon-btn:active { transform: scale(0.92); }
+.icon-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0;
+  transition: opacity 0.2s var(--ease-standard);
+}
+.icon-btn:hover::before { opacity: 0.08; }
+.icon-btn:active::before { opacity: 0.12; }
+.icon-btn .icon { position: relative; font-size: 22px; }
+
+@media (min-width: 600px) {
+  .icon-btn { width: 44px; height: 44px; }
+  .icon-btn .icon { font-size: 24px; }
+}
+
+/* ─── Hero ───────────────────────────────────────────── */
+
+.hero { text-align: center; margin-bottom: 28px; animation: fadeUp 0.8s var(--ease-spring); }
+
+@media (min-width: 600px) { .hero { margin-bottom: 36px; } }
+
+.hero-title {
+  font-size: clamp(32px, 9vw, 44px);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+}
+
+@media (min-width: 600px) {
+  .hero-title { font-size: clamp(40px, 6.5vw, 52px); }
+}
+
+.hero-title .accent {
+  font-style: italic;
+  font-weight: 300;
+  color: var(--md-primary);
+}
+
+.hero-desc {
+  margin: 14px auto 0;
+  max-width: 520px;
+  font-size: 14px;
+  color: var(--md-on-surface-variant);
+}
+
+@media (min-width: 600px) { .hero-desc { font-size: 15px; } }
+
+.hero-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--md-on-secondary-container);
+  background: color-mix(in srgb, var(--md-secondary-container) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--md-outline-variant) 45%, transparent);
+}
+
+.hero-badge .icon { font-size: 14px; color: var(--md-primary); }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Segmented control ──────────────────────────────── */
+
+.segmented {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 9999px;
+  background: var(--md-surface-container-high);
+  margin-bottom: 20px;
+  animation: fadeUp 0.8s var(--ease-spring) 0.05s both;
+}
+
+.segmented button {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 9999px;
+  background: none;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--md-on-surface-variant);
+  cursor: pointer;
+  position: relative;
+  transition: color 0.2s var(--ease-standard), background-color 0.3s var(--ease-standard), transform 0.15s var(--ease-spring);
+}
+
+.segmented button .icon { font-size: 18px; }
+
+.segmented button:hover { color: var(--md-on-surface); }
+.segmented button:active { transform: scale(0.96); }
+
+.segmented button[aria-pressed="true"] {
+  background: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
+}
+
+/* ─── Panels ─────────────────────────────────────────── */
+
+.panel { animation: fadeUp 0.6s var(--ease-spring) both; }
+.panel[hidden] { display: none; }
+
+/* ─── Dropzone ───────────────────────────────────────── */
+
+.dropzone {
+  border-radius: 24px;
+  border: 2px dashed var(--md-outline-variant);
+  background: var(--md-surface-container-low);
+  padding: 36px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.3s var(--ease-standard), transform 0.4s var(--ease-spring-soft),
+              background-color 0.3s var(--ease-standard), box-shadow 0.4s var(--ease-spring-soft);
+}
+
+@media (min-width: 600px) {
+  .dropzone { border-radius: 28px; padding: 52px 40px; }
+}
+
+.dropzone:hover, .dropzone:focus-visible {
+  border-color: var(--md-primary);
+  transform: translateY(-4px);
+  background: var(--md-surface-container);
+  box-shadow: 0 12px 40px -6px var(--md-shadow);
+}
+
+.dropzone.drag-over {
+  border-style: solid;
+  border-color: var(--md-primary);
+  background: color-mix(in srgb, var(--md-primary-container) 30%, var(--md-surface-container-low));
+  transform: scale(1.02);
+}
+
+.dropzone-icon {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 24px;
+  background: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+  animation: pulse 2.8s ease-in-out infinite;
+  transition: transform 0.4s var(--ease-spring);
+}
+
+.dropzone:hover .dropzone-icon { transform: scale(1.08) rotate(-4deg); }
+
+.dropzone-icon .icon {
+  font-size: 36px;
+  font-variation-settings: 'wght' 400, 'GRAD' 0, 'opsz' 48;
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--md-primary) 30%, transparent); }
+  50% { box-shadow: 0 0 0 16px color-mix(in srgb, var(--md-primary) 0%, transparent); }
+}
+
+.dropzone h3 {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  margin-bottom: 8px;
+}
+
+@media (min-width: 600px) { .dropzone h3 { font-size: 24px; } }
+
+.dropzone p {
+  font-size: 14px;
+  color: var(--md-on-surface-variant);
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.dropzone .hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 16px;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--md-on-surface-variant);
+  background: var(--md-surface-container-high);
+}
+
+.dropzone .hint .icon { font-size: 14px; color: var(--md-primary); }
+
+/* ─── Preview card ───────────────────────────────────── */
+
+.preview-card {
+  border-radius: 24px;
+  border: 1px solid var(--md-outline-variant);
+  background: var(--md-surface-container-low);
+  padding: 12px;
+  animation: editorIn 0.6s var(--ease-spring);
+}
+
+@media (min-width: 600px) {
+  .preview-card { border-radius: 28px; padding: 18px; }
+}
+
+@keyframes editorIn {
+  from { opacity: 0; transform: translateY(24px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.preview-frame {
+  border-radius: 16px;
+  overflow: hidden;
+  background:
+    repeating-conic-gradient(color-mix(in srgb, var(--md-outline-variant) 30%, transparent) 0% 25%, transparent 0% 50%)
+    50% / 20px 20px;
+  border: 1px solid var(--md-outline-variant);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-height: 40vh;
+}
+
+@media (min-width: 600px) { .preview-frame { max-height: 44vh; border-radius: 18px; } }
+
+.preview-frame img {
+  display: block;
+  max-width: 100%;
+  max-height: 40vh;
+  object-fit: contain;
+}
+
+@media (min-width: 600px) { .preview-frame img { max-height: 44vh; } }
+
+.preview-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px 8px 2px;
+}
+
+.preview-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.preview-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--md-on-surface);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 220px;
+}
+
+@media (min-width: 600px) { .preview-name { max-width: 360px; } }
+
+.preview-dims {
+  font-size: 12px;
+  color: var(--md-on-surface-variant);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ─── Stats row ──────────────────────────────────────── */
+
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 16px 0 0;
+}
+
+.stat {
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 16px;
+  padding: 12px;
+  text-align: center;
+}
+
+.stat-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--md-on-surface-variant);
+  margin-bottom: 4px;
+}
+
+@media (min-width: 600px) { .stat-label { font-size: 10px; } }
+
+.stat-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--md-on-surface);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Capacity bar ───────────────────────────────────── */
+
+.capacity-wrap { margin-top: 16px; }
+
+.capacity-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--md-on-surface-variant);
+  margin-bottom: 6px;
+}
+
+.capacity-track {
+  height: 24px;
+  border-radius: 12px;
+  background: var(--md-surface-container-high);
+  overflow: hidden;
+  position: relative;
+}
+
+.capacity-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 12px;
+  background: var(--md-primary);
+  transform-origin: left;
+  transform: scaleX(0);
+  transition: transform 0.6s var(--ease-spring-soft), background-color 0.3s var(--ease-standard);
+}
+
+.capacity-fill.over { background: var(--md-error); }
+
+/* ─── Fields ─────────────────────────────────────────── */
+
+.field { margin-top: 16px; }
+
+.field-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--md-on-surface-variant);
+  margin-bottom: 8px;
+}
+
+.field-label .count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  opacity: 0.8;
+}
+
+textarea, .text-input {
+  width: 100%;
+  border-radius: 16px;
+  border: 1px solid var(--md-outline-variant);
+  background: var(--md-surface-container-low);
+  color: var(--md-on-surface);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 14px 16px;
+  resize: vertical;
+  min-height: 120px;
+  transition: border-color 0.2s var(--ease-standard), background-color 0.2s var(--ease-standard);
+}
+
+.text-input { min-height: 0; height: 48px; font-size: 15px; }
+
+textarea:hover, .text-input:hover { border-color: var(--md-outline); }
+
+textarea::placeholder, .text-input::placeholder { color: color-mix(in srgb, var(--md-on-surface-variant) 70%, transparent); }
+
+.field-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--md-on-surface-variant);
+}
+
+.field-hint .icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; color: var(--md-primary); }
+
+/* Password row with inline visibility toggle */
+
+.pw-wrap { position: relative; }
+
+.pw-toggle {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.pw-toggle .icon { font-size: 20px; }
+
+/* ─── Result card (reveal) ───────────────────────────── */
+
+.result-card {
+  margin-top: 20px;
+  border-radius: 24px;
+  border: 1px solid color-mix(in srgb, var(--md-primary) 55%, var(--md-outline-variant));
+  background: color-mix(in srgb, var(--md-primary-container) 18%, var(--md-surface-container-low));
+  padding: 20px;
+  animation: editorIn 0.5s var(--ease-spring);
+}
+
+@media (min-width: 600px) { .result-card { border-radius: 28px; } }
+
+.result-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.result-head .icon { color: var(--md-primary); font-size: 22px; }
+
+.result-title { font-size: 15px; font-weight: 700; flex: 1; }
+
+.result-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
+}
+
+.result-chip .icon { font-size: 13px; color: inherit; font-variation-settings: 'wght' 600, 'GRAD' 0, 'opsz' 20; }
+
+.result-message {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--md-on-surface);
+  background: var(--md-surface-container-lowest);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 12px;
+  padding: 14px 16px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.result-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+
+/* ─── Outlined button ────────────────────────────────── */
+
+.btn-outlined {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 9999px;
+  border: 1px solid var(--md-outline);
+  background: none;
+  color: var(--md-on-surface);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  position: relative;
+  transition: background-color 0.2s var(--ease-standard), transform 0.15s var(--ease-spring);
+}
+
+.btn-outlined:hover { background: color-mix(in srgb, var(--md-on-surface) 8%, transparent); }
+.btn-outlined:active { transform: scale(0.96); }
+.btn-outlined .icon { font-size: 18px; }
+
+/* ─── How it works ───────────────────────────────────── */
+
+.how {
+  margin-top: 44px;
+  animation: fadeUp 0.8s var(--ease-spring) 0.15s both;
+}
+
+.how-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--md-on-surface-variant);
+  margin-bottom: 14px;
+}
+
+.how-title .icon { font-size: 18px; color: var(--md-primary); }
+
+.how-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+@media (min-width: 600px) { .how-grid { grid-template-columns: repeat(3, 1fr); } }
+
+.how-step {
+  border-radius: 16px;
+  border: 1px solid var(--md-outline-variant);
+  background: color-mix(in srgb, var(--md-surface-container-low) 80%, transparent);
+  padding: 16px;
+}
+
+.how-step .icon {
+  font-size: 20px;
+  color: var(--md-primary);
+  margin-bottom: 8px;
+  display: block;
+}
+
+.how-step h4 { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+.how-step p { font-size: 12px; color: var(--md-on-surface-variant); line-height: 1.45; }
+
+/* ─── Footer note ────────────────────────────────────── */
+
+.footnote {
+  margin-top: 28px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--md-on-surface-variant);
+}
+
+.footnote a { color: var(--md-primary); text-decoration: none; font-weight: 600; }
+.footnote a:hover { text-decoration: underline; }
+
+/* ─── Floating toolbar + FAB ─────────────────────────── */
+
+.toolbar {
+  position: fixed;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--md-surface-container) 88%, transparent);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid color-mix(in srgb, var(--md-outline-variant) 50%, transparent);
+  box-shadow: 0 12px 40px -6px var(--md-shadow-strong);
+  animation: toolbarIn 0.55s var(--ease-spring) 0.15s both;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
+}
+
+@keyframes toolbarIn {
+  from { opacity: 0; transform: translateY(100%); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (min-width: 600px) {
+  .toolbar {
+    bottom: 24px;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: calc(100% - 44px);
+    max-width: 732px;
+    flex-direction: row;
+    align-items: center;
+  }
+  @keyframes toolbarIn {
+    from { opacity: 0; transform: translate(-50%, 100%); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+  }
+}
+
+.toolbar-hint {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--md-on-surface-variant);
+  padding-left: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.toolbar-hint .icon { font-size: 16px; color: var(--md-primary); flex-shrink: 0; }
+
+@media (min-width: 600px) { .toolbar-hint { display: flex; } }
+
+.fab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: 52px;
+  padding: 0 28px;
+  border: none;
+  border-radius: 9999px;
+  background: var(--md-primary);
+  color: var(--md-on-primary);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  position: relative;
+  box-shadow: 0 6px 20px -4px var(--md-shadow);
+  transition: transform 0.15s var(--ease-spring), box-shadow 0.3s var(--ease-standard),
+              background-color 0.3s var(--ease-standard), color 0.3s var(--ease-standard);
+  flex-shrink: 0;
+}
+
+@media (min-width: 600px) { .fab { width: auto; height: 56px; } }
+
+.fab:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px -6px var(--md-shadow-strong);
+}
+
+.fab:active:not(:disabled) { transform: scale(0.96); }
+
+.fab:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.fab.success {
+  background: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
+  animation: fabPop 0.5s var(--ease-spring);
+}
+
+@keyframes fabPop {
+  0% { transform: scale(1); }
+  40% { transform: scale(0.92); }
+  70% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.fab .icon { font-size: 20px; font-variation-settings: 'wght' 600, 'GRAD' 200, 'opsz' 24; }
+
+.fab .spinner {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2.5px solid color-mix(in srgb, currentColor 35%, transparent);
+  border-top-color: currentColor;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── Toast ──────────────────────────────────────────── */
+
+.toast {
+  position: fixed;
+  bottom: calc(96px + env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translate(-50%, 20px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100% - 32px);
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--md-inverse-surface);
+  color: var(--md-inverse-on-surface);
+  box-shadow: 0 8px 24px var(--md-shadow-strong);
+  font-size: 13px;
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.35s var(--ease-spring), opacity 0.35s var(--ease-standard);
+}
+
+.toast.visible { opacity: 1; transform: translate(-50%, 0); }
+
+.toast .icon { font-size: 22px; color: var(--md-inverse-primary); }
+.toast.error .icon { color: var(--md-error); }
+
+.toast-title { font-weight: 600; font-size: 14px; line-height: 1.2; }
+.toast-sub { font-size: 12px; opacity: 0.7; line-height: 1.2; margin-top: 2px; }
+
+@media (min-width: 600px) { .toast { bottom: 130px; } }
+
+/* ─── Ripple ─────────────────────────────────────────── */
+
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.25;
+  transform: scale(0);
+  animation: rippleAnim 0.6s var(--ease-standard) forwards;
+  pointer-events: none;
+}
+
+@keyframes rippleAnim {
+  to { transform: scale(4); opacity: 0; }
+}
+
+/* ─── Reduced motion ─────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="dot-grid" aria-hidden="true"></div>
+<div class="blur-blob" aria-hidden="true"></div>
+
+<div class="container">
+  <nav class="app-bar" aria-label="Navigation">
+    <a href="https://inpriv.xyz" class="app-bar-brand">
+      <img src="https://hush.best/icon.png" alt="" class="app-logo"> Inpriv<span class="accent">.</span> Stego
+    </a>
+    <div class="bar-actions">
+      <button class="icon-btn" id="theme-toggle" aria-label="Toggle theme" type="button">
+        <span class="icon" id="theme-icon" aria-hidden="true">light_mode</span>
+      </button>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <h1 class="hero-title">Hide in plain<br><span class="accent">sight.</span></h1>
+    <p class="hero-desc">Steganography for everyone. Hide a message inside a PNG image — optionally AES-256 encrypted. Everything happens in your browser; the image never leaves your device.</p>
+    <div class="hero-badges">
+      <span class="hero-badge"><span class="icon" aria-hidden="true">lock</span> Zero-knowledge</span>
+      <span class="hero-badge"><span class="icon" aria-hidden="true">cloud_off</span> No uploads</span>
+      <span class="hero-badge"><span class="icon" aria-hidden="true">code</span> Open source</span>
+    </div>
+  </header>
+
+  <div class="segmented" role="group" aria-label="Mode">
+    <button type="button" id="mode-hide" aria-pressed="true">
+      <span class="icon" aria-hidden="true">visibility_off</span> Hide message
+    </button>
+    <button type="button" id="mode-reveal" aria-pressed="false">
+      <span class="icon" aria-hidden="true">visibility</span> Reveal message
+    </button>
+  </div>
+
+  <!-- ══════════ HIDE MODE ══════════ -->
+  <section class="panel" id="panel-hide" aria-label="Hide a message in an image">
+
+    <div class="dropzone" id="dropzone-hide" role="button" tabindex="0" aria-label="Choose a PNG image to hide your message in">
+      <div class="dropzone-icon"><span class="icon" aria-hidden="true">add_photo_alternate</span></div>
+      <h3>Choose a PNG image</h3>
+      <p>Drop an image here or tap to browse. Your message will be invisible inside the pixels — the picture looks identical.</p>
+      <span class="hint"><span class="icon" aria-hidden="true">image</span> PNG only &middot; stays on your device</span>
+    </div>
+
+    <div class="preview-card" id="preview-hide" hidden>
+      <div class="preview-frame"><img id="preview-img-hide" alt="Selected image preview"></div>
+      <div class="preview-bar">
+        <div class="preview-meta">
+          <span class="preview-name" id="preview-name-hide"></span>
+          <span class="preview-dims" id="preview-dims-hide"></span>
+        </div>
+        <button class="btn-outlined" id="change-btn-hide" type="button">
+          <span class="icon" aria-hidden="true">swap_horiz</span> Change image
+        </button>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat"><div class="stat-label">Dimensions</div><div class="stat-value" id="stat-dims">—</div></div>
+        <div class="stat"><div class="stat-label">Capacity</div><div class="stat-value" id="stat-capacity">—</div></div>
+        <div class="stat"><div class="stat-label">Hidden size</div><div class="stat-value" id="stat-used">—</div></div>
+      </div>
+
+      <div class="capacity-wrap">
+        <div class="capacity-head">
+          <span>Capacity used</span>
+          <span id="capacity-pct" aria-live="polite">0%</span>
+        </div>
+        <div class="capacity-track" role="progressbar" aria-label="Capacity used" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="capacity-bar-wrap">
+          <div class="capacity-fill" id="capacity-fill"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="message-input">
+        <span>Secret message</span>
+        <span class="count" id="message-count">0 chars</span>
+      </label>
+      <textarea id="message-input" placeholder="Type the message you want to hide inside the image…" autocomplete="off" spellcheck="false" maxlength="250000"></textarea>
+      <p class="field-hint">
+        <span class="icon" aria-hidden="true">info</span>
+        <span>The message is embedded into the least-significant bits of the image pixels — invisible to the human eye.</span>
+      </p>
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="password-hide">
+        <span>Password <span style="text-transform:none;font-weight:500;opacity:.8">(optional)</span></span>
+      </label>
+      <div class="pw-wrap">
+        <input class="text-input" id="password-hide" type="password" placeholder="Add a password for AES-256 encryption" autocomplete="new-password">
+        <button class="icon-btn pw-toggle" id="pw-toggle-hide" aria-label="Show or hide password" type="button">
+          <span class="icon" id="pw-toggle-icon-hide" aria-hidden="true">visibility</span>
+        </button>
+      </div>
+      <p class="field-hint">
+        <span class="icon" aria-hidden="true">enhanced_encryption</span>
+        <span>With a password, the message is encrypted with AES-256-GCM (PBKDF2, 100k iterations) before embedding. Without one, it is stored plainly inside the pixels.</span>
+      </p>
+    </div>
+  </section>
+
+  <!-- ══════════ REVEAL MODE ══════════ -->
+  <section class="panel" id="panel-reveal" aria-label="Reveal a hidden message" hidden>
+
+    <div class="dropzone" id="dropzone-reveal" role="button" tabindex="0" aria-label="Choose a stego PNG image to reveal its hidden message">
+      <div class="dropzone-icon"><span class="icon" aria-hidden="true">image_search</span></div>
+      <h3>Choose a stego image</h3>
+      <p>Drop the PNG that carries a hidden message, or tap to browse. Use the original file — re-uploads to social media or messengers destroy the hidden bits.</p>
+      <span class="hint"><span class="icon" aria-hidden="true">visibility</span> Nothing is uploaded</span>
+    </div>
+
+    <div class="preview-card" id="preview-reveal" hidden>
+      <div class="preview-frame"><img id="preview-img-reveal" alt="Selected stego image preview"></div>
+      <div class="preview-bar">
+        <div class="preview-meta">
+          <span class="preview-name" id="preview-name-reveal"></span>
+          <span class="preview-dims" id="preview-dims-reveal"></span>
+        </div>
+        <button class="btn-outlined" id="change-btn-reveal" type="button">
+          <span class="icon" aria-hidden="true">swap_horiz</span> Change image
+        </button>
+      </div>
+    </div>
+
+    <div class="field" id="reveal-pw-field" hidden>
+      <label class="field-label" for="password-reveal">
+        <span>Password</span>
+      </label>
+      <div class="pw-wrap">
+        <input class="text-input" id="password-reveal" type="password" placeholder="Password used to encrypt the message" autocomplete="off">
+        <button class="icon-btn pw-toggle" id="pw-toggle-reveal" aria-label="Show or hide password" type="button">
+          <span class="icon" id="pw-toggle-icon-reveal" aria-hidden="true">visibility</span>
+        </button>
+      </div>
+      <p class="field-hint">
+        <span class="icon" aria-hidden="true">key</span>
+        <span>This image contains an encrypted message. Enter the password to decrypt it.</span>
+      </p>
+    </div>
+
+    <div class="result-card" id="result-card" hidden>
+      <div class="result-head">
+        <span class="icon" aria-hidden="true">mark_email_read</span>
+        <span class="result-title">Hidden message</span>
+        <span class="result-chip" id="result-encrypted-chip"><span class="icon" aria-hidden="true">lock</span><span id="result-encrypted-label">Encrypted</span></span>
+      </div>
+      <div class="result-message" id="result-message" tabindex="0" aria-live="polite"></div>
+      <div class="result-actions">
+        <button class="btn-outlined" id="copy-btn" type="button">
+          <span class="icon" aria-hidden="true">content_copy</span> Copy message
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ HOW IT WORKS ══════════ -->
+  <section class="how" aria-label="How it works">
+    <div class="how-title"><span class="icon" aria-hidden="true">school</span> How it works</div>
+    <div class="how-grid">
+      <div class="how-step">
+        <span class="icon" aria-hidden="true">edit_note</span>
+        <h4>1. Write &amp; lock</h4>
+        <p>Pick a PNG, type your secret and an optional password. The message is encrypted in your browser with AES-256-GCM.</p>
+      </div>
+      <div class="how-step">
+        <span class="icon" aria-hidden="true">hide_image</span>
+        <h4>2. Embed</h4>
+        <p>The ciphertext is spread across the least-significant bits of the pixels. The result looks identical — and metadata is stripped.</p>
+      </div>
+      <div class="how-step">
+        <span class="icon" aria-hidden="true">visibility</span>
+        <h4>3. Share &amp; reveal</h4>
+        <p>Send the PNG as a file. Anyone with Stego — and the password, if you set one — can reveal the message.</p>
+      </div>
+    </div>
+  </section>
+
+  <p class="footnote">
+    Part of <a href="https://inpriv.xyz" target="_blank" rel="noopener noreferrer">Inpriv</a> — zero-knowledge utilities by
+    <a href="https://aurexlabs.xyz" target="_blank" rel="noopener noreferrer">Aurex Labs</a>.
+    Share images as <strong>files</strong> — compressing or re-encoding (JPEG, screenshots, messengers) destroys the hidden data.
+  </p>
+</div>
+
+<!-- ══════════ TOOLBAR ══════════ -->
+<div class="toolbar" id="toolbar">
+  <div class="toolbar-hint" id="toolbar-hint">
+    <span class="icon" aria-hidden="true">touch_app</span>
+    <span id="toolbar-hint-text">Pick an image to start</span>
+  </div>
+  <button class="fab" id="fab" type="button" disabled>
+    <span class="icon" id="fab-icon" aria-hidden="true">visibility_off</span>
+    <span id="fab-label">Hide message</span>
+  </button>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite">
+  <span class="icon" id="toast-icon" aria-hidden="true">check_circle</span>
+  <div>
+    <div class="toast-title" id="toast-title"></div>
+    <div class="toast-sub" id="toast-sub"></div>
+  </div>
+</div>
+
+<input type="file" id="file-input" accept="image/png" hidden>
+
+<script>
+'use strict';
+
+/* ═══════════════ Steganography core ═══════════════ */
+
+const MAGIC = [0x49, 0x56, 0x53, 0x31]; // "IVS1" — Inpriv Stego v1
+const HEADER_LEN = 9;                   // magic(4) + flag(1) + length(4, uint32 BE)
+const PBKDF2_ITERATIONS = 100000;
+const MAX_PIXELS = 40e6;                // sanity cap ≈ 6000×6600
+
+const textEncoder = new TextEncoder();
+const textDecoder = new TextDecoder();
+
+function buildHeader(flag, payloadLen) {
+  const h = new Uint8Array(HEADER_LEN);
+  h.set(MAGIC, 0);
+  h[4] = flag;
+  new DataView(h.buffer).setUint32(5, payloadLen, false);
+  return h;
+}
+
+function parseHeader(bytes) {
+  if (!bytes || bytes.length < HEADER_LEN) return null;
+  for (let i = 0; i < 4; i++) if (bytes[i] !== MAGIC[i]) return null;
+  const len = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(5, false);
+  if (len === 0 || len > 64 * 1024 * 1024) return null;
+  return { flag: bytes[4], len };
+}
+
+async function deriveKey(password, salt) {
+  const base = await crypto.subtle.importKey('raw', textEncoder.encode(password), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt: salt, iterations: PBKDF2_ITERATIONS, hash: 'SHA-256' },
+    base,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
+}
+
+/* Build the embedded payload. flag 0 = plain UTF-8, flag 1 = salt+iv+ciphertext */
+async function buildPayload(message, password) {
+  const msg = textEncoder.encode(message);
+  if (password) {
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const key = await deriveKey(password, salt);
+    const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, key, msg));
+    const payload = new Uint8Array(16 + 12 + ct.length);
+    payload.set(salt, 0);
+    payload.set(iv, 16);
+    payload.set(ct, 28);
+    return { bytes: payload, encrypted: true };
+  }
+  return { bytes: msg, encrypted: false };
+}
+
+/* Decrypt salt+iv+ciphertext payload → plaintext string */
+async function openPayload(payload, password) {
+  if (payload.length < 29) throw new Error('truncated');
+  const salt = payload.slice(0, 16);
+  const iv = payload.slice(16, 28);
+  const ct = payload.slice(28);
+  const key = await deriveKey(password, salt);
+  const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv }, key, ct);
+  return textDecoder.decode(pt);
+}
+
+/* Usable channel capacity in bits: R,G,B of fully-opaque pixels only.
+   (Semi-transparent pixels are skipped — canvas alpha premultiplication
+   makes their RGB values lossy, which would corrupt embedded bits.) */
+function capacityBits(data) {
+  let opaque = 0;
+  for (let px = 3; px < data.length; px += 4) if (data[px] === 255) opaque++;
+  return opaque * 3;
+}
+
+/* Embed bytes LSB-first across R,G,B of opaque pixels. Throws on overflow. */
+function embedBytes(data, bytes) {
+  const totalBits = bytes.length * 8;
+  let bitIdx = 0;
+  for (let px = 0; px < data.length && bitIdx < totalBits; px += 4) {
+    if (data[px + 3] !== 255) continue;
+    for (let c = 0; c < 3 && bitIdx < totalBits; c++) {
+      const byte = bytes[bitIdx >> 3];
+      const bit = (byte >>> (7 - (bitIdx & 7))) & 1;
+      const off = px + c;
+      data[off] = (data[off] & 0xFE) | bit;
+      bitIdx++;
+    }
+  }
+  if (bitIdx < totalBits) throw new Error('capacity');
+}
+
+/* Extract `count` bytes starting at absolute channel-bit `startBit`, using the
+   identical traversal. Returns null when the image is too small to hold them
+   (implies no valid payload). */
+function extractBytes(data, count, startBit) {
+  startBit = startBit || 0;
+  const out = new Uint8Array(count);
+  const totalBits = startBit + count * 8;
+  let bitIdx = 0;
+  for (let px = 0; px < data.length && bitIdx < totalBits; px += 4) {
+    if (data[px + 3] !== 255) continue;
+    for (let c = 0; c < 3 && bitIdx < totalBits; c++) {
+      if (bitIdx >= startBit) {
+        const rel = bitIdx - startBit;
+        const bit = data[px + c] & 1;
+        out[rel >> 3] |= bit << (7 - (rel & 7));
+      }
+      bitIdx++;
+    }
+  }
+  return bitIdx === totalBits ? out : null;
+}
+
+/* Hide: ImageData + message + optional password → Uint8Array pixel buffer mutated in place */
+async function stegoHide(imageData, message, password) {
+  const { bytes: payload, encrypted } = await buildPayload(message, password);
+  const header = buildHeader(encrypted ? 1 : 0, payload.length);
+  const full = new Uint8Array(HEADER_LEN + payload.length);
+  full.set(header, 0);
+  full.set(payload, HEADER_LEN);
+  const need = full.length * 8;
+  const cap = capacityBits(imageData.data);
+  if (need > cap) return { ok: false, error: 'capacity', need, cap };
+  embedBytes(imageData.data, full);
+  return { ok: true, usedBits: need, capBits: cap, encrypted, payloadLen: payload.length };
+}
+
+/* Reveal: ImageData + optional password → {ok, message?, encrypted?, needsPassword?, badPassword?} */
+async function stegoReveal(imageData, password) {
+  const data = imageData.data;
+  const header = extractBytes(data, HEADER_LEN, 0);
+  const parsed = parseHeader(header);
+  if (!parsed) return { ok: false, error: 'no-message' };
+  const payload = extractBytes(data, parsed.len, HEADER_LEN * 8);
+  if (!payload) return { ok: false, error: 'no-message' };
+  if (parsed.flag === 1) {
+    if (!password) return { ok: false, error: 'needs-password' };
+    try {
+      const message = await openPayload(payload, password);
+      return { ok: true, message, encrypted: true };
+    } catch (e) {
+      return { ok: false, error: 'bad-password' };
+    }
+  }
+  let message;
+  try { message = textDecoder.decode(payload, { stream: false }); }
+  catch (e) { return { ok: false, error: 'no-message' }; }
+  if (message.includes('\uFFFD')) { /* replacement chars — likely garbage bits */ }
+  return { ok: true, message, encrypted: false };
+}
+
+/* ═══════════════ Image loading ═══════════════ */
+
+async function loadImage(file) {
+  const isPng = file.type === 'image/png' || /\.png$/i.test(file.name);
+  if (!isPng) throw new Error('png-only');
+  const bitmap = await createImageBitmap(file);
+  if (bitmap.width * bitmap.height > MAX_PIXELS) {
+    bitmap.close && bitmap.close();
+    throw new Error('too-large');
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(bitmap, 0, 0);
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  bitmap.close && bitmap.close();
+  return { imageData, canvas, width: canvas.width, height: canvas.height };
+}
+
+function canvasToPngBlob(canvas) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) resolve(blob);
+      else reject(new Error('encode-failed'));
+    }, 'image/png');
+  });
+}
+
+/* ═══════════════ App state & UI ═══════════════ */
+
+const els = {
+  themeToggle: document.getElementById('theme-toggle'),
+  themeIcon: document.getElementById('theme-icon'),
+  modeHide: document.getElementById('mode-hide'),
+  modeReveal: document.getElementById('mode-reveal'),
+  panelHide: document.getElementById('panel-hide'),
+  panelReveal: document.getElementById('panel-reveal'),
+  dropzoneHide: document.getElementById('dropzone-hide'),
+  dropzoneReveal: document.getElementById('dropzone-reveal'),
+  previewHide: document.getElementById('preview-hide'),
+  previewReveal: document.getElementById('preview-reveal'),
+  previewImgHide: document.getElementById('preview-img-hide'),
+  previewImgReveal: document.getElementById('preview-img-reveal'),
+  previewNameHide: document.getElementById('preview-name-hide'),
+  previewNameReveal: document.getElementById('preview-name-reveal'),
+  previewDimsHide: document.getElementById('preview-dims-hide'),
+  previewDimsReveal: document.getElementById('preview-dims-reveal'),
+  changeBtnHide: document.getElementById('change-btn-hide'),
+  changeBtnReveal: document.getElementById('change-btn-reveal'),
+  statDims: document.getElementById('stat-dims'),
+  statCapacity: document.getElementById('stat-capacity'),
+  statUsed: document.getElementById('stat-used'),
+  capacityPct: document.getElementById('capacity-pct'),
+  capacityFill: document.getElementById('capacity-fill'),
+  capacityWrap: document.getElementById('capacity-bar-wrap'),
+  messageInput: document.getElementById('message-input'),
+  messageCount: document.getElementById('message-count'),
+  passwordHide: document.getElementById('password-hide'),
+  passwordReveal: document.getElementById('password-reveal'),
+  pwToggleHide: document.getElementById('pw-toggle-hide'),
+  pwToggleReveal: document.getElementById('pw-toggle-reveal'),
+  pwToggleIconHide: document.getElementById('pw-toggle-icon-hide'),
+  pwToggleIconReveal: document.getElementById('pw-toggle-icon-reveal'),
+  revealPwField: document.getElementById('reveal-pw-field'),
+  resultCard: document.getElementById('result-card'),
+  resultMessage: document.getElementById('result-message'),
+  resultChip: document.getElementById('result-encrypted-chip'),
+  resultChipLabel: document.getElementById('result-encrypted-label'),
+  copyBtn: document.getElementById('copy-btn'),
+  fab: document.getElementById('fab'),
+  fabIcon: document.getElementById('fab-icon'),
+  fabLabel: document.getElementById('fab-label'),
+  toolbarHintText: document.getElementById('toolbar-hint-text'),
+  toast: document.getElementById('toast'),
+  toastIcon: document.getElementById('toast-icon'),
+  toastTitle: document.getElementById('toast-title'),
+  toastSub: document.getElementById('toast-sub'),
+  fileInput: document.getElementById('file-input'),
+};
+
+const state = {
+  mode: 'hide',            // 'hide' | 'reveal'
+  hideImage: null,         // { imageData, canvas, width, height, name }
+  revealImage: null,
+  needsPassword: false,    // reveal: stego header says encrypted
+  busy: false,
+};
+
+/* ─── Theme ─── */
+function setTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('aurex_theme', theme);
+  els.themeIcon.textContent = theme === 'dark' ? 'light_mode' : 'dark_mode';
+}
+const savedTheme = localStorage.getItem('aurex_theme') ||
+  (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+setTheme(savedTheme);
+els.themeToggle.addEventListener('click', () => {
+  setTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+});
+
+/* ─── Toast ─── */
+let toastTimer = null;
+function showToast(title, sub, isError) {
+  clearTimeout(toastTimer);
+  els.toastTitle.textContent = title;
+  els.toastSub.textContent = sub || '';
+  els.toastIcon.textContent = isError ? 'error' : 'check_circle';
+  els.toast.classList.toggle('error', !!isError);
+  els.toast.classList.add('visible');
+  toastTimer = setTimeout(() => els.toast.classList.remove('visible'), 3400);
+}
+
+/* ─── Formatting helpers ─── */
+function fmtBytes(bits) { return (bits / 8) >= 1024 ? ((bits / 8) / 1024).toFixed(1) + ' KB' : Math.ceil(bits / 8) + ' B'; }
+function fmtPct(p) { return p < 1 && p > 0 ? '<1%' : Math.round(p) + '%'; }
+
+/* ─── Mode switching ─── */
+function setMode(mode) {
+  state.mode = mode;
+  els.modeHide.setAttribute('aria-pressed', String(mode === 'hide'));
+  els.modeReveal.setAttribute('aria-pressed', String(mode === 'reveal'));
+  els.panelHide.hidden = mode !== 'hide';
+  els.panelReveal.hidden = mode !== 'reveal';
+  updateFab();
+}
+els.modeHide.addEventListener('click', () => setMode('hide'));
+els.modeReveal.addEventListener('click', () => setMode('reveal'));
+
+/* ─── File input plumbing ─── */
+let pickerTarget = 'hide';
+function openPicker(target) {
+  pickerTarget = target;
+  els.fileInput.value = '';
+  els.fileInput.click();
+}
+els.dropzoneHide.addEventListener('click', () => openPicker('hide'));
+els.dropzoneReveal.addEventListener('click', () => openPicker('reveal'));
+els.changeBtnHide.addEventListener('click', () => openPicker('hide'));
+els.changeBtnReveal.addEventListener('click', () => openPicker('reveal'));
+
+[els.dropzoneHide, els.dropzoneReveal].forEach((dz) => {
+  dz.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      openPicker(dz === els.dropzoneHide ? 'hide' : 'reveal');
+    }
+  });
+});
+
+els.fileInput.addEventListener('change', () => {
+  const file = els.fileInput.files && els.fileInput.files[0];
+  if (file) acceptFile(file, pickerTarget);
+});
+
+/* Global drag & drop with counter (prevents flicker) */
+let dragCounter = 0;
+window.addEventListener('dragenter', (e) => {
+  e.preventDefault();
+  dragCounter++;
+  els.dropzoneHide.classList.add('drag-over');
+  els.dropzoneReveal.classList.add('drag-over');
+});
+window.addEventListener('dragleave', (e) => {
+  e.preventDefault();
+  dragCounter = Math.max(0, dragCounter - 1);
+  if (dragCounter === 0) {
+    els.dropzoneHide.classList.remove('drag-over');
+    els.dropzoneReveal.classList.remove('drag-over');
+  }
+});
+window.addEventListener('dragover', (e) => e.preventDefault());
+window.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dragCounter = 0;
+  els.dropzoneHide.classList.remove('drag-over');
+  els.dropzoneReveal.classList.remove('drag-over');
+  const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+  if (file) acceptFile(file, state.mode);
+});
+
+/* ─── Accept & preview ─── */
+async function acceptFile(file, target) {
+  if (state.busy) return;
+  try {
+    const loaded = await loadImage(file);
+    const view = target === 'hide' ? {
+      card: els.previewHide, img: els.previewImgHide, nameEl: els.previewNameHide,
+      dimsEl: els.previewDimsHide, dz: els.dropzoneHide,
+    } : {
+      card: els.previewReveal, img: els.previewImgReveal, nameEl: els.previewNameReveal,
+      dimsEl: els.previewDimsReveal, dz: els.dropzoneReveal,
+    };
+    if (view.img.src && view.img.src.startsWith('blob:')) URL.revokeObjectURL(view.img.src);
+    view.img.src = URL.createObjectURL(file);
+    view.nameEl.textContent = file.name;
+    view.dimsEl.textContent = loaded.width + ' × ' + loaded.height;
+    view.card.hidden = false;
+    view.dz.hidden = true;
+
+    if (target === 'hide') {
+      state.hideImage = { ...loaded, name: file.name };
+      // Probe whether this image already carries a payload (friendly warning)
+      const probe = await stegoReveal(loaded.imageData, '');
+      if (probe.error === 'needs-password' || probe.ok) {
+        showToast('This image already carries a message', 'Hiding again will overwrite the existing hidden data.', false);
+      }
+      updateCapacity();
+    } else {
+      state.revealImage = { ...loaded, name: file.name };
+      state.needsPassword = false;
+      els.resultCard.hidden = true;
+      els.revealPwField.hidden = true;
+      els.passwordReveal.value = '';
+      // Pre-probe header to show the password field early if encrypted
+      const head = extractBytes(loaded.imageData.data, HEADER_LEN);
+      const parsed = parseHeader(head);
+      if (parsed && parsed.flag === 1) {
+        state.needsPassword = true;
+        els.revealPwField.hidden = false;
+      }
+    }
+    updateFab();
+  } catch (err) {
+    if (err && err.message === 'png-only') {
+      showToast('PNG only', 'Lossy formats like JPEG destroy the hidden bits. Convert to PNG first.', true);
+    } else if (err && err.message === 'too-large') {
+      showToast('Image too large', 'Pick an image under 40 megapixels.', true);
+    } else {
+      showToast('Could not read image', 'The file may be corrupted or unsupported.', true);
+    }
+  }
+}
+
+/* ─── Capacity meter (hide mode) ─── */
+function updateCapacity() {
+  const img = state.hideImage;
+  if (!img) return;
+  const cap = capacityBits(img.imageData.data);
+  const msgLen = textEncoder.encode(els.messageInput.value).length;
+  const pwLen = els.passwordHide.value ? 28 : 0;   // salt+iv prefix when encrypted
+  const used = (HEADER_LEN + pwLen + msgLen) * 8;  // ciphertext ≈ plaintext for GCM
+
+  els.statDims.textContent = img.width + '×' + img.height;
+  els.statCapacity.textContent = fmtBytes(cap);
+  els.statUsed.textContent = fmtBytes(used);
+
+  const pct = Math.min(100, cap ? (used / cap) * 100 : 0);
+  const over = used > cap;
+  els.capacityPct.textContent = fmtPct(pct);
+  els.capacityFill.style.transform = 'scaleX(' + (pct / 100) + ')';
+  els.capacityFill.classList.toggle('over', over);
+  els.capacityWrap.setAttribute('aria-valuenow', String(Math.round(pct)));
+  updateFab();
+}
+
+els.messageInput.addEventListener('input', () => {
+  els.messageCount.textContent = els.messageInput.value.length + ' chars';
+  updateCapacity();
+});
+els.passwordHide.addEventListener('input', updateCapacity);
+
+/* Password visibility toggles */
+function bindPwToggle(btn, icon, input) {
+  btn.addEventListener('click', () => {
+    const show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    icon.textContent = show ? 'visibility_off' : 'visibility';
+  });
+}
+bindPwToggle(els.pwToggleHide, els.pwToggleIconHide, els.passwordHide);
+bindPwToggle(els.pwToggleReveal, els.pwToggleIconReveal, els.passwordReveal);
+
+/* ─── FAB state ─── */
+function updateFab() {
+  if (state.busy) return;
+  if (state.mode === 'hide') {
+    els.fabIcon.textContent = 'visibility_off';
+    const ready = state.hideImage && els.messageInput.value.trim().length > 0;
+    els.fab.disabled = !ready;
+    els.fabLabel.textContent = 'Hide message';
+    els.toolbarHintText.textContent = !state.hideImage
+      ? 'Pick an image to start'
+      : (els.messageInput.value.trim().length === 0 ? 'Write your secret message' : 'Ready — the result will look identical');
+  } else {
+    els.fabIcon.textContent = 'visibility';
+    els.fab.disabled = !state.revealImage;
+    els.fabLabel.textContent = 'Reveal message';
+    els.toolbarHintText.textContent = !state.revealImage
+      ? 'Pick a stego image to read its secret'
+      : (state.needsPassword ? 'Enter the password, then reveal' : 'Ready to reveal');
+  }
+}
+
+function setBusy(busy) {
+  state.busy = busy;
+  els.fab.disabled = busy;
+  if (busy) {
+    els.fabLabel.textContent = state.mode === 'hide' ? 'Hiding…' : 'Revealing…';
+    els.fabIcon.outerHTML = '<span class="spinner" id="fab-icon" aria-hidden="true"></span>';
+  } else {
+    document.getElementById('fab-icon').outerHTML = '<span class="icon" id="fab-icon" aria-hidden="true"></span>';
+    updateFab();
+  }
+}
+
+/* ─── Copy button ─── */
+els.copyBtn.addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(els.resultMessage.textContent);
+    showToast('Copied', 'Message copied to clipboard.');
+  } catch (e) {
+    showToast('Copy failed', 'Select the text and copy manually.', true);
+  }
+});
+
+/* ─── Main actions ─── */
+els.fab.addEventListener('click', async () => {
+  if (state.busy) return;
+  if (state.mode === 'hide') await doHide();
+  else await doReveal();
+});
+
+async function doHide() {
+  const img = state.hideImage;
+  if (!img) return;
+  const message = els.messageInput.value;
+  if (!message.trim()) return;
+  setBusy(true);
+  try {
+    // work on a copy so re-hiding with edits stays possible
+    const fresh = new ImageData(new Uint8ClampedArray(img.imageData.data), img.width, img.height);
+    const res = await stegoHide(fresh, message, els.passwordHide.value || null);
+    if (!res.ok) {
+      showToast('Message too large for this image',
+        'Needs ' + fmtBytes(res.need) + ' of data but only ' + fmtBytes(res.cap) + ' fits. Use a bigger image or a shorter message.', true);
+      return;
+    }
+    const outCanvas = document.createElement('canvas');
+    outCanvas.width = img.width;
+    outCanvas.height = img.height;
+    outCanvas.getContext('2d', { willReadFrequently: true }).putImageData(fresh, 0, 0);
+    const blob = await canvasToPngBlob(outCanvas);
+
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = (img.name.replace(/\.png$/i, '') || 'image') + '-stego.png';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+
+    els.fab.classList.add('success');
+    els.fabLabel.textContent = 'Saved';
+    setTimeout(() => { els.fab.classList.remove('success'); updateFab(); }, 2000);
+    showToast('Hidden & downloaded',
+      res.encrypted ? 'AES-256 encrypted message embedded. Send the PNG as a file.' : 'Message embedded. Send the PNG as a file.', false);
+  } catch (err) {
+    showToast('Something went wrong', 'The image could not be processed.', true);
+  } finally {
+    setBusy(false);
+  }
+}
+
+async function doReveal() {
+  const img = state.revealImage;
+  if (!img) return;
+  setBusy(true);
+  try {
+    const res = await stegoReveal(img.imageData, els.passwordReveal.value || null);
+    if (res.ok) {
+      els.resultMessage.textContent = res.message;
+      els.resultChipLabel.textContent = res.encrypted ? 'Encrypted' : 'Not encrypted';
+      els.resultCard.hidden = false;
+      els.resultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      showToast('Message revealed', res.encrypted ? 'Decrypted with your password.' : 'The message was not password-protected.', false);
+    } else if (res.error === 'no-message') {
+      showToast('No hidden message found', 'Make sure this is the original PNG — re-uploads and screenshots destroy the hidden bits.', true);
+    } else if (res.error === 'needs-password') {
+      state.needsPassword = true;
+      els.revealPwField.hidden = false;
+      els.passwordReveal.focus();
+      showToast('Password required', 'This message is encrypted. Enter the password and try again.', true);
+    } else if (res.error === 'bad-password') {
+      showToast('Wrong password', 'Decryption failed — check the password.', true);
+    } else {
+      showToast('No hidden message found', 'The image does not contain a valid Stego payload.', true);
+    }
+  } catch (err) {
+    showToast('Something went wrong', 'The image could not be processed.', true);
+  } finally {
+    setBusy(false);
+  }
+}
+
+/* ─── Ripple ─── */
+document.addEventListener('click', (e) => {
+  const target = e.target.closest('.fab, .icon-btn, .segmented button, .dropzone, .btn-outlined');
+  if (!target || target.disabled) return;
+  const rect = target.getBoundingClientRect();
+  const circle = document.createElement('span');
+  const diameter = Math.max(rect.width, rect.height);
+  circle.className = 'ripple';
+  circle.style.width = circle.style.height = diameter + 'px';
+  circle.style.left = (e.clientX - rect.left - diameter / 2) + 'px';
+  circle.style.top = (e.clientY - rect.top - diameter / 2) + 'px';
+  if (getComputedStyle(target).position === 'static') target.style.position = 'relative';
+  if (getComputedStyle(target).overflow !== 'hidden') target.style.overflow = 'hidden';
+  target.appendChild(circle);
+  setTimeout(() => circle.remove(), 650);
+});
+
+/* Test hooks (used by automated verification; harmless in production) */
+window.__stego = {
+  stegoHide, stegoReveal, buildPayload, openPayload, embedBytes, extractBytes,
+  parseHeader, buildHeader, capacityBits, deriveKey,
+  MAGIC, HEADER_LEN,
+};
+</script>
+</body>
+</html>

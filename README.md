@@ -12,7 +12,7 @@ No trackers. No remote logs. No compromises — everything runs in your browser.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Website](https://img.shields.io/badge/website-inpriv.xyz-466E47)](https://inpriv.xyz)
-[![Tools](https://img.shields.io/badge/tools-13%20live%20%2B%207%20in%20dev-ABD37A)](https://inpriv.xyz)
+[![Tools](https://img.shields.io/badge/tools-14%20live%20%2B%207%20in%20dev-ABD37A)](https://inpriv.xyz)
 [![Zero-Knowledge](https://img.shields.io/badge/zero--knowledge-%E2%9C%93-C7EFA0)]()
 [![By Aurex Labs](https://img.shields.io/badge/by-Aurex%20Labs-9C4231)]()
 
@@ -45,6 +45,7 @@ Inpriv is an ecosystem of **zero-knowledge, fully client-side web utilities** �
 - **Brute** — [brute.inpriv.xyz](https://brute.inpriv.xyz) — hash brute-force matcher
 - **TOTP** — [totp.inpriv.xyz](https://totp.inpriv.xyz) — RFC 6238 authenticator, encrypted vault
 - **Burn** — [burn.inpriv.xyz](https://burn.inpriv.xyz) — ephemeral encrypted notes, read-once
+- **Stego** — [stego.inpriv.xyz](https://stego.inpriv.xyz) — hide AES-256 encrypted messages inside PNG images
 
 ## <img src="assets/icons/clock.svg" width="18" height="18" align="center" alt=""> In Development
 
@@ -116,6 +117,7 @@ inpriv/
 ├── .keyring/           # Encrypted secret vault
 ├── .ipinfo/            # Browser fingerprint inspector
 ├── .brute/             # Hash brute-force matcher
+├── .stego/             # LSB steganography — hide encrypted messages in PNGs
 ├── .zero/              # Crypto wallet (WIP)
 ├── .osint/             # OSINT engine (WIP)
 ├── .mail/              # Disposable email (WIP)
@@ -132,7 +134,7 @@ inpriv/
 
 ## <img src="assets/icons/map.svg" width="18" height="18" align="center" alt=""> Roadmap
 
-- [x] 13 core tools live on production
+- [x] 14 core tools live on production
 - [ ] PWA + offline support
 - [ ] Zero wallet — security audit before release
 - [ ] Mail — encrypted disposable email
