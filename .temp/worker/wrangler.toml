@@ -1,0 +1,33 @@
+name = "inpriv-temp"
+main = "src/index.js"
+compatibility_date = "2025-08-01"
+workers_dev = true
+
+# Custom domain — serves the Temp tool on temp.inpriv.xyz
+# (routes MUST stay above the first [table] — see cloudflare-workers skill)
+routes = [
+  { pattern = "temp.inpriv.xyz", custom_domain = true }
+]
+
+# Hourly cleanup of expired mailboxes and stale messages
+[triggers]
+crons = ["0 * * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "inpriv-temp"
+database_id = "4fd698d2-c51e-4390-8f6b-9968f5da902d"
+
+# Static frontend served from ./public (the single-file temp-mail tool)
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+[vars]
+DOMAIN = "inpriv.xyz"
+
+# Secrets (set via `npx wrangler secret put <NAME>`):
+#   RESEND_API_KEY        — Resend key for outbound sends (send access is enough)
+#   RESEND_READ_API_KEY   — optional: read-capable key to fetch received bodies
+#                           (without it, messages are stored with metadata only)
+#   RESEND_WEBHOOK_SECRET — whsec_… signing secret of the email.received webhook
