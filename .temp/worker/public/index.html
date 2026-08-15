@@ -795,8 +795,38 @@ footer a { color: var(--md-on-surface-variant); }
     }
   }
 
+  function showGlobalInfo(text) {
+    let el = document.getElementById('globalInfoBanner');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'globalInfoBanner';
+      el.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:200;'
+        + 'max-width:min(560px,92vw);padding:12px 20px;border-radius:16px;'
+        + 'background:rgba(32,34,26,.92);color:#C8E8C4;border:1px solid #45483D;'
+        + 'font-size:.85rem;line-height:1.45;box-shadow:0 3px 6px rgba(0,0,0,.3);'
+        + 'backdrop-filter:blur(20px);display:flex;gap:10px;align-items:center';
+      const icon = document.createElement('span');
+      icon.textContent = '📣';
+      el.appendChild(icon);
+      const span = document.createElement('span');
+      span.id = 'globalInfoText';
+      el.appendChild(span);
+      document.body.appendChild(el);
+    }
+    document.getElementById('globalInfoText').textContent = text;
+  }
+
   // ── boot ────────────────────────────────────────────────────
   (async function init() {
+    // global info banner from the admin dashboard (non-blocking)
+    try {
+      const r = await fetch('/api/maintenance');
+      if (r.ok) {
+        const m = await r.json();
+        if (m.info) showGlobalInfo(m.info);
+      }
+    } catch {}
+
     try {
       const saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
       if (saved?.address && saved?.token && saved.expires_at > Date.now()) {

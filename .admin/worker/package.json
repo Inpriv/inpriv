@@ -1,0 +1,13 @@
+{
+  "name": "inpriv-admin",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "node test/totp.test.mjs && node test/auth.test.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4.83.0"
+  }
+}

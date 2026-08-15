@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Inpriv Admin — Panel sterowania</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..700&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..600,0..1,0&display=swap" rel="stylesheet">
+<style>
+:root{
+  --primary:#466E47;--on-primary:#fff;--primary-container:#C8E8C4;--on-primary-container:#0E2A0F;
+  --secondary:#54635A;--secondary-container:#D6E7DA;--on-secondary-container:#142918;
+  --error:#BA1A1A;--error-container:#FFDAD6;--on-error-container:#410002;
+  --surface:#FAF9F0;--surface-container:#F0F0E4;--surface-container-high:#E9EBDD;
+  --on-surface:#1A1C17;--on-surface-var:#45483D;--outline:#77786B;--outline-var:#C7C8B9;
+  --scrim:rgba(0,0,0,.4);
+  --shadow-1:0 1px 3px rgba(0,0,0,.12),0 1px 2px rgba(0,0,0,.24);
+  --shadow-2:0 3px 6px rgba(0,0,0,.15),0 2px 4px rgba(0,0,0,.12);
+  --spring:cubic-bezier(.2,1.4,0,1);
+}
+[data-theme="dark"]{
+  --primary:#ABD37A;--on-primary:#1D3708;--primary-container:#355223;--on-primary-container:#C8E8C4;
+  --secondary:#BACCB8;--secondary-container:#35483A;--on-secondary-container:#D6E7DA;
+  --error:#FFB4AB;--error-container:#93000A;--on-error-container:#FFDAD6;
+  --surface:#13140E;--surface-container:#20221A;--surface-container-high:#2B2D24;
+  --on-surface:#E3E2D3;--on-surface-var:#C7C8B9;--outline:#919181;--outline-var:#45483D;
+  --scrim:rgba(0,0,0,.6);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Roboto Flex',system-ui,sans-serif;
+  background:var(--surface);color:var(--on-surface);
+  min-height:100vh;display:flex;flex-direction:column;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 20% -10%, color-mix(in srgb, var(--primary) 10%, transparent), transparent),
+    radial-gradient(ellipse 60% 40% at 90% 110%, color-mix(in srgb, var(--primary) 7%, transparent), transparent);
+}
+.msymbol{font-family:'Material Symbols Rounded';font-weight:normal;font-style:normal;font-size:24px;line-height:1;letter-spacing:normal;text-transform:none;display:inline-block;white-space:nowrap;direction:ltr;-webkit-font-feature-settings:'liga';-webkit-font-smoothing:antialiased;font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24}
+.msymbol.filled{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
+
+/* ── login ── */
+#login-view{flex:1;display:flex;align-items:center;justify-content:center;padding:24px}
+.login-card{
+  width:min(420px,100%);background:color-mix(in srgb,var(--surface-container) 88%,transparent);
+  backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);
+  border:1px solid var(--outline-var);border-radius:28px;padding:40px 32px;
+  box-shadow:var(--shadow-2);animation:pop .5s var(--spring)
+}
+@keyframes pop{from{opacity:0;transform:translateY(16px) scale(.97)}to{opacity:1;transform:none}}
+.brand{display:flex;align-items:center;gap:14px;margin-bottom:28px}
+.brand .logo{width:48px;height:48px;border-radius:16px;background:var(--primary);color:var(--on-primary);display:grid;place-items:center;font-size:26px}
+.brand h1{font-size:1.35rem;font-weight:600}
+.brand p{font-size:.8rem;color:var(--on-surface-var)}
+.field{position:relative;margin-bottom:18px}
+.field input{
+  width:100%;padding:16px;font-size:1rem;font-family:inherit;color:var(--on-surface);
+  background:transparent;border:1px solid var(--outline);border-radius:16px;outline:none;
+  transition:border-color .25s var(--spring)
+}
+.field input:focus{border-color:var(--primary)}
+.field label{position:absolute;left:14px;top:-9px;font-size:.72rem;padding:0 4px;background:var(--surface-container);color:var(--on-surface-var);border-radius:4px}
+.login-card .field label{background:color-mix(in srgb,var(--surface-container) 88%,transparent)}
+.otp-input{letter-spacing:.55em;font-size:1.4rem!important;text-align:center;font-weight:600}
+.login-error{color:var(--error);font-size:.85rem;min-height:1.3em;margin:-8px 0 10px;text-align:center}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  border:none;border-radius:9999px;padding:14px 28px;font-size:.95rem;font-weight:500;
+  font-family:inherit;cursor:pointer;transition:transform .25s var(--spring),box-shadow .25s var(--spring),background .25s
+}
+.btn:active{transform:scale(.97)}
+.btn-filled{background:var(--primary);color:var(--on-primary)}
+.btn-filled:hover{box-shadow:var(--shadow-1)}
+.btn-tonal{background:var(--secondary-container);color:var(--on-secondary-container)}
+.btn-outline{background:transparent;border:1px solid var(--outline);color:var(--on-surface)}
+.btn-error{background:var(--error);color:#fff}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-block{width:100%}
+.btn-sm{padding:10px 20px;font-size:.85rem}
+
+/* ── app ── */
+#app-view{display:none;flex:1;flex-direction:column}
+header{
+  position:sticky;top:0;z-index:10;
+  background:color-mix(in srgb,var(--surface-container) 82%,transparent);
+  backdrop-filter:blur(28px) saturate(180%);-webkit-backdrop-filter:blur(28px) saturate(180%);
+  border-bottom:1px solid var(--outline-var)
+}
+.header-in{max-width:960px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;gap:14px}
+.header-in .logo{width:40px;height:40px;border-radius:14px;background:var(--primary);color:var(--on-primary);display:grid;place-items:center;font-size:22px}
+.header-in h1{font-size:1.1rem;font-weight:600;flex:1}
+.icon-btn{
+  width:44px;height:44px;border-radius:9999px;border:none;background:transparent;color:var(--on-surface-var);
+  display:grid;place-items:center;cursor:pointer;transition:background .25s
+}
+.icon-btn:hover{background:var(--surface-container-high)}
+main{max-width:960px;width:100%;margin:0 auto;padding:28px 24px 80px;flex:1}
+.card{
+  background:color-mix(in srgb,var(--surface-container) 88%,transparent);
+  border:1px solid var(--outline-var);border-radius:24px;padding:24px;margin-bottom:20px;
+  box-shadow:var(--shadow-1)
+}
+.card h2{font-size:1.05rem;font-weight:600;display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.card .sub{font-size:.82rem;color:var(--on-surface-var);margin-bottom:18px}
+
+/* global lock */
+.lock-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.lock-status{
+  display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border-radius:9999px;
+  font-size:.85rem;font-weight:500
+}
+.lock-status.on{background:var(--error-container);color:var(--on-error-container)}
+.lock-status.off{background:var(--secondary-container);color:var(--on-secondary-container)}
+.grow{flex:1}
+input[type="text"],textarea{
+  width:100%;padding:12px 14px;font-size:.92rem;font-family:inherit;color:var(--on-surface);
+  background:var(--surface);border:1px solid var(--outline);border-radius:12px;outline:none;
+  transition:border-color .25s var(--spring);resize:vertical
+}
+input[type="text"]:focus,textarea:focus{border-color:var(--primary)}
+
+/* services */
+.svc-row{
+  display:flex;align-items:center;gap:16px;padding:16px;border-radius:18px;
+  border:1px solid var(--outline-var);margin-bottom:12px;background:var(--surface);
+  transition:border-color .3s var(--spring)
+}
+.svc-row.locked{border-color:var(--error);background:color-mix(in srgb,var(--error-container) 30%,var(--surface))}
+.svc-row .svc-icon{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;background:var(--primary-container);color:var(--on-primary-container);flex-shrink:0}
+.svc-row .svc-info{flex:1;min-width:0}
+.svc-row .svc-name{font-weight:600;font-size:.95rem}
+.svc-row .svc-url{font-size:.78rem;color:var(--on-surface-var);text-decoration:none;word-break:break-all}
+.svc-row .svc-url:hover{text-decoration:underline}
+
+/* switch */
+.switch{position:relative;width:56px;height:32px;flex-shrink:0}
+.switch input{opacity:0;width:100%;height:100%;position:relative;z-index:2;cursor:pointer;margin:0}
+.switch .track{position:absolute;inset:0;border-radius:9999px;background:var(--surface-container-high);border:2px solid var(--outline);transition:background .3s var(--spring),border-color .3s var(--spring)}
+.switch .thumb{position:absolute;top:50%;left:6px;width:16px;height:16px;border-radius:9999px;background:var(--outline);transform:translateY(-50%);transition:left .3s var(--spring),width .2s,background .3s}
+.switch input:checked ~ .track{background:var(--error);border-color:var(--error)}
+.switch input:checked ~ .thumb{left:30px;width:20px;height:20px;background:#fff}
+
+/* audit */
+#audit-list{font-size:.8rem;max-height:260px;overflow:auto}
+#audit-list .a-row{display:flex;gap:12px;padding:8px 4px;border-bottom:1px solid var(--outline-var)}
+#audit-list .a-row:last-child{border:none}
+#audit-list .a-ts{color:var(--on-surface-var);white-space:nowrap;font-variant-numeric:tabular-nums}
+.a-action{font-weight:500}
+.a-action.danger{color:var(--error)}
+
+/* toast */
+#toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);
+  background:var(--on-surface);color:var(--surface);padding:14px 24px;border-radius:14px;
+  font-size:.88rem;box-shadow:var(--shadow-2);opacity:0;transition:all .4s var(--spring);z-index:100;
+  max-width:90vw
+}
+#toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+#toast.err{background:var(--error);color:#fff}
+
+/* countdown / loader */
+.countdown{font-size:.78rem;color:var(--on-surface-var);text-align:center;margin-top:8px;font-variant-numeric:tabular-nums}
+.skipped{display:none}
+
+/* top progress bar while toggling */
+#busy{position:fixed;top:0;left:0;right:0;height:3px;z-index:200;pointer-events:none;overflow:hidden;opacity:0;transition:opacity .3s}
+#busy.show{opacity:1}
+#busy::after{content:'';display:block;height:100%;width:40%;background:var(--primary);border-radius:99px;animation:slide 1s infinite}
+@keyframes slide{from{transform:translateX(-100%)}to{transform:translateX(350%)}}
+</style>
+</head>
+<body>
+<div id="busy"></div>
+
+<!-- ═══ LOGIN ═══ -->
+<div id="login-view">
+  <form class="login-card" id="login-form" autocomplete="off">
+    <div class="brand">
+      <div class="logo"><span class="msymbol filled">shield_lock</span></div>
+      <div><h1>Inpriv Admin</h1><p>Panel sterowania · dostęp tylko dla saloyek</p></div>
+    </div>
+    <div class="field">
+      <input type="text" id="l-user" placeholder=" " autocomplete="username" spellcheck="false">
+      <label for="l-user">Nick</label>
+    </div>
+    <div class="field">
+      <input class="otp-input" type="text" id="l-code" placeholder=" " inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" spellcheck="false">
+      <label for="l-code">Kod z Google Authenticator</label>
+    </div>
+    <p class="login-error" id="login-error"></p>
+    <button class="btn btn-filled btn-block" type="submit" id="login-btn">
+      <span class="msymbol">login</span> Zaloguj
+    </button>
+    <p class="countdown" id="retry-note"></p>
+  </form>
+</div>
+
+<!-- ═══ APP ═══ -->
+<div id="app-view">
+  <header>
+    <div class="header-in">
+      <div class="logo"><span class="msymbol filled">tune</span></div>
+ <h1>Inpriv Admin</h1>
+      <button class="icon-btn" id="theme-btn" title="Motyw"><span class="msymbol">dark_mode</span></button>
+      <button class="icon-btn" id="logout-btn" title="Wyloguj"><span class="msymbol">logout</span></button>
+    </div>
+  </header>
+  <main>
+    <!-- global kill -->
+    <section class="card" id="card-global">
+      <h2><span class="msymbol">lock</span> Blokada globalna</h2>
+      <p class="sub">Blokuje <strong>wszystkie usługi naraz</strong>. Nadpisuje przełączniki poniżej.</p>
+      <div class="lock-row">
+        <span class="lock-status off" id="global-status"><span class="msymbol filled">check_circle</span> Wszystko działa</span>
+        <span class="grow"></span>
+        <div class="switch">
+          <input type="checkbox" id="global-switch" aria-label="Blokada globalna">
+          <span class="track"></span><span class="thumb"></span>
+        </div>
+      </div>
+      <div style="margin-top:16px">
+        <input type="text" id="global-msg" maxlength="500" placeholder="Komunikat pokazywany na zablokowanych stronach (opcjonalny)">
+      </div>
+    </section>
+
+    <!-- global info -->
+    <section class="card" id="card-info">
+      <h2><span class="msymbol">campaign</span> Globalne info</h2>
+      <p class="sub">Banner informacyjny widoczny na wszystkich stronach — <strong>nie blokuje</strong> usług.</p>
+      <div class="lock-row">
+        <span class="lock-status off" id="info-status"><span class="msymbol filled">visibility_off</span> Ukryty</span>
+        <span class="grow"></span>
+        <div class="switch">
+          <input type="checkbox" id="info-switch" aria-label="Globalne info">
+          <span class="track"></span><span class="thumb"></span>
+        </div>
+      </div>
+      <div style="margin-top:16px">
+        <input type="text" id="info-msg" maxlength="500" placeholder="Treść komunikatu, np. „Planowana przerwa techniczna w niedzielę 3:00–4:00”">
+      </div>
+    </section>
+
+    <!-- services -->
+    <section class="card" id="card-services">
+      <h2><span class="msymbol">apps</span> Usługi</h2>
+      <p class="sub">Przełącznik blokuje pojedynczą usługę. Komunikat per-usługa wpisujesz w polu pod kartą usługi.</p>
+      <div id="services-list"></div>
+    </section>
+
+    <!-- audit -->
+    <section class="card" id="card-audit">
+      <h2><span class="msymbol">history</span> Historia działań</h2>
+      <p class="sub">Ostatnie 50 zdarzeń: logowania, blokady, zmiany komunikatów.</p>
+      <div id="audit-list"></div>
+    </section>
+  </main>
+</div>
+
+<div id="toast"></div>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const API = location.origin;
+
+// theme
+const savedTheme = localStorage.getItem("inpriv-admin-theme") || "dark";
+applyTheme(savedTheme);
+$("theme-btn").onclick = () => {
+  const t = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  applyTheme(t); localStorage.setItem("inpriv-admin-theme", t);
+};
+function applyTheme(t) {
+  document.documentElement.dataset.theme = t;
+  $("theme-btn").querySelector(".msymbol").textContent = t === "dark" ? "light_mode" : "dark_mode";
+}
+
+// toast + busy
+let toastTimer;
+function toast(msg, isErr = false) {
+  const el = $("toast");
+  el.textContent = msg; el.className = isErr ? "err show" : "show";
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("show"), 2600);
+}
+function busy(on) { $("busy").classList.toggle("show", on); }
+
+// ── login ──
+$("login-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const btn = $("login-btn");
+  btn.disabled = true; $("login-error").textContent = "";
+  try {
+    const res = await fetch(`${API}/api/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user: $("l-user").value, code: $("l-code").value }),
+    });
+    if (res.ok) { enterApp(); return; }
+    const body = await res.json().catch(() => ({}));
+    if (res.status === 429) {
+      const s = body.retry_after || 60;
+      $("login-error").textContent = `Zbyt wiele prób. Odczekaj ${s} s.`;
+      startRetryCountdown(s);
+    } else if (body.error === "invalid_credentials") {
+      $("login-error").textContent = "Zły nick lub format kodu.";
+    } else {
+      $("login-error").textContent = "Nieprawidłowy kod TOTP. Sprawdź Authenticatora.";
+    }
+    $("l-code").value = "";
+  } catch { $("login-error").textContent = "Błąd sieci — spróbuj ponownie."; }
+  finally { btn.disabled = false; }
+});
+
+let retryTimer;
+function startRetryCountdown(sec) {
+  clearInterval(retryTimer);
+  const note = $("retry-note");
+  const tick = () => {
+    if (sec <= 0) { note.textContent = ""; clearInterval(retryTimer); return; }
+    note.textContent = `Kolejna próba za ${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
+    sec--;
+  };
+  tick(); retryTimer = setInterval(tick, 1000);
+}
+
+// ── app ──
+async function enterApp() {
+  $("login-view").style.display = "none";
+  $("app-view").style.display = "flex";
+  await refresh();
+}
+$("logout-btn").onclick = async () => {
+  await fetch(`${API}/api/logout`, { method: "POST" });
+  location.reload();
+};
+
+async function refresh() {
+  busy(true);
+  try {
+    const res = await fetch(`${API}/api/state`);
+    if (res.status === 401) return location.reload();
+    const st = await res.json();
+    renderGlobal(st);
+    renderInfo(st);
+    renderServices(st);
+    renderAudit(st.audit || []);
+  } catch { toast("Nie udało się pobrać stanu", true); }
+  finally { busy(false); }
+}
+
+function renderGlobal(st) {
+  const on = !!st.global.locked;
+  $("global-switch").checked = on;
+  const s = $("global-status");
+  s.className = "lock-status " + (on ? "on" : "off");
+  s.innerHTML = on
+    ? '<span class="msymbol filled">lock</span> WSZYSTKO ZABLOKOWANE'
+    : '<span class="msymbol filled">check_circle</span> Wszystko działa';
+  if (document.activeElement !== $("global-msg")) $("global-msg").value = st.global.message || "";
+}
+
+function renderInfo(st) {
+  const on = !!st.info.active;
+  $("info-switch").checked = on;
+  const s = $("info-status");
+  s.className = "lock-status " + (on ? "on" : "off");
+  s.innerHTML = on
+    ? '<span class="msymbol filled">campaign</span> Widoczny'
+    : '<span class="msymbol filled">visibility_off</span> Ukryty';
+  if (document.activeElement !== $("info-msg")) $("info-msg").value = st.info.message || "";
+}
+
+function renderServices(st) {
+  const list = $("services-list");
+  list.innerHTML = "";
+  for (const [id, svc] of Object.entries(st.services || {})) {
+    const meta = (st.meta && st.meta[id]) || { name: id, url: "" };
+    const row = document.createElement("div");
+    row.className = "svc-row" + (svc.locked ? " locked" : "");
+    row.innerHTML = `
+      <div class="svc-icon"><span class="msymbol filled">mark_email_unread</span></div>
+      <div class="svc-info">
+        <div class="svc-name">${meta.name} ${svc.locked ? '· <span style="color:var(--error);font-size:.78rem">ZABLOKOWANA</span>' : ""}</div>
+        ${meta.url ? `<a class="svc-url" href="${meta.url}" target="_blank" rel="noopener">${meta.url.replace("https://", "")}</a>` : ""}
+        <div style="margin-top:8px">
+          <input type="text" class="svc-msg" data-svc="${id}" maxlength="500" placeholder="Komunikat dla tej usługi (opcjonalny)" value="${(svc.message || "").replace(/"/g, "&quot;")}">
+        </div>
+      </div>
+      <div class="switch">
+        <input type="checkbox" class="svc-switch" data-svc="${id}" ${svc.locked ? "checked" : ""} aria-label="Blokada ${meta.name}">
+        <span class="track"></span><span class="thumb"></span>
+      </div>`;
+    row.querySelector(".svc-switch").addEventListener("change", (e) => toggleService(id, e.target.checked));
+    list.appendChild(row);
+  }
+}
+
+function renderAudit(rows) {
+  const el = $("audit-list");
+  if (!rows.length) { el.innerHTML = '<p style="color:var(--on-surface-var)">Brak zdarzeń.</p>'; return; }
+  const danger = /lock|info_on/;
+  el.innerHTML = rows.map((r) => {
+    const d = new Date(r.ts);
+    const label = {
+      login: "logowanie", global_lock: "blokada globalna", global_unlock: "odblokowanie globalne",
+      info_on: "info włączone", info_off: "info wyłączone",
+    }[r.action] || (r.action.startsWith("lock_") ? `blokada: ${r.action.slice(5)}` : r.action.startsWith("unlock_") ? `odblokowanie: ${r.action.slice(7)}` : r.action);
+    const msg = r.message ? ` — „${escapeHtml(r.message.slice(0, 60))}”` : "";
+    return `<div class="a-row"><span class="a-ts">${d.toLocaleString("pl-PL")}</span><span class="a-action ${danger.test(r.action) ? "danger" : ""}">${label}${msg}</span></div>`;
+  }).join("");
+}
+const escapeHtml = (s) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+
+async function post(path, body) {
+  const res = await fetch(`${API}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (res.status === 401) { location.reload(); throw new Error("unauthorized"); }
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "error");
+  return res.json();
+}
+
+$("global-switch").addEventListener("change", async (e) => {
+  busy(true);
+  try {
+    await post("/api/global", { locked: e.target.checked, message: $("global-msg").value });
+    toast(e.target.checked ? "Zablokowano wszystko" : "Odblokowano wszystko");
+    await refresh();
+  } catch (err) { toast("Błąd: " + err.message, true); e.target.checked = !e.target.checked; }
+  finally { busy(false); }
+});
+$("info-switch").addEventListener("change", async (e) => {
+  busy(true);
+  try {
+    await post("/api/info", { active: e.target.checked, message: $("info-msg").value });
+    toast(e.target.checked ? "Info włączone" : "Info wyłączone");
+    await refresh();
+  } catch (err) { toast("Błąd: " + err.message, true); e.target.checked = !e.target.checked; }
+  finally { busy(false); }
+});
+async function toggleService(id, locked) {
+  busy(true);
+  try {
+    const input = document.querySelector(`.svc-msg[data-svc="${id}"]`);
+    await post("/api/service", { service: id, locked, message: input ? input.value : "" });
+    toast(locked ? "Usługa zablokowana" : "Usługa odblokowana");
+    await refresh();
+  } catch (err) { toast("Błąd: " + err.message, true); }
+  finally { busy(false); }
+}
+
+// Enter w polu komunikatu = zapis
+$("global-msg").addEventListener("keydown", (e) => { if (e.key === "Enter") { $("global-switch").dispatchEvent(new Event("change")); } });
+$("info-msg").addEventListener("keydown", (e) => { if (e.key === "Enter") { const s = $("info-switch"); s.checked = !s.checked; s.dispatchEvent(new Event("change")); } });
+
+// auto-refresh co 30 s (żeby zmiany z innego urządzenia były widoczne)
+setInterval(async () => {
+  if (document.visibilityState === "visible" && $("app-view").style.display === "flex") refresh();
+}, 30000);
+
+// on load: check session
+(async () => {
+  const res = await fetch(`${API}/api/state`);
+  if (res.ok) await enterApp();
+})();
+</script>
+</body>
+</html>

@@ -120,6 +120,7 @@ inpriv/
 ├── .brute/             # Hash brute-force matcher
 ├── .stego/             # LSB steganography — hide encrypted messages in PNGs
 ├── .temp/              # disposable email — random @inpriv.xyz inboxes, Resend inbound
+├── .admin/             # admin dashboard — admin.inpriv.xyz (TOTP login, kill-switches)
 ├── .zero/              # Crypto wallet (WIP)
 ├── .osint/             # OSINT engine (WIP)
 ├── .mail/              # Disposable email (WIP)

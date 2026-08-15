@@ -1,0 +1,20 @@
+name = "inpriv-admin"
+main = "src/index.js"
+compatibility_date = "2024-11-01"
+workers_dev = true
+
+# routes must stay above the first [table] entry
+routes = [
+  { pattern = "admin.inpriv.xyz", custom_domain = true }
+]
+
+[assets]
+directory = "./public"
+not_found_handling = "single-page-application"
+
+[[kv_namespaces]]
+binding = "MAINTENANCE"
+id = "37e2feceae474e21a0b9664c9bdfdea3"
+
+# secrets (wrangler secret put …):
+#   TOTP_SECRET — base32 secret for Google Authenticator (user: saloyek)

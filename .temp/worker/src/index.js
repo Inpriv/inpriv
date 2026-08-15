@@ -54,10 +54,78 @@ export default {
 // Exported for unit tests (svix verification against official test vectors).
 export { verifySvix };
 
+// ── maintenance / kill-switch (admin.inpriv.xyz) ─────────────────────────────
+
+let gateCache = { data: null, until: 0 };
+
+async function maintenanceGate(env) {
+  if (!env.MAINTENANCE) return { locked: false, message: "", info: null };
+  const now = Date.now();
+  if (gateCache.data && gateCache.until > now) return gateCache.data;
+  try {
+    const res = await fetch("https://admin.inpriv.xyz/public/state", {
+      headers: { "User-Agent": "inpriv-temp-gate" },
+      cf: { cacheTtl: 2, cacheEverything: true },
+    });
+    const st = await res.json();
+    const svc = (st.services && st.services.temp) || { locked: false, message: "" };
+    const locked = !!(st.global && st.global.locked) || !!svc.locked;
+    const message = (st.global && st.global.locked && st.global.message) || svc.message || "";
+    const info = st.info && st.info.active ? st.info.message : null;
+    gateCache = { data: { locked, message, info }, until: now + 3_000 };
+    return gateCache.data;
+  } catch {
+    // admin unreachable → fail open (the tool stays up), retry soon
+    gateCache = { data: { locked: false, message: "", info: null }, until: now + 2_000 };
+    return gateCache.data;
+  }
+}
+
+function maintenancePage(gate) {
+  const msg = gate.message
+    ? `<p class="msg">${String(gate.message).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c])}</p>`
+    : "";
+  return new Response(`<!DOCTYPE html>
+<html lang="pl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Przerwa techniczna — Inpriv Temp</title><meta name="robots" content="noindex">
+<style>
+body{margin:0;min-height:100vh;display:grid;place-items:center;background:#13140E;color:#E3E2D3;
+font-family:'Roboto Flex',system-ui,sans-serif;text-align:center;padding:24px}
+.box{max-width:440px}
+.icon{font-size:64px;margin-bottom:16px}
+h1{font-size:1.5rem;font-weight:600;margin:0 0 8px}
+p{color:#C7C8B9;font-size:.95rem;line-height:1.5}
+.msg{margin-top:16px;padding:14px 18px;border-radius:16px;background:#20221A;border:1px solid #45483D;color:#ABD37A}
+a{color:#ABD37A}
+</style></head>
+<body><div class="box">
+<div class="icon">🔒</div>
+<h1>Inpriv Temp jest tymczasowo niedostępne</h1>
+<p>Usługa została zablokowana przez administratora.<br>Skrzynki i wiadomości są bezpieczne — wróć później.</p>
+${msg}
+<p style="margin-top:24px;font-size:.8rem"><a href="https://inpriv.xyz">← inpriv.xyz</a></p>
+</div></body></html>`, {
+    status: 503,
+    headers: { "content-type": "text/html; charset=utf-8", "retry-after": "300", "cache-control": "no-store" },
+  });
+}
+
 // ── HTTP API ─────────────────────────────────────────────────────────────────
 
 async function handleFetch(request, env) {
   const url = new URL(request.url);
+
+  // kill-switch (admin.inpriv.xyz): global lock or service "temp" lock.
+  // /api/health and the inbound webhook always pass (monitoring + no lost mail).
+  const isApi = url.pathname.startsWith("/api/");
+  const exempt = url.pathname === "/api/health" || url.pathname === "/api/inbound" || url.pathname === "/api/maintenance";
+  if (isApi && !exempt) {
+    const gate = await maintenanceGate(env);
+    if (gate.locked) return json({ error: "service_locked", message: gate.message }, 503);
+  } else if (!isApi) {
+    const gate = await maintenanceGate(env);
+    if (gate.locked) return maintenancePage(gate);
+  }
 
   if (url.pathname.startsWith("/api/")) {
     try {
@@ -78,6 +146,12 @@ async function routeApi(request, env, url) {
 
   if (path === "/api/health") {
     return json({ ok: true, service: "inpriv-temp", time: new Date().toISOString() });
+  }
+
+  // public maintenance state (used by the frontend to show the info banner)
+  if (path === "/api/maintenance") {
+    const gate = await maintenanceGate(env);
+    return json({ locked: gate.locked, message: gate.message, info: gate.info }, 200);
   }
 
   if (path === "/api/inbound") {
