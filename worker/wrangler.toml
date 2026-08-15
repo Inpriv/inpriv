@@ -1,0 +1,15 @@
+name = "inpriv"
+main = "src/index.js"
+compatibility_date = "2024-11-01"
+workers_dev = true
+
+# Custom domain — the Inpriv suite landing page
+routes = [
+  { pattern = "inpriv.xyz", custom_domain = true },
+  { pattern = "www.inpriv.xyz", custom_domain = true }
+]
+
+# Static assets served from ./public — landing HTML, icons, SVGs
+[assets]
+directory = "./public"
+binding = "ASSETS"

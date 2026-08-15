@@ -1,0 +1,29 @@
+# As a condition of accessing this website, you agree to abide by the following
+# content signals:
+
+# (a)  If a Content-Signal = yes, you may collect content for the corresponding
+#      use.
+# (b)  If a Content-Signal = no, you may not collect content for the
+#      corresponding use.
+# (c)  If the website operator does not include a Content-Signal for a
+#      corresponding use, the website operator neither grants nor restricts
+#      permission via Content-Signal with respect to that use.
+
+# The content signals and their meanings are:
+
+# search:   building a search index and providing search results (e.g., returning
+#           hyperlinks and short excerpts from your website's contents). Search does
+#           not include providing AI-generated search summaries.
+# ai-input: inputting content into one or more AI models (e.g., retrieval
+#           augmented generation, grounding, or other real-time taking of content for
+#           output generation), including training or fine-tuning AI models.
+
+# The default values below indicate how the website operator has configured
+# each content signal on this website.
+
+User-agent: *
+Disallow:
+
+# Search: permitted
+Content-Signal: search: yes
+Content-Signal: ai-input: no
