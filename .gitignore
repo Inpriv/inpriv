@@ -89,3 +89,4 @@ yarn-error.log*
 
 # ─── Lockfiles that shouldn't be shared ───
 # (Cargo.lock IS tracked for binary crates, package-lock.json IS tracked)
+totp-qr.png
