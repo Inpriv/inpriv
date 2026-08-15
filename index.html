@@ -482,6 +482,30 @@
       max-width: 440px; margin: 0 auto; opacity: 0.85;
     }
 
+    .hero-badges {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      color: var(--md-on-secondary-container);
+      background: color-mix(in srgb, var(--md-secondary-container) 70%, transparent);
+      border: 1px solid color-mix(in srgb, var(--md-outline-variant) 45%, transparent);
+    }
+
+    .hero-badge .icon { font-size: 14px; color: var(--md-primary); }
+
     .grid {
       display: grid; grid-template-columns: 1fr; gap: 9px; margin-bottom: auto;
     }
@@ -672,6 +696,12 @@
       A suite of tools engineered to keep your sensitive data exclusively on your device.
       No trackers, no remote logs, zero compromises.
     </p>
+    <div class="hero-badges">
+      <span class="hero-badge"><span class="icon" aria-hidden="true">lock</span> <span data-i18n="badge-zk">Zero-knowledge</span></span>
+      <span class="hero-badge"><span class="icon" aria-hidden="true">cloud_off</span> <span data-i18n="badge-noup">No uploads</span></span>
+      <span class="hero-badge"><span class="icon" aria-hidden="true">bolt</span> <span data-i18n="badge-fast">Free &amp; instant</span></span>
+      <span class="hero-badge"><span class="icon" aria-hidden="true">code</span> <span data-i18n="badge-oss">Open source</span></span>
+    </div>
   </header>
 
   <main class="grid" id="grid">
@@ -953,6 +983,10 @@
       'by': 'by',
       'badge-live': 'Live',
       'badge-soon': 'Soon',
+      'badge-zk': 'Zero-knowledge',
+      'badge-noup': 'No uploads',
+      'badge-fast': 'Free & instant',
+      'badge-oss': 'Open source',
       'more-soon-title': 'More Soon',
       'desc-soon': 'Something new is coming.',
       'desc-hush': 'End-to-end encrypted chat. No logs, no servers.',
@@ -984,6 +1018,10 @@
       'by': 'od',
       'badge-live': 'Live',
       'badge-soon': 'Wkrótce',
+      'badge-zk': 'Zero-knowledge',
+      'badge-noup': 'Bez wysyłania',
+      'badge-fast': 'Darmowe i natychmiastowe',
+      'badge-oss': 'Open source',
       'more-soon-title': 'Więcej wkrótce',
       'desc-soon': 'Coś nowego nadchodzi.',
       'desc-hush': 'Czat szyfrowany end-to-end. Bez logów, bez serwerów.',
