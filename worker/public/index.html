@@ -457,6 +457,13 @@
     }
 
     .icon-btn:hover { color: var(--md-on-surface); }
+
+    .icon-btn .icon { font-size: 22px; }
+
+    @media(min-width: 600px) {
+      .icon-btn { width: 44px; height: 44px; }
+      .icon-btn .icon { font-size: 24px; }
+    }
     .icon-btn:hover::before { content: ''; position: absolute; inset: 0; background: currentColor; opacity: 0.08; }
     .icon-btn:active { transform: scale(0.92); }
 
