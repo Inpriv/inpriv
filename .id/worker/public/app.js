@@ -1,5 +1,5 @@
 // Inpriv ID — account UI logic (login/register/2FA/panel).
-/* global document, localStorage, fetch, location, sessionStorage */
+/* global document, localStorage, fetch, location, sessionStorage, navigator */
 
 const API = ""; // same origin
 
@@ -59,12 +59,6 @@ function err(msg) {
 
 function clearErr() {
   $("formErr").classList.remove("show");
-}
-
-function busy(btn, on, txt) {
-  if (!btn) return;
-  btn.disabled = on;
-  if (txt) btn.querySelector("#" + (btn.id === "loginBtn" ? "loginBtnTxt" : "regBtnTxt")) && (btn.querySelector("#" + (btn.id === "loginBtn" ? "loginBtnTxt" : "regBtnTxt")).textContent = txt);
 }
 
 // ── theme ────────────────────────────────────────────────────────────────────
@@ -127,7 +121,7 @@ $("loginForm").addEventListener("submit", async (e) => {
   btn.disabled = true;
   try {
     const out = await api("/api/login", {
-      email: $("loginEmail").value,
+      login: $("loginEmail").value.trim(),
       password: $("loginPass").value,
     });
     if (out.mfa_required) {
@@ -183,12 +177,13 @@ $("regForm").addEventListener("submit", async (e) => {
   btn.disabled = true;
   try {
     const out = await api("/api/register", {
-      nick: $("regNick").value,
-      email: $("regEmail").value,
+      username: $("regId").value.trim(),
+      nick: $("regNick").value.trim(),
+      recovery_email: $("regRecoveryEmail").value.trim(),
       password: $("regPass").value,
     });
     user = out.user;
-    toast(out.verification_sent ? "Account created — check your email for the code" : "Account created");
+    toast(out.verification_sent ? "Account created — verification sent to recovery email" : "Account created — welcome to Inpriv!");
     await enterPanel();
   } catch (ex) {
     err(ex.message);
@@ -229,16 +224,27 @@ function initials(nick) {
 }
 
 function renderProfile() {
-  $("avatar").textContent = vault.avatar === "leaf" ? "🌿" : initials(user.nick);
-  $("pNick").textContent = user.nick;
-  $("pEmail").textContent = user.email;
+  const displayName = user.nick || user.username || "user";
+  $("avatar").textContent = vault.avatar === "leaf" ? "🌿" : initials(displayName);
+  $("pNick").textContent = displayName;
+  $("pEmail").textContent = user.inpriv_email || user.email || (user.username + "@inpriv.xyz");
+  
+  const hasRecovery = !!user.recovery_email;
   $("badgeVerified").hidden = !user.email_verified;
-  $("badgeUnverified").hidden = !!user.email_verified;
+  $("badgeUnverified").hidden = !hasRecovery || !!user.email_verified;
   $("badge2fa").hidden = !user.totp_enabled;
-  $("nickInput").value = user.nick;
+  
+  $("nickInput").value = user.nick || "";
+  $("recoveryInput").value = user.recovery_email || "";
+  
+  const verifySec = $("verifySection");
+  if (verifySec) {
+    verifySec.style.display = (hasRecovery && !user.email_verified) ? "flex" : "none";
+  }
+
   $("twoFAOffUI").hidden = user.totp_enabled;
   $("twoFAOnUI").hidden = !user.totp_enabled;
-  $("verifyCode").closest(".card").style.display = user.email_verified ? "none" : "";
+
   // privacy switches
   setSwitch("swNick", vault.privacy.nick);
   setSwitch("swPrompt", vault.privacy.prompt);
@@ -279,6 +285,18 @@ $("nickSave").addEventListener("click", async () => {
   }
 });
 
+// profile: recovery email
+$("recoverySaveBtn").addEventListener("click", async () => {
+  try {
+    const out = await api("/api/recovery-email/set", { recovery_email: $("recoveryInput").value.trim() });
+    user = out.user;
+    renderProfile();
+    toast(user.recovery_email ? "Recovery email updated — send code to verify" : "Recovery email removed");
+  } catch (ex) {
+    toast(ex.message, false);
+  }
+});
+
 // theme seg in panel
 $("thDark").addEventListener("click", () => { setTheme("dark"); saveVault(); });
 $("thLight").addEventListener("click", () => { setTheme("light"); saveVault(); });
@@ -309,7 +327,7 @@ function setSwitch(id, on) {
 $("verifySendBtn").addEventListener("click", async () => {
   try {
     await api("/api/verify/send", {});
-    toast("Code sent — check your inbox");
+    toast("Code sent to recovery email");
   } catch (ex) {
     toast(ex.message, false);
   }
@@ -319,7 +337,7 @@ $("verifyConfirmBtn").addEventListener("click", async () => {
     const out = await api("/api/verify/confirm", { code: $("verifyCode").value.trim() });
     user = out.user;
     renderProfile();
-    toast("Email verified ✓");
+    toast("Recovery email verified ✓");
   } catch (ex) {
     toast(ex.message, false);
   }
@@ -510,7 +528,7 @@ $("deleteConfirmBtn").addEventListener("click", async () => {
   }
 });
 
-// ── connected services (static list for now) ────────────────────────────────
+// ── connected services (static list) ─────────────────────────────────────────
 const SERVICES = [
   { id: "mail", name: "Inpriv Mail", icon: "mark_email_unread", url: "https://mail.inpriv.xyz" },
   { id: "temp", name: "Temp Mail", icon: "bolt", url: "https://temp.inpriv.xyz" },

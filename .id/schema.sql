@@ -11,16 +11,19 @@
 --  - Email verification: 6-digit codes, sha256 at rest, 15-min TTL.
 
 CREATE TABLE IF NOT EXISTS users (
-  id               TEXT PRIMARY KEY,
-  email            TEXT NOT NULL UNIQUE,
-  nick             TEXT,
-  pass_hash        TEXT NOT NULL,
-  pass_salt        TEXT NOT NULL,
-  pass_iters       INTEGER NOT NULL DEFAULT 310000,
-  email_verified   INTEGER NOT NULL DEFAULT 0,
-  totp_enabled     INTEGER NOT NULL DEFAULT 0,
-  created_at       INTEGER NOT NULL,
-  last_login       INTEGER
+  id                      TEXT PRIMARY KEY,
+  username                TEXT UNIQUE,
+  email                   TEXT NOT NULL UNIQUE,
+  recovery_email          TEXT,
+  nick                    TEXT,
+  pass_hash               TEXT NOT NULL,
+  pass_salt               TEXT NOT NULL,
+  pass_iters              INTEGER NOT NULL DEFAULT 310000,
+  email_verified          INTEGER NOT NULL DEFAULT 0,
+  recovery_email_verified INTEGER NOT NULL DEFAULT 0,
+  totp_enabled            INTEGER NOT NULL DEFAULT 0,
+  created_at              INTEGER NOT NULL,
+  last_login              INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS sessions (
@@ -96,6 +99,7 @@ CREATE TABLE IF NOT EXISTS rl_counters (
   PRIMARY KEY (k, bucket)
 );
 
-CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
-CREATE INDEX IF NOT EXISTS idx_events_user   ON auth_events(user_id, at);
-CREATE INDEX IF NOT EXISTS idx_codes_user    ON email_codes(user_id, purpose);
+CREATE INDEX IF NOT EXISTS idx_sessions_user       ON sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_events_user         ON auth_events(user_id, at);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username  ON users(username);
+CREATE INDEX IF NOT EXISTS idx_users_recovery_email ON users(recovery_email);

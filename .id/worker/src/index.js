@@ -15,19 +15,25 @@ const newToken = () => b64(crypto.getRandomValues(new Uint8Array(32)));
 
 async function publicUser(env, uid, full = false) {
   const u = await env.DB.prepare(
-    "SELECT id, email, nick, email_verified, totp_enabled, created_at, last_login FROM users WHERE id = ?"
+    "SELECT id, username, email, recovery_email, nick, email_verified, recovery_email_verified, totp_enabled, created_at, last_login FROM users WHERE id = ?"
   ).bind(uid).first();
   if (!u) return null;
-  const nick = u.nick || String(u.email || "user").split("@")[0].slice(0, 24);
+  const username = u.username || (u.email ? u.email.split("@")[0] : "user");
+  const nick = u.nick || username;
+  const inprivEmail = u.email || `${username}@inpriv.xyz`;
   const out = {
     id: u.id,
+    username,
+    email: inprivEmail,
+    inpriv_email: inprivEmail,
     nick,
     avatar: "seed:" + u.id.slice(0, 8),
-    email_verified: !!u.email_verified,
+    email_verified: !!(u.recovery_email_verified || u.email_verified),
     totp_enabled: !!u.totp_enabled,
   };
   if (full) {
-    out.email = u.email;
+    out.recovery_email = u.recovery_email || null;
+    out.recovery_email_verified = !!u.recovery_email_verified;
     out.created_at = u.created_at;
     out.last_login = u.last_login;
   }
@@ -82,7 +88,7 @@ async function sessionByToken(env, token) {
   const id = await sha256hex(token);
   const row = await env.DB.prepare(
     `SELECT s.id sid, s.user_id uid, s.label, s.ip_prefix, s.created_at, s.last_used, s.expires_at, s.totp_ok,
-            u.email, u.nick, u.email_verified, u.totp_enabled
+            u.username, u.email, u.recovery_email, u.nick, u.email_verified, u.recovery_email_verified, u.totp_enabled
      FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.id = ?`
   ).bind(id).first();
   if (!row) return null;
@@ -113,6 +119,13 @@ async function authUser(req, env, rotate = true) {
   }
   return { row, token, uid: row.uid, via };
 }
+
+const RESERVED_USERNAMES = new Set([
+  "admin", "administrator", "root", "system", "inpriv", "aurex", "aurexlabs",
+  "support", "security", "abuse", "postmaster", "noreply", "mailer-daemon",
+  "help", "account", "mail", "temp", "burn", "zero", "api", "auth", "login",
+  "dashboard", "billing", "status", "bot", "anonymous", "null", "undefined"
+]);
 
 export default {
   async fetch(request, env, ctx) {
@@ -145,7 +158,7 @@ export default {
     }
 
     if (path === "/api/health") {
-      return json({ service: "inpriv-id", status: "ok", version: "1.0.0" });
+      return json({ service: "inpriv-id", status: "ok", version: "1.1.0" });
     }
 
     try {
@@ -155,40 +168,76 @@ export default {
           return bad("too many registrations from this network — try again later", 429);
 
         const body = await request.json();
-        const email = String(body.email || "").toLowerCase().trim();
+        let username = String(body.username || body.inpriv_id || body.email || "").toLowerCase().trim();
         const password = String(body.password || "");
         const nick = String(body.nick || "").trim().slice(0, 24);
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return bad("invalid email address");
+        let recoveryEmail = String(body.recovery_email || "").toLowerCase().trim();
+
+        // Strip domain suffix if user typed username@inpriv.xyz
+        if (username.endsWith("@inpriv.xyz")) {
+          username = username.slice(0, -"@inpriv.xyz".length).trim();
+        }
+
+        if (!username) return bad("please choose your Inpriv ID");
+        if (!/^[a-z0-9._-]{3,32}$/.test(username)) {
+          return bad("Inpriv ID: 3-32 characters (letters, numbers, dot, dash, underscore)");
+        }
+        if (/^[-._]|[-._]$/.test(username) || /[._-]{2,}/.test(username)) {
+          return bad("Inpriv ID cannot start/end with or contain consecutive symbols");
+        }
+        if (RESERVED_USERNAMES.has(username)) {
+          return bad("this Inpriv ID is reserved");
+        }
+
+        const inprivEmail = `${username}@inpriv.xyz`;
+
+        if (recoveryEmail) {
+          if (recoveryEmail.endsWith("@inpriv.xyz")) {
+            return bad("recovery email must be an external address (e.g. Gmail, Proton)");
+          }
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(recoveryEmail)) {
+            return bad("invalid recovery email address");
+          }
+        } else {
+          recoveryEmail = null;
+        }
+
         if (password.length < 10) return bad("password too short (min 10 characters)");
         if (password.length > 200) return bad("password too long");
-        if (nick && !/^[a-zA-Z0-9._-]{1,24}$/.test(nick)) return bad("nickname: 1-24 chars, letters/digits/._-");
+        if (nick && !/^[a-zA-Z0-9._\- ]{1,24}$/.test(nick)) return bad("nickname: 1-24 chars");
 
-        const dup = await env.DB.prepare("SELECT 1 FROM users WHERE email = ?").bind(email).first();
-        if (dup) return bad("account with this email already exists", 409);
+        const dup = await env.DB.prepare(
+          "SELECT 1 FROM users WHERE username = ? OR email = ? OR (recovery_email IS NOT NULL AND recovery_email = ?)"
+        ).bind(username, inprivEmail, recoveryEmail || "__none__").first();
+        if (dup) return bad("an account with this Inpriv ID or recovery email already exists", 409);
 
         const salt = b64(crypto.getRandomValues(new Uint8Array(16)));
         const ph = await passHash(password, salt);
         const uid = uuid();
         await env.DB.prepare(
-          "INSERT INTO users (id, email, nick, pass_hash, pass_salt, pass_iters, created_at) VALUES (?,?,?,?,?,?,?)"
-        ).bind(uid, email, nick || email.split("@")[0].slice(0, 24), ph, salt, PASS_ITERS, now()).run();
+          "INSERT INTO users (id, username, email, recovery_email, nick, pass_hash, pass_salt, pass_iters, created_at) VALUES (?,?,?,?,?,?,?,?,?)"
+        ).bind(uid, username, inprivEmail, recoveryEmail, nick || username, ph, salt, PASS_ITERS, now()).run();
         await logEvent(env.DB, uid, "register", request);
 
-        const code = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1_000_000).padStart(6, "0");
-        await env.DB.prepare(
-          "INSERT INTO email_codes (id, user_id, code_hash, purpose, expires_at) VALUES (?,?,?,?,?)"
-        ).bind(uuid(), uid, await sha256hex(code), "verify", now() + 15 * 60_000).run();
-        const sent = await sendMail(
-          env, email,
-          "Confirm your Inpriv account",
-          `Your verification code: ${code}\n\nIt expires in 15 minutes. If you didn't create this account, ignore this email.`,
-          emailShell("Confirm your email",
-            `Enter this code to finish creating your account:${codeBlock(code)}Expires in 15 minutes.`)
-        );
+        let sentOk = false;
+        if (recoveryEmail) {
+          const code = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1_000_000).padStart(6, "0");
+          await env.DB.prepare(
+            "INSERT INTO email_codes (id, user_id, code_hash, purpose, expires_at) VALUES (?,?,?,?,?)"
+          ).bind(uuid(), uid, await sha256hex(code), "verify", now() + 15 * 60_000).run();
+          const sent = await sendMail(
+            env, recoveryEmail,
+            "Confirm your Inpriv recovery email",
+            `Your Inpriv ID: ${inprivEmail}\n\nVerification code: ${code}\n\nIt expires in 15 minutes.`,
+            emailShell("Confirm your recovery email",
+              `Your Inpriv ID: <strong>${inprivEmail}</strong><br><br>Enter this code to verify your recovery email:${codeBlock(code)}Expires in 15 minutes.`)
+          );
+          sentOk = sent.ok;
+        }
 
         const s = await createSession(env.DB, uid, request, true);
         return json(
-          { token: s.token, user: await publicUser(env, uid, true), verification_sent: sent.ok },
+          { token: s.token, user: await publicUser(env, uid, true), verification_sent: sentOk },
           200,
           { ...cors, "Set-Cookie": sessionCookie(s.token) }
         );
@@ -200,24 +249,32 @@ export default {
           return bad("too many attempts — wait 15 minutes", 429);
 
         const body = await request.json();
-        const email = String(body.email || body.address || "").toLowerCase().trim();
+        let input = String(body.login || body.email || body.address || body.username || "").toLowerCase().trim();
         const password = String(body.password || "");
+
+        let usernameCandidate = input;
+        if (usernameCandidate.endsWith("@inpriv.xyz")) {
+          usernameCandidate = usernameCandidate.slice(0, -"@inpriv.xyz".length).trim();
+        }
+
         const user = await env.DB.prepare(
-          "SELECT id, pass_hash, pass_salt, pass_iters, totp_enabled FROM users WHERE email = ?"
-        ).bind(email).first();
+          `SELECT id, username, email, recovery_email, pass_hash, pass_salt, pass_iters, totp_enabled
+           FROM users
+           WHERE username = ? OR email = ? OR email = (? || '@inpriv.xyz') OR recovery_email = ?`
+        ).bind(usernameCandidate, input, usernameCandidate, input).first();
 
         // hash even when user missing (timingEqual-ish anti-enumeration)
-        const ph = await passHash(password, user ? user.pass_salt : b64(encSalt(email)), user ? user.pass_iters : PASS_ITERS);
+        const ph = await passHash(password, user ? user.pass_salt : b64(encSalt(input)), user ? user.pass_iters : PASS_ITERS);
         const okFlag = user ? constantTimeEq(ph, user.pass_hash) : false;
         if (!okFlag) {
           if (user) await logEvent(env.DB, user.id, "login_fail", request);
-          return bad("invalid email or password", 401);
+          return bad("invalid credentials", 401);
         }
         await logEvent(env.DB, user.id, "login", request);
 
         if (user.totp_enabled) {
           const pending = newToken();
-          const pid = await sha256hex("pending:" + pending);
+          const pid = await sha256hex(pending);
           await env.DB.prepare(
             "INSERT INTO pending_2fa (id, user_id, created_at, expires_at, ip_prefix) VALUES (?,?,?,?,?)"
           ).bind(pid, user.id, now(), now() + 5 * 60_000, ipPrefix(request)).run();
@@ -233,18 +290,21 @@ export default {
         );
       }
 
-      // ═══ PUBLIC: 2FA LOGIN STEP ═══
+      // ═══ PUBLIC: 2FA LOGIN ═══
       if (path === "/api/login/2fa" && request.method === "POST") {
         const body = await request.json();
-        const pending = String(body.mfa_token || "");
+        const mfaToken = String(body.mfa_token || "");
         const code = String(body.code || "").trim();
-        const recovery = String(body.recovery || "").trim();
-        const pid = await sha256hex("pending:" + pending);
-        const p = await env.DB.prepare("SELECT id, user_id, expires_at FROM pending_2fa WHERE id = ?").bind(pid).first();
-        if (!p || p.expires_at < now()) return bad("mfa session expired — log in again", 401);
+        const recovery = String(body.recovery || "").toLowerCase().trim();
+        if (!mfaToken) return bad("missing mfa session", 401);
+        const pid = await sha256hex(mfaToken);
+        const p = await env.DB.prepare(
+          "SELECT user_id, expires_at FROM pending_2fa WHERE id = ?"
+        ).bind(pid).first();
+        if (!p || p.expires_at < now()) return bad("mfa session expired — start over", 401);
 
         if (recovery) {
-          const hash = await sha256hex(recovery.toLowerCase());
+          const hash = await sha256hex(recovery);
           const rc = await env.DB.prepare(
             "SELECT id FROM recovery_codes WHERE user_id = ? AND code_hash = ? AND used_at IS NULL"
           ).bind(p.user_id, hash).first();
@@ -324,16 +384,18 @@ export default {
         return out({ ok: true, version: 1 }, 200, cors);
       }
 
-      // ── e-mail verification ──
+      // ── e-mail verification (recovery email) ──
       if (path === "/api/verify/send" && request.method === "POST") {
         if (!(await rateLimit(env.DB, `verify:${me.uid}`, 5, 3_600_000))) return bad("limit reached — try again in an hour", 429);
-        const user = await env.DB.prepare("SELECT email, email_verified FROM users WHERE id = ?").bind(me.uid).first();
-        if (user.email_verified) return out({ ok: true, already: true }, 200, cors);
+        const user = await env.DB.prepare("SELECT email, recovery_email, recovery_email_verified FROM users WHERE id = ?").bind(me.uid).first();
+        const targetEmail = user.recovery_email;
+        if (!targetEmail) return bad("no recovery email configured", 400);
+        if (user.recovery_email_verified) return out({ ok: true, already: true }, 200, cors);
         const code = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1_000_000).padStart(6, "0");
-        await env.DB.prepare("INSERT INTO email_codes (id, user_id, code_hash, purpose, expires_at) VALUES (?,?,?,?,?)")
-          .bind(uuid(), me.uid, await sha256hex(code), "verify", now() + 15 * 60_000).run();
-        const sent = await sendMail(env, user.email, "Your Inpriv verification code",
-          `Code: ${code}`, emailShell("Verify your email", `Code:${codeBlock(code)}Expires in 15 minutes.`));
+        await env.DB.prepare("INSERT INTO email_codes (id, user_id, code_hash, purpose, expires_at) VALUES (?,?,?,?,?)"
+        ).bind(uuid(), me.uid, await sha256hex(code), "verify", now() + 15 * 60_000).run();
+        const sent = await sendMail(env, targetEmail, "Your Inpriv verification code",
+          `Code: ${code}`, emailShell("Verify your recovery email", `Your Inpriv account recovery verification code:${codeBlock(code)}Expires in 15 minutes.`));
         return out({ ok: sent.ok, detail: sent.ok ? undefined : sent.reason }, 200, cors);
       }
       if (path === "/api/verify/confirm" && request.method === "POST") {
@@ -347,8 +409,27 @@ export default {
         if (!row || row.used_at || row.expires_at < now()) return bad("invalid or expired code", 401);
         await env.DB.batch([
           env.DB.prepare("UPDATE email_codes SET used_at = ? WHERE id = ?").bind(now(), row.id),
-          env.DB.prepare("UPDATE users SET email_verified = 1 WHERE id = ?").bind(me.uid),
+          env.DB.prepare("UPDATE users SET recovery_email_verified = 1, email_verified = 1 WHERE id = ?").bind(me.uid),
         ]);
+        return out({ ok: true, user: await publicUser(env, me.uid, true) }, 200, cors);
+      }
+
+      // ── update recovery email ──
+      if (path === "/api/recovery-email/set" && request.method === "POST") {
+        const body = await request.json();
+        let recoveryEmail = String(body.recovery_email || "").toLowerCase().trim();
+        if (recoveryEmail) {
+          if (recoveryEmail.endsWith("@inpriv.xyz")) {
+            return bad("recovery email must be an external address");
+          }
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(recoveryEmail)) {
+            return bad("invalid recovery email address");
+          }
+        } else {
+          recoveryEmail = null;
+        }
+        await env.DB.prepare("UPDATE users SET recovery_email = ?, recovery_email_verified = 0 WHERE id = ?")
+          .bind(recoveryEmail, me.uid).run();
         return out({ ok: true, user: await publicUser(env, me.uid, true) }, 200, cors);
       }
 
@@ -356,8 +437,9 @@ export default {
       if (path === "/api/2fa/setup" && request.method === "POST") {
         if (!(await rateLimit(env.DB, `tsetup:${me.uid}`, 5, 3_600_000))) return bad("try again later", 429);
         const secret = base32Encode(crypto.getRandomValues(new Uint8Array(20)));
-        const urow = await env.DB.prepare("SELECT email FROM users WHERE id = ?").bind(me.uid).first();
-        const otpauth = `otpauth://totp/Inpriv:${encodeURIComponent(urow.email)}?secret=${secret}&issuer=Inpriv&algorithm=SHA1&digits=6&period=30`;
+        const urow = await env.DB.prepare("SELECT email, username FROM users WHERE id = ?").bind(me.uid).first();
+        const accountLabel = urow.username ? `${urow.username}@inpriv.xyz` : (urow.email || "user@inpriv.xyz");
+        const otpauth = `otpauth://totp/Inpriv:${encodeURIComponent(accountLabel)}?secret=${secret}&issuer=Inpriv&algorithm=SHA1&digits=6&period=30`;
         await env.DB.prepare(
           "INSERT INTO totp_secrets (user_id, secret_enc, confirmed, created_at) VALUES (?,?,0,?) ON CONFLICT(user_id) DO UPDATE SET secret_enc = excluded.secret_enc, confirmed = 0"
         ).bind(me.uid, await sealString(env, secret), now()).run();
@@ -436,7 +518,7 @@ export default {
       if (path === "/api/profile" && request.method === "POST") {
         const body = await request.json();
         const nick = String(body.nick ?? "").trim().slice(0, 24);
-        if (nick && !/^[a-zA-Z0-9._-]{1,24}$/.test(nick)) return bad("nickname: 1-24 chars, letters/digits/._-");
+        if (nick && !/^[a-zA-Z0-9._\- ]{1,24}$/.test(nick)) return bad("nickname: 1-24 chars, letters/digits/._-");
         await env.DB.prepare("UPDATE users SET nick = ? WHERE id = ?").bind(nick || null, me.uid).run();
         return out({ ok: true, user: await publicUser(env, me.uid, true) }, 200, cors);
       }

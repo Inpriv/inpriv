@@ -46,12 +46,12 @@
       <!-- login -->
       <form id="loginForm">
         <div class="field">
-          <label for="loginEmail">Email</label>
-          <input id="loginEmail" type="email" autocomplete="email" required spellcheck="false">
+          <label for="loginEmail">Inpriv ID or Recovery Email</label>
+          <input id="loginEmail" type="text" autocomplete="username" required spellcheck="false" placeholder="saloyek, saloyek@inpriv.xyz, or recovery email">
         </div>
         <div class="field">
           <label for="loginPass">Password</label>
-          <input id="loginPass" type="password" autocomplete="current-password" required>
+          <input id="loginPass" type="password" autocomplete="current-password" required placeholder="your password">
         </div>
         <button class="btn" id="loginBtn" type="submit"><span class="ms" id="loginBtnIcon">login</span><span id="loginBtnTxt">Sign in</span></button>
       </form>
@@ -79,19 +79,28 @@
       <!-- register -->
       <form id="regForm" hidden>
         <div class="field">
-          <label for="regNick">Nickname <span style="text-transform:none;font-weight:500">(optional)</span></label>
-          <input id="regNick" type="text" maxlength="24" autocomplete="nickname" spellcheck="false" placeholder="how others see you">
+          <label for="regId">Inpriv ID / Address</label>
+          <div class="input-suffix-group">
+            <input id="regId" type="text" autocomplete="username" required spellcheck="false" placeholder="saloyek" maxlength="32">
+            <span class="input-suffix">@inpriv.xyz</span>
+          </div>
+          <div class="field-hint">Your permanent, private address across all Inpriv services.</div>
         </div>
         <div class="field">
-          <label for="regEmail">Email</label>
-          <input id="regEmail" type="email" autocomplete="email" required spellcheck="false">
+          <label for="regNick">Nickname <span style="text-transform:none;font-weight:500">(optional)</span></label>
+          <input id="regNick" type="text" maxlength="24" autocomplete="nickname" spellcheck="false" placeholder="how others see you (e.g. Salo)">
+        </div>
+        <div class="field">
+          <label for="regRecoveryEmail">Recovery Email <span style="text-transform:none;font-weight:500">(optional)</span></label>
+          <input id="regRecoveryEmail" type="email" autocomplete="email" spellcheck="false" placeholder="you@proton.me, you@gmail.com...">
+          <div class="field-hint">Optional external email for password recovery and security notices.</div>
         </div>
         <div class="field">
           <label for="regPass">Password <span style="text-transform:none;font-weight:500">(min 10 chars)</span></label>
-          <input id="regPass" type="password" autocomplete="new-password" minlength="10" required>
+          <input id="regPass" type="password" autocomplete="new-password" minlength="10" required placeholder="at least 10 characters">
         </div>
         <button class="btn" id="regBtn" type="submit"><span class="ms">person_add</span><span id="regBtnTxt">Create account</span></button>
-        <p class="auth-hint">No tracking. No profiling. Your email is only used for account recovery.</p>
+        <p class="auth-hint">No tracking. Zero telemetry. Private by design.</p>
       </form>
     </div>
   </section>
@@ -105,7 +114,7 @@
         <div class="panel-mail" id="pEmail">…</div>
         <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
           <span class="badge ok" id="badgeVerified" hidden><span class="ms">check_circle</span>verified</span>
-          <span class="badge warn" id="badgeUnverified" hidden><span class="ms">mail</span>unverified</span>
+          <span class="badge warn" id="badgeUnverified" hidden><span class="ms">mail</span>recovery unverified</span>
           <span class="badge ok" id="badge2fa" hidden><span class="ms">shield</span>2FA on</span>
         </div>
       </div>
@@ -124,8 +133,21 @@
         <h3><span class="ms">badge</span>Nickname</h3>
         <p class="desc">Shown next to your activity across Inpriv services.</p>
         <div style="display:flex;gap:10px">
-          <input id="nickInput" type="text" maxlength="24" style="flex:1;height:48px;padding:0 16px;border-radius:16px;border:1px solid var(--md-outline-variant);background:var(--md-surface-container-lowest);color:var(--md-on-surface);font:400 15px 'Roboto Flex',sans-serif;outline:none">
+          <input id="nickInput" type="text" maxlength="24" placeholder="Nickname" style="flex:1;height:48px;padding:0 16px;border-radius:16px;border:1px solid var(--md-outline-variant);background:var(--md-surface-container-lowest);color:var(--md-on-surface);font:400 15px 'Roboto Flex',sans-serif;outline:none">
           <button class="btn" style="width:auto;padding:0 22px" id="nickSave">Save</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3><span class="ms">alternate_email</span>Recovery Email</h3>
+        <p class="desc" id="recoveryDesc">External email for password resets and security notifications.</p>
+        <div style="display:flex;gap:10px;margin-bottom:12px">
+          <input id="recoveryInput" type="email" placeholder="you@proton.me, you@gmail.com..." style="flex:1;height:48px;padding:0 16px;border-radius:16px;border:1px solid var(--md-outline-variant);background:var(--md-surface-container-lowest);color:var(--md-on-surface);font:400 15px 'Roboto Flex',sans-serif;outline:none">
+          <button class="btn" style="width:auto;padding:0 22px" id="recoverySaveBtn">Save</button>
+        </div>
+        <div id="verifySection" style="display:none;gap:10px;align-items:center;margin-top:12px">
+          <input id="verifyCode" type="text" inputmode="numeric" maxlength="6" placeholder="••••••" style="width:120px;height:48px;padding:0 16px;border-radius:16px;border:1px solid var(--md-outline-variant);background:var(--md-surface-container-lowest);color:var(--md-on-surface);font:600 18px ui-monospace,monospace;text-align:center;letter-spacing:4px;outline:none">
+          <button class="btn" style="width:auto;padding:0 22px" id="verifyConfirmBtn">Verify Code</button>
+          <button class="btn ghost" style="width:auto;padding:0 18px" id="verifySendBtn"><span class="ms" style="font-size:18px">send</span>Resend</button>
         </div>
       </div>
       <div class="card">
@@ -146,15 +168,6 @@
           </div>
         </div>
       </div>
-      <div class="card">
-        <h3><span class="ms">alternate_email</span>Email verification</h3>
-        <p class="desc" id="verifyDesc">Verify your email to secure account recovery.</p>
-        <div style="display:flex;gap:10px;align-items:center">
-          <input id="verifyCode" type="text" inputmode="numeric" maxlength="6" placeholder="••••••" style="width:120px;height:48px;padding:0 16px;border-radius:16px;border:1px solid var(--md-outline-variant);background:var(--md-surface-container-lowest);color:var(--md-on-surface);font:600 18px ui-monospace,monospace;text-align:center;letter-spacing:4px;outline:none">
-          <button class="btn" style="width:auto;padding:0 22px" id="verifyConfirmBtn">Confirm</button>
-          <button class="btn ghost" style="width:auto;padding:0 18px" id="verifySendBtn"><span class="ms" style="font-size:18px">send</span>Resend</button>
-        </div>
-      </div>
     </div>
 
     <!-- SECURITY -->
@@ -162,8 +175,8 @@
       <div class="card">
         <h3><span class="ms">password</span>Password</h3>
         <p class="desc">Changing your password signs out all other sessions.</p>
-        <div class="field"><label for="pwCurrent">Current password</label><input id="pwCurrent" type="password" autocomplete="current-password"></div>
-        <div class="field"><label for="pwNext">New password (min 10 chars)</label><input id="pwNext" type="password" autocomplete="new-password" minlength="10"></div>
+        <div class="field"><label for="pwCurrent">Current password</label><input id="pwCurrent" type="password" autocomplete="current-password" placeholder="Current password"></div>
+        <div class="field"><label for="pwNext">New password (min 10 chars)</label><input id="pwNext" type="password" autocomplete="new-password" minlength="10" placeholder="New password"></div>
         <button class="btn" style="width:auto;padding:0 22px" id="pwChangeBtn"><span class="ms">lock_reset</span>Change password</button>
       </div>
 
