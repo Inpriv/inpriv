@@ -869,25 +869,28 @@ body {
   left: 0;
   right: 0;
   z-index: 45;
-  height: calc(60px + var(--safe-bottom));
+  height: calc(62px + var(--safe-bottom));
   padding-bottom: var(--safe-bottom);
-  background: color-mix(in srgb, var(--md-surface-container) 92%, transparent);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  background: color-mix(in srgb, var(--md-surface-container) 94%, transparent);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
   border-top: 1px solid color-mix(in srgb, var(--md-outline-variant) 40%, transparent);
   display: flex;
   align-items: center;
   justify-content: space-around;
-  padding-left: 8px;
-  padding-right: 8px;
+  padding-left: 10px;
+  padding-right: 10px;
   box-shadow: 0 -4px 20px -4px var(--md-shadow-color);
+}
+@media(min-width: 768px) {
+  .bottom-nav { display: none !important; }
 }
 .nav-item {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 3px;
   flex: 1;
   height: 52px;
   border: none;
@@ -897,41 +900,45 @@ body {
   border-radius: 14px;
   transition: all 0.2s cubic-bezier(0.2, 1.4, 0, 1);
   position: relative;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
+.nav-item:hover { color: var(--md-on-surface); }
 .nav-item.active {
   color: var(--md-primary);
 }
-.nav-item .ms { font-size: 22px; }
+.nav-item .ms { font-size: 22px; transition: transform 0.2s cubic-bezier(0.2, 1.4, 0, 1); }
+.nav-item.active .ms { transform: scale(1.08); }
 .nav-item .nav-label {
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
 }
 .nav-item .badge-dot {
   position: absolute;
   top: 6px;
-  right: calc(50% - 16px);
+  right: calc(50% - 14px);
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: var(--md-primary);
+  box-shadow: 0 0 0 2px var(--md-surface-container);
 }
 
-.compose-nav-btn {
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
-  background: var(--md-primary);
-  color: var(--md-on-primary);
-  display: grid;
-  place-items: center;
-  border: none;
-  cursor: pointer;
-  box-shadow: 0 4px 16px -2px color-mix(in srgb, var(--md-primary) 60%, transparent);
-  transition: transform 0.2s cubic-bezier(0.2, 1.4, 0, 1);
+.nav-compose-pill {
+  color: var(--md-primary);
+  font-weight: 700;
 }
-.compose-nav-btn:active { transform: scale(0.92); }
-.compose-nav-btn .ms { font-size: 22px; }
+.nav-compose-pill .ms {
+  background: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+  border-radius: 12px;
+  padding: 2px 10px;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
 /* ---------- Floating Action Button (Tablet/Desktop) ---------- */
 .fab {
@@ -959,8 +966,8 @@ body {
 .fab:active { transform: scale(0.95); }
 .fab .ms { font-size: 22px; }
 
-@media(max-width: 600px) {
-  .fab { display: none; } /* On mobile, compose is centered in bottom nav */
+@media(max-width: 767px) {
+  .fab { display: none !important; }
 }
 
 /* ---------- Modals & Overlays ---------- */
@@ -1850,13 +1857,14 @@ function renderBottomNav() {
         ${unreadCount > 0 ? `<span class="badge-dot"></span>` : ''}
       </button>
 
-      <button class="compose-nav-btn" id="mobileComposeBtn" title="Compose New Message" aria-label="Compose New Message">
-        ${mkIcon('edit')}
-      </button>
-
       <button class="nav-item ${state.activeTab === 'sent' ? 'active' : ''}" data-nav="sent">
         ${mkIcon('send')}
         <span class="nav-label">Sent</span>
+      </button>
+
+      <button class="nav-item nav-compose-pill" id="mobileComposeBtn" title="Compose New Message">
+        ${mkIcon('edit')}
+        <span class="nav-label">Compose</span>
       </button>
 
       <button class="nav-item ${state.activeTab === 'account' ? 'active' : ''}" data-nav="account">
@@ -1866,7 +1874,7 @@ function renderBottomNav() {
     </nav>
   `;
 
-  $$('.bottom-nav .nav-item').forEach(btn => {
+  $$('.bottom-nav .nav-item[data-nav]').forEach(btn => {
     btn.addEventListener('click', () => {
       const target = btn.dataset.nav;
       switchTab(target);
