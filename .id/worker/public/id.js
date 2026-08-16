@@ -179,7 +179,7 @@
       var c = el("div", "inpriv-id-card");
       c.id = "inpriv-id-card";
       c.innerHTML =
-        '<div style="width:44px;height:44px;border-radius:14px;background:#2E4F2F;color:#C7EFA0;display:grid;place-items:center;font-size:22px;margin-bottom:12px">🌿</div>' +
+        '<div style="width:44px;height:44px;border-radius:14px;background:#2E4F2F;color:#C7EFA0;display:grid;place-items:center;margin-bottom:12px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg></div>' +
         "<h4>One account, every Inpriv tool</h4>" +
         "<p>Sign in to sync your nickname and preferences across services. No tracking — your data stays encrypted.</p>" +
         '<div class="inpriv-id-row"><button class="inpriv-id-btn" data-a="signin">Sign in</button></div>' +

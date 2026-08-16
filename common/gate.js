@@ -62,20 +62,26 @@ export function maintenancePage(serviceName, message) {
 :root{color-scheme:dark}
 *{margin:0;padding:0;box-sizing:border-box}
 body{min-height:100vh;display:grid;place-items:center;font:16px/1.6 system-ui,-apple-system,sans-serif;
-     background:radial-gradient(ellipse 80% 50% at 50% -10%,#1e2416,transparent),#13140e;color:#e3e2d3}
-.box{max-width:480px;padding:48px 40px;text-align:center}
-.icon{font-size:3rem;margin-bottom:16px}
-h1{font-size:1.6rem;font-weight:600;margin-bottom:12px;color:#e3e2d3}
-p{color:#c7c6b8;font-size:.95rem}
-.msg{margin-top:14px;padding:12px 16px;border-radius:12px;background:#1e2416;color:#abd37a;display:inline-block}
-a{color:#abd37a;text-decoration:none;font-size:.85rem}
-a:hover{text-decoration:underline}
+     background:radial-gradient(ellipse 80% 50% at 50% -10%,#1e2416,transparent),#13140e;color:#e3e2d3;padding:20px}
+.box{max-width:480px;padding:48px 36px;text-align:center;background:rgba(26,28,23,0.85);backdrop-filter:blur(24px);border:1px solid rgba(141,146,131,0.25);border-radius:28px;box-shadow:0 16px 48px -8px rgba(0,0,0,0.6)}
+.icon{width:64px;height:64px;border-radius:20px;background:#2E4F2F;color:#C7EFA0;display:grid;place-items:center;margin:0 auto 20px;box-shadow:0 8px 24px rgba(0,0,0,0.35)}
+.icon svg{width:30px;height:30px;stroke:#C7EFA0}
+h1{font-size:1.45rem;font-weight:700;letter-spacing:-0.01em;margin-bottom:10px;color:#e3e2d3}
+p{color:#c7c6b8;font-size:.92rem;line-height:1.55}
+.msg{margin-top:16px;padding:12px 18px;border-radius:14px;background:#1E2416;border:1px solid #3D4B34;color:#ABD37A;font-weight:500;display:inline-block;word-break:break-word}
+a{color:#abd37a;text-decoration:none;font-size:.85rem;font-weight:500;transition:opacity .2s}
+a:hover{opacity:.8;text-decoration:underline}
 </style></head><body><div class="box">
-<div class="icon">🔒</div>
+<div class="icon">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+  </svg>
+</div>
 <h1>${escapeHtml(serviceName)} is temporarily unavailable</h1>
 <p>This service has been locked by the administrator.<br>Your data is safe — check back later.</p>
 ${msg}
-<p style="margin-top:24px;font-size:.8rem"><a href="https://inpriv.xyz">← inpriv.xyz</a></p>
+<p style="margin-top:24px;font-size:.85rem"><a href="https://inpriv.xyz">&larr; back to inpriv.xyz</a></p>
 </div></body></html>`,
     {
       status: 503,
