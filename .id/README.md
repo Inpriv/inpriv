@@ -5,9 +5,9 @@ TOTP 2FA, encrypted personalization vault, session management.
 
 ## Architecture
 
-- **Worker**: `inpriv-id` on `account.inpriv.xyz`
+- **Worker**: `inpriv-id` on `id.inpriv.xyz`
 - **D1**: `inpriv-id` (users, sessions, TOTP secrets, recovery codes, vault, auth events)
-- **One Tap widget**: `https://account.inpriv.xyz/id.js` — drop-in script for every service
+- **One Tap widget**: `https://id.inpriv.xyz/id.js` — drop-in script for every service
 
 ## Security model
 
@@ -43,10 +43,10 @@ POST /api/profile /password/change /account/delete
 
 ```html
 <!-- basic: avatar chip when signed in -->
-<script src="https://account.inpriv.xyz/id.js" defer></script>
+<script src="https://id.inpriv.xyz/id.js" defer></script>
 
 <!-- account-supporting service: adds Continue-as prompt + sign-in card -->
-<script src="https://account.inpriv.xyz/id.js" data-service="mail" data-accounts defer></script>
+<script src="https://id.inpriv.xyz/id.js" data-service="mail" data-accounts defer></script>
 ```
 
 The page receives `inpriv:id` (user object) and `inpriv:connect` events,

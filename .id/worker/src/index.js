@@ -1,4 +1,4 @@
-// Inpriv ID — API router (account.inpriv.xyz).
+// Inpriv ID — API router (id.inpriv.xyz).
 // See lib.js for crypto/CORS/mail helpers and schema.sql for the data model.
 
 import { maintenanceGate, maintenancePage } from "../../../common/gate.js";

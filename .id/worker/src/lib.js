@@ -8,7 +8,7 @@ export const ORIGINS = new Set([
   "https://www.inpriv.xyz",
   "https://mail.inpriv.xyz",
   "https://temp.inpriv.xyz",
-  "https://account.inpriv.xyz",
+  "https://id.inpriv.xyz",
 ]);
 
 const enc = new TextEncoder();

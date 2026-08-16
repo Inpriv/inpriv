@@ -561,6 +561,12 @@ function esc(s) {
 // ── boot ─────────────────────────────────────────────────────────────────────
 (async function boot() {
   renderServices();
+  const params = new URLSearchParams(location.search);
+  if (params.get("login") === "1" || params.get("signin") === "1") {
+    switchAuth("login");
+  } else {
+    switchAuth("register");
+  }
   if (!token) {
     show("auth");
     return;

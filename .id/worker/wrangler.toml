@@ -6,7 +6,7 @@ workers_dev = true
 # Custom domain — Inpriv ID account system
 # (routes MUST stay above the first [table] — see cloudflare-workers skill)
 routes = [
-  { pattern = "account.inpriv.xyz", custom_domain = true }
+  { pattern = "id.inpriv.xyz", custom_domain = true }
 ]
 
 [[d1_databases]]

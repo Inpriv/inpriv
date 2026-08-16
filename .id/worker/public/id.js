@@ -1,5 +1,5 @@
 // Inpriv ID — One Tap widget.
-// Drop-in: <script src="https://account.inpriv.xyz/id.js" data-service="mail" defer></script>
+// Drop-in: <script src="https://id.inpriv.xyz/id.js" data-service="mail" defer></script>
 //
 // Behavior (Google-style):
 //  - Signed in (session cookie readable cross-site): shows an avatar chip in
@@ -9,13 +9,13 @@
 //  - Signed out: no chip. On account-supporting services a small corner card
 //    offers "Sign in / Create account" once per browser (dismiss = 7 days).
 //  - Respects the user's privacy switch (prompt off → no prompts, chip only
-//    on account.inpriv.xyz itself).
+//    on id.inpriv.xyz itself).
 /* global document, window, localStorage, fetch */
 
 (function () {
   "use strict";
 
-  var ORIGIN = "https://account.inpriv.xyz";
+  var ORIGIN = "https://id.inpriv.xyz";
   var script = document.currentScript;
   var service = (script && script.getAttribute("data-service")) || "";
   var supportsAccounts = !!(script && script.hasAttribute("data-accounts"));
@@ -24,7 +24,7 @@
   // never run inside iframes or on the account domain itself
   try {
     if (window.self !== window.top) return;
-    if (location.hostname === "account.inpriv.xyz") return;
+    if (location.hostname === "id.inpriv.xyz") return;
     if (!/\.inpriv\.xyz$/.test(location.hostname) && location.protocol !== "file:") return;
   } catch (e) { return; }
 
@@ -189,8 +189,8 @@
       requestAnimationFrame(function () { requestAnimationFrame(function () { c.classList.add("in"); }); });
       c.addEventListener("click", function (ev) {
         var a = ev.target.getAttribute && ev.target.getAttribute("data-a");
-        if (a === "signin") location.href = ORIGIN + "/?next=" + encodeURIComponent(location.href);
-        else if (a === "register") location.href = ORIGIN + "/?register=1&next=" + encodeURIComponent(location.href);
+        if (a === "signin") location.href = ORIGIN + "/?login=1&next=" + encodeURIComponent(location.href);
+        else if (a === "register") location.href = ORIGIN + "/?next=" + encodeURIComponent(location.href);
         else if (a === "close") { dismiss(7); remove(c); }
       });
       setTimeout(function () { remove(c); }, 30000);

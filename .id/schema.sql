@@ -1,5 +1,5 @@
 -- Inpriv ID — D1 schema
--- Central account system for all Inpriv services (account.inpriv.xyz).
+-- Central account system for all Inpriv services (id.inpriv.xyz).
 --
 -- Security model:
 --  - Password: PBKDF2-SHA256, 310 000 iterations (OWASP 2023), per-user salt.

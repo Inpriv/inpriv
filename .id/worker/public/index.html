@@ -33,18 +33,40 @@
   <section id="authView" class="auth-wrap" hidden>
     <div class="auth-card">
       <div class="auth-logo"><span class="ms">eco</span></div>
-      <h1 class="auth-title" id="authTitle">Welcome</h1>
-      <p class="auth-sub" id="authSub">One private account for every Inpriv tool.</p>
+      <h1 class="auth-title" id="authTitle">Create your account</h1>
+      <p class="auth-sub" id="authSub">Get your personal @inpriv.xyz email address. Send and receive private mail.</p>
 
       <div class="seg" id="seg" role="tablist">
-        <button id="segLogin" class="on" role="tab" aria-selected="true">Sign in</button>
-        <button id="segRegister" role="tab" aria-selected="false">Create account</button>
+        <button id="segRegister" class="on" role="tab" aria-selected="true">Create account</button>
+        <button id="segLogin" role="tab" aria-selected="false">Sign in</button>
       </div>
 
       <div class="form-err" id="formErr" role="alert" aria-live="polite"></div>
 
+      <!-- register -->
+      <form id="regForm">
+        <div class="field">
+          <label for="regId">Inpriv Email Address</label>
+          <div class="input-suffix-group">
+            <input id="regId" type="text" autocomplete="username" required spellcheck="false" placeholder="username" maxlength="32">
+            <span class="input-suffix">@inpriv.xyz</span>
+          </div>
+          <div class="field-hint">Your permanent, personal @inpriv.xyz email address. Send and receive mail privately across the Inpriv network.</div>
+        </div>
+        <div class="field">
+          <label for="regNick">Nickname <span style="text-transform:none;font-weight:500">(optional)</span></label>
+          <input id="regNick" type="text" maxlength="24" autocomplete="nickname" spellcheck="false" placeholder="how others see you">
+        </div>
+        <div class="field">
+          <label for="regPass">Password <span style="text-transform:none;font-weight:500">(min 10 chars)</span></label>
+          <input id="regPass" type="password" autocomplete="new-password" minlength="10" required placeholder="at least 10 characters">
+        </div>
+        <button class="btn" id="regBtn" type="submit"><span class="ms">person_add</span><span id="regBtnTxt">Create account</span></button>
+        <p class="auth-hint">No tracking. Zero telemetry. You can add a recovery email later in account settings.</p>
+      </form>
+
       <!-- login -->
-      <form id="loginForm">
+      <form id="loginForm" hidden>
         <div class="field">
           <label for="loginEmail">Inpriv ID or Recovery Email</label>
           <input id="loginEmail" type="text" autocomplete="username" required spellcheck="false" placeholder="username, yourname@inpriv.xyz, or recovery email">
@@ -74,28 +96,6 @@
           <input id="mfaRecovery" type="text" autocomplete="off" spellcheck="false" style="text-align:center" required>
         </div>
         <button class="btn" type="submit"><span class="ms">vpn_key</span>Recover access</button>
-      </form>
-
-      <!-- register -->
-      <form id="regForm" hidden>
-        <div class="field">
-          <label for="regId">Inpriv Email Address</label>
-          <div class="input-suffix-group">
-            <input id="regId" type="text" autocomplete="username" required spellcheck="false" placeholder="username" maxlength="32">
-            <span class="input-suffix">@inpriv.xyz</span>
-          </div>
-          <div class="field-hint">Your permanent, personal @inpriv.xyz email address. Send and receive mail privately across the Inpriv network.</div>
-        </div>
-        <div class="field">
-          <label for="regNick">Nickname <span style="text-transform:none;font-weight:500">(optional)</span></label>
-          <input id="regNick" type="text" maxlength="24" autocomplete="nickname" spellcheck="false" placeholder="how others see you">
-        </div>
-        <div class="field">
-          <label for="regPass">Password <span style="text-transform:none;font-weight:500">(min 10 chars)</span></label>
-          <input id="regPass" type="password" autocomplete="new-password" minlength="10" required placeholder="at least 10 characters">
-        </div>
-        <button class="btn" id="regBtn" type="submit"><span class="ms">person_add</span><span id="regBtnTxt">Create account</span></button>
-        <p class="auth-hint">No tracking. Zero telemetry. You can add a recovery email later in account settings.</p>
       </form>
     </div>
   </section>
