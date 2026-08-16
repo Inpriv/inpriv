@@ -9,10 +9,17 @@ routes = [
   { pattern = "mail.inpriv.xyz", custom_domain = true }
 ]
 
+# Primary Mail D1 Database
 [[d1_databases]]
 binding = "DB"
 database_name = "inpriv-mail"
 database_id = "d5c75cf0-46ba-4721-99fc-da18d2ccbabe"
+
+# Inpriv ID Central Account D1 Database (read/verify SSO accounts)
+[[d1_databases]]
+binding = "ID_DB"
+database_name = "inpriv-id"
+database_id = "1cd1ca2e-51fd-40d9-94d8-aa75f989291b"
 
 [triggers]
 crons = ["17 3 * * *"]
@@ -32,7 +39,7 @@ id = "37e2feceae474e21a0b9664c9bdfdea3"
 DOMAIN = "inpriv.xyz"
 
 # Secrets:
-#   MAIL_ENC_KEY        — 32 bytes (openssl rand -base64 32) message sealing
-#   RESEND_API_KEY      — send-only key
+#   MAIL_ENC_KEY          — 32 bytes (openssl rand -base64 32) message sealing
+#   RESEND_API_KEY        — send-only key
 #   RESEND_WEBHOOK_SECRET — whsec_… from the Resend dashboard webhook
-#   RESEND_READ_API_KEY — optional full-access key for inbound bodies
+#   RESEND_READ_API_KEY   — optional full-access key for inbound bodies

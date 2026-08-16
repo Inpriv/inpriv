@@ -1,24 +1,24 @@
 <!DOCTYPE html>
 <!--
-  Inpriv Mail — Zero-Knowledge Mail
+  Inpriv Mail — Zero-Knowledge Encrypted Mail
+  Part of Inpriv (https://inpriv.xyz) · Aurex Labs
   Copyright (c) 2026 Aurex Labs — MIT License
-
-  Client-side encrypted mailbox UI. Messages are encrypted/decrypted in the
-  browser; the server stores only ciphertext.
 -->
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com fonts.gstatic.com; script-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.googleapis.com fonts.gstatic.com https://fonts.gstatic.com; img-src 'self' data: blob: cid:; media-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'; connect-src 'self' http://localhost:* http://127.0.0.1:*; worker-src 'none'; manifest-src 'self'">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' 'unsafe-inline' https://id.inpriv.xyz; font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; img-src 'self' data: blob: https://hush.best https://id.inpriv.xyz; connect-src 'self' https://id.inpriv.xyz https://mail.inpriv.xyz http://localhost:* http://127.0.0.1:*; object-src 'none'; base-uri 'self'; form-action 'self';" />
 <meta name="theme-color" content="#13140E" />
-<title>Inpriv — Zero-Knowledge Mail</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,400;8..144,500;8..144,600;8..144,700;8..144,800&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-200..200&display=swap" rel="stylesheet">
+<meta name="description" content="Inpriv Mail — Mobile-first, zero-knowledge encrypted email powered by RSA-2048 and AES-GCM. Fully synchronized with Inpriv ID." />
+<title>Inpriv Mail — Zero-Knowledge Encrypted Mail</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,400;8..144,500;8..144,600;8..144,700;8..144,800&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-200..200&display=swap" rel="stylesheet" />
+<script src="https://id.inpriv.xyz/id.js" data-service="mail" data-accounts defer></script>
 <style>
 /* ============================================================================
-   AUREX LABS DESIGN SYSTEM — Earthy Forest M3
+   AUREX LABS DESIGN SYSTEM — M3 Earthy Forest
    ========================================================================== */
 :root {
   --md-primary: #ABD37A;
@@ -35,6 +35,8 @@
   --md-on-tertiary-container: #FFDAD3;
   --md-error: #FFB4AB;
   --md-on-error: #690005;
+  --md-error-container: #93000A;
+  --md-on-error-container: #FFDAD6;
   --md-surface: #13140E;
   --md-on-surface: #E3E2D3;
   --md-on-surface-variant: #C3C8B6;
@@ -49,9 +51,12 @@
   --md-inverse-surface: #E3E2D3;
   --md-inverse-on-surface: #2F312C;
   --md-inverse-primary: #466E47;
-  --md-shadow-color: rgba(0,0,0,0.4);
-  --md-shadow-color-strong: rgba(0,0,0,0.65);
+  --md-shadow-color: rgba(0, 0, 0, 0.45);
+  --md-shadow-color-strong: rgba(0, 0, 0, 0.7);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
+
 :root[data-theme="light"] {
   --md-primary: #466E47;
   --md-on-primary: #FFFFFF;
@@ -67,6 +72,8 @@
   --md-on-tertiary-container: #3D0A03;
   --md-error: #BA1A1A;
   --md-on-error: #FFFFFF;
+  --md-error-container: #FFDAD6;
+  --md-on-error-container: #410002;
   --md-surface: #FAF9F0;
   --md-on-surface: #1A1C17;
   --md-on-surface-variant: #43483D;
@@ -81,720 +88,1565 @@
   --md-inverse-surface: #2F312C;
   --md-inverse-on-surface: #F0EFE7;
   --md-inverse-primary: #ABD37A;
-  --md-shadow-color: rgba(20,25,15,0.15);
-  --md-shadow-color-strong: rgba(20,25,15,0.28);
+  --md-shadow-color: rgba(20, 25, 15, 0.12);
+  --md-shadow-color-strong: rgba(20, 25, 15, 0.25);
 }
+
 /* ---------- Reset ---------- */
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%}
-body{
-  font-family:'Roboto Flex',system-ui,-apple-system,sans-serif;
-  font-optical-sizing:auto;
-  font-size:15px;
-  font-weight:400;
-  line-height:1.5;
-  color:var(--md-on-surface);
-  background:var(--md-surface);
-  -webkit-font-smoothing:antialiased;
-  -moz-osx-font-smoothing:grayscale;
-  overflow-x:hidden;
-  min-height:100vh;
-  position:relative;
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; -webkit-tap-highlight-color: transparent; }
+body {
+  font-family: 'Roboto Flex', system-ui, -apple-system, sans-serif;
+  font-optical-sizing: auto;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--md-on-surface);
+  background: var(--md-surface);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  min-height: 100vh;
+  min-height: 100dvh;
+  position: relative;
 }
-/* ---------- Background layers ---------- */
-.bg-layer{position:fixed;inset:0;z-index:0;pointer-events:none}
-.bg-ambient{
+
+/* ---------- Background Atmosphere ---------- */
+.bg-layer { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+.bg-ambient {
   background:
-    radial-gradient(ellipse 80% 60% at 85% 0%, color-mix(in srgb, var(--md-primary-container) 55%, transparent) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 50% at 0% 100%, color-mix(in srgb, var(--md-tertiary-container) 45%, transparent) 0%, transparent 70%),
+    radial-gradient(ellipse 90% 60% at 85% 0%, color-mix(in srgb, var(--md-primary-container) 45%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 50% at 0% 100%, color-mix(in srgb, var(--md-tertiary-container) 35%, transparent) 0%, transparent 70%),
     var(--md-surface);
-  background-attachment:fixed;
+  background-attachment: fixed;
 }
-.bg-dots{
-  background-image:radial-gradient(circle at 1px 1px, var(--md-outline-variant) 1px, transparent 0);
-  background-size:28px 28px;
-  opacity:.18;
-  -webkit-mask-image:radial-gradient(ellipse at center, black 30%, transparent 80%);
-          mask-image:radial-gradient(ellipse at center, black 30%, transparent 80%);
+.bg-dots {
+  background-image: radial-gradient(circle at 1px 1px, var(--md-outline-variant) 1px, transparent 0);
+  background-size: 28px 28px;
+  opacity: 0.18;
+  mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
 }
-.bg-blob{
-  width:420px;height:420px;border-radius:50%;
-  background:radial-gradient(circle, color-mix(in srgb, var(--md-tertiary) 22%, transparent), transparent 70%);
-  filter:blur(60px);
-  animation:drift 22s ease-in-out infinite;
-  top:30%;left:60%;
+
+/* ---------- App Layout ---------- */
+#app {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
 }
-@keyframes drift{
-  0%,100%{transform:translate(0,0) scale(1)}
-  50%{transform:translate(-60px,40px) scale(1.1)}
+
+/* ---------- Top App Bar ---------- */
+.app-bar {
+  position: fixed;
+  top: max(10px, var(--safe-top));
+  left: 12px;
+  right: 12px;
+  height: 52px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px 0 14px;
+  background: color-mix(in srgb, var(--md-surface-container) 85%, transparent);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid color-mix(in srgb, var(--md-outline-variant) 50%, transparent);
+  border-radius: 9999px;
+  box-shadow: 0 4px 20px -4px var(--md-shadow-color);
+  animation: barIn 0.5s cubic-bezier(0.2, 1.4, 0, 1) both;
 }
-/* ---------- Layout ---------- */
-#app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column}
-.app-bar{
-  position:fixed;top:12px;left:12px;right:12px;height:54px;z-index:50;
-  display:flex;align-items:center;gap:10px;padding:0 8px 0 14px;
-  background:color-mix(in srgb, var(--md-surface-container) 80%, transparent);
-  backdrop-filter:blur(24px) saturate(180%);
-  -webkit-backdrop-filter:blur(24px) saturate(180%);
-  border:1px solid color-mix(in srgb, var(--md-outline-variant) 50%, transparent);
-  border-radius:9999px;
-  box-shadow:0 4px 20px -4px var(--md-shadow-color);
-  animation:barIn .55s cubic-bezier(0.2,1.4,0,1) both;
+@keyframes barIn { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  color: inherit;
 }
-@keyframes barIn{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
-.brand{display:flex;align-items:center;gap:10px;min-width:0}
-.brand-icon{
-  width:34px;height:34px;border-radius:50%;flex-shrink:0;
-  display:grid;place-items:center;
-  background:var(--md-primary-container);color:var(--md-on-primary-container);
+.brand-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+  flex-shrink: 0;
 }
-.brand-icon .material-symbols-rounded{
-  font-variation-settings:'wght' 500,'GRAD' 200,'opsz' 24;font-size:20px;
+.brand-icon .ms { font-size: 18px; }
+.brand-title {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--md-on-surface);
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
-.brand-text{display:flex;flex-direction:column;min-width:0}
-.brand-h1{font-size:19px;font-weight:700;letter-spacing:-.01em;line-height:1.1;color:var(--md-on-surface)}
-.brand-tag{font-size:11px;font-weight:500;letter-spacing:.02em;line-height:1.2;color:var(--md-on-surface-variant);opacity:.85}
-.app-bar .spacer{flex:1}
-.icon-btn{
-  width:40px;height:40px;border-radius:50%;border:none;background:transparent;
-  color:var(--md-on-surface-variant);cursor:pointer;
-  display:grid;place-items:center;flex-shrink:0;
-  transition:background .2s cubic-bezier(0.2,1.4,0,1), transform .15s cubic-bezier(0.2,1.4,0,1);
-  position:relative;overflow:hidden;
+.badge-tag {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: var(--md-primary-container);
+  color: var(--md-on-primary-container);
 }
-.icon-btn:hover{background:color-mix(in srgb, var(--md-on-surface) 8%, transparent)}
-.icon-btn:active{transform:scale(.92)}
-.icon-btn .material-symbols-rounded{
-  font-variation-settings:'wght' 500,'GRAD' 0,'opsz' 24;font-size:22px;
+
+.app-bar-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
-.avatar{
-  width:36px;height:36px;border-radius:50%;
-  background:var(--md-primary);color:var(--md-on-primary);
-  display:grid;place-items:center;font-weight:700;font-size:14px;
-  cursor:pointer;flex-shrink:0;
-  transition:transform .15s cubic-bezier(0.2,1.4,0,1);
+
+/* ---------- Icon Buttons ---------- */
+.icon-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--md-on-surface-variant);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  transition: background 0.2s cubic-bezier(0.2, 1.4, 0, 1), transform 0.15s;
 }
-.avatar:hover{transform:scale(1.05)}
-/* ---------- Main content ---------- */
-.main{
-  flex:1;width:100%;max-width:1200px;margin:0 auto;
-  padding:90px 16px 160px;
-  display:flex;flex-direction:column;gap:18px;
+.icon-btn:hover { background: color-mix(in srgb, var(--md-on-surface) 10%, transparent); color: var(--md-on-surface); }
+.icon-btn:active { transform: scale(0.92); }
+.icon-btn .ms { font-size: 20px; }
+
+/* ---------- Main Container ---------- */
+.main-content {
+  flex: 1;
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: calc(68px + var(--safe-top)) 14px calc(90px + var(--safe-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
-.hero{
-  display:flex;flex-direction:column;gap:14px;padding:8px 4px 12px;
-  animation:fadeUp .55s cubic-bezier(0.2,1.4,0,1) both;
+
+@media(min-width: 768px) {
+  .app-bar {
+    top: 16px;
+    left: max(20px, calc(50vw - 480px));
+    right: max(20px, calc(50vw - 480px));
+    height: 56px;
+  }
+  .main-content {
+    padding: 92px 20px 100px;
+    gap: 20px;
+  }
 }
-@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
-.hero h2{
-  font-size:clamp(32px, 9vw, 44px);font-weight:800;letter-spacing:-.025em;line-height:1.05;
+
+/* ---------- Inpriv ID Header Pill ---------- */
+.id-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 10px 0 6px;
+  border-radius: 9999px;
+  background: var(--md-surface-container-high);
+  border: 1px solid var(--md-outline-variant);
+  color: var(--md-on-surface);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s cubic-bezier(0.2, 1.4, 0, 1);
+  max-width: 140px;
 }
-.hero p{font-size:15px;color:var(--md-on-surface-variant);max-width:640px}
-@media(min-width:600px){
-  .app-bar{top:18px;left:22px;right:22px;height:54px}
-  .main{padding:96px 24px 200px}
-  .hero h2{font-size:clamp(40px, 6.5vw, 68px)}
-  .hero p{font-size:16px}
+@media(min-width: 480px) { .id-status-pill { max-width: 220px; } }
+.id-status-pill:hover { border-color: var(--md-primary); transform: translateY(-1px); }
+.id-status-pill .id-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--md-primary);
+  flex-shrink: 0;
 }
-/* ---------- Cards ---------- */
-.card{
-  background:var(--md-surface-container-low);
-  border:1px solid var(--md-outline-variant);
-  border-radius:24px;padding:24px;
-  box-shadow:0 4px 24px -8px var(--md-shadow-color);
-  animation:fadeUp .6s cubic-bezier(0.2,1.4,0,1) both;
+.id-status-pill .id-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-@media(min-width:600px){.card{border-radius:28px;padding:32px}}
-.card+.card{animation-delay:.06s}
-.card-title{
-  font-size:11px;font-weight:700;letter-spacing:.08em;line-height:1.2;
-  text-transform:uppercase;color:var(--md-on-surface-variant);margin-bottom:16px;
+
+/* ---------- Material Symbols ---------- */
+.ms {
+  font-family: 'Material Symbols Rounded';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  font-variation-settings: 'wght' 500, 'GRAD' 0, 'opsz' 24;
 }
-/* ---------- Forms ---------- */
-.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
-.field label{
-  font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
-  color:var(--md-on-surface-variant);
+
+/* ---------- Cards & Containers ---------- */
+.card {
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 24px;
+  padding: 18px;
+  box-shadow: 0 4px 24px -8px var(--md-shadow-color);
+  animation: fadeUp 0.4s cubic-bezier(0.2, 1.4, 0, 1) both;
 }
-.field input, .field textarea{
-  font-family:inherit;font-size:15px;color:var(--md-on-surface);
-  background:var(--md-surface-container);
-  border:1px solid var(--md-outline-variant);border-radius:14px;
-  padding:13px 14px;outline:none;
-  transition:border-color .2s cubic-bezier(0.2,1.4,0,1), background .2s, box-shadow .2s;
-  width:100%;
+@media(min-width: 600px) {
+  .card { border-radius: 28px; padding: 24px; }
 }
-.field input:focus, .field textarea:focus{
-  border-color:var(--md-primary);
-  box-shadow:0 0 0 3px color-mix(in srgb, var(--md-primary) 18%, transparent);
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-.field .hint{font-size:12px;color:var(--md-on-surface-variant);opacity:.75}
-.field.has-error input{border-color:var(--md-error)}
-.field-error{font-size:12px;color:var(--md-error);font-weight:500}
-.input-wrap{position:relative;display:flex;align-items:center}
-.input-wrap .material-symbols-rounded.eye{
-  position:absolute;right:10px;font-size:20px;cursor:pointer;color:var(--md-on-surface-variant);
-  font-variation-settings:'wght' 400,'GRAD' 0,'opsz' 20;
-  padding:6px;border-radius:50%;
-}
-.input-wrap .material-symbols-rounded.eye:hover{background:color-mix(in srgb, var(--md-on-surface) 8%, transparent)}
+
 /* ---------- Buttons ---------- */
-.btn{
-  display:inline-flex;align-items:center;justify-content:center;gap:8px;
-  height:46px;padding:0 22px;border:none;cursor:pointer;
-  font-family:inherit;font-size:14px;font-weight:600;letter-spacing:.02em;line-height:1;
-  border-radius:9999px;
-  transition:transform .15s cubic-bezier(0.2,1.4,0,1), box-shadow .2s, background .2s;
-  position:relative;overflow:hidden;
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 48px;
+  min-height: 48px;
+  padding: 0 20px;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  border-radius: 9999px;
+  transition: all 0.2s cubic-bezier(0.2, 1.4, 0, 1);
+  text-decoration: none;
 }
-.btn .material-symbols-rounded{font-variation-settings:'wght' 500,'GRAD' 0,'opsz' 24;font-size:18px}
-.btn-primary{background:var(--md-primary);color:var(--md-on-primary);box-shadow:0 4px 14px -4px color-mix(in srgb, var(--md-primary) 50%, transparent)}
-.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 20px -4px color-mix(in srgb, var(--md-primary) 60%, transparent)}
-.btn-primary:active{transform:scale(.97)}
-.btn-tonal{background:var(--md-secondary-container);color:var(--md-on-secondary-container)}
-.btn-tonal:hover{transform:translateY(-2px)}
-.btn-tonal:active{transform:scale(.97)}
-.btn-text{background:transparent;color:var(--md-primary);padding:0 12px;height:40px}
-.btn-text:hover{background:color-mix(in srgb, var(--md-primary) 10%, transparent)}
-.btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important}
-.btn-block{width:100%}
-.ripple{
-  position:absolute;border-radius:50%;transform:scale(0);
-  background:currentColor;opacity:.25;pointer-events:none;
-  animation:rippleAnim .6s cubic-bezier(0.2,1.4,0,1) forwards;
+.btn .ms { font-size: 20px; }
+.btn-primary {
+  background: var(--md-primary);
+  color: var(--md-on-primary);
+  box-shadow: 0 4px 14px -4px color-mix(in srgb, var(--md-primary) 50%, transparent);
 }
-@keyframes rippleAnim{to{transform:scale(4);opacity:0}}
-/* ---------- Auth shell ---------- */
-.auth-shell{
-  min-height:calc(100vh - 110px);
-  display:grid;place-items:center;padding:20px 0 60px;
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px -4px color-mix(in srgb, var(--md-primary) 65%, transparent);
 }
-.auth-card{
-  width:100%;max-width:440px;
-  background:var(--md-surface-container-low);
-  border:1px solid var(--md-outline-variant);
-  border-radius:28px;padding:32px 26px;
-  box-shadow:0 10px 40px -10px var(--md-shadow-color-strong);
-  animation:editorIn .55s cubic-bezier(0.2,1.4,0,1) both;
+.btn-primary:active { transform: scale(0.97); }
+
+.btn-tonal {
+  background: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
 }
-@keyframes editorIn{from{opacity:0;transform:translateY(24px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
-.auth-toggle{
-  display:flex;background:var(--md-surface-container-high);
-  border-radius:9999px;padding:4px;margin-bottom:24px;
+.btn-tonal:hover { transform: translateY(-1px); }
+.btn-tonal:active { transform: scale(0.97); }
+
+.btn-outlined {
+  background: transparent;
+  color: var(--md-on-surface);
+  border: 1px solid var(--md-outline);
 }
-.auth-toggle button{
-  flex:1;height:38px;border:none;background:transparent;cursor:pointer;
-  font-family:inherit;font-size:13px;font-weight:600;letter-spacing:.02em;
-  color:var(--md-on-surface-variant);border-radius:9999px;
-  transition:background .25s cubic-bezier(0.2,1.4,0,1), color .25s;
+.btn-outlined:hover { background: color-mix(in srgb, var(--md-on-surface) 6%, transparent); }
+
+.btn-text {
+  background: transparent;
+  color: var(--md-primary);
+  padding: 0 14px;
+  height: 40px;
+  min-height: 40px;
 }
-.auth-toggle button.active{
-  background:var(--md-secondary-container);color:var(--md-on-secondary-container);
+.btn-text:hover { background: color-mix(in srgb, var(--md-primary) 10%, transparent); }
+
+.btn-danger {
+  background: var(--md-error);
+  color: var(--md-on-error);
 }
-.auth-title{font-size:24px;font-weight:700;letter-spacing:-.01em;margin-bottom:6px}
-.auth-sub{font-size:14px;color:var(--md-on-surface-variant);margin-bottom:22px}
-/* ---------- Dashboard ---------- */
-.dash-head{
-  display:flex;align-items:center;justify-content:space-between;gap:14px;
-  flex-wrap:wrap;margin-bottom:8px;
+
+.btn-block { width: 100%; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none !important; }
+
+/* ---------- Form Inputs ---------- */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
 }
-.seg{
-  display:inline-flex;background:var(--md-surface-container-high);
-  border-radius:9999px;padding:4px;
+.field label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--md-on-surface-variant);
 }
-.seg button{
-  height:38px;padding:0 16px;border:none;background:transparent;cursor:pointer;
-  font-family:inherit;font-size:13px;font-weight:600;letter-spacing:.02em;
-  color:var(--md-on-surface-variant);border-radius:9999px;
-  display:inline-flex;align-items:center;gap:6px;
-  transition:background .25s cubic-bezier(0.2,1.4,0,1), color .25s;
+.input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
 }
-.seg button .material-symbols-rounded{font-size:18px;font-variation-settings:'wght' 500,'GRAD' 0,'opsz' 24}
-.seg button.active{background:var(--md-secondary-container);color:var(--md-on-secondary-container)}
-.seg .count{
-  font-size:11px;font-weight:700;padding:2px 8px;border-radius:9999px;
-  background:color-mix(in srgb, var(--md-on-surface) 10%, transparent);
+.field input, .field textarea {
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--md-on-surface);
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 16px;
+  padding: 13px 14px;
+  outline: none;
+  width: 100%;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  -webkit-appearance: none;
 }
-.stat-row{
-  display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px;
+.field input:focus, .field textarea:focus {
+  border-color: var(--md-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-primary) 18%, transparent);
 }
-.stat{
-  background:var(--md-surface-container-low);
-  border:1px solid var(--md-outline-variant);
-  border-radius:18px;padding:14px 16px;
+.input-suffix {
+  position: absolute;
+  right: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--md-primary);
+  pointer-events: none;
+  background: var(--md-surface-container-high);
+  padding: 3px 8px;
+  border-radius: 8px;
 }
-.stat-label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--md-on-surface-variant);margin-bottom:6px}
-.stat-value{font-size:13px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;color:var(--md-on-surface)}
-/* ---------- Message list ---------- */
-.msg-list{display:flex;flex-direction:column;gap:8px}
-.msg-item{
-  display:flex;align-items:center;gap:14px;padding:14px 16px;
-  background:var(--md-surface-container-low);
-  border:1px solid var(--md-outline-variant);
-  border-radius:18px;cursor:pointer;
-  transition:transform .2s cubic-bezier(0.2,1.4,0,1), border-color .2s, box-shadow .2s, background .2s;
-  animation:fadeUp .4s cubic-bezier(0.2,1.4,0,1) both;
+.eye-toggle {
+  position: absolute;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: var(--md-on-surface-variant);
+  border: none;
+  background: transparent;
 }
-.msg-item:hover{transform:translateY(-3px);border-color:var(--md-primary);box-shadow:0 8px 22px -10px var(--md-shadow-color-strong)}
-.msg-item.unread{background:color-mix(in srgb, var(--md-primary-container) 12%, var(--md-surface-container-low))}
-.msg-avatar{
-  width:42px;height:42px;border-radius:50%;flex-shrink:0;
-  background:var(--md-primary-container);color:var(--md-on-primary-container);
-  display:grid;place-items:center;font-weight:700;font-size:15px;text-transform:uppercase;
+.eye-toggle:hover { background: color-mix(in srgb, var(--md-on-surface) 8%, transparent); }
+.eye-toggle .ms { font-size: 20px; }
+
+/* ---------- Auth Screens ---------- */
+.auth-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 160px);
+  min-height: calc(100dvh - 160px);
+  padding: 10px 0;
 }
-.msg-meta{flex:1;min-width:0}
-.msg-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
-.msg-peer{font-size:14px;font-weight:600;color:var(--md-on-surface);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.msg-time{font-size:11px;color:var(--md-on-surface-variant);flex-shrink:0;font-variant-numeric:tabular-nums}
-.msg-subject{font-size:13px;color:var(--md-on-surface-variant);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
-.msg-subject.unread-text{color:var(--md-on-surface);font-weight:600}
-.msg-dot{width:8px;height:8px;border-radius:50%;background:var(--md-primary);flex-shrink:0;opacity:0;transition:opacity .2s}
-.msg-item.unread .msg-dot{opacity:1;animation:pulse 2.4s ease-in-out infinite}
-@keyframes pulse{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb, var(--md-primary) 30%, transparent)}50%{box-shadow:0 0 0 12px color-mix(in srgb, var(--md-primary) 0%, transparent)}}
-.empty{
-  text-align:center;padding:60px 20px;color:var(--md-on-surface-variant);
-  display:flex;flex-direction:column;align-items:center;gap:14px;
+.auth-box {
+  width: 100%;
+  max-width: 440px;
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 28px;
+  padding: 24px 20px;
+  box-shadow: 0 12px 40px -10px var(--md-shadow-color-strong);
 }
-.empty .material-symbols-rounded{font-size:48px;opacity:.5;font-variation-settings:'wght' 400,'GRAD' 0,'opsz' 48}
-/* ---------- FAB ---------- */
-.fab{
-  position:fixed;right:20px;bottom:24px;z-index:40;
-  height:60px;padding:0 22px 0 18px;border:none;cursor:pointer;
-  background:var(--md-primary);color:var(--md-on-primary);
-  border-radius:9999px;
-  display:inline-flex;align-items:center;gap:10px;
-  font-family:inherit;font-size:14px;font-weight:600;letter-spacing:.02em;
-  box-shadow:0 10px 30px -6px color-mix(in srgb, var(--md-primary) 50%, transparent);
-  animation:toolbarIn .55s cubic-bezier(0.2,1.4,0,1) both;
-  transition:transform .2s cubic-bezier(0.2,1.4,0,1), box-shadow .2s;
+@media(min-width: 480px) {
+  .auth-box { padding: 32px 28px; }
 }
-@keyframes toolbarIn{from{opacity:0;transform:translateY(100%)}to{opacity:1;transform:translateY(0)}}
-.fab:hover{transform:translateY(-3px) scale(1.02);box-shadow:0 14px 36px -6px color-mix(in srgb, var(--md-primary) 65%, transparent)}
-.fab:active{animation:fabPop .4s cubic-bezier(0.2,1.4,0,1)}
-@keyframes fabPop{0%{transform:scale(1)}40%{transform:scale(.92)}70%{transform:scale(1.05)}100%{transform:scale(1)}}
-.fab .material-symbols-rounded{font-variation-settings:'wght' 600,'GRAD' 200,'opsz' 24;font-size:24px}
-@media(min-width:600px){.fab{right:32px;bottom:32px}}
-/* ---------- Modal ---------- */
-.modal-backdrop{
-  position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.55);
-  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
-  display:grid;place-items:center;padding:16px;
-  opacity:0;pointer-events:none;
-  transition:opacity .3s cubic-bezier(0.2,1.4,0,1);
+
+.auth-header {
+  text-align: center;
+  margin-bottom: 20px;
 }
-.modal-backdrop.open{opacity:1;pointer-events:auto}
-.modal{
-  width:100%;max-width:680px;max-height:90vh;overflow:auto;
-  background:var(--md-surface-container-low);
-  border:1px solid var(--md-outline-variant);
-  border-radius:24px;padding:24px;
-  box-shadow:0 24px 60px -10px var(--md-shadow-color-strong);
-  transform:translateY(24px) scale(.985);opacity:0;
-  transition:transform .4s cubic-bezier(0.2,1.4,0,1), opacity .3s;
+.auth-header-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 18px;
+  background: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+  display: grid;
+  place-items: center;
+  margin: 0 auto 14px;
 }
-.modal-backdrop.open .modal{transform:translateY(0) scale(1);opacity:1}
-@media(min-width:600px){.modal{border-radius:28px;padding:30px}}
-.modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:18px}
-.modal-title{font-size:20px;font-weight:700;letter-spacing:-.01em;line-height:1.2}
-.modal-sub{font-size:13px;color:var(--md-on-surface-variant);margin-top:4px}
-.modal-body{display:flex;flex-direction:column;gap:14px}
-.msg-view-meta{display:flex;flex-direction:column;gap:4px;padding:14px 16px;background:var(--md-surface-container);border-radius:18px;margin-bottom:14px}
-.msg-view-meta-row{display:flex;gap:10px;font-size:13px}
-.msg-view-meta-row span:first-child{color:var(--md-on-surface-variant);min-width:64px;font-weight:600}
-.msg-view-meta-row span:last-child{color:var(--md-on-surface);word-break:break-all}
-.msg-view-body{
-  font-family:inherit;font-size:14px;line-height:1.6;color:var(--md-on-surface);
-  white-space:pre-wrap;word-break:break-word;
-  background:var(--md-surface-container);border-radius:18px;padding:18px;
-  min-height:120px;
+.auth-header-icon .ms { font-size: 28px; }
+.auth-title {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--md-on-surface);
+  margin-bottom: 6px;
 }
-.msg-view-body.placeholder{color:var(--md-on-surface-variant);font-style:italic}
-.spinner{
-  width:20px;height:20px;border-radius:50%;
-  border:2px solid color-mix(in srgb, var(--md-on-surface) 20%, transparent);
-  border-top-color:var(--md-primary);
-  animation:spin .8s linear infinite;
+.auth-subtitle {
+  font-size: 13.5px;
+  color: var(--md-on-surface-variant);
+  line-height: 1.45;
 }
-@keyframes spin{to{transform:rotate(360deg)}}
-/* ---------- Toast ---------- */
-#toasts{
-  position:fixed;left:50%;bottom:24px;transform:translateX(-50%);
-  z-index:100;display:flex;flex-direction:column;gap:10px;
-  pointer-events:none;width:calc(100% - 32px);max-width:420px;
+
+.auth-segmented {
+  display: flex;
+  background: var(--md-surface-container-high);
+  border-radius: 9999px;
+  padding: 4px;
+  margin-bottom: 20px;
 }
-.toast{
-  pointer-events:auto;
-  background:var(--md-inverse-surface);color:var(--md-inverse-on-surface);
-  border-radius:14px;padding:12px 16px;
-  display:flex;align-items:center;gap:12px;
-  box-shadow:0 8px 24px var(--md-shadow-color-strong);
-  animation:fadeUp .4s cubic-bezier(0.2,1.4,0,1) both;
+.auth-segmented button {
+  flex: 1;
+  height: 38px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--md-on-surface-variant);
+  border-radius: 9999px;
+  transition: all 0.25s cubic-bezier(0.2, 1.4, 0, 1);
 }
-.toast .material-symbols-rounded{color:var(--md-inverse-primary);font-variation-settings:'wght' 600,'GRAD' 0,'opsz' 24;font-size:22px}
-.toast-text{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
-.toast-title{font-size:14px;font-weight:600;line-height:1.2}
-.toast-sub{font-size:12px;font-weight:400;line-height:1.2;opacity:.7}
-.toast.error .material-symbols-rounded{color:var(--md-error)}
-/* ---------- Misc ---------- */
-.hidden{display:none!important}
-.skeleton{background:linear-gradient(90deg, var(--md-surface-container) 0%, var(--md-surface-container-high) 50%, var(--md-surface-container) 100%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:14px}
-@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-.muted{color:var(--md-on-surface-variant);opacity:.7;font-size:13px}
-.divider{height:1px;background:var(--md-outline-variant);margin:14px 0;opacity:.5}
-.pill-tag{
-  display:inline-flex;align-items:center;gap:6px;
-  font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
-  padding:5px 10px;border-radius:8px;
-  background:var(--md-primary-container);color:var(--md-on-primary-container);
+.auth-segmented button.active {
+  background: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
 }
-.pill-tag .material-symbols-rounded{font-size:13px}
-@media (prefers-reduced-motion: reduce){
-  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+
+.sso-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-primary);
+  border-radius: 18px;
+  padding: 12px 14px;
+  margin-bottom: 18px;
 }
+.sso-av {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.sso-meta { flex: 1; min-width: 0; }
+.sso-nick { font-size: 14px; font-weight: 700; color: var(--md-on-surface); }
+.sso-email { font-size: 12px; color: var(--md-primary); word-break: break-all; }
+
+/* ---------- Security Badge ---------- */
+.sec-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--md-primary-container) 40%, transparent);
+  border: 1px solid color-mix(in srgb, var(--md-primary) 30%, transparent);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--md-on-primary-container);
+  margin-bottom: 14px;
+}
+.sec-badge .ms { font-size: 18px; color: var(--md-primary); flex-shrink: 0; }
+
+/* ---------- Dashboard Controls & Search ---------- */
+.dash-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 9999px;
+  padding: 0 14px;
+  height: 44px;
+  transition: border-color 0.2s;
+}
+.search-bar:focus-within {
+  border-color: var(--md-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--md-primary) 20%, transparent);
+}
+.search-bar .ms { font-size: 20px; color: var(--md-on-surface-variant); }
+.search-bar input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--md-on-surface);
+}
+
+.filter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.tab-seg {
+  display: inline-flex;
+  background: var(--md-surface-container-high);
+  border-radius: 9999px;
+  padding: 3px;
+}
+.tab-seg button {
+  height: 36px;
+  padding: 0 14px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--md-on-surface-variant);
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s cubic-bezier(0.2, 1.4, 0, 1);
+}
+.tab-seg button.active {
+  background: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
+}
+.tab-seg button .ms { font-size: 17px; }
+.tab-seg .pill-num {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--md-on-surface) 12%, transparent);
+}
+
+/* ---------- Message List ---------- */
+.msg-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.msg-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 14px;
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.2, 1.4, 0, 1), border-color 0.2s, box-shadow 0.2s;
+  animation: fadeUp 0.35s cubic-bezier(0.2, 1.4, 0, 1) both;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.msg-card:active { transform: scale(0.98); }
+.msg-card.unread {
+  background: color-mix(in srgb, var(--md-primary-container) 14%, var(--md-surface-container-low));
+  border-color: color-mix(in srgb, var(--md-primary) 35%, transparent);
+}
+.msg-card:hover {
+  border-color: var(--md-primary);
+  box-shadow: 0 4px 18px -6px var(--md-shadow-color);
+}
+.msg-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+.msg-body-meta {
+  flex: 1;
+  min-width: 0;
+}
+.msg-top-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+.msg-peer-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--md-on-surface);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.msg-time-badge {
+  font-size: 11.5px;
+  color: var(--md-on-surface-variant);
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.msg-subject-line {
+  font-size: 13px;
+  color: var(--md-on-surface-variant);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.msg-card.unread .msg-subject-line {
+  color: var(--md-on-surface);
+  font-weight: 600;
+}
+.unread-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--md-primary);
+  flex-shrink: 0;
+}
+
+/* ---------- Empty State ---------- */
+.empty-state {
+  text-align: center;
+  padding: 48px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: var(--md-on-surface-variant);
+}
+.empty-state .empty-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 20px;
+  background: var(--md-surface-container-high);
+  display: grid;
+  place-items: center;
+  color: var(--md-primary);
+  margin-bottom: 4px;
+}
+.empty-state .empty-icon .ms { font-size: 30px; }
+.empty-state-title { font-size: 16px; font-weight: 700; color: var(--md-on-surface); }
+.empty-state-desc { font-size: 13px; max-width: 320px; line-height: 1.5; }
+
+/* ---------- Message View Fullscreen / Sheet ---------- */
+.view-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.view-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.view-title-wrap {
+  flex: 1;
+  min-width: 0;
+}
+.view-title {
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--md-on-surface);
+  word-break: break-word;
+}
+.view-meta-box {
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 18px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.view-meta-row {
+  display: flex;
+  font-size: 13px;
+  gap: 10px;
+}
+.view-meta-row .k {
+  color: var(--md-on-surface-variant);
+  min-width: 50px;
+  font-weight: 600;
+}
+.view-meta-row .v {
+  color: var(--md-on-surface);
+  word-break: break-all;
+  font-weight: 500;
+}
+
+.view-body-box {
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 20px;
+  padding: 18px;
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--md-on-surface);
+  white-space: pre-wrap;
+  word-break: break-word;
+  min-height: 140px;
+}
+.view-body-box.decrypting {
+  color: var(--md-on-surface-variant);
+  font-style: italic;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.view-actions-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 4px;
+}
+
+/* ---------- Mobile Bottom Navigation Bar ---------- */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 45;
+  height: calc(60px + var(--safe-bottom));
+  padding-bottom: var(--safe-bottom);
+  background: color-mix(in srgb, var(--md-surface-container) 92%, transparent);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-top: 1px solid color-mix(in srgb, var(--md-outline-variant) 40%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding-left: 8px;
+  padding-right: 8px;
+  box-shadow: 0 -4px 20px -4px var(--md-shadow-color);
+}
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  flex: 1;
+  height: 52px;
+  border: none;
+  background: transparent;
+  color: var(--md-on-surface-variant);
+  cursor: pointer;
+  border-radius: 14px;
+  transition: all 0.2s cubic-bezier(0.2, 1.4, 0, 1);
+  position: relative;
+}
+.nav-item.active {
+  color: var(--md-primary);
+}
+.nav-item .ms { font-size: 22px; }
+.nav-item .nav-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.nav-item .badge-dot {
+  position: absolute;
+  top: 6px;
+  right: calc(50% - 16px);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--md-primary);
+}
+
+.compose-nav-btn {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--md-primary);
+  color: var(--md-on-primary);
+  display: grid;
+  place-items: center;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 16px -2px color-mix(in srgb, var(--md-primary) 60%, transparent);
+  transition: transform 0.2s cubic-bezier(0.2, 1.4, 0, 1);
+}
+.compose-nav-btn:active { transform: scale(0.92); }
+.compose-nav-btn .ms { font-size: 22px; }
+
+/* ---------- Floating Action Button (Tablet/Desktop) ---------- */
+.fab {
+  position: fixed;
+  right: 24px;
+  bottom: calc(76px + var(--safe-bottom));
+  z-index: 40;
+  height: 54px;
+  padding: 0 20px 0 16px;
+  border-radius: 9999px;
+  border: none;
+  background: var(--md-primary);
+  color: var(--md-on-primary);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: 0 8px 24px -4px color-mix(in srgb, var(--md-primary) 60%, transparent);
+  transition: all 0.2s cubic-bezier(0.2, 1.4, 0, 1);
+}
+.fab:hover { transform: translateY(-2px) scale(1.02); }
+.fab:active { transform: scale(0.95); }
+.fab .ms { font-size: 22px; }
+
+@media(max-width: 600px) {
+  .fab { display: none; } /* On mobile, compose is centered in bottom nav */
+}
+
+/* ---------- Modals & Overlays ---------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.28s cubic-bezier(0.2, 1.4, 0, 1);
+}
+.modal-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+.modal-sheet {
+  width: 100%;
+  max-width: 620px;
+  max-height: 92vh;
+  max-height: 92dvh;
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--md-outline-variant);
+  border-top-left-radius: 28px;
+  border-top-right-radius: 28px;
+  padding: 20px 18px calc(24px + var(--safe-bottom));
+  box-shadow: 0 -10px 40px -10px var(--md-shadow-color-strong);
+  transform: translateY(100%);
+  transition: transform 0.35s cubic-bezier(0.2, 1.4, 0, 1);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+@media(min-width: 600px) {
+  .modal-overlay {
+    align-items: center;
+    padding: 20px;
+  }
+  .modal-sheet {
+    border-radius: 28px;
+    padding: 28px;
+    transform: translateY(20px) scale(0.96);
+  }
+}
+.modal-overlay.open .modal-sheet {
+  transform: translateY(0) scale(1);
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.modal-title {
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+/* ---------- Autocomplete Dropdown ---------- */
+.autocomplete-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 60;
+  background: var(--md-surface-container-high);
+  border: 1px solid var(--md-outline);
+  border-radius: 14px;
+  margin-top: 4px;
+  max-height: 160px;
+  overflow-y: auto;
+  box-shadow: 0 8px 24px var(--md-shadow-color-strong);
+}
+.autocomplete-item {
+  padding: 10px 14px;
+  font-size: 13.5px;
+  color: var(--md-on-surface);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.autocomplete-item:hover {
+  background: color-mix(in srgb, var(--md-primary) 15%, transparent);
+}
+
+/* ---------- Toasts ---------- */
+#toasts {
+  position: fixed;
+  left: 50%;
+  bottom: calc(72px + var(--safe-bottom));
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+  width: calc(100% - 32px);
+  max-width: 400px;
+}
+.toast {
+  pointer-events: auto;
+  background: var(--md-inverse-surface);
+  color: var(--md-inverse-on-surface);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 8px 24px var(--md-shadow-color-strong);
+  animation: fadeUp 0.3s cubic-bezier(0.2, 1.4, 0, 1) both;
+}
+.toast .ms { font-size: 20px; color: var(--md-inverse-primary); flex-shrink: 0; }
+.toast.error .ms { color: var(--md-error); }
+.toast-title { font-size: 13.5px; font-weight: 600; line-height: 1.2; }
+.toast-desc { font-size: 12px; opacity: 0.8; margin-top: 2px; }
+
+/* ---------- Spinner ---------- */
+.spinner {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, currentColor 25%, transparent);
+  border-top-color: currentColor;
+  animation: spin 0.75s linear infinite;
+  display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- Account Drawer ---------- */
+.acc-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: var(--md-surface-container);
+  border-radius: 16px;
+  margin-bottom: 8px;
+}
+.acc-info-row .label { font-size: 12px; color: var(--md-on-surface-variant); font-weight: 600; }
+.acc-info-row .val { font-size: 13px; font-weight: 700; color: var(--md-on-surface); }
+
+.copy-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+}
+.copy-chip .ms { font-size: 15px; }
+
+.hidden { display: none !important; }
 </style>
 </head>
 <body>
 <div class="bg-layer bg-ambient"></div>
 <div class="bg-layer bg-dots"></div>
-<div class="bg-layer bg-blob"></div>
 
 <div id="app"></div>
 <div id="toasts"></div>
 
 <script>
-/* ============================================================================
-   INPRIV — Frontend SPA + WebCrypto E2EE
-   ========================================================================== */
 (() => {
 'use strict';
 
-/* ---------- Config ---------- */
 const API = '/api/v1';
-const PBKDF2_ITER = 210000;  // OWASP 2023 recommendation for SHA-256
+const DOMAIN = 'inpriv.xyz';
+const PASS_ITERS = 300000;
+const PBKDF2_CAP = 100000;
 
 /* ---------- State ---------- */
 const state = {
   token: localStorage.getItem('inpriv_token'),
   user: null,
-  privKey: null,         // CryptoKey (RSA private) — unlocked after login
+  privKey: null,         // RSA-OAEP CryptoKey unlocked in memory
+  pubKey: null,          // RSA-OAEP CryptoKey
   messages: [],
-  filter: 'inbound',
-  view: 'auth',          // 'auth' | 'dash'
+  activeTab: 'inbox',    // 'inbox' | 'sent' | 'account'
+  searchQuery: '',
+  idUser: null,          // Inpriv ID user object (if detected)
+  unlocked: false,
 };
 
-/* ---------- Utils ---------- */
-const $ = (sel, root=document) => root.querySelector(sel);
-const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+/* ---------- Helpers ---------- */
+const $ = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
 const b64 = {
-  enc(buf){ const b = new Uint8Array(buf); let s=''; for(let i=0;i<b.length;i++) s+=String.fromCharCode(b[i]); return btoa(s); },
-  dec(str){ const bin = atob(str); const out = new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) out[i]=bin.charCodeAt(i); return out.buffer; }
+  enc(buf) {
+    const b = new Uint8Array(buf);
+    let s = '';
+    for (let i = 0; i < b.length; i++) s += String.fromCharCode(b[i]);
+    return btoa(s);
+  },
+  dec(str) {
+    const bin = atob(str);
+    const out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out.buffer;
+  }
 };
+
 const utf8 = {
-  enc(s){ return new TextEncoder().encode(s); },
-  dec(b){ return new TextDecoder().decode(b); }
+  enc(s) { return new TextEncoder().encode(s); },
+  dec(b) { return new TextDecoder().decode(b); }
 };
 
-function mkIcon(name, cls=''){ return `<span class="material-symbols-rounded ${cls}">${name}</span>`; }
-
-function fmtTime(iso){
-  const d = new Date(iso); const now = new Date();
-  const sameDay = d.toDateString() === now.toDateString();
-  if(sameDay) return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-  const sameYear = d.getFullYear() === now.getFullYear();
-  return d.toLocaleDateString([], sameYear ? {month:'short', day:'numeric'} : {month:'short', day:'numeric', year:'numeric'});
+function mkIcon(name, cls = '') {
+  return `<span class="ms ${cls}">${name}</span>`;
 }
 
-function initials(name){
-  if(!name) return '?';
-  const cleaned = name.replace(/<[^>]+>/g,'').trim();
-  const parts = cleaned.split(/[\s@._-]+/).filter(Boolean);
-  if(parts.length === 0) return '?';
-  if(parts.length === 1) return parts[0].slice(0,2).toUpperCase();
+function toast(title, desc = '', type = 'ok') {
+  const el = document.createElement('div');
+  el.className = `toast ${type === 'error' ? 'error' : ''}`;
+  el.innerHTML = `
+    ${mkIcon(type === 'error' ? 'error' : 'check_circle')}
+    <div>
+      <div class="toast-title">${escapeHtml(title)}</div>
+      ${desc ? `<div class="toast-desc">${escapeHtml(desc)}</div>` : ''}
+    </div>`;
+  $('#toasts').appendChild(el);
+  setTimeout(() => {
+    el.style.transition = 'opacity .3s, transform .3s';
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(12px)';
+    setTimeout(() => el.remove(), 320);
+  }, 3600);
+}
+
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+function initials(name) {
+  if (!name) return '?';
+  const clean = name.replace(/<[^>]+>/g, '').trim();
+  const parts = clean.split(/[\s@._-]+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
-function toast(title, sub='', type='ok'){
-  const el = document.createElement('div');
-  el.className = `toast ${type==='error'?'error':''}`;
-  el.innerHTML = `
-    ${mkIcon(type==='error'?'error':'check_circle')}
-    <div class="toast-text">
-      <div class="toast-title"></div>
-      ${sub?`<div class="toast-sub"></div>`:''}
-    </div>`;
-  el.querySelector('.toast-title').textContent = title;
-  if(sub) el.querySelector('.toast-sub').textContent = sub;
-  $('#toasts').appendChild(el);
-  setTimeout(()=>{ el.style.transition='opacity .3s, transform .3s'; el.style.opacity='0'; el.style.transform='translateY(12px)'; setTimeout(()=>el.remove(), 320); }, 3600);
+function fmtTime(ts) {
+  const d = new Date(ts);
+  const now = new Date();
+  const sameDay = d.toDateString() === now.toDateString();
+  if (sameDay) {
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+  const sameYear = d.getFullYear() === now.getFullYear();
+  return d.toLocaleDateString([], sameYear ? { month: 'short', day: 'numeric' } : { month: 'short', day: 'numeric', year: '2-digit' });
 }
 
-async function api(path, opts={}){
-  const headers = { 'Content-Type':'application/json', ...(opts.headers||{}) };
-  if(state.token) headers['Authorization'] = `Bearer ${state.token}`;
-  const res = await fetch(API+path, { ...opts, headers });
+/* ---------- API Call Helper ---------- */
+async function api(path, opts = {}) {
+  const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+  if (state.token) headers['Authorization'] = `Bearer ${state.token}`;
+  const res = await fetch(API + path, { ...opts, headers });
   let data = null;
-  try { data = await res.json(); } catch(_){}
-  if(!res.ok){
-    const msg = (data && (data.detail?.message || (typeof data.detail==='string'?data.detail:null))) || `HTTP ${res.status}`;
-    const err = new Error(msg); err.status = res.status; err.data = data; throw err;
+  try { data = await res.json(); } catch (_) {}
+  if (!res.ok) {
+    const msg = (data && (data.detail?.message || data.error || (typeof data.detail === 'string' ? data.detail : null))) || `HTTP ${res.status}`;
+    const err = new Error(msg);
+    err.status = res.status;
+    err.data = data;
+    throw err;
   }
   return data;
 }
 
-function ripple(e){
-  const btn = e.currentTarget;
-  const r = document.createElement('span');
-  r.className = 'ripple';
-  const rect = btn.getBoundingClientRect();
-  const size = Math.max(rect.width, rect.height);
-  r.style.width = r.style.height = size + 'px';
-  r.style.left = (e.clientX - rect.left - size/2) + 'px';
-  r.style.top  = (e.clientY - rect.top - size/2) + 'px';
-  btn.appendChild(r);
-  setTimeout(()=>r.remove(), 600);
-}
-document.addEventListener('click', e=>{
-  const b = e.target.closest('.btn, .icon-btn, .fab, .seg button, .auth-toggle button');
-  if(b) ripple({currentTarget:b, clientX:e.clientX, clientY:e.clientY});
-});
-
 /* ============================================================================
-   WEB CRYPTO — Key generation, wrapping, hybrid encryption
+   WEB CRYPTO — Zero-Knowledge Hybrid Encryption (RSA-2048 + AES-GCM)
    ========================================================================== */
-async function generateKeyPair(){
+async function generateKeyPair() {
   return crypto.subtle.generateKey(
-    { name:'RSA-OAEP', modulusLength:2048, publicExponent:new Uint8Array([1,0,1]), hash:'SHA-256' },
-    true, ['encrypt','decrypt']
+    { name: 'RSA-OAEP', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
+    true,
+    ['encrypt', 'decrypt']
   );
 }
 
-async function deriveAesFromPassword(password, saltB64, iterations){
-  const baseKey = await crypto.subtle.importKey('raw', utf8.enc(password), 'PBKDF2', false, ['deriveKey']);
-  return crypto.subtle.deriveKey(
-    { name:'PBKDF2', salt:new Uint8Array(b64.dec(saltB64)), iterations, hash:'SHA-256' },
-    baseKey,
-    { name:'AES-GCM', length:256 },
-    false,
-    ['encrypt','decrypt']
-  );
+async function deriveAesFromPassword(password, saltB64, iterations = PASS_ITERS) {
+  const rounds = Math.max(1, Math.ceil(iterations / PBKDF2_CAP));
+  let material = utf8.enc(password);
+  let bits;
+  for (let r = 0; r < rounds; r++) {
+    const key = await crypto.subtle.importKey('raw', material, 'PBKDF2', false, ['deriveBits']);
+    bits = await crypto.subtle.deriveBits(
+      {
+        name: 'PBKDF2',
+        salt: new Uint8Array(b64.dec(saltB64)),
+        iterations: Math.min(iterations - r * PBKDF2_CAP, PBKDF2_CAP),
+        hash: 'SHA-256'
+      },
+      key,
+      256
+    );
+    material = new Uint8Array(bits);
+  }
+  return crypto.subtle.importKey('raw', bits, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
 }
 
-async function exportPublicKey(pubKey){
+async function exportPublicKey(pubKey) {
   const spki = await crypto.subtle.exportKey('spki', pubKey);
   return b64.enc(spki);
 }
 
-async function wrapPrivateKey(privKey, aesKey){
+async function wrapPrivateKey(privKey, aesKey) {
   const pkcs8 = await crypto.subtle.exportKey('pkcs8', privKey);
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv}, aesKey, pkcs8);
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, aesKey, pkcs8);
   return { wrapped: b64.enc(ct), iv: b64.enc(iv.buffer) };
 }
 
-async function unwrapPrivateKey(wrappedB64, ivB64, aesKey){
+async function unwrapPrivateKey(wrappedB64, ivB64, aesKey) {
   const pkcs8 = await crypto.subtle.decrypt(
-    { name:'AES-GCM', iv:new Uint8Array(b64.dec(ivB64)) },
+    { name: 'AES-GCM', iv: new Uint8Array(b64.dec(ivB64)) },
     aesKey,
     b64.dec(wrappedB64)
   );
-  return crypto.subtle.importKey('pkcs8', pkcs8, {name:'RSA-OAEP', hash:'SHA-256'}, true, ['decrypt']);
+  return crypto.subtle.importKey('pkcs8', pkcs8, { name: 'RSA-OAEP', hash: 'SHA-256' }, true, ['decrypt']);
 }
 
-async function hybridEncrypt(pubKey, plaintextStr){
-  // Generate ephemeral AES-GCM key, encrypt message, wrap AES key with RSA-OAEP
-  const aesKey = await crypto.subtle.generateKey({name:'AES-GCM', length:256}, true, ['encrypt','wrapKey']);
+// Client-side Hybrid Encryption for Sender & Recipient
+async function hybridEncryptDual(recipientPubKey, senderPubKey, plaintextStr) {
+  const aesKey = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt']);
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv}, aesKey, utf8.enc(plaintextStr));
-  // ct buffer = ciphertext || 16-byte tag
-  const ctBytes = new Uint8Array(ct);
+  const ctBuf = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, aesKey, utf8.enc(plaintextStr));
+  const ctBytes = new Uint8Array(ctBuf);
   const ciphertext = ctBytes.slice(0, ctBytes.length - 16);
   const tag = ctBytes.slice(ctBytes.length - 16);
-  // Wrap AES key with RSA public
+
   const rawAes = await crypto.subtle.exportKey('raw', aesKey);
-  const wrapped = await crypto.subtle.encrypt({name:'RSA-OAEP'}, pubKey, rawAes);
+  const recipientWrapped = await crypto.subtle.encrypt({ name: 'RSA-OAEP' }, recipientPubKey, rawAes);
+  const senderWrapped = await crypto.subtle.encrypt({ name: 'RSA-OAEP' }, senderPubKey, rawAes);
+
   return {
-    encrypted_aes_key: b64.enc(wrapped),
-    iv: b64.enc(iv.buffer),
-    ciphertext: b64.enc(ciphertext.buffer),
-    auth_tag: b64.enc(tag.buffer)
+    recipient_envelope: {
+      encrypted_aes_key: b64.enc(recipientWrapped),
+      iv: b64.enc(iv.buffer),
+      ciphertext: b64.enc(ciphertext.buffer),
+      auth_tag: b64.enc(tag.buffer)
+    },
+    sender_envelope: {
+      encrypted_aes_key: b64.enc(senderWrapped),
+      iv: b64.enc(iv.buffer),
+      ciphertext: b64.enc(ciphertext.buffer),
+      auth_tag: b64.enc(tag.buffer)
+    }
   };
 }
 
-async function hybridDecrypt(privKey, enc){
-  // Unwrap AES key
-  const rawAes = await crypto.subtle.decrypt({name:'RSA-OAEP'}, privKey, b64.dec(enc.encrypted_aes_key));
-  const aesKey = await crypto.subtle.importKey('raw', rawAes, {name:'AES-GCM'}, false, ['decrypt']);
-  // Re-join ciphertext + tag
+async function hybridDecrypt(privKey, enc) {
+  const rawAes = await crypto.subtle.decrypt({ name: 'RSA-OAEP' }, privKey, b64.dec(enc.encrypted_aes_key));
+  const aesKey = await crypto.subtle.importKey('raw', rawAes, { name: 'AES-GCM' }, false, ['decrypt']);
   const ct = new Uint8Array(b64.dec(enc.ciphertext));
   const tag = new Uint8Array(b64.dec(enc.auth_tag));
   const merged = new Uint8Array(ct.length + tag.length);
-  merged.set(ct, 0); merged.set(tag, ct.length);
-  const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv:new Uint8Array(b64.dec(enc.iv))}, aesKey, merged.buffer);
+  merged.set(ct, 0);
+  merged.set(tag, ct.length);
+  const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: new Uint8Array(b64.dec(enc.iv)) }, aesKey, merged.buffer);
   return utf8.dec(pt);
 }
 
 /* ============================================================================
-   AUTH VIEWS
+   THEME & SHELL
    ========================================================================== */
-function renderShell(){
-  const app = $('#app');
-  app.innerHTML = `
-    <header class="app-bar">
-      <div class="brand">
-        <div class="brand-icon">${mkIcon('mail_lock')}</div>
-        <div class="brand-text">
-          <div class="brand-h1">Inpriv</div>
-          <div class="brand-tag">ZERO-KNOWLEDGE MAIL · @inpriv.xyz</div>
-        </div>
-      </div>
-      <div class="spacer"></div>
-      <button class="icon-btn" id="themeToggle" title="Toggle theme">${mkIcon('dark_mode')}</button>
-    </header>
-    <main class="main" id="main"></main>
-    <div id="dashExtra"></div>
-  `;
-  $('#themeToggle').addEventListener('click', toggleTheme);
-  applyTheme();
-}
-
-function applyTheme(){
+function applyTheme() {
   const saved = localStorage.getItem('inpriv_theme') || 'dark';
   document.documentElement.setAttribute('data-theme', saved);
-  const ic = $('#themeToggle')?.querySelector('.material-symbols-rounded');
-  if(ic) ic.textContent = saved === 'dark' ? 'light_mode' : 'dark_mode';
+  const icon = $('#themeIcon');
+  if (icon) icon.textContent = saved === 'dark' ? 'light_mode' : 'dark_mode';
 }
-function toggleTheme(){
+
+function toggleTheme() {
   const cur = document.documentElement.getAttribute('data-theme');
   const next = cur === 'dark' ? 'light' : 'dark';
   localStorage.setItem('inpriv_theme', next);
   applyTheme();
 }
 
-function renderAuth(){
-  state.view = 'auth';
-  $('#main').innerHTML = `
-    <div class="auth-shell">
-      <div class="auth-card">
-        <div class="auth-toggle" id="authToggle">
-          <button data-mode="login" class="active">Sign In</button>
-          <button data-mode="register">Create Account</button>
+function renderShell() {
+  const app = $('#app');
+  app.innerHTML = `
+    <header class="app-bar">
+      <a href="https://inpriv.xyz" class="brand">
+        <div class="brand-icon">${mkIcon('lock')}</div>
+        <div class="brand-title">Inpriv <span class="badge-tag">Mail</span></div>
+      </a>
+      <div class="app-bar-actions">
+        <div id="idStatusContainer"></div>
+        <button class="icon-btn" id="themeToggle" title="Toggle Theme" aria-label="Toggle Theme">
+          <span class="ms" id="themeIcon">dark_mode</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="main-content" id="mainView"></main>
+
+    <div id="bottomNavContainer"></div>
+    <div id="fabContainer"></div>
+    <div id="modalContainer"></div>
+  `;
+
+  $('#themeToggle').addEventListener('click', toggleTheme);
+  applyTheme();
+  updateIdStatusHeader();
+}
+
+function updateIdStatusHeader() {
+  const c = $('#idStatusContainer');
+  if (!c) return;
+  if (state.user && state.unlocked) {
+    c.innerHTML = `
+      <div class="id-status-pill" id="idChip" title="Inpriv ID: ${escapeHtml(state.user.email)}">
+        <span class="id-dot"></span>
+        <span class="id-text">${escapeHtml(state.user.username)}</span>
+      </div>
+    `;
+    $('#idChip')?.addEventListener('click', () => switchTab('account'));
+  } else if (state.idUser) {
+    c.innerHTML = `
+      <div class="id-status-pill" id="idChip" title="Inpriv ID: ${escapeHtml(state.idUser.email || state.idUser.username)}">
+        <span class="id-dot"></span>
+        <span class="id-text">${escapeHtml(state.idUser.nick || state.idUser.username)}</span>
+      </div>
+    `;
+  } else {
+    c.innerHTML = '';
+  }
+}
+
+/* ============================================================================
+   AUTH VIEWS
+   ========================================================================== */
+function renderAuth(initialMode = 'login') {
+  $('#bottomNavContainer').innerHTML = '';
+  $('#fabContainer').innerHTML = '';
+  updateIdStatusHeader();
+
+  const main = $('#mainView');
+  main.innerHTML = `
+    <div class="auth-container">
+      <div class="auth-box">
+        <div class="auth-header">
+          <div class="auth-header-icon">${mkIcon('mail_lock')}</div>
+          <h1 class="auth-title">Zero-Knowledge Mail</h1>
+          <p class="auth-subtitle">End-to-end encrypted with RSA-2048 + AES-GCM. Synchronized with your Inpriv ID.</p>
         </div>
-        <div id="authForm"></div>
+
+        <div id="ssoBannerContainer"></div>
+
+        <div class="auth-segmented" id="authSeg">
+          <button data-mode="login" class="${initialMode === 'login' ? 'active' : ''}">Sign In</button>
+          <button data-mode="register" class="${initialMode === 'register' ? 'active' : ''}">Create Account</button>
+        </div>
+
+        <div id="authFormArea"></div>
       </div>
     </div>
   `;
-  $$$('#authToggle button').forEach(b=>{
-    b.addEventListener('click', ()=>{
-      $$('#authToggle button').forEach(x=>x.classList.remove('active'));
-      b.classList.add('active');
-      renderAuthForm(b.dataset.mode);
+
+  $$('#authSeg button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      $$('#authSeg button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderAuthForm(btn.dataset.mode);
     });
   });
-  renderAuthForm('login');
+
+  renderAuthForm(initialMode);
+  checkInprivIdSso();
 }
 
-function renderAuthForm(mode){
-  const f = $('#authForm');
-  if(mode === 'login'){
-    f.innerHTML = `
-      <div class="auth-title">Welcome back</div>
-      <div class="auth-sub">Decrypt your mailbox locally. Your password never leaves this device unencrypted.</div>
+function checkInprivIdSso() {
+  const banner = $('#ssoBannerContainer');
+  if (!banner) return;
+
+  if (state.idUser) {
+    banner.innerHTML = `
+      <div class="sso-card">
+        <div class="sso-av">${initials(state.idUser.nick || state.idUser.username)}</div>
+        <div class="sso-meta">
+          <div class="sso-nick">Continue with Inpriv ID</div>
+          <div class="sso-email">${escapeHtml(state.idUser.email || (state.idUser.username + '@inpriv.xyz'))}</div>
+        </div>
+      </div>
+    `;
+    const uInput = $('#authUsername');
+    if (uInput && !uInput.value) {
+      uInput.value = state.idUser.username;
+    }
+  }
+}
+
+function renderAuthForm(mode) {
+  const area = $('#authFormArea');
+  if (mode === 'login') {
+    area.innerHTML = `
       <form id="loginForm">
         <div class="field">
-          <label>Username</label>
+          <label>Inpriv Address / Username</label>
           <div class="input-wrap">
-            <input type="text" id="lu" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+            <input type="text" id="authUsername" placeholder="username" autocomplete="username" autocapitalize="none" spellcheck="false" required value="${state.idUser ? state.idUser.username : ''}">
+            <span class="input-suffix">@${DOMAIN}</span>
           </div>
         </div>
+
         <div class="field">
-          <label>Password</label>
+          <label>Master Password</label>
           <div class="input-wrap">
-            <input type="password" id="lp" autocomplete="current-password" required>
-            <span class="material-symbols-rounded eye" data-target="lp">${mkIcon('visibility')}</span>
+            <input type="password" id="authPassword" placeholder="Master password" autocomplete="current-password" required>
+            <button type="button" class="eye-toggle" data-target="authPassword">${mkIcon('visibility')}</button>
           </div>
         </div>
-        <button type="submit" class="btn btn-primary btn-block" id="loginBtn">Sign In ${mkIcon('arrow_forward')}</button>
+
+        <div class="sec-badge">
+          ${mkIcon('shield_locked')}
+          <span>Password derives your local decryption key in memory</span>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block" id="authSubmitBtn">
+          <span>Unlock Mailbox</span> ${mkIcon('lock_open')}
+        </button>
       </form>
     `;
-    bindEye();
-    $('#loginForm').addEventListener('submit', e=>{
+
+    bindEyeToggles();
+    $('#loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      handleLogin($('#lu').value.trim().toLowerCase(), $('#lp').value);
+      const u = $('#authUsername').value.trim().toLowerCase();
+      const p = $('#authPassword').value;
+      await handleLogin(u, p);
     });
   } else {
-    f.innerHTML = `
-      <div class="auth-title">Create your private mailbox</div>
-      <div class="auth-sub">Pick a username — that becomes <strong>&lt;you&gt;@inpriv.xyz</strong>. An RSA-2048 keypair is generated in your browser; the private key is encrypted with your password before upload.</div>
+    area.innerHTML = `
       <form id="regForm">
         <div class="field">
-          <label>Username</label>
+          <label>Pick a Username</label>
           <div class="input-wrap">
-            <input type="text" id="ru" autocomplete="username" autocapitalize="none" spellcheck="false" required pattern="[a-zA-Z0-9._-]{2,32}">
+            <input type="text" id="regUsername" placeholder="username" autocomplete="username" autocapitalize="none" spellcheck="false" required pattern="[a-zA-Z0-9._-]{2,32}" value="${state.idUser ? state.idUser.username : ''}">
+            <span class="input-suffix">@${DOMAIN}</span>
           </div>
-          <div class="hint" id="emailPreview"></div>
+          <div class="field-hint" id="regHint" style="font-size:12px;color:var(--md-on-surface-variant);margin-top:4px"></div>
         </div>
+
         <div class="field">
-          <label>Password <span class="muted">(min 10 chars)</span></label>
+          <label>Master Password <span style="opacity:0.7">(min 10 chars)</span></label>
           <div class="input-wrap">
-            <input type="password" id="rp" autocomplete="new-password" required minlength="10">
-            <span class="material-symbols-rounded eye" data-target="rp">${mkIcon('visibility')}</span>
+            <input type="password" id="regPassword" placeholder="Minimum 10 characters" autocomplete="new-password" required minlength="10">
+            <button type="button" class="eye-toggle" data-target="regPassword">${mkIcon('visibility')}</button>
           </div>
         </div>
+
         <div class="field">
-          <label>Confirm password</label>
+          <label>Confirm Password</label>
           <div class="input-wrap">
-            <input type="password" id="rpc" autocomplete="new-password" required minlength="10">
-            <span class="material-symbols-rounded eye" data-target="rpc">${mkIcon('visibility')}</span>
+            <input type="password" id="regPasswordConfirm" placeholder="Re-type password" autocomplete="new-password" required minlength="10">
+            <button type="button" class="eye-toggle" data-target="regPasswordConfirm">${mkIcon('visibility')}</button>
           </div>
         </div>
-        <div class="muted" id="regStatus" style="margin-bottom:12px"></div>
-        <button type="submit" class="btn btn-primary btn-block" id="regBtn">Generate Keys & Create ${mkIcon('key')}</button>
+
+        <div class="sec-badge">
+          ${mkIcon('key')}
+          <span>Generates RSA-2048 keypair + AES-GCM vault client-side</span>
+        </div>
+
+        <div id="regStatus" style="font-size:12.5px;color:var(--md-primary);margin-bottom:10px;text-align:center"></div>
+
+        <button type="submit" class="btn btn-primary btn-block" id="regSubmitBtn">
+          <span>Create & Generate Keys</span> ${mkIcon('arrow_forward')}
+        </button>
       </form>
     `;
-    bindEye();
-    $('#ru').addEventListener('input', e=>{
-      const u = e.target.value.trim().toLowerCase();
-      $('#emailPreview').textContent = u ? `Your mailbox: ${u}@inpriv.xyz` : '';
+
+    bindEyeToggles();
+
+    $('#regUsername').addEventListener('input', (e) => {
+      const v = e.target.value.trim().toLowerCase();
+      $('#regHint').textContent = v ? `Your permanent address: ${v}@${DOMAIN}` : '';
     });
-    $('#regForm').addEventListener('submit', e=>{
+
+    $('#regForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      handleRegister($('#ru').value.trim().toLowerCase(), $('#rp').value, $('#rpc').value);
+      const u = $('#regUsername').value.trim().toLowerCase();
+      const p = $('#regPassword').value;
+      const pc = $('#regPasswordConfirm').value;
+      await handleRegister(u, p, pc);
     });
   }
 }
 
-function bindEye(){
-  $$('.eye').forEach(eye=>{
-    eye.addEventListener('click', ()=>{
-      const t = $('#'+eye.dataset.target);
-      if(t.type === 'password'){ t.type='text'; eye.textContent='visibility_off'; }
-      else { t.type='password'; eye.textContent='visibility'; }
+function bindEyeToggles() {
+  $$('.eye-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const inp = $('#' + btn.dataset.target);
+      if (!inp) return;
+      if (inp.type === 'password') {
+        inp.type = 'text';
+        btn.innerHTML = mkIcon('visibility_off');
+      } else {
+        inp.type = 'password';
+        btn.innerHTML = mkIcon('visibility');
+      }
     });
   });
 }
 
-async function handleRegister(username, password, confirm){
-  if(password !== confirm){ toast('Passwords do not match', 'Please re-type them identically.', 'error'); return; }
-  if(password.length < 10){ toast('Password too short', 'Use at least 10 characters.', 'error'); return; }
-  if(!/^[a-z0-9](?:[a-z0-9._-]{1,30}[a-z0-9])?$/.test(username)){
-    toast('Invalid username', '2-32 chars: a-z 0-9 . _ -', 'error'); return;
-  }
-  const btn = $('#regBtn'); btn.disabled = true;
-  const status = $('#regStatus');
+/* ---------- Login Flow ---------- */
+async function handleLogin(username, password) {
+  const btn = $('#authSubmitBtn');
+  if (btn) { btn.disabled = true; btn.innerHTML = `<span class="spinner"></span> <span>Unlocking…</span>`; }
+
   try {
-    status.innerHTML = '<span class="spinner" style="display:inline-block;vertical-align:middle"></span> Generating RSA-2048 keypair…';
+    const res = await api('/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password })
+    });
+
+    if (res.status === 'needs_init') {
+      // Inpriv ID user needs key generation
+      toast('Inpriv ID verified', 'Generating zero-knowledge encryption keys…');
+      await initializeInprivIdKeys(res.username, password);
+      return;
+    }
+
+    state.token = res.token;
+    state.user = res.user;
+    localStorage.setItem('inpriv_token', res.token);
+
+    // Derive AES key & unwrap private RSA key
+    const aesKey = await deriveAesFromPassword(password, res.user.priv_salt, res.user.priv_iter);
+    state.privKey = await unwrapPrivateKey(res.user.encrypted_private_key, res.user.priv_iv, aesKey);
+    state.pubKey = await crypto.subtle.importKey('spki', b64.dec(res.user.public_key), { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['encrypt']);
+    state.unlocked = true;
+
+    toast('Mailbox unlocked', `Signed in as ${res.user.email}`);
+    renderDashboard();
+  } catch (e) {
+    toast('Login failed', e.message, 'error');
+    if (btn) { btn.disabled = false; btn.innerHTML = `<span>Unlock Mailbox</span> ${mkIcon('lock_open')}`; }
+  }
+}
+
+/* ---------- Initialize Inpriv ID User Keys ---------- */
+async function initializeInprivIdKeys(username, password) {
+  try {
     const kp = await generateKeyPair();
-    status.textContent = 'Deriving AES key from password (PBKDF2, 210k iterations)…';
     const salt = crypto.getRandomValues(new Uint8Array(16));
     const saltB64 = b64.enc(salt.buffer);
-    const aesKey = await deriveAesFromPassword(password, saltB64, PBKDF2_ITER);
-    status.textContent = 'Wrapping private key (AES-GCM)…';
+    const aesKey = await deriveAesFromPassword(password, saltB64, PASS_ITERS);
     const pubB64 = await exportPublicKey(kp.publicKey);
     const { wrapped, iv } = await wrapPrivateKey(kp.privateKey, aesKey);
-    status.textContent = 'Publishing public key & encrypted private key to server…';
-    const data = await api('/register', {
-      method:'POST',
+
+    const res = await api('/init-keys', {
+      method: 'POST',
+      body: JSON.stringify({
+        username,
+        password,
+        public_key: pubB64,
+        encrypted_private_key: wrapped,
+        priv_iv: iv,
+        priv_salt: saltB64,
+        priv_iter: PASS_ITERS
+      })
+    });
+
+    state.token = res.token;
+    state.user = res.user;
+    state.privKey = kp.privateKey;
+    state.pubKey = kp.publicKey;
+    state.unlocked = true;
+    localStorage.setItem('inpriv_token', res.token);
+
+    toast('Mailbox initialized', `Your zero-knowledge keys are active for ${res.user.email}`);
+    renderDashboard();
+  } catch (e) {
+    toast('Key setup failed', e.message, 'error');
+    renderAuth('login');
+  }
+}
+
+/* ---------- Registration Flow ---------- */
+async function handleRegister(username, password, confirm) {
+  if (password !== confirm) {
+    toast('Passwords mismatch', 'Please re-type password identically.', 'error');
+    return;
+  }
+  if (password.length < 10) {
+    toast('Password too short', 'Use at least 10 characters.', 'error');
+    return;
+  }
+
+  const btn = $('#regSubmitBtn');
+  const status = $('#regStatus');
+  if (btn) btn.disabled = true;
+
+  try {
+    if (status) status.innerHTML = `<span class="spinner"></span> Generating RSA-2048 keypair…`;
+    const kp = await generateKeyPair();
+
+    if (status) status.innerHTML = `<span class="spinner"></span> Deriving 300,000 PBKDF2 iterations…`;
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const saltB64 = b64.enc(salt.buffer);
+    const aesKey = await deriveAesFromPassword(password, saltB64, PASS_ITERS);
+
+    if (status) status.innerHTML = `<span class="spinner"></span> Sealing private key…`;
+    const pubB64 = await exportPublicKey(kp.publicKey);
+    const { wrapped, iv } = await wrapPrivateKey(kp.privateKey, aesKey);
+
+    if (status) status.innerHTML = `<span class="spinner"></span> Registering mailbox…`;
+    const res = await api('/register', {
+      method: 'POST',
       body: JSON.stringify({
         username,
         password,
@@ -803,349 +1655,704 @@ async function handleRegister(username, password, confirm){
         encrypted_private_key: wrapped,
         priv_iv: iv,
         priv_salt: saltB64,
-        priv_iter: PBKDF2_ITER
+        priv_iter: PASS_ITERS
       })
     });
-    state.token = data.token;
-    state.user = data.user;
-    localStorage.setItem('inpriv_token', data.token);
-    state.privKey = kp.privateKey;  // keep in memory; no need to re-unlock
-    toast('Mailbox created', `${data.user.email} is live.`);
+
+    state.token = res.token;
+    state.user = res.user;
+    state.privKey = kp.privateKey;
+    state.pubKey = kp.publicKey;
+    state.unlocked = true;
+    localStorage.setItem('inpriv_token', res.token);
+
+    toast('Account created', `Your address is ${res.user.email}`);
     renderDashboard();
-  } catch(e){
+  } catch (e) {
     toast('Registration failed', e.message, 'error');
-  } finally {
-    btn.disabled = false;
-    if(status) status.textContent = '';
+    if (btn) btn.disabled = false;
+    if (status) status.textContent = '';
   }
 }
 
-async function handleLogin(username, password){
-  const btn = $('#loginBtn'); btn.disabled = true;
-  try {
-    const data = await api('/login', {
-      method:'POST',
-      body: JSON.stringify({ username, password })
-    });
-    state.token = data.token;
-    state.user = data.user;
-    localStorage.setItem('inpriv_token', data.token);
-    // Unlock private key
-    const aesKey = await deriveAesFromPassword(password, data.user.priv_salt, data.user.priv_iter);
-    state.privKey = await unwrapPrivateKey(data.user.encrypted_private_key, data.user.priv_iv, aesKey);
-    toast('Signed in', 'Private key unlocked in browser memory.');
-    renderDashboard();
-  } catch(e){
-    toast('Login failed', e.message, 'error');
-  } finally {
-    btn.disabled = false;
-  }
-}
-
-function logout(){
-  state.token = null; state.user = null; state.privKey = null;
+function logout() {
+  api('/logout', { method: 'POST' }).catch(() => {});
+  state.token = null;
+  state.user = null;
+  state.privKey = null;
+  state.pubKey = null;
+  state.unlocked = false;
   localStorage.removeItem('inpriv_token');
+  toast('Signed out', 'Encryption keys wiped from browser memory.');
   renderAuth();
 }
 
 /* ============================================================================
-   DASHBOARD
+   DASHBOARD & MOBILE NAVIGATION
    ========================================================================== */
-async function renderDashboard(){
-  state.view = 'dash';
-  $('#main').innerHTML = `
-    <section class="hero">
-      <h2>Your private inbox.</h2>
-      <p>End-to-end encrypted with RSA-2048 + AES-GCM. Internal mail is encrypted in your browser; inbound external mail is encrypted at the gateway with your public key. The server cannot read any message body.</p>
-    </section>
+function renderDashboard() {
+  updateIdStatusHeader();
+  renderBottomNav();
+  renderFab();
 
-    <div class="stat-row">
-      <div class="stat"><div class="stat-label">Your Address</div><div class="stat-value" id="statEmail"></div></div>
-      <div class="stat"><div class="stat-label">Inbox</div><div class="stat-value" id="statIn">—</div></div>
-      <div class="stat"><div class="stat-label">Unread</div><div class="stat-value" id="statUnread">—</div></div>
-    </div>
+  const main = $('#mainView');
+  main.innerHTML = `
+    <div class="dash-toolbar">
+      <div class="search-bar">
+        ${mkIcon('search')}
+        <input type="text" id="searchInput" placeholder="Search by sender or subject…" value="${escapeHtml(state.searchQuery)}">
+        ${state.searchQuery ? `<button class="icon-btn" id="clearSearch" style="width:28px;height:28px">${mkIcon('close')}</button>` : ''}
+      </div>
 
-    <div class="card">
-      <div class="dash-head">
-        <div class="seg" id="seg">
-          <button data-f="inbound" class="active">${mkIcon('inbox')} <span>Inbox</span> <span class="count" id="cIn">0</span></button>
-          <button data-f="outbound">${mkIcon('send')} <span>Sent</span> <span class="count" id="cOut">0</span></button>
+      <div class="filter-row">
+        <div class="tab-seg" id="mailTabs">
+          <button data-tab="inbound" class="${state.activeTab === 'inbox' ? 'active' : ''}">
+            ${mkIcon('inbox')} <span>Inbox</span> <span class="pill-num" id="inboxCount">0</span>
+          </button>
+          <button data-tab="outbound" class="${state.activeTab === 'sent' ? 'active' : ''}">
+            ${mkIcon('send')} <span>Sent</span> <span class="pill-num" id="sentCount">0</span>
+          </button>
         </div>
-        <button class="btn btn-tonal" id="refreshBtn">${mkIcon('refresh')} Refresh</button>
+        <button class="btn btn-tonal" id="refreshBtn" style="height:36px;padding:0 14px;font-size:13px">
+          ${mkIcon('refresh')} <span>Refresh</span>
+        </button>
       </div>
-      <div class="msg-list" id="msgList">
-        <div class="empty">${mkIcon('hourglass_empty')}<div>Loading messages…</div></div>
+    </div>
+
+    <div class="msg-list" id="messageListArea">
+      <div class="empty-state">
+        <span class="spinner"></span>
+        <div class="empty-state-title">Loading messages…</div>
       </div>
     </div>
   `;
-  $('#statEmail').textContent = state.user.email;
-  $('#dashExtra').innerHTML = `
-    <button class="fab" id="composeFab">${mkIcon('edit')} Compose</button>
-  `;
-  $$('#seg button').forEach(b=>{
-    b.addEventListener('click', ()=>{
-      $$('#seg button').forEach(x=>x.classList.remove('active'));
+
+  $('#searchInput').addEventListener('input', (e) => {
+    state.searchQuery = e.target.value;
+    renderMessageCards();
+  });
+  $('#clearSearch')?.addEventListener('click', () => {
+    state.searchQuery = '';
+    $('#searchInput').value = '';
+    renderMessageCards();
+  });
+
+  $$('#mailTabs button').forEach(b => {
+    b.addEventListener('click', () => {
+      $$('#mailTabs button').forEach(x => x.classList.remove('active'));
       b.classList.add('active');
-      state.filter = b.dataset.f;
-      renderMessageList();
+      state.activeTab = b.dataset.tab === 'inbound' ? 'inbox' : 'sent';
+      updateNavActive();
+      renderMessageCards();
     });
   });
+
   $('#refreshBtn').addEventListener('click', loadMessages);
-  $('#composeFab').addEventListener('click', openCompose);
-  await loadMessages();
+
+  loadMessages();
 }
 
-async function loadMessages(){
-  try{
-    const data = await api('/messages');
-    state.messages = data.items || [];
-    const inbound = state.messages.filter(m=>m.direction==='inbound');
-    const outbound = state.messages.filter(m=>m.direction==='outbound');
-    const unread = inbound.filter(m=>!m.is_read).length;
-    $('#cIn').textContent = inbound.length;
-    $('#cOut').textContent = outbound.length;
-    $('#statIn').textContent = inbound.length;
-    $('#statUnread').textContent = unread;
-    renderMessageList();
-  }catch(e){
-    if(e.status === 401){ logout(); return; }
-    toast('Failed to load', e.message, 'error');
+function renderBottomNav() {
+  const container = $('#bottomNavContainer');
+  if (!container) return;
+
+  const unreadCount = state.messages.filter(m => m.direction === 'inbound' && !m.is_read).length;
+
+  container.innerHTML = `
+    <nav class="bottom-nav">
+      <button class="nav-item ${state.activeTab === 'inbox' ? 'active' : ''}" data-nav="inbox">
+        ${mkIcon('inbox')}
+        <span class="nav-label">Inbox</span>
+        ${unreadCount > 0 ? `<span class="badge-dot"></span>` : ''}
+      </button>
+
+      <button class="compose-nav-btn" id="mobileComposeBtn" title="Compose New Message" aria-label="Compose New Message">
+        ${mkIcon('edit')}
+      </button>
+
+      <button class="nav-item ${state.activeTab === 'sent' ? 'active' : ''}" data-nav="sent">
+        ${mkIcon('send')}
+        <span class="nav-label">Sent</span>
+      </button>
+
+      <button class="nav-item ${state.activeTab === 'account' ? 'active' : ''}" data-nav="account">
+        ${mkIcon('account_circle')}
+        <span class="nav-label">Account</span>
+      </button>
+    </nav>
+  `;
+
+  $$('.bottom-nav .nav-item').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = btn.dataset.nav;
+      switchTab(target);
+    });
+  });
+
+  $('#mobileComposeBtn')?.addEventListener('click', openComposeModal);
+}
+
+function renderFab() {
+  const container = $('#fabContainer');
+  if (!container) return;
+  container.innerHTML = `
+    <button class="fab" id="desktopFab">
+      ${mkIcon('edit')} <span>Compose</span>
+    </button>
+  `;
+  $('#desktopFab')?.addEventListener('click', openComposeModal);
+}
+
+function switchTab(tab) {
+  state.activeTab = tab;
+  updateNavActive();
+  if (tab === 'account') {
+    renderAccountScreen();
+  } else {
+    renderDashboard();
   }
 }
 
-function renderMessageList(){
-  const list = $('#msgList');
-  const items = state.messages.filter(m=>m.direction === state.filter);
-  if(items.length === 0){
-    list.innerHTML = `
-      <div class="empty">
-        ${mkIcon(state.filter==='inbound'?'inbox':'outbox')}
-        <div>${state.filter==='inbound'?'No messages in your inbox yet':'You haven\'t sent any internal mail yet'}</div>
-        <div class="muted" style="font-size:13px;max-width:340px">${state.filter==='inbound'?'Share your address with external services — inbound mail is encrypted at the gateway with your public key.':'Tap Compose to send an end-to-end encrypted message to another inpriv.xyz user.'}</div>
-      </div>`;
-    return;
-  }
-  list.innerHTML = items.map((m, i)=>`
-    <div class="msg-item ${m.is_read?'':'unread'}" data-id="${m.id}" style="animation-delay:${i*40}ms">
-      <div class="msg-avatar">${initials(m.peer_label || m.peer_address)}</div>
-      <div class="msg-meta">
-        <div class="msg-row">
-          <div class="msg-peer">${escapeHtml(m.peer_label || m.peer_address)}</div>
-          <div class="msg-time">${fmtTime(m.created_at)}</div>
-        </div>
-        <div class="msg-subject ${m.is_read?'':'unread-text'}">${escapeHtml(m.subject || '(no subject)')}</div>
-      </div>
-      <div class="msg-dot"></div>
-    </div>
-  `).join('');
-  $$('.msg-item').forEach(el=>{
-    el.addEventListener('click', ()=>openMessage(parseInt(el.dataset.id, 10)));
+function updateNavActive() {
+  $$('.bottom-nav .nav-item').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.nav === state.activeTab);
   });
 }
 
-function escapeHtml(s){
-  return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+/* ---------- Load & Render Messages ---------- */
+async function loadMessages() {
+  try {
+    const data = await api('/messages');
+    state.messages = data.items || [];
+    updateCounts();
+    renderMessageCards();
+  } catch (e) {
+    if (e.status === 401) {
+      logout();
+      return;
+    }
+    toast('Failed to load messages', e.message, 'error');
+  }
+}
+
+function updateCounts() {
+  const inb = state.messages.filter(m => m.direction === 'inbound');
+  const out = state.messages.filter(m => m.direction === 'outbound');
+  const unread = inb.filter(m => !m.is_read).length;
+
+  if ($('#inboxCount')) $('#inboxCount').textContent = inb.length;
+  if ($('#sentCount')) $('#sentCount').textContent = out.length;
+  renderBottomNav();
+}
+
+function renderMessageCards() {
+  const listArea = $('#messageListArea');
+  if (!listArea) return;
+
+  const targetDir = state.activeTab === 'inbox' ? 'inbound' : 'outbound';
+  let filtered = state.messages.filter(m => m.direction === targetDir);
+
+  if (state.searchQuery) {
+    const q = state.searchQuery.toLowerCase();
+    filtered = filtered.filter(m =>
+      (m.peer_address && m.peer_address.toLowerCase().includes(q)) ||
+      (m.peer_label && m.peer_label.toLowerCase().includes(q)) ||
+      (m.subject && m.subject.toLowerCase().includes(q))
+    );
+  }
+
+  if (filtered.length === 0) {
+    listArea.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">${mkIcon(state.activeTab === 'inbox' ? 'inbox' : 'outbox')}</div>
+        <div class="empty-state-title">${state.activeTab === 'inbox' ? 'Your inbox is clear' : 'No sent messages'}</div>
+        <div class="empty-state-desc">
+          ${state.activeTab === 'inbox'
+            ? `Share your address <strong>${escapeHtml(state.user.email)}</strong>. Internal messages are encrypted in your browser; external inbound emails are encrypted at the gateway.`
+            : 'Tap Compose to send end-to-end encrypted mail to another Inpriv ID user.'}
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  listArea.innerHTML = filtered.map((m, i) => `
+    <div class="msg-card ${m.is_read ? '' : 'unread'}" data-id="${m.id}" style="animation-delay:${i * 30}ms">
+      <div class="msg-avatar">${initials(m.peer_label || m.peer_address)}</div>
+      <div class="msg-body-meta">
+        <div class="msg-top-line">
+          <div class="msg-peer-name">${escapeHtml(m.peer_label || m.peer_address)}</div>
+          <div class="msg-time-badge">${fmtTime(m.created_at)}</div>
+        </div>
+        <div class="msg-subject-line">${escapeHtml(m.subject || '(No Subject)')}</div>
+      </div>
+      ${!m.is_read && m.direction === 'inbound' ? '<div class="unread-indicator"></div>' : ''}
+    </div>
+  `).join('');
+
+  $$('.msg-card').forEach(card => {
+    card.addEventListener('click', () => openMessageView(parseInt(card.dataset.id, 10)));
+  });
 }
 
 /* ============================================================================
-   MESSAGE VIEW MODAL
+   MESSAGE READER VIEW
    ========================================================================== */
-async function openMessage(id){
-  const backdrop = document.createElement('div');
-  backdrop.className = 'modal-backdrop';
-  backdrop.innerHTML = `
-    <div class="modal" role="dialog" aria-modal="true">
-      <div class="modal-head">
-        <div>
-          <div class="modal-title" id="mvTitle">Loading…</div>
-          <div class="modal-sub" id="mvSub"></div>
+async function openMessageView(id) {
+  const container = $('#modalContainer');
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay open';
+  overlay.innerHTML = `
+    <div class="modal-sheet" role="dialog" aria-modal="true">
+      <div class="view-sheet">
+        <div class="view-header">
+          <button class="icon-btn" id="viewBackBtn" title="Back">${mkIcon('arrow_back')}</button>
+          <div class="view-title-wrap">
+            <h2 class="view-title" id="viewSubject">Loading message…</h2>
+          </div>
+          <button class="icon-btn" id="viewDeleteBtn" title="Delete Message">${mkIcon('delete')}</button>
         </div>
-        <button class="icon-btn" data-close>${mkIcon('close')}</button>
-      </div>
-      <div class="modal-body">
-        <div class="msg-view-meta">
-          <div class="msg-view-meta-row"><span>From</span><span id="mvFrom">—</span></div>
-          <div class="msg-view-meta-row"><span>To</span><span id="mvTo">—</span></div>
-          <div class="msg-view-meta-row"><span>Date</span><span id="mvDate">—</span></div>
+
+        <div class="view-meta-box">
+          <div class="view-meta-row">
+            <span class="k">From</span>
+            <span class="v" id="viewFrom">—</span>
+          </div>
+          <div class="view-meta-row">
+            <span class="k">To</span>
+            <span class="v" id="viewTo">—</span>
+          </div>
+          <div class="view-meta-row">
+            <span class="k">Date</span>
+            <span class="v" id="viewDate">—</span>
+          </div>
         </div>
-        <div class="msg-view-body placeholder" id="mvBody"><span class="spinner" style="display:inline-block;vertical-align:middle"></span> Decrypting in browser…</div>
+
+        <div class="sec-badge">
+          ${mkIcon('verified_user')}
+          <span>Zero-Knowledge Encrypted (RSA-OAEP-2048 + AES-256-GCM)</span>
+        </div>
+
+        <div class="view-body-box decrypting" id="viewBody">
+          <span class="spinner"></span> Decrypting in browser memory…
+        </div>
+
+        <div class="view-actions-bar">
+          <button class="btn btn-outlined" id="viewCopyBtn">${mkIcon('content_copy')} <span>Copy Body</span></button>
+          <button class="btn btn-primary" id="viewReplyBtn">${mkIcon('reply')} <span>Reply</span></button>
+        </div>
       </div>
-    </div>`;
-  document.body.appendChild(backdrop);
-  requestAnimationFrame(()=>backdrop.classList.add('open'));
-  const close = ()=>{ backdrop.classList.remove('open'); setTimeout(()=>backdrop.remove(), 320); };
-  backdrop.addEventListener('click', e=>{ if(e.target===backdrop || e.target.closest('[data-close]')) close(); });
-  const esc = e=>{ if(e.key==='Escape'){ close(); document.removeEventListener('keydown', esc); } };
-  document.addEventListener('keydown', esc);
+    </div>
+  `;
+  container.appendChild(overlay);
+
+  const close = () => {
+    overlay.classList.remove('open');
+    setTimeout(() => overlay.remove(), 320);
+  };
+
+  $('#viewBackBtn').addEventListener('click', close);
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) close();
+  });
 
   try {
-    const m = await api(`/messages/${id}`);
-    $('#mvTitle').textContent = m.subject || '(no subject)';
-    $('#mvSub').textContent = m.direction === 'inbound' ? 'Inbound · encrypted with your public key' : 'Sent · encrypted with recipient\'s public key';
-    $('#mvFrom').textContent = m.direction==='inbound' ? (m.peer_label || m.peer_address) : `${state.user.username}@inpriv.xyz`;
-    $('#mvTo').textContent   = m.direction==='inbound' ? state.user.email : (m.peer_label || m.peer_address);
-    $('#mvDate').textContent = new Date(m.created_at).toLocaleString();
-    if(!state.privKey) throw new Error('Private key not unlocked');
-    const plaintext = await hybridDecrypt(state.privKey, m);
-    const body = $('#mvBody');
-    body.classList.remove('placeholder');
-    body.textContent = plaintext;
-    // Mark read in UI
-    const local = state.messages.find(x=>x.id===id);
-    if(local){ local.is_read = true; renderMessageList(); }
-  } catch(e){
-    const body = $('#mvBody');
-    body.classList.remove('placeholder');
-    body.innerHTML = '<span class="material-symbols-rounded" style="font-size:18px;vertical-align:-4px;color:var(--md-error)">error</span> Decryption failed: ' + escapeHtml(e.message);
-    body.style.color = 'var(--md-error)';
+    const msg = await api(`/messages/${id}`);
+    $('#viewSubject').textContent = msg.subject || '(No Subject)';
+    $('#viewFrom').textContent = msg.direction === 'inbound' ? (msg.peer_label || msg.peer_address) : state.user.email;
+    $('#viewTo').textContent = msg.direction === 'inbound' ? state.user.email : (msg.peer_label || msg.peer_address);
+    $('#viewDate').textContent = new Date(msg.created_at).toLocaleString();
+
+    let decryptedText = '';
+    if (!state.privKey) {
+      throw new Error('Encryption key not in browser memory. Please unlock again.');
+    }
+
+    try {
+      decryptedText = await hybridDecrypt(state.privKey, msg);
+    } catch (decErr) {
+      throw new Error('Decryption failed: ' + decErr.message);
+    }
+
+    const bodyEl = $('#viewBody');
+    bodyEl.classList.remove('decrypting');
+    bodyEl.textContent = decryptedText;
+
+    // Mark as read in local list
+    const target = state.messages.find(x => x.id === id);
+    if (target) {
+      target.is_read = 1;
+      updateCounts();
+      renderMessageCards();
+    }
+
+    $('#viewCopyBtn').addEventListener('click', () => {
+      navigator.clipboard.writeText(decryptedText);
+      toast('Copied to clipboard', 'Decrypted message text copied.');
+    });
+
+    $('#viewReplyBtn').addEventListener('click', () => {
+      close();
+      const replyTo = msg.direction === 'inbound' ? (msg.peer_label || msg.peer_address) : msg.peer_address;
+      const replySub = (msg.subject && msg.subject.startsWith('Re:')) ? msg.subject : `Re: ${msg.subject || ''}`;
+      openComposeModal(replyTo, replySub);
+    });
+
+    $('#viewDeleteBtn').addEventListener('click', async () => {
+      if (confirm('Delete this message permanently?')) {
+        try {
+          await api('/messages/delete', { method: 'POST', body: JSON.stringify({ id: msg.id }) });
+          state.messages = state.messages.filter(x => x.id !== id);
+          updateCounts();
+          renderMessageCards();
+          toast('Message deleted', 'Removed from mailbox.');
+          close();
+        } catch (e) {
+          toast('Delete failed', e.message, 'error');
+        }
+      }
+    });
+  } catch (err) {
+    const bodyEl = $('#viewBody');
+    bodyEl.classList.remove('decrypting');
+    bodyEl.innerHTML = `<span style="color:var(--md-error)">${mkIcon('error')} ${escapeHtml(err.message)}</span>`;
   }
 }
 
 /* ============================================================================
    COMPOSE MODAL
    ========================================================================== */
-function openCompose(){
-  const backdrop = document.createElement('div');
-  backdrop.className = 'modal-backdrop';
-  backdrop.innerHTML = `
-    <div class="modal" role="dialog" aria-modal="true">
+function openComposeModal(prefillTo = '', prefillSubject = '') {
+  const container = $('#modalContainer');
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay open';
+  overlay.innerHTML = `
+    <div class="modal-sheet" role="dialog" aria-modal="true">
       <div class="modal-head">
-        <div>
-          <div class="modal-title">New encrypted message</div>
-          <div class="modal-sub">Internal only · recipient must be an inpriv.xyz user</div>
-        </div>
-        <button class="icon-btn" data-close>${mkIcon('close')}</button>
+        <h2 class="modal-title">New Encrypted Message</h2>
+        <button class="icon-btn" id="composeCloseBtn">${mkIcon('close')}</button>
       </div>
-      <div class="modal-body">
-        <div class="field">
-          <label>To (username)</label>
-          <div class="input-wrap">
-            <input type="text" id="cmpTo" placeholder="e.g. jan" autocapitalize="none" spellcheck="false">
-            <span style="position:absolute;right:14px;color:var(--md-on-surface-variant);font-size:13px">@inpriv.xyz</span>
-          </div>
-        </div>
-        <div class="field">
-          <label>Subject</label>
-          <input type="text" id="cmpSubject" placeholder="Subject" maxlength="240">
-        </div>
-        <div class="field">
-          <label>Message</label>
-          <textarea id="cmpBody" rows="8" placeholder="Type your message — it will be encrypted in your browser before sending."></textarea>
-        </div>
-        <div style="display:flex;gap:10px;justify-content:flex-end">
-          <button class="btn btn-text" data-close>Cancel</button>
-          <button class="btn btn-primary" id="cmpSend">${mkIcon('lock')} Encrypt & Send</button>
-        </div>
-      </div>
-    </div>`;
-  document.body.appendChild(backdrop);
-  requestAnimationFrame(()=>backdrop.classList.add('open'));
-  const close = ()=>{ backdrop.classList.remove('open'); setTimeout(()=>backdrop.remove(), 320); };
-  backdrop.addEventListener('click', e=>{ if(e.target===backdrop || e.target.closest('[data-close]')) close(); });
-  const esc = e=>{ if(e.key==='Escape'){ close(); document.removeEventListener('keydown', esc); } };
-  document.addEventListener('keydown', esc);
 
-  $('#cmpSend').addEventListener('click', async ()=>{
-    const to = $('#cmpTo').value.trim().toLowerCase();
+      <div class="sec-badge">
+        ${mkIcon('lock')}
+        <span>Zero-Knowledge E2EE · Encrypted in browser with recipient's public key</span>
+      </div>
+
+      <div class="field" style="position:relative">
+        <label>To (Inpriv ID Username)</label>
+        <div class="input-wrap">
+          <input type="text" id="cmpTo" placeholder="username" autocomplete="off" autocapitalize="none" spellcheck="false" value="${escapeHtml(prefillTo.replace(/@inpriv\.xyz$/, ''))}">
+          <span class="input-suffix">@${DOMAIN}</span>
+        </div>
+        <div class="autocomplete-list hidden" id="cmpSuggestions"></div>
+      </div>
+
+      <div class="field">
+        <label>Subject</label>
+        <div class="input-wrap">
+          <input type="text" id="cmpSubject" placeholder="Subject" maxlength="200" value="${escapeHtml(prefillSubject)}">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Message</label>
+        <textarea id="cmpBody" rows="7" placeholder="Type your private message here…"></textarea>
+      </div>
+
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:10px">
+        <button class="btn btn-outlined" id="composeCancelBtn">Cancel</button>
+        <button class="btn btn-primary" id="composeSendBtn">
+          ${mkIcon('lock')} <span>Encrypt & Send</span>
+        </button>
+      </div>
+    </div>
+  `;
+  container.appendChild(overlay);
+
+  const close = () => {
+    overlay.classList.remove('open');
+    setTimeout(() => overlay.remove(), 320);
+  };
+
+  $('#composeCloseBtn').addEventListener('click', close);
+  $('#composeCancelBtn').addEventListener('click', close);
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) close();
+  });
+
+  // Autocomplete
+  const toInput = $('#cmpTo');
+  const sugg = $('#cmpSuggestions');
+  let debTimer = null;
+
+  toInput.addEventListener('input', () => {
+    clearTimeout(debTimer);
+    const q = toInput.value.trim().toLowerCase();
+    if (q.length < 1) {
+      sugg.classList.add('hidden');
+      return;
+    }
+    debTimer = setTimeout(async () => {
+      try {
+        const res = await api(`/users?q=${encodeURIComponent(q)}`);
+        if (res.users && res.users.length > 0) {
+          sugg.innerHTML = res.users.map(u => `
+            <div class="autocomplete-item" data-u="${escapeHtml(u)}">
+              <span><strong>${escapeHtml(u)}</strong>@${DOMAIN}</span>
+              ${mkIcon('arrow_outward')}
+            </div>
+          `).join('');
+          sugg.classList.remove('hidden');
+          $$('.autocomplete-item', sugg).forEach(item => {
+            item.addEventListener('click', () => {
+              toInput.value = item.dataset.u;
+              sugg.classList.add('hidden');
+            });
+          });
+        } else {
+          sugg.classList.add('hidden');
+        }
+      } catch (_) {
+        sugg.classList.add('hidden');
+      }
+    }, 250);
+  });
+
+  // Send action
+  $('#composeSendBtn').addEventListener('click', async () => {
+    const to = toInput.value.trim().toLowerCase();
     const subject = $('#cmpSubject').value.trim();
     const body = $('#cmpBody').value;
-    if(!to){ toast('Recipient required', 'Enter a username.', 'error'); return; }
-    if(!body){ toast('Empty message', 'Type something first.', 'error'); return; }
-    const btn = $('#cmpSend'); btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Encrypting…';
+
+    if (!to) {
+      toast('Recipient required', 'Please specify a username.', 'error');
+      return;
+    }
+    if (!body) {
+      toast('Empty message', 'Please write a message before sending.', 'error');
+      return;
+    }
+
+    const sendBtn = $('#composeSendBtn');
+    sendBtn.disabled = true;
+    sendBtn.innerHTML = `<span class="spinner"></span> <span>Encrypting…</span>`;
+
     try {
+      // 1. Fetch recipient's public key
       const keyData = await api(`/users/${encodeURIComponent(to)}/pubkey`);
-      const pubKey = await crypto.subtle.importKey('spki', b64.dec(keyData.public_key), {name:'RSA-OAEP', hash:'SHA-256'}, true, ['encrypt']);
-      const enc = await hybridEncrypt(pubKey, body);
+      if (!keyData.public_key) {
+        throw new Error(keyData.message || 'Recipient has not generated public encryption keys yet.');
+      }
+
+      const recPubKey = await crypto.subtle.importKey(
+        'spki',
+        b64.dec(keyData.public_key),
+        { name: 'RSA-OAEP', hash: 'SHA-256' },
+        false,
+        ['encrypt']
+      );
+
+      // 2. Hybrid Encrypt for both Recipient and Sender (so Sender can decrypt in Sent)
+      const dual = await hybridEncryptDual(recPubKey, state.pubKey, body);
+
+      // 3. Post to send endpoint
       await api('/messages/send', {
-        method:'POST',
+        method: 'POST',
         body: JSON.stringify({
           to_username: to,
           subject,
-          encrypted_aes_key: enc.encrypted_aes_key,
-          iv: enc.iv,
-          ciphertext: enc.ciphertext,
-          auth_tag: enc.auth_tag
+          recipient_envelope: dual.recipient_envelope,
+          sender_envelope: dual.sender_envelope
         })
       });
-      toast('Sent', `Encrypted message delivered to ${to}@inpriv.xyz`);
+
+      toast('Message sent', `Delivered encrypted to ${to}@${DOMAIN}`);
       close();
       await loadMessages();
-    } catch(e){
-      toast('Send failed', e.message, 'error');
-    } finally {
-      btn.disabled = false;
-      btn.innerHTML = `${mkIcon('lock')} Encrypt & Send`;
+    } catch (err) {
+      toast('Send failed', err.message, 'error');
+      sendBtn.disabled = false;
+      sendBtn.innerHTML = `${mkIcon('lock')} <span>Encrypt & Send</span>`;
     }
   });
 }
 
 /* ============================================================================
+   ACCOUNT & INPRIV ID SHEET
+   ========================================================================== */
+function renderAccountScreen() {
+  const main = $('#mainView');
+  main.innerHTML = `
+    <div class="card" style="max-width:600px;margin:0 auto">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
+        <div class="msg-avatar" style="width:52px;height:52px;font-size:20px">
+          ${initials(state.user.username)}
+        </div>
+        <div>
+          <h2 style="font-size:20px;font-weight:800">${escapeHtml(state.user.username)}</h2>
+          <div style="font-size:13px;color:var(--md-primary);font-weight:600">${escapeHtml(state.user.email)}</div>
+        </div>
+      </div>
+
+      <div class="acc-info-row">
+        <div>
+          <div class="label">Inpriv Email Address</div>
+          <div class="val">${escapeHtml(state.user.email)}</div>
+        </div>
+        <button class="copy-chip" id="copyAddrBtn">${mkIcon('content_copy')} <span>Copy</span></button>
+      </div>
+
+      <div class="acc-info-row">
+        <div>
+          <div class="label">Inpriv ID Synchronization</div>
+          <div class="val" style="color:var(--md-primary);display:flex;align-items:center;gap:4px">
+            ${mkIcon('check_circle', 'style="font-size:16px"')} Active & Synced
+          </div>
+        </div>
+        <a href="https://id.inpriv.xyz" target="_blank" rel="noopener" class="btn btn-tonal" style="height:32px;padding:0 12px;font-size:12px">
+          ${mkIcon('open_in_new')} ID Settings
+        </a>
+      </div>
+
+      <div class="acc-info-row">
+        <div>
+          <div class="label">Encryption Standard</div>
+          <div class="val">RSA-OAEP-2048 + AES-256-GCM</div>
+        </div>
+      </div>
+
+      <div class="acc-info-row">
+        <div>
+          <div class="label">Password Protection</div>
+          <div class="val">PBKDF2-SHA256 (300,000 rounds)</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:24px">
+        <button class="btn btn-outlined btn-block" id="logoutBtn">
+          ${mkIcon('logout')} <span>Lock & Sign Out</span>
+        </button>
+      </div>
+    </div>
+  `;
+
+  $('#copyAddrBtn').addEventListener('click', () => {
+    navigator.clipboard.writeText(state.user.email);
+    toast('Address copied', state.user.email);
+  });
+
+  $('#logoutBtn').addEventListener('click', logout);
+}
+
+/* ============================================================================
    BOOTSTRAP
    ========================================================================== */
-async function bootstrap(){
+async function bootstrap() {
   renderShell();
-  if(state.token){
+
+  // Listen for Inpriv ID SSO events
+  window.addEventListener('inpriv:id', (ev) => {
+    if (ev.detail && ev.detail.user) {
+      state.idUser = ev.detail.user;
+      updateIdStatusHeader();
+      checkInprivIdSso();
+    }
+  });
+
+  if (window.InprivID && window.InprivID.user) {
+    state.idUser = window.InprivID.user;
+    updateIdStatusHeader();
+  }
+
+  // Check URL parameters for fast login or register
+  const urlParams = new URLSearchParams(window.location.search);
+  const initialMode = urlParams.get('register') ? 'register' : 'login';
+
+  if (state.token) {
     try {
       const me = await api('/me');
       state.user = me;
-      // We still need the password to unlock the private key. We don't have it.
-      // → Prompt user to re-enter password to unlock the private key.
-      promptUnlock();
-    } catch(e){
-      localStorage.removeItem('inpriv_token');
+      // Prompt unlock to derive private key into browser memory
+      promptUnlockSession();
+    } catch (_) {
       state.token = null;
-      renderAuth();
+      localStorage.removeItem('inpriv_token');
+      renderAuth(initialMode);
     }
   } else {
-    renderAuth();
+    renderAuth(initialMode);
   }
 }
 
-function promptUnlock(){
-  $('#main').innerHTML = `
-    <div class="auth-shell">
-      <div class="auth-card">
-        <div class="auth-title">Unlock your private key</div>
-        <div class="auth-sub">You're signed in as <strong>${state.user.email}</strong>. Re-enter your password to derive the AES key and decrypt your private key locally.</div>
-        <form id="unlockForm">
+function promptUnlockSession() {
+  $('#bottomNavContainer').innerHTML = '';
+  $('#fabContainer').innerHTML = '';
+  updateIdStatusHeader();
+
+  const main = $('#mainView');
+  main.innerHTML = `
+    <div class="auth-container">
+      <div class="auth-box">
+        <div class="auth-header">
+          <div class="auth-header-icon">${mkIcon('lock')}</div>
+          <h1 class="auth-title">Unlock Mailbox</h1>
+          <p class="auth-subtitle">Signed in as <strong>${escapeHtml(state.user.email)}</strong>. Enter your master password to unlock your private key locally.</p>
+        </div>
+
+        <form id="sessionUnlockForm">
           <div class="field">
-            <label>Password</label>
+            <label>Master Password</label>
             <div class="input-wrap">
-              <input type="password" id="up" autocomplete="current-password" required>
-              <span class="material-symbols-rounded eye" data-target="up">${mkIcon('visibility')}</span>
+              <input type="password" id="sessionPw" placeholder="Master password" autocomplete="current-password" required autofocus>
+              <button type="button" class="eye-toggle" data-target="sessionPw">${mkIcon('visibility')}</button>
             </div>
           </div>
-          <button type="submit" class="btn btn-primary btn-block">Unlock ${mkIcon('lock_open')}</button>
+
+          <div class="sec-badge">
+            ${mkIcon('memory')}
+            <span>Keys are decrypted only in your device's memory</span>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block" id="sessionUnlockBtn">
+            <span>Unlock Private Key</span> ${mkIcon('lock_open')}
+          </button>
+
+          <div style="text-align:center;margin-top:14px">
+            <button type="button" class="btn btn-text" id="sessionSignOutBtn">Sign out instead</button>
+          </div>
         </form>
-        <div style="margin-top:14px;text-align:center">
-          <button class="btn btn-text" id="unlockLogout">Sign out instead</button>
-        </div>
       </div>
-    </div>`;
-  bindEye();
-  $('#unlockLogout').addEventListener('click', logout);
-  $('#unlockForm').addEventListener('submit', async e=>{
+    </div>
+  `;
+
+  bindEyeToggles();
+  $('#sessionSignOutBtn').addEventListener('click', logout);
+
+  $('#sessionUnlockForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+    const pw = $('#sessionPw').value;
+    const btn = $('#sessionUnlockBtn');
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner"></span> <span>Unlocking…</span>`;
+
     try {
-      const aesKey = await deriveAesFromPassword($('#up').value, state.user.priv_salt, state.user.priv_iter);
+      const aesKey = await deriveAesFromPassword(pw, state.user.priv_salt, state.user.priv_iter);
       state.privKey = await unwrapPrivateKey(state.user.encrypted_private_key, state.user.priv_iv, aesKey);
-      toast('Unlocked', 'Private key decrypted in browser memory.');
+      state.pubKey = await crypto.subtle.importKey('spki', b64.dec(state.user.public_key), { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['encrypt']);
+      state.unlocked = true;
+
+      toast('Unlocked', 'Private key decrypted in memory.');
       renderDashboard();
-    } catch(err){
-      toast('Wrong password', 'Could not decrypt private key.', 'error');
+    } catch (err) {
+      toast('Invalid password', 'Could not decrypt private key.', 'error');
+      btn.disabled = false;
+      btn.innerHTML = `<span>Unlock Private Key</span> ${mkIcon('lock_open')}`;
     }
   });
 }
 
-// helper: querySelectorAll but scoped to current DOM
-function $$(sel, root=document){ return Array.from(root.querySelectorAll(sel)); }
-function $$$(sel, root=document){ return Array.from(root.querySelectorAll(sel)); }
-
 document.addEventListener('DOMContentLoaded', bootstrap);
 })();
 </script>
-<!-- Inpriv ID One Tap -->
-<script src="https://id.inpriv.xyz/id.js" data-service="mail" data-accounts defer></script>
 </body>
 </html>

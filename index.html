@@ -294,6 +294,18 @@
               "applicationCategory": "SecurityApplication",
               "operatingSystem": "All"
             }
+          },
+          {
+            "@type": "ListItem",
+            "position": 19,
+            "item": {
+              "@type": "SoftwareApplication",
+              "name": "Mail",
+              "description": "Zero-knowledge end-to-end encrypted email. RSA-2048 + AES-GCM, synchronized with Inpriv ID.",
+              "url": "https://mail.inpriv.xyz",
+              "applicationCategory": "SecurityApplication",
+              "operatingSystem": "All"
+            }
           }
         ]
       }
@@ -922,7 +934,17 @@
       <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
     </a>
 
-    <div class="service-card coming-soon" style="animation-delay: 0.99s;">
+    <a href="https://mail.inpriv.xyz" class="service-card" style="animation-delay: 0.99s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">mail_lock</span></div>
+      <div class="service-info">
+        <h2 class="service-name">Mail</h2>
+        <p class="service-desc" data-i18n="desc-mail">Zero-knowledge encrypted email. RSA-2048 + AES-GCM, synced with Inpriv ID.</p>
+      </div>
+      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
+    <div class="service-card coming-soon" style="animation-delay: 1.01s;">
       <div class="service-icon-box"><span class="icon" aria-hidden="true">auto_awesome</span></div>
       <div class="service-info">
         <h2 class="service-name">Soon</h2>
@@ -938,15 +960,6 @@
 
     <!-- Upcoming Services -->
     <div class="service-card coming-soon" style="animation-delay: 0.57s;">
-      <div class="service-icon-box"><span class="icon" aria-hidden="true">mail</span></div>
-      <div class="service-info">
-        <h2 class="service-name">Mail</h2>
-        <p class="service-desc" data-i18n="desc-mail">Encrypted, disposable email forwarding.</p>
-      </div>
-      <span class="status-badge soon" data-i18n="badge-soon">Soon</span>
-    </div>
-
-    <div class="service-card coming-soon" style="animation-delay: 0.63s;">
       <div class="service-icon-box"><span class="icon" aria-hidden="true">account_balance_wallet</span></div>
       <div class="service-info">
         <h2 class="service-name">Zero</h2>
@@ -1081,7 +1094,7 @@
       'desc-burn': 'Ephemeral encrypted notes. Read once, then destroyed.',
       'desc-stego': 'Hide encrypted messages inside PNG images. Invisible, in-browser.',
       'desc-temp': 'Disposable email addresses on inpriv.xyz. Random inbox, live polling, one-click shred.',
-      'desc-mail': 'Encrypted, disposable email forwarding.',
+      'desc-mail': 'Zero-knowledge encrypted email. RSA-2048 + AES-GCM, synced with Inpriv ID.',
       'desc-zero': 'Private crypto wallet. Self-custodial.',
       'desc-osint': 'AI-powered open-source intelligence on anything.',
       'desc-pass': 'Offline cryptographic password generator.',
@@ -1118,7 +1131,7 @@
       'desc-burn': 'Szyfrowane notatki efemeryczne. Przeczytane raz — zniszczone.',
       'desc-stego': 'Ukryj zaszyfrowane wiadomości w zdjęciach PNG. Niewidoczne, w przeglądarce.',
       'desc-temp': 'Jednorazowe adresy e-mail na inpriv.xyz. Losowa skrzynka, live polling, kasowanie jednym kliknięciem.',
-      'desc-mail': 'Szyfrowane, jednorazowe przekazywanie e-maili.',
+      'desc-mail': 'Szyfrowana poczta zero-knowledge. RSA-2048 + AES-GCM, zsynchronizowana z Inpriv ID.',
       'desc-zero': 'Prywatny portfel krypto. Self-custodial.',
       'desc-osint': 'Open-source intelligence wspomagane AI — na wszystko.',
       'desc-pass': 'Offline kryptograficzny generator haseł.',
