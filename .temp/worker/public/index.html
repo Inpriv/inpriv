@@ -403,7 +403,6 @@ footer a { color: var(--md-on-surface-variant); }
     </div>
     <div class="addr-actions">
       <button class="btn btn-filled" id="newBtn"><span class="ms">casino</span>New address</button>
-      <button class="btn" id="sendBtn"><span class="ms">send</span>Send email</button>
       <button class="btn btn-error" id="deleteBtn"><span class="ms">delete</span>Delete inbox</button>
     </div>
     <p class="addr-hint">Use this address anywhere you don't want to give your real one. Incoming mail lands below within seconds — no signup, nothing tracked. The inbox shreds itself after 24&nbsp;hours, or the moment you hit <b>Delete</b>.</p>
@@ -446,26 +445,6 @@ footer a { color: var(--md-on-surface-variant); }
       <div class="att-strip" id="vAtts" hidden></div>
       <div class="modal-foot">
         <button class="btn btn-error" id="vDelete"><span class="ms">delete</span>Delete message</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- send modal -->
-<div class="modal-backdrop" id="sendBackdrop">
-  <div class="modal" role="dialog" aria-modal="true">
-    <div class="modal-head">
-      <div class="modal-title"><h3>Send an email</h3></div>
-      <button class="icon-btn" id="sClose" aria-label="Close"><span class="ms">close</span></button>
-    </div>
-    <div class="modal-body">
-      <div class="send-from">From&nbsp; <b id="sFrom"></b></div>
-      <div class="field"><label for="sTo">To</label><input id="sTo" type="email" placeholder="someone@example.com" autocomplete="off"></div>
-      <div class="field"><label for="sSubject">Subject</label><input id="sSubject" type="text" placeholder="Hello…" autocomplete="off"></div>
-      <div class="field"><label for="sBody">Message</label><textarea id="sBody" placeholder="Plain text message…"></textarea></div>
-      <div class="modal-foot">
-        <button class="btn" id="sCancel">Cancel</button>
-        <button class="btn btn-filled" id="sSend"><span class="ms">send</span>Send</button>
       </div>
     </div>
   </div>
@@ -575,7 +554,6 @@ footer a { color: var(--md-on-surface-variant); }
     if (!mailbox) return;
     $('addrValue').textContent = mailbox.address;
     $('addrValue').classList.remove('skeleton');
-    $('sFrom').textContent = mailbox.address;
   }
 
   // one-click delete: shred current inbox, immediately hand out a fresh address
@@ -756,31 +734,6 @@ footer a { color: var(--md-on-surface-variant); }
     $('viewerBackdrop').classList.remove('open');
     toast('Message deleted', 'delete');
     refresh();
-  });
-
-  // ── send ────────────────────────────────────────────────────
-  $('sendBtn').addEventListener('click', () => {
-    if (!mailbox) return;
-    $('sFrom').textContent = mailbox.address;
-    $('sendBackdrop').classList.add('open');
-    $('sTo').focus();
-  });
-  const closeSend = () => {
-    $('sendBackdrop').classList.remove('open');
-    $('sTo').value = $('sSubject').value = $('sBody').value = '';
-  };
-  $('sClose').addEventListener('click', closeSend);
-  $('sCancel').addEventListener('click', closeSend);
-  $('sendBackdrop').addEventListener('click', (e) => { if (e.target === $('sendBackdrop')) closeSend(); });
-
-  $('sSend').addEventListener('click', async () => {
-    const to = $('sTo').value.trim(), subject = $('sSubject').value.trim(), text = $('sBody').value;
-    if (!to || !text.trim()) { toast('Recipient and message are required', 'error', true); return; }
-    $('sSend').disabled = true;
-    const { status, data } = await api('/api/send', { method: 'POST', body: JSON.stringify({ to, subject, text }) });
-    $('sSend').disabled = false;
-    if (status === 200) { toast('Sent', 'send'); closeSend(); }
-    else toast(data.error || 'Send failed', 'error', true);
   });
 
   // ── expiry countdown ────────────────────────────────────────

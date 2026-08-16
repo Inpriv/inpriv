@@ -250,7 +250,9 @@ async function routeApi(request, env, url) {
     });
   }
 
-  if (path === "/api/send" && method === "POST") return sendMessage(request, env);
+  if (path === "/api/send" && method === "POST") {
+    return json({ error: "Outgoing mail is disabled for disposable inboxes." }, 403);
+  }
 
   return json({ error: "Not found" }, 404);
 }

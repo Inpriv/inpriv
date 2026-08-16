@@ -79,28 +79,23 @@
       <!-- register -->
       <form id="regForm" hidden>
         <div class="field">
-          <label for="regId">Inpriv ID / Address</label>
+          <label for="regId">Inpriv Email Address</label>
           <div class="input-suffix-group">
             <input id="regId" type="text" autocomplete="username" required spellcheck="false" placeholder="username" maxlength="32">
             <span class="input-suffix">@inpriv.xyz</span>
           </div>
-          <div class="field-hint">Your permanent, private address across all Inpriv services.</div>
+          <div class="field-hint">Your permanent, personal @inpriv.xyz email address. Send and receive mail privately across the Inpriv network.</div>
         </div>
         <div class="field">
           <label for="regNick">Nickname <span style="text-transform:none;font-weight:500">(optional)</span></label>
           <input id="regNick" type="text" maxlength="24" autocomplete="nickname" spellcheck="false" placeholder="how others see you">
         </div>
         <div class="field">
-          <label for="regRecoveryEmail">Recovery Email <span style="text-transform:none;font-weight:500">(optional)</span></label>
-          <input id="regRecoveryEmail" type="email" autocomplete="email" spellcheck="false" placeholder="you@proton.me, you@gmail.com...">
-          <div class="field-hint">Optional external email for password recovery and security notices.</div>
-        </div>
-        <div class="field">
           <label for="regPass">Password <span style="text-transform:none;font-weight:500">(min 10 chars)</span></label>
           <input id="regPass" type="password" autocomplete="new-password" minlength="10" required placeholder="at least 10 characters">
         </div>
         <button class="btn" id="regBtn" type="submit"><span class="ms">person_add</span><span id="regBtnTxt">Create account</span></button>
-        <p class="auth-hint">No tracking. Zero telemetry. Private by design.</p>
+        <p class="auth-hint">No tracking. Zero telemetry. You can add a recovery email later in account settings.</p>
       </form>
     </div>
   </section>

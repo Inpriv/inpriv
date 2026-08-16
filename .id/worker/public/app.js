@@ -100,7 +100,7 @@ function switchAuth(mode) {
   $("mfaForm").hidden = true;
   $("mfaRecoveryForm").hidden = true;
   $("authTitle").textContent = mode === "login" ? "Welcome back" : "Create your account";
-  $("authSub").textContent = mode === "login" ? "One private account for every Inpriv tool." : "Takes 20 seconds. No tracking, ever.";
+  $("authSub").textContent = mode === "login" ? "One private account for every Inpriv tool." : "Get your personal @inpriv.xyz email address. Send and receive private mail.";
 }
 
 // tabs
@@ -179,11 +179,10 @@ $("regForm").addEventListener("submit", async (e) => {
     const out = await api("/api/register", {
       username: $("regId").value.trim(),
       nick: $("regNick").value.trim(),
-      recovery_email: $("regRecoveryEmail").value.trim(),
       password: $("regPass").value,
     });
     user = out.user;
-    toast(out.verification_sent ? "Account created — verification sent to recovery email" : "Account created — welcome to Inpriv!");
+    toast("Account created — welcome to Inpriv!");
     await enterPanel();
   } catch (ex) {
     err(ex.message);
