@@ -11,7 +11,8 @@ Inpriv Swift is a native desktop text editor engineered for opening and navigati
 ## Features
 
 - **Zero-copy I/O** — memory-mapped file reading (`memmap2`), no full-file load into RAM
-- **SIMD line scanning** — `memchr` accelerates newline detection for instant line counting
+- **SIMD line scanning** — `memchr` uses CPU SIMD instructions to scan for newlines at memory bandwidth speed
+- **Optional edit mode** — turn editing on with `Ctrl+E`; edits live in a lightweight overlay, never copying the file into RAM
 - **Immediate-mode GUI** — built with `eframe`/`egui` for 60fps rendering
 - **Native file dialogs** — drag & drop and system file picker via `rfd`
 - **Minimal memory footprint** — only visible lines are rendered
@@ -23,6 +24,20 @@ Inpriv Swift is a native desktop text editor engineered for opening and navigati
 2. `memchr` uses CPU SIMD instructions to scan for newlines at memory bandwidth speed
 3. An indexer builds a line-offset table lazily as you scroll
 4. `egui` renders only the visible viewport — thousands of lines scroll smoothly
+
+### Edit mode (optional)
+
+Editing is **off by default** — the app behaves as a pure read-only viewer until you enable it.
+
+- **`Ctrl+E`** (or the pencil button) toggles edit mode
+- **Click a line** to edit it inline
+- **`Enter`** commits and moves to the next line (appending at EOF)
+- **`Ctrl+Enter`** inserts a new line below
+- **`Ctrl+D`** deletes the current line
+- **`Esc`** commits and leaves the inline editor
+- **`Ctrl+S`** (or the save button) writes the file
+
+Edits are stored as a line-granular overlay (a piece table keyed by original line index) on top of the read-only memory map — browsing a 10 GB file with a hundred edits costs the same as browsing it read-only, and only the lines you touched are held in RAM. Saving streams the merged content (original byte slices + edited lines, preserving CRLF/LF) into a temp file next to the original, then swaps it in and reindexes — the file is never loaded wholesale into memory. Leaving edit mode with unsaved changes asks for confirmation first.
 
 ## Build
 
@@ -50,6 +65,7 @@ src/
 ├── lib.rs      — module declarations
 ├── app.rs      — application state and event loop
 ├── buffer.rs   — memory-mapped buffer management
+├── edit.rs     — optional editing overlay + streaming save
 ├── indexer.rs  — line offset indexing
 ├── ui.rs       — egui rendering and interaction
 ├── icons.rs    — UI icon handling
@@ -59,7 +75,7 @@ src/
 ## Security
 
 - ✅ No network access — fully offline
-- ✅ Read-only file access (memory-mapped)
+- ✅ Read-only by default; edit mode writes only when you explicitly save (Ctrl+S)
 - ✅ No telemetry or crash reporting
 
 ## Tech

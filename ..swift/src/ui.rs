@@ -12,6 +12,7 @@ use egui::{Context, Ui};
 
 use crate::app::App;
 use crate::buffer::BufferState;
+use crate::edit::{trim_eol, EditState, LineView};
 use crate::indexer::LineIndex;
 
 /// Lightweight row-tint descriptor: a search hit's line + whether it's current.
@@ -141,6 +142,26 @@ pub fn root(ctx: &Context, app: &mut App) {
             let _ = screen;
             workspace(ui, app, entrance);
         });
+
+    // Confirm-before-discarding unsaved edits when leaving edit mode.
+    if app.edit.confirm_discard {
+        egui::Window::new("Discard edits?")
+            .collapsible(false)
+            .resizable(false)
+            .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+            .show(ctx, |ui| {
+                ui.label("There are unsaved edits. Leaving edit mode discards them.");
+                ui.add_space(10.0);
+                ui.horizontal(|ui| {
+                    if ui.button("Discard and leave").clicked() {
+                        app.set_edit_enabled(false);
+                    }
+                    if ui.button("Keep editing").clicked() {
+                        app.edit.confirm_discard = false;
+                    }
+                });
+            });
+    }
 }
 
 /// Apply the M3 "Earthy Forest" dark theme to the egui style.
@@ -293,6 +314,24 @@ fn top_bar(ui: &mut Ui, app: &mut App, entrance: f32) {
             if icon_button(ui, tooltip, |p, c, s, col| crate::icons::search(p, c, s, col)).clicked() {
                 app.search.toggle();
             }
+            if app.buffer.state() == BufferState::Ready {
+                // Edit-mode toggle (optional; off by default).
+                let et = if app.edit.enabled {
+                    "Leave edit mode (Ctrl+E)"
+                } else {
+                    "Edit mode (Ctrl+E) — click a line to edit; Enter=next, Ctrl+Enter=new line, Ctrl+D=delete, Esc=done, Ctrl+S=save"
+                };
+                if icon_button(ui, et, crate::icons::pencil).clicked() {
+                    app.toggle_edit_mode();
+                }
+                if app.edit.enabled {
+                    let can_save = app.edit.modified;
+                    let st = if can_save { "Save (Ctrl+S)" } else { "Save (Ctrl+S) — no changes yet" };
+                    if icon_button(ui, st, crate::icons::save).clicked() {
+                        app.save();
+                    }
+                }
+            }
         });
     });
 }
@@ -320,6 +359,17 @@ fn status_bar(ui: &mut Ui, app: &mut App) {
             ui.label(egui::RichText::new(label).color(TEXT_DIM));
         }
 
+        // Edit-mode indicator: coral when there are unsaved edits.
+        if app.edit.enabled {
+            ui.add_space(8.0);
+            if app.edit.modified {
+                status_dot(ui, ACCENT_TERT);
+                ui.label(egui::RichText::new("unsaved edits").color(ACCENT_TERT).small());
+            } else {
+                status_kv(ui, "Edit", "on".to_string());
+            }
+        }
+
         ui.add_space(12.0);
         ui.separator();
         ui.add_space(8.0);
@@ -334,7 +384,7 @@ fn status_bar(ui: &mut Ui, app: &mut App) {
 
         status_kv(ui, "Size", format_bytes(app.buffer.size_bytes()));
         sep(ui);
-        status_kv(ui, "Lines", fmt_thousands(app.buffer.total_lines() as u64));
+        status_kv(ui, "Lines", fmt_thousands(app.logical_total_lines() as u64));
         if let Some(ms) = app.buffer.index_time_ms() {
             sep(ui);
             status_kv(ui, "Indexed", format!("{} ms", ms));
@@ -342,20 +392,16 @@ fn status_bar(ui: &mut Ui, app: &mut App) {
 
         // Right-aligned: viewport position.
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            if state == BufferState::Ready && app.buffer.total_lines() > 0 {
-                let pct = if app.buffer.total_lines() > 0 {
-                    ((app.scroll_state.top_line as f64 / app.buffer.total_lines() as f64)
-                        * 100.0) as u32
-                } else {
-                    0
-                };
+            let total = app.logical_total_lines();
+            if state == BufferState::Ready && total > 0 {
+                let pct = ((app.scroll_state.top_line as f64 / total as f64) * 100.0) as u32;
                 status_kv(
                     ui,
                     "View",
                     format!(
                         "line {} / {} ({}%)",
                         fmt_thousands(app.scroll_state.top_line as u64 + 1),
-                        fmt_thousands(app.buffer.total_lines() as u64),
+                        fmt_thousands(total as u64),
                         pct
                     ),
                 );
@@ -547,8 +593,19 @@ fn show_error_banner(ui: &mut Ui, msg: &str) {
 }
 
 /// The hot path: render only the visible lines, zero-copy from the mmap.
+///
+/// With edit mode on, lines resolve through the edit overlay (`O(edits)` per
+/// visible line — independent of file size) and one row hosts the inline
+/// `TextEdit`. With edit mode off, or with no edits, this is the exact
+/// original zero-copy path.
 fn render_text(ui: &mut Ui, app: &mut App) {
-    let total_lines = app.buffer.total_lines();
+    let total_original = app.buffer.total_lines();
+    let edit_on = app.edit.enabled;
+    let total_lines = if edit_on {
+        app.edit.edits.total_lines(total_original)
+    } else {
+        total_original
+    };
     if total_lines == 0 {
         return;
     }
@@ -575,15 +632,24 @@ fn render_text(ui: &mut Ui, app: &mut App) {
     let content_h = (total_lines as f64 * LINE_H as f64).min(f32::MAX as f64) as f32;
 
     // Snapshot the search matches so the paint closure borrows only this Vec,
-    // not all of `app`. Avoids the FnOnce-vs-`&mut self` borrow conflict.
+    // not all of `app`. Hits are recorded against original lines; translate
+    // them to logical lines through the overlay (deleted hits drop out).
     let search_matches: Vec<SearchHitRef> = {
+        let edits = &app.edit.edits;
         let cur_line = app.search.matches.get(app.search.current).map(|h| h.line);
         app.search
             .matches
             .iter()
-            .map(|m| SearchHitRef {
-                line: m.line,
-                is_current: cur_line == Some(m.line),
+            .filter_map(|m| {
+                let lg = if edits.is_empty() {
+                    m.line
+                } else {
+                    edits.logical_of_original(total_original, m.line)?
+                };
+                Some(SearchHitRef {
+                    line: lg,
+                    is_current: cur_line == Some(m.line),
+                })
             })
             .collect()
     };
@@ -597,6 +663,17 @@ fn render_text(ui: &mut Ui, app: &mut App) {
     // can act on it. This is the *only* way to drive the ScrollArea — writing
     // `top_line` directly is ignored because the renderer overwrites it.
     let pending_scroll = app.scroll_state.scroll_to_line.take();
+    // Disjoint field borrows of the edit state for the inline editor.
+    let EditState {
+        edits,
+        editing_line,
+        draft,
+        focus_requested,
+        modified,
+        search_stale,
+        ..
+    } = &mut app.edit;
+    let editing_now = *editing_line;
 
     ScrollArea::vertical()
         .auto_shrink([false, false])
@@ -621,13 +698,16 @@ fn render_text(ui: &mut Ui, app: &mut App) {
             }
 
             // Visible line range from the viewport (content coords, min=0 top).
-            // f64 math so 14M-line files don't lose precision.
+            // f64 math so 14M-line files don't lose precision. The top may cut
+            // a row mid-line (the usual smooth-scroll look), but the bottom is
+            // floored: a row is only drawn when it fits fully above the status
+            // bar, so the footer never swallows half of the last line.
             let top = ((viewport.min.y as f64) / LINE_H as f64)
                 .floor()
                 .max(0.0) as usize;
             let bottom = {
-                let raw = ((viewport.max.y as f64) / LINE_H as f64).ceil() as usize;
-                raw.saturating_add(1).min(total_lines).max(top)
+                let raw = ((viewport.max.y as f64) / LINE_H as f64).floor() as usize;
+                raw.min(total_lines).max(top)
             };
 
             // Gutter band + separator, drawn behind the text.
@@ -635,9 +715,8 @@ fn render_text(ui: &mut Ui, app: &mut App) {
                 Pos2::new(content_left, content_top),
                 Vec2::new(gutter_w, ui.max_rect().height()),
             );
-            let painter = ui.painter();
-            painter.rect_filled(gutter_rect, Rounding::ZERO, BG);
-            painter.line_segment(
+            ui.painter().rect_filled(gutter_rect, Rounding::ZERO, BG);
+            ui.painter().line_segment(
                 [
                     Pos2::new(gutter_rect.max.x, ui.max_rect().top()),
                     Pos2::new(gutter_rect.max.x, ui.max_rect().bottom()),
@@ -653,10 +732,10 @@ fn render_text(ui: &mut Ui, app: &mut App) {
                 let cy = y + LINE_H * 0.5;
 
                 // Search-match row tint (behind text).
-                paint_row_tint(painter, &search_matches, i, text_x, y);
+                paint_row_tint(ui.painter(), &search_matches, i, text_x, y);
 
                 // Gutter digit (1-indexed).
-                painter.text(
+                ui.painter().text(
                     Pos2::new(gutter_rect.max.x - GUTTER_PAD_RIGHT, cy),
                     Align2::RIGHT_CENTER,
                     format!("{}", i + 1),
@@ -664,11 +743,82 @@ fn render_text(ui: &mut Ui, app: &mut App) {
                     LINE_NUM,
                 );
 
-                // Line bytes, zero-copy from the mmap, then lossy-decode into
-                // the shared scratch buffer (avoids per-line allocation).
-                let line_bytes = line_slice(bytes, &index, i);
-                let text = decode_into(scratch, line_bytes);
-                painter.text(
+                if edit_on && editing_now == Some(i) {
+                    // The row under the inline editor: our own backdrop keeps
+                    // it on-theme, the frameless TextEdit keeps it 18px tall.
+                    let rect = Rect::from_min_size(
+                        Pos2::new(text_x - 6.0, y + 1.0),
+                        Vec2::new(
+                            (ui.max_rect().width() - gutter_w - 14.0).max(80.0),
+                            LINE_H - 2.0,
+                        ),
+                    );
+                    ui.painter()
+                        .rect_filled(rect.expand(2.0), Rounding::same(3.0), BG_GLASS);
+                    ui.painter().rect_stroke(
+                        rect.expand(2.0),
+                        Rounding::same(3.0),
+                        Stroke::new(1.0, ACCENT_DIM),
+                    );
+                    let resp = ui.put(
+                        rect,
+                        egui::TextEdit::singleline(&mut *draft)
+                            .id(egui::Id::new("inline-line-editor"))
+                            .desired_width(f32::INFINITY)
+                            .font(FontId::monospace(13.0))
+                            .frame(false),
+                    );
+                    if *focus_requested {
+                        resp.request_focus();
+                        *focus_requested = false;
+                    }
+                    continue;
+                }
+
+                if edit_on {
+                    // Click-to-edit hit target (skipped for the editor row, so
+                    // the TextEdit on top receives those clicks). Handled
+                    // before the content resolve below, which borrows `edits`.
+                    let row_rect = Rect::from_min_size(
+                        Pos2::new(content_left, y),
+                        Vec2::new(ui.max_rect().width(), LINE_H),
+                    );
+                    let resp = ui
+                        .interact(row_rect, ui.id().with(("edit-row", i)), Sense::click())
+                        .on_hover_cursor(egui::CursorIcon::Text);
+                    if resp.clicked() {
+                        // Commit any in-flight draft, then retarget the editor.
+                        if let Some(prev) = editing_now {
+                            let text = std::mem::take(&mut *draft);
+                            edits.set_line(total_original, prev, text);
+                            *modified = true;
+                            *search_stale = true;
+                        }
+                        *editing_line = Some(i);
+                        *draft = match edits.view(total_original, i) {
+                            LineView::Edited(t) => t.to_string(),
+                            LineView::Original(orig) => String::from_utf8_lossy(trim_eol(
+                                line_slice(bytes, &index, orig),
+                            ))
+                            .into_owned(),
+                        };
+                        *focus_requested = true;
+                    }
+                }
+
+                // Line content: through the overlay when editing, straight
+                // from the mmap otherwise.
+                let text: &str = if edit_on {
+                    match edits.view(total_original, i) {
+                        LineView::Original(orig) => {
+                            decode_into(scratch, line_slice(bytes, &index, orig))
+                        }
+                        LineView::Edited(t) => t,
+                    }
+                } else {
+                    decode_into(scratch, line_slice(bytes, &index, i))
+                };
+                ui.painter().text(
                     Pos2::new(text_x, cy),
                     Align2::LEFT_CENTER,
                     text,

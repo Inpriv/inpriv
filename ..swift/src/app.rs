@@ -15,6 +15,7 @@ use eframe::egui::{Context, FontDefinitions, FontFamily, Key, Modifiers};
 use memmap2::Mmap;
 
 use crate::buffer::{Buffer, BufferState};
+use crate::edit::{self, EditState, LineView};
 use crate::indexer::LineIndex;
 use crate::ui;
 
@@ -34,6 +35,8 @@ pub struct App {
     pub is_drag_hovered: bool,
     /// A user-facing error to show once (taken and cleared by the UI).
     error_banner: Option<String>,
+    /// Optional edit mode: line-granular overlay on the read-only mmap.
+    pub edit: EditState,
     /// Scratch buffer for lossy UTF-8 decoding of the current line.
     pub(crate) decode_scratch: String,
     /// GPU texture for the brand icon (shown top-left). `None` if decoding
@@ -137,6 +140,7 @@ impl App {
             pending_path_slot: None,
             is_drag_hovered: false,
             error_banner: None,
+            edit: EditState::default(),
             decode_scratch: String::with_capacity(512),
             icon_texture,
         }
@@ -153,10 +157,12 @@ impl App {
             Ok(()) => {
                 self.scroll_state = ScrollState::default();
                 self.search.close();
+                self.reset_edits();
             }
             Err(e) => {
                 self.error_banner = Some(format!("{e}"));
                 self.buffer.close();
+                self.reset_edits();
             }
         }
     }
@@ -186,6 +192,143 @@ impl App {
         self.buffer.close();
         self.scroll_state = ScrollState::default();
         self.search.close();
+        self.reset_edits();
+    }
+
+    /// Drop any pending edits / inline-editor state (keeps the mode flag).
+    fn reset_edits(&mut self) {
+        self.edit.edits.clear();
+        self.edit.editing_line = None;
+        self.edit.draft.clear();
+        self.edit.modified = false;
+        self.edit.focus_requested = false;
+        self.edit.confirm_discard = false;
+    }
+
+    /// Total lines the renderer should show: the buffer's count plus the edit
+    /// overlay's delta (identity when edit mode is off or nothing is edited).
+    pub fn logical_total_lines(&self) -> usize {
+        self.edit.edits.total_lines(self.buffer.total_lines())
+    }
+
+    /// Turn edit mode on/off (Ctrl+E or the toolbar toggle). Leaving with
+    /// unsaved edits first asks for confirmation via `edit.confirm_discard`.
+    pub fn toggle_edit_mode(&mut self) {
+        if self.buffer.state() != BufferState::Ready {
+            return;
+        }
+        if self.edit.enabled && self.edit.modified {
+            self.edit.confirm_discard = true;
+            return;
+        }
+        self.set_edit_enabled(!self.edit.enabled);
+    }
+
+    pub fn set_edit_enabled(&mut self, on: bool) {
+        self.commit_draft();
+        self.edit.enabled = on;
+        self.edit.editing_line = None;
+        self.edit.draft.clear();
+        self.edit.focus_requested = false;
+        if !on {
+            self.edit.edits.clear();
+            self.edit.modified = false;
+            self.edit.confirm_discard = false;
+        }
+    }
+
+    /// Commit the inline editor's draft into the overlay.
+    fn commit_draft(&mut self) {
+        let Some(line) = self.edit.editing_line else {
+            return;
+        };
+        let text = std::mem::take(&mut self.edit.draft);
+        self.edit.edits.set_line(self.buffer.total_lines(), line, text);
+        self.edit.modified = true;
+        self.edit.editing_line = None;
+        self.edit.search_stale = true;
+    }
+
+    /// Start editing `line`: commit anything in flight, then load its content
+    /// (edited or lossy-decoded original) into the draft.
+    fn begin_editing(&mut self, line: usize) {
+        self.commit_draft();
+        let total = self.buffer.total_lines();
+        self.edit.draft = match self.edit.edits.view(total, line) {
+            LineView::Edited(t) => t.to_string(),
+            LineView::Original(orig) => {
+                let bytes = self.buffer.line(orig).unwrap_or_default();
+                String::from_utf8_lossy(edit::trim_eol(bytes)).into_owned()
+            }
+        };
+        self.edit.editing_line = Some(line);
+        self.edit.focus_requested = true;
+    }
+
+    /// Save the edited content back to the open file (Ctrl+S).
+    ///
+    /// Streams the merged content to a temp file next to the original, then
+    /// swaps it in (our mapping must be dropped first — Windows refuses to
+    /// replace a mapped file) and reopens + reindexes, preserving the scroll
+    /// position.
+    pub fn save(&mut self) {
+        if !self.edit.enabled || !self.edit.modified {
+            return;
+        }
+        let (Some(path), Some(index), mmap) = (
+            self.buffer.path().map(ToOwned::to_owned),
+            self.buffer.index_ref().cloned(),
+            self.buffer.mmap_arc().cloned(),
+        ) else {
+            return;
+        };
+        // An empty file has no mapping; its single line is represented by the
+        // index alone, and the original byte slice is simply empty.
+        let bytes: &[u8] = mmap.as_deref().map(|m| &m[..]).unwrap_or(&[]);
+
+        let tmp = path.with_file_name(format!(
+            "{}.inpriv-tmp",
+            path.file_name().unwrap_or_default().to_string_lossy()
+        ));
+        match edit::write_file(&self.edit.edits, bytes, &index, &tmp) {
+            Ok(_) => {
+                // Drop our mapping before replacing the file.
+                self.buffer.close();
+                let swap = std::fs::rename(&tmp, &path)
+                    .or_else(|_| {
+                        std::fs::remove_file(&path)
+                            .and_then(|()| std::fs::rename(&tmp, &path))
+                    })
+                    .or_else(|_| {
+                        std::fs::copy(&tmp, &path)
+                            .and_then(|_| std::fs::remove_file(&tmp))
+                    });
+                match swap {
+                    Ok(()) => {
+                        let top = self.scroll_state.top_line;
+                        match self.buffer.open(&path) {
+                            Ok(()) => {
+                                self.reset_edits();
+                                self.search.close();
+                                // `open` reset the scroll; restore the view.
+                                self.scroll_state.scroll_to_line = Some(top);
+                            }
+                            Err(e) => self.error_banner = Some(format!("{e}")),
+                        }
+                    }
+                    Err(e) => {
+                        self.error_banner = Some(format!(
+                            "saved to {} but could not replace the original: {e}",
+                            tmp.display()
+                        ));
+                    }
+                }
+            }
+            Err(e) => {
+                std::fs::remove_file(&tmp).ok();
+                self.error_banner = Some(format!("failed to save: {e}"));
+            }
+        }
     }
 
     /// Take (consume) the deferred error banner, if any.
@@ -230,6 +373,58 @@ impl App {
                 }
             }
         }
+
+        // Edit-mode keys. Handled here, before the UI renders the inline
+        // editor, so the TextEdit never swallows them.
+        if self.edit.enabled {
+            if ctx.input_mut(|i| i.consume_key(SHORTCUT_MOD, Key::E)) {
+                self.toggle_edit_mode();
+            }
+            if ctx.input_mut(|i| i.consume_key(SHORTCUT_MOD, Key::S)) {
+                self.save();
+            }
+            let editing = self.edit.editing_line;
+            if !self.search.open {
+                if let Some(cur) = editing {
+                    if ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Enter)) {
+                        self.commit_draft();
+                        // Step to the next line, appending one at EOF.
+                        if cur + 1 >= self.logical_total_lines() {
+                            self.insert_line_after(cur);
+                        }
+                        self.begin_editing(cur + 1);
+                        self.scroll_state.scroll_to_line = Some(cur + 1);
+                    }
+                    if ctx.input_mut(|i| i.consume_key(Modifiers::CTRL, Key::Enter)) {
+                        self.commit_draft();
+                        self.insert_line_after(cur);
+                        self.begin_editing(cur + 1);
+                        self.scroll_state.scroll_to_line = Some(cur + 1);
+                    }
+                    if ctx.input_mut(|i| i.consume_key(Modifiers::CTRL, Key::D)) {
+                        self.edit
+                            .edits
+                            .delete_line(self.buffer.total_lines(), cur);
+                        self.edit.modified = true;
+                        self.edit.search_stale = true;
+                        self.edit.editing_line = None;
+                        self.edit.draft.clear();
+                    }
+                    if ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
+                        self.commit_draft();
+                    }
+                }
+            }
+        }
+    }
+
+    /// Insert an empty line after logical line `cur` and mark the edit dirty.
+    fn insert_line_after(&mut self, cur: usize) {
+        self.edit
+            .edits
+            .insert_after(self.buffer.total_lines(), cur, String::new());
+        self.edit.modified = true;
+        self.edit.search_stale = true;
     }
 
     /// Advance to the next search match and scroll it into view.
@@ -246,15 +441,31 @@ impl App {
 
     fn scroll_to_current_match(&mut self) {
         if let Some(&hit) = self.search.matches.get(self.search.current) {
-            // Drive the ScrollArea via the pending-scroll slot; writing
-            // `top_line` directly has no effect (the renderer overwrites it).
-            self.scroll_state.scroll_to_line = Some(hit.line);
+            // Hits are recorded against original lines; translate through the
+            // edit overlay (deleted lines simply don't scroll anywhere).
+            let line = if self.edit.edits.is_empty() {
+                Some(hit.line)
+            } else {
+                self.edit
+                    .edits
+                    .logical_of_original(self.buffer.total_lines(), hit.line)
+            };
+            if let Some(line) = line {
+                // Drive the ScrollArea via the pending-scroll slot; writing
+                // `top_line` directly has no effect (the renderer overwrites it).
+                self.scroll_state.scroll_to_line = Some(line);
+            }
         }
     }
 
     /// Pump the search pipeline: kick off a scan when the query changes, and
     /// collect results when they land.
     fn pump_search(&mut self) {
+        // An edit changed line numbering (or content) — rescan the file bytes.
+        if self.edit.search_stale {
+            self.edit.search_stale = false;
+            self.search.dirty = true;
+        }
         if !self.search.open {
             return;
         }
