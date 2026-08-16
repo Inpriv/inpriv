@@ -5,7 +5,7 @@
 
   Suite landing page. Curates a set of zero-knowledge, fully client-side
   web utilities (encrypted chat, metadata wipe, WebRTC audit, hashing, QR,
-  TOTP authenticator, brute force, and more). No trackers, no server logs — everything runs in the browser.
+  TOTP authenticator, brute force, disposable email, and more). No trackers, no server logs.
 -->
 <html lang="en" data-theme="dark">
 <head>
@@ -15,8 +15,8 @@
   <!-- Primary SEO Meta Tags -->
   <title>Inpriv — Privacy-First Tools | Zero-Knowledge & Client-Side</title>
   <meta name="title" content="Inpriv — Privacy-First Tools | Zero-Knowledge & Client-Side">
-  <meta name="description" content="A suite of zero-knowledge, client-side web utilities engineered for total digital privacy. Encrypted chat, EXIF wipe, WebRTC leak test, TOTP authenticator, ephemeral encrypted notes, hash brute force, client-side compression, and more.">
-  <meta name="keywords" content="privacy tools, zero knowledge, client side encryption, hush chat, metadata sanitizer, image compression, webrtc leak test, totp authenticator, 2fa, burn ephemeral notes, open source privacy">
+  <meta name="description" content="A suite of zero-knowledge, client-side web utilities engineered for total digital privacy. Disposable temporary email, encrypted chat, EXIF wipe, WebRTC leak test, TOTP authenticator, ephemeral encrypted notes, hash brute force, image compression, and more.">
+  <meta name="keywords" content="privacy tools, zero knowledge, disposable email, temp mail, hush chat, metadata sanitizer, image compression, webrtc leak test, totp authenticator, 2fa, burn ephemeral notes, open source privacy">
   <meta name="author" content="Aurex Labs">
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
   <link rel="canonical" href="https://inpriv.xyz/">
@@ -33,7 +33,7 @@
   <meta property="og:url" content="https://inpriv.xyz/">
   <meta property="og:site_name" content="Inpriv">
   <meta property="og:title" content="Inpriv — Privacy-First Tools | Zero-Knowledge & Client-Side">
-  <meta property="og:description" content="A suite of zero-knowledge, client-side web utilities engineered for total digital privacy. TOTP authenticator. No trackers, no server logs.">
+  <meta property="og:description" content="A suite of zero-knowledge, client-side web utilities engineered for total digital privacy. No trackers, no server logs.">
   <meta property="og:image" content="https://hush.best/icon.png">
   <meta property="og:image:alt" content="Inpriv Logo">
   <meta property="og:locale" content="en_US">
@@ -42,7 +42,7 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:url" content="https://inpriv.xyz/">
   <meta name="twitter:title" content="Inpriv — Privacy-First Tools | Zero-Knowledge & Client-Side">
-  <meta name="twitter:description" content="A suite of zero-knowledge, client-side web utilities engineered for total digital privacy. TOTP authenticator. No trackers, no server logs.">
+  <meta name="twitter:description" content="A suite of zero-knowledge, client-side web utilities engineered for total digital privacy. No trackers, no server logs.">
   <meta name="twitter:image" content="https://hush.best/icon.png">
 
   <!-- Favicons & App Icons -->
@@ -83,9 +83,9 @@
             "position": 1,
             "item": {
               "@type": "SoftwareApplication",
-              "name": "Hush",
-              "description": "End-to-end encrypted chat. No logs, no servers.",
-              "url": "https://hush.best",
+              "name": "Temp",
+              "description": "Disposable email addresses on inpriv.xyz. Random inbox, live polling, one-click shred.",
+              "url": "https://temp.inpriv.xyz",
               "applicationCategory": "SecurityApplication",
               "operatingSystem": "All"
             }
@@ -95,9 +95,9 @@
             "position": 2,
             "item": {
               "@type": "SoftwareApplication",
-              "name": "Wipe",
-              "description": "Zero-knowledge metadata sanitizer for images.",
-              "url": "https://wipe.inpriv.xyz",
+              "name": "Mail",
+              "description": "Zero-knowledge end-to-end encrypted email. RSA-2048 + AES-GCM, synchronized with Inpriv ID.",
+              "url": "https://mail.inpriv.xyz",
               "applicationCategory": "SecurityApplication",
               "operatingSystem": "All"
             }
@@ -107,9 +107,9 @@
             "position": 3,
             "item": {
               "@type": "SoftwareApplication",
-              "name": "WebRTC Leak Check",
-              "description": "Check if your real IP address is leaked via WebRTC.",
-              "url": "https://webrtc.inpriv.xyz",
+              "name": "Hush",
+              "description": "End-to-end encrypted chat. No logs, no servers.",
+              "url": "https://hush.best",
               "applicationCategory": "SecurityApplication",
               "operatingSystem": "All"
             }
@@ -119,10 +119,10 @@
             "position": 4,
             "item": {
               "@type": "SoftwareApplication",
-              "name": "Pay",
-              "description": "Crypto payment bridge for accepting payments.",
-              "url": "https://pay.inpriv.xyz",
-              "applicationCategory": "FinanceApplication",
+              "name": "Wipe",
+              "description": "Zero-knowledge metadata sanitizer for images.",
+              "url": "https://wipe.inpriv.xyz",
+              "applicationCategory": "SecurityApplication",
               "operatingSystem": "All"
             }
           },
@@ -143,9 +143,9 @@
             "position": 6,
             "item": {
               "@type": "SoftwareApplication",
-              "name": "Hash",
-              "description": "Client-side SHA and MD5 checksum generator for text and files.",
-              "url": "https://hash.inpriv.xyz",
+              "name": "Stego",
+              "description": "Hide AES-256 encrypted messages inside PNG images. LSB steganography, fully client-side.",
+              "url": "https://stego.inpriv.xyz",
               "applicationCategory": "SecurityApplication",
               "operatingSystem": "All"
             }
@@ -155,9 +155,9 @@
             "position": 7,
             "item": {
               "@type": "SoftwareApplication",
-              "name": "DNS Leak Test",
-              "description": "Browser-side DNS resolution audit against multiple DoH resolvers.",
-              "url": "https://dns.inpriv.xyz",
+              "name": "Burn",
+              "description": "Ephemeral encrypted notes. Read once, then destroyed. Zero-knowledge.",
+              "url": "https://burn.inpriv.xyz",
               "applicationCategory": "SecurityApplication",
               "operatingSystem": "All"
             }
@@ -167,10 +167,10 @@
             "position": 8,
             "item": {
               "@type": "SoftwareApplication",
-              "name": "QR",
-              "description": "Generate and read QR codes entirely in your browser.",
-              "url": "https://qr.inpriv.xyz",
-              "applicationCategory": "UtilitiesApplication",
+              "name": "TOTP",
+              "description": "Time-based one-time password generator (RFC 6238). Authenticator, client-side.",
+              "url": "https://totp.inpriv.xyz",
+              "applicationCategory": "SecurityApplication",
               "operatingSystem": "All"
             }
           },
@@ -191,10 +191,10 @@
             "position": 10,
             "item": {
               "@type": "SoftwareApplication",
-              "name": "IP Info",
-              "description": "See what your browser reveals: public IP, ISP and device fingerprint.",
-              "url": "https://ipinfo.inpriv.xyz",
-              "applicationCategory": "SecurityApplication",
+              "name": "QR",
+              "description": "Generate and read QR codes entirely in your browser.",
+              "url": "https://qr.inpriv.xyz",
+              "applicationCategory": "UtilitiesApplication",
               "operatingSystem": "All"
             }
           },
@@ -203,9 +203,9 @@
             "position": 11,
             "item": {
               "@type": "SoftwareApplication",
-              "name": "Pass",
-              "description": "Offline cryptographic password generator.",
-              "url": "https://inpriv.xyz#pass",
+              "name": "WebRTC Leak Check",
+              "description": "Check if your real IP address is leaked via WebRTC.",
+              "url": "https://webrtc.inpriv.xyz",
               "applicationCategory": "SecurityApplication",
               "operatingSystem": "All"
             }
@@ -215,10 +215,10 @@
             "position": 12,
             "item": {
               "@type": "SoftwareApplication",
-              "name": "Base64",
-              "description": "Client-side Base64, URL, and HTML encoder/decoder.",
-              "url": "https://inpriv.xyz#base64",
-              "applicationCategory": "UtilitiesApplication",
+              "name": "DNS Leak Test",
+              "description": "Browser-side DNS resolution audit against multiple DoH resolvers.",
+              "url": "https://dns.inpriv.xyz",
+              "applicationCategory": "SecurityApplication",
               "operatingSystem": "All"
             }
           },
@@ -227,9 +227,9 @@
             "position": 13,
             "item": {
               "@type": "SoftwareApplication",
-              "name": "Burn",
-              "description": "Ephemeral encrypted notes. Read once, then destroyed.",
-              "url": "https://inpriv.xyz#burn",
+              "name": "IP Info",
+              "description": "See what your browser reveals: public IP, ISP and device fingerprint.",
+              "url": "https://ipinfo.inpriv.xyz",
               "applicationCategory": "SecurityApplication",
               "operatingSystem": "All"
             }
@@ -245,16 +245,15 @@
               "applicationCategory": "SecurityApplication",
               "operatingSystem": "All"
             }
-          }
-                  ,
+          },
           {
             "@type": "ListItem",
             "position": 15,
             "item": {
               "@type": "SoftwareApplication",
-              "name": "TOTP",
-              "description": "Time-based one-time password generator (RFC 6238). Authenticator, client-side.",
-              "url": "https://totp.inpriv.xyz",
+              "name": "Hash",
+              "description": "Client-side SHA and MD5 checksum generator for text and files.",
+              "url": "https://hash.inpriv.xyz",
               "applicationCategory": "SecurityApplication",
               "operatingSystem": "All"
             }
@@ -264,46 +263,10 @@
             "position": 16,
             "item": {
               "@type": "SoftwareApplication",
-              "name": "Burn",
-              "description": "Ephemeral encrypted notes. Read once, then destroyed. Zero-knowledge.",
-              "url": "https://burn.inpriv.xyz",
-              "applicationCategory": "SecurityApplication",
-              "operatingSystem": "All"
-            }
-          },
-          {
-            "@type": "ListItem",
-            "position": 17,
-            "item": {
-              "@type": "SoftwareApplication",
-              "name": "Stego",
-              "description": "Hide AES-256 encrypted messages inside PNG images. LSB steganography, fully client-side.",
-              "url": "https://stego.inpriv.xyz",
-              "applicationCategory": "SecurityApplication",
-              "operatingSystem": "All"
-            }
-          },
-          {
-            "@type": "ListItem",
-            "position": 18,
-            "item": {
-              "@type": "SoftwareApplication",
-              "name": "Temp",
-              "description": "Disposable email addresses on inpriv.xyz. Random inbox, live polling, one-click shred.",
-              "url": "https://temp.inpriv.xyz",
-              "applicationCategory": "SecurityApplication",
-              "operatingSystem": "All"
-            }
-          },
-          {
-            "@type": "ListItem",
-            "position": 19,
-            "item": {
-              "@type": "SoftwareApplication",
-              "name": "Mail",
-              "description": "Zero-knowledge end-to-end encrypted email. RSA-2048 + AES-GCM, synchronized with Inpriv ID.",
-              "url": "https://mail.inpriv.xyz",
-              "applicationCategory": "SecurityApplication",
+              "name": "Pay",
+              "description": "Crypto payment bridge for accepting payments.",
+              "url": "https://pay.inpriv.xyz",
+              "applicationCategory": "FinanceApplication",
               "operatingSystem": "All"
             }
           }
@@ -408,7 +371,7 @@
     }
 
     /* Accessibility Focus Rings */
-    a:focus-visible, button:focus-visible {
+    a:focus-visible, button:focus-visible, input:focus-visible {
       outline: 2px solid var(--md-primary);
       outline-offset: 3px;
     }
@@ -438,20 +401,23 @@
       text-transform: none; letter-spacing: normal; word-wrap: normal;
       white-space: nowrap; direction: ltr;
       -webkit-font-smoothing: antialiased;
+      -webkit-font-feature-settings: 'liga';
+      font-feature-settings: 'liga';
       font-variation-settings: 'wght' 500, 'GRAD' 0, 'opsz' 24;
     }
 
     .container {
-      width: 100%; max-width: 680px; margin: 0 auto;
-      padding: 16px 16px calc(48px + env(safe-area-inset-bottom, 0px)) 16px;
+      width: 100%; max-width: 780px; margin: 0 auto;
+      padding: 12px 14px calc(52px + env(safe-area-inset-bottom, 0px)) 14px;
       position: relative; z-index: 1;
       display: flex; flex-direction: column; min-height: 100dvh;
     }
 
+    /* App Bar */
     .app-bar {
-      position: sticky; top: 12px; z-index: 50;
-      width: 100%; height: 48px; padding: 6px 6px 6px 18px;
-      margin-bottom: 20px;
+      position: sticky; top: 10px; z-index: 50;
+      width: 100%; height: 46px; padding: 4px 6px 4px 14px;
+      margin-bottom: 14px;
       border-radius: 9999px;
       background: color-mix(in srgb, var(--md-surface-container) 80%, transparent);
       backdrop-filter: blur(24px) saturate(180%);
@@ -480,22 +446,22 @@
       display: inline-flex;
       align-items: center;
       gap: 5px;
-      height: 30px;
-      padding: 0 11px 0 8px;
+      height: 28px;
+      padding: 0 10px 0 7px;
       border-radius: 9999px;
       background: var(--md-primary-container);
       color: var(--md-on-primary-container);
       border: 1px solid color-mix(in srgb, var(--md-primary) 35%, transparent);
       text-decoration: none;
       font-family: var(--font-sans);
-      font-size: 12.5px;
+      font-size: 12px;
       font-weight: 700;
       letter-spacing: 0.02em;
       transition: transform 0.2s var(--md-easing-spring), box-shadow 0.2s var(--md-easing-standard);
     }
 
     .app-bar-id-chip .icon {
-      font-size: 16px;
+      font-size: 15px;
     }
 
     .app-bar-id-chip:hover {
@@ -507,10 +473,10 @@
       transform: scale(0.96);
     }
 
-    .bar-actions { display: flex; align-items: center; gap: 4px; }
+    .bar-actions { display: flex; align-items: center; gap: 2px; }
 
     .icon-btn {
-      width: 40px; height: 40px; border-radius: 50%; border: none;
+      width: 38px; height: 38px; border-radius: 50%; border: none;
       background: transparent; color: var(--md-on-surface-variant);
       display: flex; align-items: center; justify-content: center;
       cursor: pointer; position: relative; overflow: hidden;
@@ -518,24 +484,19 @@
     }
 
     .icon-btn:hover { color: var(--md-on-surface); }
-
-    .icon-btn .icon { font-size: 22px; }
-
-    @media(min-width: 600px) {
-      .icon-btn { width: 44px; height: 44px; }
-      .icon-btn .icon { font-size: 24px; }
-    }
+    .icon-btn .icon { font-size: 20px; }
     .icon-btn:hover::before { content: ''; position: absolute; inset: 0; background: currentColor; opacity: 0.08; }
     .icon-btn:active { transform: scale(0.92); }
 
+    /* Hero */
     header {
       text-align: center; margin-bottom: 16px;
       opacity: 0; animation: fadeUp 0.8s var(--md-easing-spring) 0.1s both;
     }
 
     .hero-title {
-      font-size: clamp(32px, 8vw, 44px); font-weight: 800; letter-spacing: -0.025em;
-      line-height: 1.05; color: var(--md-on-surface); margin-bottom: 12px;
+      font-size: clamp(26px, 7.5vw, 42px); font-weight: 800; letter-spacing: -0.025em;
+      line-height: 1.08; color: var(--md-on-surface); margin-bottom: 8px;
     }
 
     .hero-title .accent {
@@ -543,65 +504,300 @@
     }
 
     .tagline {
-      font-size: 15px; color: var(--md-on-surface-variant); font-weight: 500;
-      max-width: 380px; margin: 0 auto 12px auto; line-height: 1.4;
+      font-size: 13.5px; color: var(--md-on-surface-variant); font-weight: 500;
+      max-width: 420px; margin: 0 auto 8px auto; line-height: 1.35;
     }
 
     .description {
-      font-size: 14px; color: var(--md-on-surface-variant); line-height: 1.5;
-      max-width: 440px; margin: 0 auto; opacity: 0.85;
+      font-size: 12.5px; color: var(--md-on-surface-variant); line-height: 1.45;
+      max-width: 480px; margin: 0 auto; opacity: 0.85;
     }
 
     .hero-badges {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
-      gap: 8px;
-      margin-top: 18px;
+      gap: 6px;
+      margin-top: 12px;
     }
 
     .hero-badge {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      padding: 6px 14px;
+      gap: 5px;
+      padding: 4px 10px;
       border-radius: 9999px;
-      font-size: 11px;
+      font-size: 10.5px;
       font-weight: 600;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.03em;
       color: var(--md-on-secondary-container);
       background: color-mix(in srgb, var(--md-secondary-container) 70%, transparent);
       border: 1px solid color-mix(in srgb, var(--md-outline-variant) 45%, transparent);
     }
 
-    .hero-badge .icon { font-size: 14px; color: var(--md-primary); }
+    .hero-badge .icon { font-size: 13px; color: var(--md-primary); }
 
+    /* ── FEATURED SPOTLIGHT SECTION (TEMP) ─────────────────────── */
+    .featured-wrap {
+      margin-bottom: 16px;
+      opacity: 0; animation: fadeUp 0.7s var(--md-easing-spring) 0.2s both;
+    }
+
+    .featured-card {
+      display: block;
+      text-decoration: none; color: inherit;
+      background:
+        radial-gradient(circle at 95% 10%, color-mix(in srgb, var(--md-primary) 18%, transparent), transparent 60%),
+        linear-gradient(135deg, color-mix(in srgb, var(--md-surface-container-high) 95%, transparent), color-mix(in srgb, var(--md-surface-container) 90%, transparent));
+      border: 1.5px solid color-mix(in srgb, var(--md-primary) 55%, var(--md-outline-variant));
+      border-radius: 22px;
+      padding: 16px 16px;
+      box-shadow: 0 10px 30px -6px color-mix(in srgb, var(--md-primary) 15%, var(--md-shadow-color));
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.35s var(--md-easing-spring), border-color 0.3s var(--md-easing-standard), box-shadow 0.35s var(--md-easing-spring);
+    }
+
+    .featured-card::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(120deg, transparent 30%, color-mix(in srgb, var(--md-primary) 12%, transparent) 50%, transparent 70%);
+      opacity: 0; transition: opacity 0.4s var(--md-easing-standard);
+      pointer-events: none;
+    }
+
+    .featured-card:hover {
+      transform: translateY(-3px);
+      border-color: var(--md-primary);
+      box-shadow: 0 16px 36px -8px color-mix(in srgb, var(--md-primary) 28%, var(--md-shadow-color-strong));
+    }
+
+    .featured-card:hover::before { opacity: 1; }
+    .featured-card:active { transform: scale(0.985); }
+
+    .featured-top-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .featured-pill {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 10px; border-radius: 9999px;
+      background: var(--md-primary); color: var(--md-on-primary);
+      font-size: 11px; font-weight: 800; letter-spacing: 0.05em;
+      text-transform: uppercase;
+      box-shadow: 0 2px 8px -2px color-mix(in srgb, var(--md-primary) 50%, transparent);
+    }
+
+    .featured-pill .icon { font-size: 14px; }
+
+    .featured-body {
+      display: flex; flex-direction: column; gap: 12px;
+    }
+
+    .featured-main-info {
+      display: flex; align-items: flex-start; gap: 14px;
+    }
+
+    .featured-icon-box {
+      width: 48px; height: 48px; border-radius: 16px;
+      background: var(--md-primary-container); color: var(--md-on-primary-container);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 4px 12px -2px color-mix(in srgb, var(--md-primary) 25%, transparent);
+      transition: transform 0.3s var(--md-easing-spring);
+    }
+
+    .featured-icon-box .icon { font-size: 26px; }
+
+    .featured-card:hover .featured-icon-box {
+      transform: scale(1.1) rotate(-4deg);
+    }
+
+    .featured-text { flex: 1; min-width: 0; }
+
+    .featured-heading-row {
+      display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .featured-title {
+      font-size: 18px; font-weight: 800; color: var(--md-on-surface);
+      letter-spacing: -0.01em; line-height: 1.2;
+    }
+
+    .featured-domain {
+      display: inline-flex; align-items: center; gap: 3px;
+      font-size: 11px; font-weight: 600;
+      padding: 2px 7px; border-radius: 6px;
+      background: var(--md-surface-container-highest);
+      color: var(--md-on-surface-variant);
+      font-family: monospace;
+    }
+
+    .featured-desc {
+      font-size: 13px; color: var(--md-on-surface-variant);
+      line-height: 1.45;
+    }
+
+    .featured-tags {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      margin-top: 4px;
+    }
+
+    .feat-tag {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 11px; font-weight: 600;
+      padding: 3px 8px; border-radius: 9999px;
+      background: color-mix(in srgb, var(--md-surface-container-highest) 80%, transparent);
+      color: var(--md-on-surface-variant);
+      border: 1px solid color-mix(in srgb, var(--md-outline-variant) 40%, transparent);
+    }
+
+    .feat-tag .icon { font-size: 13px; color: var(--md-primary); }
+
+    .featured-cta-row {
+      display: flex; align-items: center; justify-content: flex-end;
+      padding-top: 4px;
+    }
+
+    .featured-btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      width: 100%;
+      height: 42px; border-radius: 12px;
+      background: var(--md-primary); color: var(--md-on-primary);
+      font-size: 13.5px; font-weight: 700;
+      transition: all 0.25s var(--md-easing-standard);
+      box-shadow: 0 4px 14px -3px color-mix(in srgb, var(--md-primary) 40%, transparent);
+    }
+
+    .featured-card:hover .featured-btn {
+      background: color-mix(in srgb, var(--md-primary) 90%, white);
+      box-shadow: 0 6px 18px -3px color-mix(in srgb, var(--md-primary) 55%, transparent);
+    }
+
+    .featured-btn .icon { font-size: 18px; transition: transform 0.2s var(--md-easing-spring); }
+    .featured-card:hover .featured-btn .icon { transform: translateX(3px); }
+
+    /* ── MOBILE-OPTIMIZED CONTROLS BAR (SEARCH + CHIPS) ───────── */
+    .controls-bar {
+      display: flex; flex-direction: column; gap: 10px;
+      margin-bottom: 14px;
+      opacity: 0; animation: fadeUp 0.6s var(--md-easing-spring) 0.25s both;
+    }
+
+    .search-wrap {
+      position: relative; width: 100%;
+    }
+
+    .search-box {
+      width: 100%; height: 42px;
+      display: flex; align-items: center; gap: 10px;
+      padding: 0 12px 0 14px;
+      background: var(--md-surface-container-low);
+      border: 1px solid var(--md-outline-variant);
+      border-radius: 9999px;
+      transition: border-color 0.2s var(--md-easing-standard), box-shadow 0.2s var(--md-easing-standard);
+    }
+
+    .search-box:focus-within {
+      border-color: var(--md-primary);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-primary) 20%, transparent);
+      background: var(--md-surface-container);
+    }
+
+    .search-icon {
+      font-size: 20px; color: var(--md-on-surface-variant); opacity: 0.7;
+    }
+
+    .search-input {
+      flex: 1; border: none; background: transparent;
+      font-family: var(--font-sans); font-size: 13.5px;
+      color: var(--md-on-surface); outline: none;
+    }
+
+    .search-input::placeholder {
+      color: var(--md-on-surface-variant); opacity: 0.6;
+    }
+
+    .search-clear {
+      background: none; border: none; color: var(--md-on-surface-variant);
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      width: 24px; height: 24px; border-radius: 50%;
+      padding: 0; opacity: 0.7;
+    }
+
+    .search-clear:hover { opacity: 1; background: var(--md-surface-container-highest); }
+    .search-clear .icon { font-size: 16px; }
+
+    /* Category Filter Chips */
+    .filter-chips {
+      display: flex; align-items: center; gap: 6px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      padding: 2px 2px;
+    }
+
+    .filter-chips::-webkit-scrollbar { display: none; }
+
+    .filter-chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      height: 34px; padding: 0 12px;
+      border-radius: 9999px;
+      border: 1px solid color-mix(in srgb, var(--md-outline-variant) 60%, transparent);
+      background: var(--md-surface-container-low);
+      color: var(--md-on-surface-variant);
+      font-family: var(--font-sans); font-size: 12px; font-weight: 600;
+      white-space: nowrap; cursor: pointer; flex-shrink: 0;
+      transition: all 0.2s var(--md-easing-spring);
+    }
+
+    .filter-chip .icon { font-size: 16px; opacity: 0.85; }
+
+    .filter-chip:hover {
+      background: var(--md-surface-container);
+      color: var(--md-on-surface);
+      border-color: var(--md-outline);
+    }
+
+    .filter-chip.active {
+      background: var(--md-primary-container);
+      color: var(--md-on-primary-container);
+      border-color: color-mix(in srgb, var(--md-primary) 60%, transparent);
+      font-weight: 700;
+    }
+
+    .filter-chip:active { transform: scale(0.95); }
+
+    /* ── SERVICES GRID ────────────────────────────────────────── */
     .grid {
-      display: grid; grid-template-columns: 1fr; gap: 9px; margin-bottom: auto;
+      display: grid; grid-template-columns: 1fr; gap: 8px; margin-bottom: auto;
     }
 
     .service-card {
-      display: flex; align-items: center; gap: 14px;
-      padding: 12px 16px;
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 14px;
       background: var(--md-surface-container-low);
       border: 1px solid var(--md-outline-variant);
-      border-radius: 20px;
+      border-radius: 18px;
       text-decoration: none; color: inherit;
       position: relative; overflow: hidden;
-      min-height: var(--touch-target-min);
-      transition: all 0.4s var(--md-easing-spring-soft);
-      opacity: 0; animation: fadeUp 0.7s var(--md-easing-spring) both;
+      min-height: 54px;
+      transition: transform 0.3s var(--md-easing-spring), background 0.25s var(--md-easing-standard), border-color 0.25s var(--md-easing-standard), box-shadow 0.3s var(--md-easing-spring);
+      opacity: 0; animation: fadeUp 0.6s var(--md-easing-spring) both;
     }
 
     .service-card:hover {
-      transform: translateY(-4px);
+      transform: translateY(-3px);
       background: var(--md-surface-container);
       border-color: var(--md-primary);
-      box-shadow: 0 12px 32px -6px var(--md-shadow-color-strong);
+      box-shadow: 0 10px 24px -6px var(--md-shadow-color);
     }
 
+    .service-card:active { transform: scale(0.985); }
+
     .service-card.coming-soon {
-      cursor: default; opacity: 0.75;
+      cursor: default; opacity: 0.72;
     }
 
     .service-card.coming-soon:hover {
@@ -621,7 +817,7 @@
     }
 
     .service-icon-box {
-      width: 40px; height: 40px; border-radius: 13px;
+      width: 38px; height: 38px; border-radius: 12px;
       background: var(--md-primary-container); color: var(--md-on-primary-container);
       display: flex; align-items: center; justify-content: center;
       flex-shrink: 0; transition: transform 0.3s var(--md-easing-spring);
@@ -641,12 +837,15 @@
     }
 
     .service-info { flex: 1; min-width: 0; }
-    .service-name { font-size: 16px; font-weight: 700; color: var(--md-on-surface); margin-bottom: 2px; }
-    .service-desc { font-size: 13px; color: var(--md-on-surface-variant); line-height: 1.4; }
+    .service-name { font-size: 15px; font-weight: 700; color: var(--md-on-surface); margin-bottom: 1px; }
+    .service-desc {
+      font-size: 12.5px; color: var(--md-on-surface-variant); line-height: 1.35;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
 
     .status-badge {
-      font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
-      padding: 4px 10px; border-radius: 9999px; flex-shrink: 0;
+      font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em;
+      padding: 3px 9px; border-radius: 9999px; flex-shrink: 0;
       text-transform: uppercase;
     }
 
@@ -659,17 +858,17 @@
     }
 
     .arrow-icon {
-      font-size: 20px; color: var(--md-on-surface-variant); opacity: 0.5;
+      font-size: 18px; color: var(--md-on-surface-variant); opacity: 0.5;
       transition: all 0.25s var(--md-easing-standard); flex-shrink: 0;
     }
 
     .service-card:hover .arrow-icon {
-      transform: translateX(4px); opacity: 1; color: var(--md-primary);
+      transform: translateX(3px); opacity: 1; color: var(--md-primary);
     }
 
     .section-divider {
-      display: flex; align-items: center; gap: 16px;
-      margin: 10px 0 2px 0;
+      display: flex; align-items: center; gap: 14px;
+      margin: 12px 0 4px 0;
       opacity: 0; animation: fadeUp 0.5s var(--md-easing-standard) both;
     }
 
@@ -681,6 +880,19 @@
       font-size: 10px; font-weight: 700; color: var(--md-on-surface-variant);
       letter-spacing: 0.12em; text-transform: uppercase; white-space: nowrap;
     }
+
+    .no-results-box {
+      text-align: center; padding: 36px 16px;
+      background: var(--md-surface-container-low);
+      border: 1px dashed var(--md-outline-variant);
+      border-radius: 20px;
+      color: var(--md-on-surface-variant);
+      display: none;
+    }
+
+    .no-results-box .icon { font-size: 36px; margin-bottom: 8px; opacity: 0.6; }
+    .no-results-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .no-results-hint { font-size: 12px; opacity: 0.75; }
 
     .ripple-span {
       position: absolute; border-radius: 50%;
@@ -694,7 +906,7 @@
     }
 
     footer .copyright {
-      font-size: 12px; color: var(--md-on-surface-variant); margin-bottom: 4px; opacity: 0.8;
+      font-size: 12px; color: var(--md-on-surface-variant); margin-bottom: 3px; opacity: 0.8;
     }
 
     footer .byline {
@@ -711,7 +923,7 @@
     }
 
     @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(24px); }
+      from { opacity: 0; transform: translateY(20px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
@@ -724,19 +936,41 @@
       to { transform: scale(4); opacity: 0; }
     }
 
-    @media(min-width: 600px) {
-      .container { max-width: 720px; padding-top: 20px; }
-      .app-bar { height: 52px; margin-bottom: 22px; }
+    /* ── TABLET & DESKTOP (>= 640px) ─────────────────────────── */
+    @media(min-width: 640px) {
+      .container { max-width: 780px; padding-top: 18px; }
+      .app-bar { height: 50px; margin-bottom: 20px; }
       .app-bar-brand { font-size: 19px; }
-      .hero-title { font-size: clamp(40px, 6.5vw, 56px); }
-      .tagline { font-size: 16px; max-width: 440px; }
+      .hero-title { font-size: clamp(34px, 5.5vw, 48px); }
+      .tagline { font-size: 15px; max-width: 480px; }
+      .description { font-size: 13.5px; }
+
+      .featured-card { padding: 20px 22px; }
+      .featured-body { flex-direction: row; align-items: center; justify-content: space-between; }
+      .featured-main-info { align-items: center; }
+      .featured-icon-box { width: 52px; height: 52px; }
+      .featured-icon-box .icon { font-size: 28px; }
+      .featured-title { font-size: 20px; }
+      .featured-desc { font-size: 13.5px; }
+      .featured-cta-row { padding-top: 0; }
+      .featured-btn { width: auto; padding: 0 18px; }
+
+      .controls-bar {
+        flex-direction: row; align-items: center; justify-content: space-between;
+      }
+      .search-wrap { max-width: 280px; }
+
       .grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-      .service-card { border-radius: 22px; padding: 14px 18px; }
-      .section-divider { grid-column: span 2; margin: 12px 0 4px 0; }
+      .service-card { border-radius: 20px; padding: 12px 16px; min-height: 60px; }
+      .service-icon-box { width: 40px; height: 40px; }
+      .service-name { font-size: 15.5px; }
+      .service-desc { font-size: 13px; }
+      .section-divider { grid-column: span 2; margin: 14px 0 6px 0; }
+      .no-results-box { grid-column: span 2; }
     }
 
     @media(min-width: 1024px) {
-      .container { max-width: 840px; }
+      .container { max-width: 860px; }
       .grid { gap: 12px; }
     }
   </style>
@@ -782,159 +1016,82 @@
     </div>
   </header>
 
+  <!-- ── FEATURED SPOTLIGHT CARD (INPRIV TEMP) ────────────────── -->
+  <section class="featured-wrap" aria-label="Featured Tool">
+    <a href="https://temp.inpriv.xyz" class="featured-card" target="_blank" rel="noopener noreferrer" id="featured-temp-card">
+      <div class="featured-top-bar">
+        <span class="featured-pill">
+          <span class="icon" aria-hidden="true">auto_awesome</span>
+          <span data-i18n="featured-label">Featured</span>
+        </span>
+        <span class="status-badge live" data-i18n="badge-live">Live</span>
+      </div>
+      <div class="featured-body">
+        <div class="featured-main-info">
+          <div class="featured-icon-box">
+            <span class="icon" aria-hidden="true">mark_email_unread</span>
+          </div>
+          <div class="featured-text">
+            <div class="featured-heading-row">
+              <h2 class="featured-title">Inpriv Temp</h2>
+              <span class="featured-domain">temp.inpriv.xyz</span>
+            </div>
+            <p class="featured-desc" data-i18n="desc-temp-featured">
+              Disposable email addresses on inpriv.xyz. Instant random inbox, live incoming feed, auto-refresh, and one-click shred.
+            </p>
+            <div class="featured-tags">
+              <span class="feat-tag"><span class="icon" aria-hidden="true">bolt</span> <span data-i18n="tag-instant">Instant Inbox</span></span>
+              <span class="feat-tag"><span class="icon" aria-hidden="true">autorenew</span> <span data-i18n="tag-live-poll">Live Polling</span></span>
+              <span class="feat-tag"><span class="icon" aria-hidden="true">delete_forever</span> <span data-i18n="tag-shred">1-Click Shred</span></span>
+            </div>
+          </div>
+        </div>
+        <div class="featured-cta-row">
+          <span class="featured-btn">
+            <span data-i18n="btn-open-temp">Open Temp Mail</span>
+            <span class="icon" aria-hidden="true">arrow_forward</span>
+          </span>
+        </div>
+      </div>
+    </a>
+  </section>
+
+  <!-- ── CONTROLS: SEARCH & CATEGORY FILTER TABS ─────────────── -->
+  <div class="controls-bar" id="controls">
+    <div class="filter-chips" role="tablist" aria-label="Filter tools by category">
+      <button type="button" class="filter-chip active" data-filter="all" role="tab" aria-selected="true">
+        <span class="icon" aria-hidden="true">apps</span>
+        <span data-i18n="filter-all">All</span>
+      </button>
+      <button type="button" class="filter-chip" data-filter="comms" role="tab" aria-selected="false">
+        <span class="icon" aria-hidden="true">chat</span>
+        <span data-i18n="filter-comms">Mail &amp; Chat</span>
+      </button>
+      <button type="button" class="filter-chip" data-filter="security" role="tab" aria-selected="false">
+        <span class="icon" aria-hidden="true">security</span>
+        <span data-i18n="filter-security">Security</span>
+      </button>
+      <button type="button" class="filter-chip" data-filter="utils" role="tab" aria-selected="false">
+        <span class="icon" aria-hidden="true">build</span>
+        <span data-i18n="filter-utils">Utilities</span>
+      </button>
+    </div>
+
+    <div class="search-wrap">
+      <div class="search-box">
+        <span class="icon search-icon" aria-hidden="true">search</span>
+        <input type="text" id="tool-search" class="search-input" placeholder="Search 16+ tools..." aria-label="Search tools" data-i18n-ph="search-placeholder" autocomplete="off" />
+        <button type="button" id="search-clear" class="search-clear" aria-label="Clear search" style="display:none;">
+          <span class="icon" aria-hidden="true">close</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MAIN TOOLS GRID ──────────────────────────────────────── -->
   <main class="grid" id="grid">
     <!-- Live Services -->
-    <a href="https://hush.best" class="service-card" style="animation-delay: 0.15s;" target="_blank" rel="noopener noreferrer">
-      <div class="service-icon-box"><span class="icon" aria-hidden="true">chat</span></div>
-      <div class="service-info">
-        <h2 class="service-name">Hush</h2>
-        <p class="service-desc" data-i18n="desc-hush">End-to-end encrypted chat. No logs, no servers.</p>
-      </div>
-      <span class="status-badge live" data-i18n="badge-live">Live</span>
-      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
-    </a>
-
-    <a href="https://wipe.inpriv.xyz" class="service-card" style="animation-delay: 0.21s;" target="_blank" rel="noopener noreferrer">
-      <div class="service-icon-box"><span class="icon" aria-hidden="true">auto_fix_high</span></div>
-      <div class="service-info">
-        <h2 class="service-name">Wipe</h2>
-        <p class="service-desc" data-i18n="desc-wipe">Zero-knowledge metadata sanitizer for images.</p>
-      </div>
-      <span class="status-badge live" data-i18n="badge-live">Live</span>
-      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
-    </a>
-
-    <a href="https://compress.inpriv.xyz" class="service-card" style="animation-delay: 0.27s;" target="_blank" rel="noopener noreferrer">
-      <div class="service-icon-box"><span class="icon" aria-hidden="true">compress</span></div>
-      <div class="service-info">
-        <h2 class="service-name">Compress</h2>
-        <p class="service-desc" data-i18n="desc-compress">Client-side image compression. No upload needed.</p>
-      </div>
-      <span class="status-badge live" data-i18n="badge-live">Live</span>
-      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
-    </a>
-
-    <a href="https://webrtc.inpriv.xyz" class="service-card" style="animation-delay: 0.33s;" target="_blank" rel="noopener noreferrer">
-      <div class="service-icon-box"><span class="icon" aria-hidden="true">security</span></div>
-      <div class="service-info">
-        <h2 class="service-name">WebRTC Leak</h2>
-        <p class="service-desc" data-i18n="desc-webrtc-leak">Check if your real IP address is leaked via WebRTC.</p>
-      </div>
-      <span class="status-badge live" data-i18n="badge-live">Live</span>
-      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
-    </a>
-
-    <a href="https://pay.inpriv.xyz" class="service-card" style="animation-delay: 0.39s;" target="_blank" rel="noopener noreferrer">
-      <div class="service-icon-box"><span class="icon" aria-hidden="true">payments</span></div>
-      <div class="service-info">
-        <h2 class="service-name">Pay</h2>
-        <p class="service-desc" data-i18n="desc-pay">Crypto payment bridge for accepting payments.</p>
-      </div>
-      <span class="status-badge live" data-i18n="badge-live">Live</span>
-      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
-    </a>
-
-    <a href="https://hash.inpriv.xyz" class="service-card" style="animation-delay: 0.45s;" target="_blank" rel="noopener noreferrer">
-      <div class="service-icon-box"><span class="icon" aria-hidden="true">fingerprint</span></div>
-      <div class="service-info">
-        <h2 class="service-name">Hash</h2>
-        <p class="service-desc" data-i18n="desc-hash">SHA &amp; MD5 checksums for any text or file, in-browser.</p>
-      </div>
-      <span class="status-badge live" data-i18n="badge-live">Live</span>
-      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
-    </a>
-
-    <a href="https://dns.inpriv.xyz" class="service-card" style="animation-delay: 0.51s;" target="_blank" rel="noopener noreferrer">
-      <div class="service-icon-box"><span class="icon" aria-hidden="true">dns</span></div>
-      <div class="service-info">
-        <h2 class="service-name">DNS Leak</h2>
-        <p class="service-desc" data-i18n="desc-dns-leak">Browser-side DNS resolution audit over DoH.</p>
-      </div>
-      <span class="status-badge live" data-i18n="badge-live">Live</span>
-      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
-    </a>
-
-    <a href="https://qr.inpriv.xyz" class="service-card" style="animation-delay: 0.57s;" target="_blank" rel="noopener noreferrer">
-      <div class="service-icon-box"><span class="icon" aria-hidden="true">qr_code</span></div>
-      <div class="service-info">
-        <h2 class="service-name">QR</h2>
-        <p class="service-desc" data-i18n="desc-qr">Generate &amp; read QR codes. Camera or image, fully offline.</p>
-      </div>
-      <span class="status-badge live" data-i18n="badge-live">Live</span>
-      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
-    </a>
-
-    <a href="https://keyring.inpriv.xyz" class="service-card" style="animation-delay: 0.63s;" target="_blank" rel="noopener noreferrer">
-      <div class="service-icon-box"><span class="icon" aria-hidden="true">key</span></div>
-      <div class="service-info">
-        <h2 class="service-name">Keyring</h2>
-        <p class="service-desc" data-i18n="desc-keyring">Zero-knowledge encrypted vault for keys &amp; tokens.</p>
-      </div>
-      <span class="status-badge live" data-i18n="badge-live">Live</span>
-      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
-    </a>
-
-    <a href="https://ipinfo.inpriv.xyz" class="service-card" style="animation-delay: 0.69s;" target="_blank" rel="noopener noreferrer">
-      <div class="service-icon-box"><span class="icon" aria-hidden="true">my_location</span></div>
-      <div class="service-info">
-        <h2 class="service-name">IP Info</h2>
-        <p class="service-desc" data-i18n="desc-ip-info">What your browser reveals — IP, ISP &amp; fingerprint.</p>
-      </div>
-      <span class="status-badge live" data-i18n="badge-live">Live</span>
-      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
-    </a>
-
-    <a href="https://brute.inpriv.xyz" class="service-card" style="animation-delay: 0.75s;" target="_blank" rel="noopener noreferrer">
-      <div class="service-icon-box"><span class="icon" aria-hidden="true">lock_open</span></div>
-      <div class="service-info">
-        <h2 class="service-name">Brute</h2>
-        <p class="service-desc" data-i18n="desc-brute">Hash brute force matcher — MD5, SHA-1, SHA-256, SHA-384, SHA-512.</p>
-      </div>
-      <span class="status-badge live" data-i18n="badge-live">Live</span>
-      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
-    </a>
-
-    <a href="https://totp.inpriv.xyz" class="service-card" style="animation-delay: 0.81s;" target="_blank" rel="noopener noreferrer">
-      <div class="service-icon-box"><span class="icon" aria-hidden="true">timer</span></div>
-      <div class="service-info">
-        <h2 class="service-name">TOTP</h2>
-        <p class="service-desc" data-i18n="desc-totp">Time-based one-time password generator (RFC 6238). 2FA codes, client-side.</p>
-      </div>
-      <span class="status-badge live" data-i18n="badge-live">Live</span>
-      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
-    </a>
-
-    <a href="https://burn.inpriv.xyz" class="service-card" style="animation-delay: 0.87s;" target="_blank" rel="noopener noreferrer">
-      <div class="service-icon-box"><span class="icon" aria-hidden="true">local_fire_department</span></div>
-      <div class="service-info">
-        <h2 class="service-name">Burn</h2>
-        <p class="service-desc" data-i18n="desc-burn">Ephemeral encrypted notes. Read once, then destroyed.</p>
-      </div>
-      <span class="status-badge live" data-i18n="badge-live">Live</span>
-      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
-    </a>
-
-    <a href="https://stego.inpriv.xyz" class="service-card" style="animation-delay: 0.93s;" target="_blank" rel="noopener noreferrer">
-      <div class="service-icon-box"><span class="icon" aria-hidden="true">hide_image</span></div>
-      <div class="service-info">
-        <h2 class="service-name">Stego</h2>
-        <p class="service-desc" data-i18n="desc-stego">Hide encrypted messages inside PNG images. Invisible, in-browser.</p>
-      </div>
-      <span class="status-badge live" data-i18n="badge-live">Live</span>
-      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
-    </a>
-
-    <a href="https://temp.inpriv.xyz" class="service-card" style="animation-delay: 0.97s;" target="_blank" rel="noopener noreferrer">
-      <div class="service-icon-box"><span class="icon" aria-hidden="true">mark_email_unread</span></div>
-      <div class="service-info">
-        <h2 class="service-name">Temp</h2>
-        <p class="service-desc" data-i18n="desc-temp">Disposable email addresses on inpriv.xyz. Random inbox, live polling, one-click shred.</p>
-      </div>
-      <span class="status-badge live" data-i18n="badge-live">Live</span>
-      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
-    </a>
-
-    <a href="https://mail.inpriv.xyz" class="service-card" style="animation-delay: 0.99s;" target="_blank" rel="noopener noreferrer">
+    <a href="https://mail.inpriv.xyz" class="service-card" data-category="comms security" style="animation-delay: 0.15s;" target="_blank" rel="noopener noreferrer">
       <div class="service-icon-box"><span class="icon" aria-hidden="true">mail_lock</span></div>
       <div class="service-info">
         <h2 class="service-name">Mail</h2>
@@ -944,22 +1101,153 @@
       <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
     </a>
 
-    <div class="service-card coming-soon" style="animation-delay: 1.01s;">
-      <div class="service-icon-box"><span class="icon" aria-hidden="true">auto_awesome</span></div>
+    <a href="https://hush.best" class="service-card" data-category="comms security" style="animation-delay: 0.19s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">chat</span></div>
       <div class="service-info">
-        <h2 class="service-name">Soon</h2>
-        <p class="service-desc" data-i18n="desc-soon">Something new is coming.</p>
+        <h2 class="service-name">Hush</h2>
+        <p class="service-desc" data-i18n="desc-hush">End-to-end encrypted chat. No logs, no servers.</p>
       </div>
-      <span class="status-badge soon" data-i18n="badge-soon">Soon</span>
-    </div>
+      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
+    <a href="https://wipe.inpriv.xyz" class="service-card" data-category="security" style="animation-delay: 0.23s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">auto_fix_high</span></div>
+      <div class="service-info">
+        <h2 class="service-name">Wipe</h2>
+        <p class="service-desc" data-i18n="desc-wipe">Zero-knowledge metadata sanitizer for images.</p>
+      </div>
+      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
+    <a href="https://compress.inpriv.xyz" class="service-card" data-category="utils" style="animation-delay: 0.27s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">compress</span></div>
+      <div class="service-info">
+        <h2 class="service-name">Compress</h2>
+        <p class="service-desc" data-i18n="desc-compress">Client-side image compression. No upload needed.</p>
+      </div>
+      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
+    <a href="https://stego.inpriv.xyz" class="service-card" data-category="security" style="animation-delay: 0.31s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">hide_image</span></div>
+      <div class="service-info">
+        <h2 class="service-name">Stego</h2>
+        <p class="service-desc" data-i18n="desc-stego">Hide encrypted messages inside PNG images. Invisible, in-browser.</p>
+      </div>
+      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
+    <a href="https://burn.inpriv.xyz" class="service-card" data-category="security" style="animation-delay: 0.35s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">local_fire_department</span></div>
+      <div class="service-info">
+        <h2 class="service-name">Burn</h2>
+        <p class="service-desc" data-i18n="desc-burn">Ephemeral encrypted notes. Read once, then destroyed.</p>
+      </div>
+      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
+    <a href="https://totp.inpriv.xyz" class="service-card" data-category="security" style="animation-delay: 0.39s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">timer</span></div>
+      <div class="service-info">
+        <h2 class="service-name">TOTP</h2>
+        <p class="service-desc" data-i18n="desc-totp">Time-based one-time password generator (RFC 6238). 2FA codes, client-side.</p>
+      </div>
+      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
+    <a href="https://keyring.inpriv.xyz" class="service-card" data-category="security" style="animation-delay: 0.43s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">key</span></div>
+      <div class="service-info">
+        <h2 class="service-name">Keyring</h2>
+        <p class="service-desc" data-i18n="desc-keyring">Zero-knowledge encrypted vault for keys &amp; tokens.</p>
+      </div>
+      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
+    <a href="https://qr.inpriv.xyz" class="service-card" data-category="utils" style="animation-delay: 0.47s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">qr_code</span></div>
+      <div class="service-info">
+        <h2 class="service-name">QR</h2>
+        <p class="service-desc" data-i18n="desc-qr">Generate &amp; read QR codes. Camera or image, fully offline.</p>
+      </div>
+      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
+    <a href="https://webrtc.inpriv.xyz" class="service-card" data-category="security utils" style="animation-delay: 0.51s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">security</span></div>
+      <div class="service-info">
+        <h2 class="service-name">WebRTC Leak</h2>
+        <p class="service-desc" data-i18n="desc-webrtc-leak">Check if your real IP address is leaked via WebRTC.</p>
+      </div>
+      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
+    <a href="https://dns.inpriv.xyz" class="service-card" data-category="security utils" style="animation-delay: 0.55s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">dns</span></div>
+      <div class="service-info">
+        <h2 class="service-name">DNS Leak</h2>
+        <p class="service-desc" data-i18n="desc-dns-leak">Browser-side DNS resolution audit over DoH.</p>
+      </div>
+      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
+    <a href="https://ipinfo.inpriv.xyz" class="service-card" data-category="security utils" style="animation-delay: 0.59s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">my_location</span></div>
+      <div class="service-info">
+        <h2 class="service-name">IP Info</h2>
+        <p class="service-desc" data-i18n="desc-ip-info">What your browser reveals — IP, ISP &amp; fingerprint.</p>
+      </div>
+      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
+    <a href="https://brute.inpriv.xyz" class="service-card" data-category="security" style="animation-delay: 0.63s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">lock_open</span></div>
+      <div class="service-info">
+        <h2 class="service-name">Brute</h2>
+        <p class="service-desc" data-i18n="desc-brute">Hash brute force matcher — MD5, SHA-1, SHA-256, SHA-384, SHA-512.</p>
+      </div>
+      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
+    <a href="https://hash.inpriv.xyz" class="service-card" data-category="security utils" style="animation-delay: 0.67s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">fingerprint</span></div>
+      <div class="service-info">
+        <h2 class="service-name">Hash</h2>
+        <p class="service-desc" data-i18n="desc-hash">SHA &amp; MD5 checksums for any text or file, in-browser.</p>
+      </div>
+      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
+    <a href="https://pay.inpriv.xyz" class="service-card" data-category="utils" style="animation-delay: 0.71s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">payments</span></div>
+      <div class="service-info">
+        <h2 class="service-name">Pay</h2>
+        <p class="service-desc" data-i18n="desc-pay">Crypto payment bridge for accepting payments.</p>
+      </div>
+      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
 
     <!-- Divider -->
-    <div class="section-divider" style="animation-delay: 0.51s;">
-      <span>Coming Soon</span>
+    <div class="section-divider" style="animation-delay: 0.75s;">
+      <span data-i18n="section-upcoming">Coming Soon</span>
     </div>
 
     <!-- Upcoming Services -->
-    <div class="service-card coming-soon" style="animation-delay: 0.57s;">
+    <div class="service-card coming-soon" data-category="utils comms" style="animation-delay: 0.79s;">
       <div class="service-icon-box"><span class="icon" aria-hidden="true">account_balance_wallet</span></div>
       <div class="service-info">
         <h2 class="service-name">Zero</h2>
@@ -968,7 +1256,7 @@
       <span class="status-badge soon" data-i18n="badge-soon">Soon</span>
     </div>
 
-    <div class="service-card coming-soon" style="animation-delay: 0.69s;">
+    <div class="service-card coming-soon" data-category="security utils" style="animation-delay: 0.83s;">
       <div class="service-icon-box"><span class="icon" aria-hidden="true">manage_search</span></div>
       <div class="service-info">
         <h2 class="service-name">OSINT</h2>
@@ -977,8 +1265,7 @@
       <span class="status-badge soon" data-i18n="badge-soon">Soon</span>
     </div>
 
-    <!-- Newly Added Functions -->
-    <div class="service-card coming-soon" style="animation-delay: 0.81s;" id="pass">
+    <div class="service-card coming-soon" data-category="security" style="animation-delay: 0.87s;" id="pass">
       <div class="service-icon-box"><span class="icon" aria-hidden="true">password</span></div>
       <div class="service-info">
         <h2 class="service-name">Pass</h2>
@@ -987,7 +1274,7 @@
       <span class="status-badge soon" data-i18n="badge-soon">Soon</span>
     </div>
 
-    <div class="service-card coming-soon" style="animation-delay: 0.87s;" id="base64">
+    <div class="service-card coming-soon" data-category="utils" style="animation-delay: 0.91s;" id="base64">
       <div class="service-icon-box"><span class="icon" aria-hidden="true">code</span></div>
       <div class="service-info">
         <h2 class="service-name">Base64</h2>
@@ -996,12 +1283,19 @@
       <span class="status-badge soon" data-i18n="badge-soon">Soon</span>
     </div>
 
-    <div class="service-card placeholder" style="animation-delay: 0.99s;">
+    <div class="service-card placeholder" style="animation-delay: 0.95s;">
       <div class="service-icon-box"><span class="icon" aria-hidden="true">add</span></div>
       <div class="service-info">
-        <h2 class="service-name" style="color:var(--md-on-surface-variant)"" data-i18n="more-soon-title">More Soon</h2>
-        <p class="service-desc">New utilities currently in active development.</p>
+        <h2 class="service-name" style="color:var(--md-on-surface-variant)" data-i18n="more-soon-title">More Soon</h2>
+        <p class="service-desc" data-i18n="desc-more-soon">New utilities currently in active development.</p>
       </div>
+    </div>
+
+    <!-- Empty Search State -->
+    <div class="no-results-box" id="no-results">
+      <span class="icon" aria-hidden="true">search_off</span>
+      <div class="no-results-title" data-i18n="no-results-title">No tools found</div>
+      <div class="no-results-hint" data-i18n="no-results-hint">Try searching for different keywords or clear the filter.</div>
     </div>
   </main>
 
@@ -1032,7 +1326,7 @@
 
   // Material Design Wave Ripple Effect
   document.addEventListener('click', (e) => {
-    const target = e.target.closest('.service-card, .icon-btn');
+    const target = e.target.closest('.service-card, .featured-card, .icon-btn, .filter-chip');
     if (!target || target.classList.contains('coming-soon') || target.classList.contains('placeholder')) return;
     
     const rect = target.getBoundingClientRect();
@@ -1050,6 +1344,79 @@
 
     target.appendChild(circle);
     setTimeout(() => circle.remove(), 600);
+  });
+
+  // ── SEARCH & FILTER CONTROLS ────────────────────────────────
+  const searchInput = document.getElementById('tool-search');
+  const searchClear = document.getElementById('search-clear');
+  const filterChips = document.querySelectorAll('.filter-chip');
+  const serviceCards = document.querySelectorAll('.service-card:not(.placeholder)');
+  const placeholderCard = document.querySelector('.service-card.placeholder');
+  const sectionDivider = document.querySelector('.section-divider');
+  const noResults = document.getElementById('no-results');
+
+  let activeCategory = 'all';
+
+  function filterTools() {
+    const query = (searchInput.value || '').trim().toLowerCase();
+    let visibleCount = 0;
+    let liveVisibleCount = 0;
+
+    serviceCards.forEach(card => {
+      const title = (card.querySelector('.service-name')?.textContent || '').toLowerCase();
+      const desc = (card.querySelector('.service-desc')?.textContent || '').toLowerCase();
+      const cat = card.getAttribute('data-category') || '';
+      const isComingSoon = card.classList.contains('coming-soon');
+
+      const matchesCat = activeCategory === 'all' || cat.includes(activeCategory);
+      const matchesSearch = !query || title.includes(query) || desc.includes(query);
+
+      if (matchesCat && matchesSearch) {
+        card.style.display = 'flex';
+        visibleCount++;
+        if (!isComingSoon) liveVisibleCount++;
+      } else {
+        card.style.display = 'none';
+      }
+    });
+
+    if (sectionDivider) {
+      const hasVisibleUpcoming = Array.from(document.querySelectorAll('.service-card.coming-soon')).some(c => c.style.display !== 'none');
+      sectionDivider.style.display = hasVisibleUpcoming ? 'flex' : 'none';
+    }
+
+    if (placeholderCard) {
+      placeholderCard.style.display = (!query && activeCategory === 'all') ? 'flex' : 'none';
+    }
+
+    if (noResults) {
+      noResults.style.display = visibleCount === 0 ? 'block' : 'none';
+    }
+  }
+
+  searchInput.addEventListener('input', () => {
+    searchClear.style.display = searchInput.value ? 'flex' : 'none';
+    filterTools();
+  });
+
+  searchClear.addEventListener('click', () => {
+    searchInput.value = '';
+    searchClear.style.display = 'none';
+    searchInput.focus();
+    filterTools();
+  });
+
+  filterChips.forEach(chip => {
+    chip.addEventListener('click', () => {
+      filterChips.forEach(c => {
+        c.classList.remove('active');
+        c.setAttribute('aria-selected', 'false');
+      });
+      chip.classList.add('active');
+      chip.setAttribute('aria-selected', 'true');
+      activeCategory = chip.getAttribute('data-filter') || 'all';
+      filterTools();
+    });
   });
 
   // PWA — service worker registration
@@ -1076,7 +1443,22 @@
       'badge-noup': 'No uploads',
       'badge-fast': 'Free & instant',
       'badge-oss': 'Open source',
+      'featured-label': 'Suggested',
+      'desc-temp-featured': 'Disposable email addresses on inpriv.xyz. Instant random inbox, live incoming feed, auto-refresh, and one-click shred.',
+      'tag-instant': 'Instant Inbox',
+      'tag-live-poll': 'Live Polling',
+      'tag-shred': '1-Click Shred',
+      'btn-open-temp': 'Open Temp Mail',
+      'filter-all': 'All',
+      'filter-comms': 'Mail & Chat',
+      'filter-security': 'Security',
+      'filter-utils': 'Utilities',
+      'search-placeholder': 'Search 16+ tools...',
+      'section-upcoming': 'Coming Soon',
       'more-soon-title': 'More Soon',
+      'desc-more-soon': 'New utilities currently in active development.',
+      'no-results-title': 'No tools found',
+      'no-results-hint': 'Try searching for different keywords or clear the filter.',
       'desc-soon': 'Something new is coming.',
       'desc-id': 'One private account for every Inpriv tool. Quick sign-in, 2FA, encrypted sync.',
       'desc-hush': 'End-to-end encrypted chat. No logs, no servers.',
@@ -1113,7 +1495,22 @@
       'badge-noup': 'Bez wysyłania',
       'badge-fast': 'Darmowe i natychmiastowe',
       'badge-oss': 'Open source',
+      'featured-label': 'Proponowane',
+      'desc-temp-featured': 'Jednorazowe adresy e-mail na inpriv.xyz. Losowa skrzynka, live polling, odbiór w czasie rzeczywistym, kasowanie jednym kliknięciem.',
+      'tag-instant': 'Szybka skrzynka',
+      'tag-live-poll': 'Odbiór na żywo',
+      'tag-shred': 'Szybkie niszczenie',
+      'btn-open-temp': 'Otwórz Temp Mail',
+      'filter-all': 'Wszystkie',
+      'filter-comms': 'Poczta i Czat',
+      'filter-security': 'Bezpieczeństwo',
+      'filter-utils': 'Narzędzia',
+      'search-placeholder': 'Szukaj narzędzi...',
+      'section-upcoming': 'Wkrótce',
       'more-soon-title': 'Więcej wkrótce',
+      'desc-more-soon': 'Nowe narzędzia w trakcie tworzenia.',
+      'no-results-title': 'Nie znaleziono narzędzi',
+      'no-results-hint': 'Spróbuj innych słów kluczowych lub wyczyść filtr.',
       'desc-soon': 'Coś nowego nadchodzi.',
       'desc-id': 'Jedno prywatne konto do wszystkich narzędzi Inpriv. Szybkie logowanie, 2FA, szyfrowana synchronizacja.',
       'desc-hush': 'Czat szyfrowany end-to-end. Bez logów, bez serwerów.',
@@ -1152,6 +1549,11 @@
       const key = el.getAttribute('data-i18n-html');
       const t = I18N[lang][key];
       if (t) el.innerHTML = t;
+    });
+    document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+      const key = el.getAttribute('data-i18n-ph');
+      const t = I18N[lang][key];
+      if (t) el.setAttribute('placeholder', t);
     });
     localStorage.setItem('inpriv_lang', lang);
   }
