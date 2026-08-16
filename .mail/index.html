@@ -2116,13 +2116,19 @@ async function openMessageView(id) {
    ========================================================================== */
 function openComposeModal(prefillTo = '', prefillSubject = '') {
   const container = $('#modalContainer');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const cleanTo = String(prefillTo || '').replace(/@inpriv\.xyz$/i, '');
+  const cleanSubject = String(prefillSubject || '');
+
   const overlay = document.createElement('div');
-  overlay.className = 'modal-overlay open';
+  overlay.className = 'modal-overlay';
   overlay.innerHTML = `
     <div class="modal-sheet" role="dialog" aria-modal="true">
       <div class="modal-head">
         <h2 class="modal-title">New Encrypted Message</h2>
-        <button class="icon-btn" id="composeCloseBtn">${mkIcon('close')}</button>
+        <button class="icon-btn" id="composeCloseBtn" type="button" aria-label="Close">${mkIcon('close')}</button>
       </div>
 
       <div class="sec-badge">
@@ -2131,29 +2137,29 @@ function openComposeModal(prefillTo = '', prefillSubject = '') {
       </div>
 
       <div class="field" style="position:relative">
-        <label>To (Inpriv ID Username)</label>
+        <label for="cmpTo">To (Inpriv ID Username)</label>
         <div class="input-wrap">
-          <input type="text" id="cmpTo" placeholder="username" autocomplete="off" autocapitalize="none" spellcheck="false" value="${escapeHtml(prefillTo.replace(/@inpriv\.xyz$/, ''))}">
+          <input type="text" id="cmpTo" placeholder="username" autocomplete="off" autocapitalize="none" spellcheck="false" value="${escapeHtml(cleanTo)}">
           <span class="input-suffix">@${DOMAIN}</span>
         </div>
         <div class="autocomplete-list hidden" id="cmpSuggestions"></div>
       </div>
 
       <div class="field">
-        <label>Subject</label>
+        <label for="cmpSubject">Subject</label>
         <div class="input-wrap">
-          <input type="text" id="cmpSubject" placeholder="Subject" maxlength="200" value="${escapeHtml(prefillSubject)}">
+          <input type="text" id="cmpSubject" placeholder="Subject" maxlength="200" value="${escapeHtml(cleanSubject)}">
         </div>
       </div>
 
       <div class="field">
-        <label>Message</label>
+        <label for="cmpBody">Message</label>
         <textarea id="cmpBody" rows="7" placeholder="Type your private message here…"></textarea>
       </div>
 
       <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:10px">
-        <button class="btn btn-outlined" id="composeCancelBtn">Cancel</button>
-        <button class="btn btn-primary" id="composeSendBtn">
+        <button class="btn btn-outlined" id="composeCancelBtn" type="button">Cancel</button>
+        <button class="btn btn-primary" id="composeSendBtn" type="button">
           ${mkIcon('lock')} <span>Encrypt & Send</span>
         </button>
       </div>
@@ -2161,13 +2167,23 @@ function openComposeModal(prefillTo = '', prefillSubject = '') {
   `;
   container.appendChild(overlay);
 
+  // Trigger animation & focus
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      overlay.classList.add('open');
+      const toInput = $('#cmpTo');
+      if (toInput && !toInput.value) toInput.focus();
+      else $('#cmpBody')?.focus();
+    });
+  });
+
   const close = () => {
     overlay.classList.remove('open');
     setTimeout(() => overlay.remove(), 320);
   };
 
-  $('#composeCloseBtn').addEventListener('click', close);
-  $('#composeCancelBtn').addEventListener('click', close);
+  $('#composeCloseBtn')?.addEventListener('click', close);
+  $('#composeCancelBtn')?.addEventListener('click', close);
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) close();
   });
@@ -2375,6 +2391,15 @@ async function bootstrap() {
       window.InprivID.check(handleIdUser);
     }
   }
+
+  // Universal delegate for compose actions
+  document.addEventListener('click', (e) => {
+    const composeBtn = e.target.closest('#mobileComposeBtn, #desktopFab, [data-action="compose"]');
+    if (composeBtn) {
+      e.preventDefault();
+      openComposeModal();
+    }
+  });
 
   // Check URL parameters for fast login or register
   const urlParams = new URLSearchParams(window.location.search);
