@@ -879,6 +879,16 @@
       <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
     </a>
 
+    <a href="https://account.inpriv.xyz" class="service-card" style="animation-delay: 0.98s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">badge</span></div>
+      <div class="service-info">
+        <h2 class="service-name">ID</h2>
+        <p class="service-desc" data-i18n="desc-id">One private account for every Inpriv tool. Quick sign-in, 2FA, encrypted sync.</p>
+      </div>
+      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
     <div class="service-card coming-soon" style="animation-delay: 0.99s;">
       <div class="service-icon-box"><span class="icon" aria-hidden="true">auto_awesome</span></div>
       <div class="service-info">
@@ -1022,6 +1032,7 @@
       'badge-oss': 'Open source',
       'more-soon-title': 'More Soon',
       'desc-soon': 'Something new is coming.',
+      'desc-id': 'One private account for every Inpriv tool. Quick sign-in, 2FA, encrypted sync.',
       'desc-hush': 'End-to-end encrypted chat. No logs, no servers.',
       'desc-wipe': 'Zero-knowledge metadata sanitizer for images.',
       'desc-compress': 'Client-side image compression. No upload needed.',
@@ -1058,6 +1069,7 @@
       'badge-oss': 'Open source',
       'more-soon-title': 'Więcej wkrótce',
       'desc-soon': 'Coś nowego nadchodzi.',
+      'desc-id': 'Jedno prywatne konto do wszystkich narzędzi Inpriv. Szybkie logowanie, 2FA, szyfrowana synchronizacja.',
       'desc-hush': 'Czat szyfrowany end-to-end. Bez logów, bez serwerów.',
       'desc-wipe': 'Zero-knowledge usuwanie metadanych ze zdjęć.',
       'desc-compress': 'Kompresja zdjęć w przeglądarce. Bez wysyłania.',
@@ -1106,5 +1118,7 @@
     applyLang(cur);
   });
 </script>
+<!-- Inpriv ID One Tap: avatar chip / sign-in prompt (privacy-first) -->
+<script src="https://account.inpriv.xyz/id.js" data-service="landing" defer></script>
 </body>
 </html>

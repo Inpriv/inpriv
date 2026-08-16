@@ -30,6 +30,7 @@ const SERVICES = [
   "totp",
   "webrtc",
   "wipe",
+  "account",
 ];
 const SERVICES_META = {
   landing:  { name: "Landing (inpriv.xyz)", url: "https://inpriv.xyz", icon: "home" },
@@ -47,6 +48,7 @@ const SERVICES_META = {
   totp:     { name: "TOTP / 2FA", url: "https://totp.inpriv.xyz", icon: "pin" },
   webrtc:   { name: "WebRTC Leak Test", url: "https://webrtc.inpriv.xyz", icon: "stream" },
   wipe:     { name: "Metadata Wipe", url: "https://wipe.inpriv.xyz", icon: "auto_fix_high" },
+  account:  { name: "Inpriv ID (accounts)", url: "https://account.inpriv.xyz", icon: "badge" },
 };
 const SESSION_TTL = 7 * 24 * 3600; // seconds
 const COOKIE = "inpriv_admin";

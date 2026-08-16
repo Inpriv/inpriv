@@ -1,0 +1,38 @@
+name = "inpriv-mail"
+main = "src/index.js"
+compatibility_date = "2025-08-01"
+workers_dev = true
+
+# Custom domain — permanent mailboxes on mail.inpriv.xyz
+# (routes MUST stay above the first [table])
+routes = [
+  { pattern = "mail.inpriv.xyz", custom_domain = true }
+]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "inpriv-mail"
+database_id = "d5c75cf0-46ba-4721-99fc-da18d2ccbabe"
+
+[triggers]
+crons = ["17 3 * * *"]
+
+# Static frontend
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = true
+
+# Admin kill-switch (shared namespace)
+[[kv_namespaces]]
+binding = "MAINTENANCE"
+id = "37e2feceae474e21a0b9664c9bdfdea3"
+
+[vars]
+DOMAIN = "inpriv.xyz"
+
+# Secrets:
+#   MAIL_ENC_KEY        — 32 bytes (openssl rand -base64 32) message sealing
+#   RESEND_API_KEY      — send-only key
+#   RESEND_WEBHOOK_SECRET — whsec_… from the Resend dashboard webhook
+#   RESEND_READ_API_KEY — optional full-access key for inbound bodies

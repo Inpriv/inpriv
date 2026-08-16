@@ -1,0 +1,36 @@
+name = "inpriv-id"
+main = "src/index.js"
+compatibility_date = "2025-08-01"
+workers_dev = true
+
+# Custom domain — Inpriv ID account system
+# (routes MUST stay above the first [table] — see cloudflare-workers skill)
+routes = [
+  { pattern = "account.inpriv.xyz", custom_domain = true }
+]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "inpriv-id"
+database_id = "1cd1ca2e-51fd-40d9-94d8-aa75f989291b"
+
+# Static frontend (login/register + account panel) and the One Tap widget
+# (id.js) served to every *.inpriv.xyz service.
+# run_worker_first: the worker must intercept every request for the
+# kill-switch AND to serve /id.js with cross-origin CORS headers.
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = true
+
+# Admin kill-switch state (shared namespace with admin.inpriv.xyz)
+[[kv_namespaces]]
+binding = "MAINTENANCE"
+id = "37e2feceae474e21a0b9664c9bdfdea3"
+
+[vars]
+DOMAIN = "inpriv.xyz"
+
+# Secrets (set via `npx wrangler secret put <NAME>`):
+#   ID_ENC_KEY     — exactly 32 bytes, AES-256-GCM key for TOTP secrets + vault
+#   RESEND_API_KEY — Resend key for verification e-mails (noreply@inpriv.xyz)

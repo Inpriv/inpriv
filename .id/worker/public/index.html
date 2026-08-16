@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Inpriv ID — Account</title>
+<meta name="description" content="One account for every Inpriv service. Private, secure, yours.">
+<meta name="theme-color" content="#13140E" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#FAF9F0" media="(prefers-color-scheme: light)">
+<link rel="icon" href="https://inpriv.xyz/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..700,0..1,-50..200&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="blob" aria-hidden="true"></div>
+
+<header class="appbar">
+  <a class="brand" href="https://inpriv.xyz" aria-label="Inpriv home">
+    <span class="brand-icon"><span class="ms">eco</span></span>
+    <span>
+      <div class="brand-name">Inpriv ID</div>
+      <div class="brand-sub">one account, every tool</div>
+    </span>
+  </a>
+  <button class="icon-btn" id="themeBtn" title="Toggle theme" aria-label="Toggle theme"><span class="ms">dark_mode</span></button>
+</header>
+
+<main>
+
+  <!-- ═══ AUTH ═══ -->
+  <section id="authView" class="auth-wrap" hidden>
+    <div class="auth-card">
+      <div class="auth-logo"><span class="ms">eco</span></div>
+      <h1 class="auth-title" id="authTitle">Welcome</h1>
+      <p class="auth-sub" id="authSub">One private account for every Inpriv tool.</p>
+
+      <div class="seg" id="seg" role="tablist">
+        <button id="segLogin" class="on" role="tab" aria-selected="true">Sign in</button>
+        <button id="segRegister" role="tab" aria-selected="false">Create account</button>
+      </div>
+
+      <div class="form-err" id="formErr" role="alert" aria-live="polite"></div>
+
+      <!-- login -->
+      <form id="loginForm">
+        <div class="field">
+          <label for="loginEmail">Email</label>
+          <input id="loginEmail" type="email" autocomplete="email" required spellcheck="false">
+        </div>
+        <div class="field">
+          <label for="loginPass">Password</label>
+          <input id="loginPass" type="password" autocomplete="current-password" required>
+        </div>
+        <button class="btn" id="loginBtn" type="submit"><span class="ms" id="loginBtnIcon">login</span><span id="loginBtnTxt">Sign in</span></button>
+      </form>
+
+      <!-- 2FA step -->
+      <form id="mfaForm" hidden>
+        <p class="auth-sub" style="margin-bottom:16px">Enter the 6-digit code from your authenticator app.</p>
+        <div class="field">
+          <label for="mfaCode">Authentication code</label>
+          <input id="mfaCode" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="••••••" style="text-align:center;font-size:22px;letter-spacing:8px" required>
+        </div>
+        <button class="btn" type="submit"><span class="ms">key</span>Verify</button>
+        <p class="auth-hint"><a href="#" id="mfaRecoverLink" style="color:var(--md-primary)">Lost your device? Use a recovery code</a></p>
+      </form>
+
+      <form id="mfaRecoveryForm" hidden>
+        <p class="auth-sub" style="margin-bottom:16px">Enter one of your 10 recovery codes.</p>
+        <div class="field">
+          <label for="mfaRecovery">Recovery code</label>
+          <input id="mfaRecovery" type="text" autocomplete="off" spellcheck="false" style="text-align:center" required>
+        </div>
+        <button class="btn" type="submit"><span class="ms">vpn_key</span>Recover access</button>
+      </form>
+
+      <!-- register -->
+      <form id="regForm" hidden>
+        <div class="field">
+          <label for="regNick">Nickname <span style="text-transform:none;font-weight:500">(optional)</span></label>
+          <input id="regNick" type="text" maxlength="24" autocomplete="nickname" spellcheck="false" placeholder="how others see you">
+        </div>
+        <div class="field">
+          <label for="regEmail">Email</label>
+          <input id="regEmail" type="email" autocomplete="email" required spellcheck="false">
+        </div>
+        <div class="field">
+          <label for="regPass">Password <span style="text-transform:none;font-weight:500">(min 10 chars)</span></label>
+          <input id="regPass" type="password" autocomplete="new-password" minlength="10" required>
+        </div>
+        <button class="btn" id="regBtn" type="submit"><span class="ms">person_add</span><span id="regBtnTxt">Create account</span></button>
+        <p class="auth-hint">No tracking. No profiling. Your email is only used for account recovery.</p>
+      </form>
+    </div>
+  </section>
+
+  <!-- ═══ PANEL ═══ -->
+  <section id="panelView" class="panel" hidden>
+    <div class="panel-head">
+      <div class="avatar" id="avatar">?</div>
+      <div style="min-width:0">
+        <div class="panel-name" id="pNick">…</div>
+        <div class="panel-mail" id="pEmail">…</div>
+        <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+          <span class="badge ok" id="badgeVerified" hidden><span class="ms">check_circle</span>verified</span>
+          <span class="badge warn" id="badgeUnverified" hidden><span class="ms">mail</span>unverified</span>
+          <span class="badge ok" id="badge2fa" hidden><span class="ms">shield</span>2FA on</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="tabs" id="tabs" role="tablist">
+      <button data-tab="profile" class="on" role="tab">Profile</button>
+      <button data-tab="security" role="tab">Security</button>
+      <button data-tab="privacy" role="tab">Privacy</button>
+      <button data-tab="sessions" role="tab">Sessions</button>
+    </div>
+
+    <!-- PROFILE -->
+    <div class="tabview on" id="tab-profile">
+      <div class="card">
+        <h3><span class="ms">badge</span>Nickname</h3>
+        <p class="desc">Shown next to your activity across Inpriv services.</p>
+        <div style="display:flex;gap:10px">
+          <input id="nickInput" type="text" maxlength="24" style="flex:1;height:48px;padding:0 16px;border-radius:16px;border:1px solid var(--md-outline-variant);background:var(--md-surface-container-lowest);color:var(--md-on-surface);font:400 15px 'Roboto Flex',sans-serif;outline:none">
+          <button class="btn" style="width:auto;padding:0 22px" id="nickSave">Save</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3><span class="ms">palette</span>Personalization</h3>
+        <p class="desc">Theme and preferences sync to every Inpriv service you sign into.</p>
+        <div class="row">
+          <div><div class="row-label">Default theme</div><div class="row-sub">Follows you across services</div></div>
+          <div class="seg" style="margin:0;width:150px">
+            <button id="thDark" style="padding:7px 10px">Dark</button>
+            <button id="thLight" style="padding:7px 10px">Light</button>
+          </div>
+        </div>
+        <div class="row">
+          <div><div class="row-label">Avatar style</div><div class="row-sub">Generated from your account seed</div></div>
+          <div class="seg" style="margin:0;width:180px">
+            <button id="avInitials" style="padding:7px 10px" class="on">Initials</button>
+            <button id="avLeaf" style="padding:7px 10px">Leaf</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h3><span class="ms">alternate_email</span>Email verification</h3>
+        <p class="desc" id="verifyDesc">Verify your email to secure account recovery.</p>
+        <div style="display:flex;gap:10px;align-items:center">
+          <input id="verifyCode" type="text" inputmode="numeric" maxlength="6" placeholder="••••••" style="width:120px;height:48px;padding:0 16px;border-radius:16px;border:1px solid var(--md-outline-variant);background:var(--md-surface-container-lowest);color:var(--md-on-surface);font:600 18px ui-monospace,monospace;text-align:center;letter-spacing:4px;outline:none">
+          <button class="btn" style="width:auto;padding:0 22px" id="verifyConfirmBtn">Confirm</button>
+          <button class="btn ghost" style="width:auto;padding:0 18px" id="verifySendBtn"><span class="ms" style="font-size:18px">send</span>Resend</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECURITY -->
+    <div class="tabview" id="tab-security">
+      <div class="card">
+        <h3><span class="ms">password</span>Password</h3>
+        <p class="desc">Changing your password signs out all other sessions.</p>
+        <div class="field"><label for="pwCurrent">Current password</label><input id="pwCurrent" type="password" autocomplete="current-password"></div>
+        <div class="field"><label for="pwNext">New password (min 10 chars)</label><input id="pwNext" type="password" autocomplete="new-password" minlength="10"></div>
+        <button class="btn" style="width:auto;padding:0 22px" id="pwChangeBtn"><span class="ms">lock_reset</span>Change password</button>
+      </div>
+
+      <div class="card" id="twoFACard">
+        <h3><span class="ms">shield</span>Two-factor authentication</h3>
+        <p class="desc" id="twoFADesc">Require a 6-digit code from your authenticator app (Google Authenticator, Aegis, 1Password…) on every sign-in.</p>
+        <div id="twoFAOffUI">
+          <button class="btn" style="width:auto;padding:0 22px" id="twoFASetupBtn"><span class="ms">add_moderator</span>Set up 2FA</button>
+        </div>
+        <div id="twoFASetupUI" hidden>
+          <div class="qr-box" id="qrBox"></div>
+          <p class="desc" style="text-align:center">Scan with your authenticator app,<br>or enter manually: <b style="font-family:ui-monospace,monospace;letter-spacing:1px" id="totpSecret"></b></p>
+          <div class="field" style="max-width:260px;margin:0 auto 14px">
+            <input id="totpConfirm" type="text" inputmode="numeric" maxlength="6" placeholder="••••••" style="text-align:center;font-size:20px;letter-spacing:6px">
+          </div>
+          <button class="btn" style="width:auto;padding:0 22px;display:flex;margin:0 auto" id="twoFAConfirmBtn"><span class="ms">verified_user</span>Confirm &amp; enable</button>
+        </div>
+        <div id="twoFAOnUI" hidden>
+          <div class="row">
+            <div><div class="row-label">2FA is active</div><div class="row-sub">Codes rotate every 30 seconds</div></div>
+            <span class="badge ok"><span class="ms">shield</span>on</span>
+          </div>
+          <div class="row">
+            <div><div class="row-label">Recovery codes</div><div class="row-sub" id="recoveryInfo">10 single-use codes</div></div>
+            <button class="mini-btn" id="showCodesBtn">View</button>
+          </div>
+          <div id="codesBox" hidden>
+            <div class="code-grid" id="codeGrid" style="margin-top:12px"></div>
+            <button class="btn ghost" style="width:100%;margin-bottom:12px" id="copyCodesBtn"><span class="ms" style="font-size:18px">content_copy</span>Copy all codes</button>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+            <button class="mini-btn" id="twoFADisableBtn">Disable 2FA</button>
+          </div>
+          <div id="twoFADisableUI" hidden style="margin-top:14px">
+            <div class="field"><label for="twoFAPw">Confirm your password to disable</label><input id="twoFAPw" type="password" autocomplete="current-password"></div>
+            <button class="mini-btn danger" id="twoFADisableConfirm">Permanently disable 2FA</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3><span class="ms">history</span>Security log</h3>
+        <p class="desc">Recent sign-ins and account changes.</p>
+        <div id="eventsList"><p class="empty">Loading…</p></div>
+      </div>
+    </div>
+
+    <!-- PRIVACY -->
+    <div class="tabview" id="tab-privacy">
+      <div class="card">
+        <h3><span class="ms">visibility_off</span>Privacy controls</h3>
+        <p class="desc">How your account behaves across Inpriv services.</p>
+        <div class="row">
+          <div><div class="row-label">Show nickname to others</div><div class="row-sub">Display your nick instead of "anonymous" in shared contexts</div></div>
+          <div class="switch on" id="swNick" role="switch" aria-checked="true" tabindex="0"></div>
+        </div>
+        <div class="row">
+          <div><div class="row-label">Cross-service sign-in prompt</div><div class="row-sub">The corner "Continue as…" prompt on supported services</div></div>
+          <div class="switch on" id="swPrompt" role="switch" aria-checked="true" tabindex="0"></div>
+        </div>
+        <div class="row">
+          <div><div class="row-label">Store personalization vault</div><div class="row-sub">Encrypted theme &amp; preference sync (AES-256-GCM)</div></div>
+          <div class="switch on" id="swVault" role="switch" aria-checked="true" tabindex="0"></div>
+        </div>
+        <div class="row">
+          <div><div class="row-label">Log security events</div><div class="row-sub">Keep the last 30 sign-in records (IP prefix only, no full addresses)</div></div>
+          <div class="switch on" id="swLog" role="switch" aria-checked="true" tabindex="0"></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3><span class="ms">hub</span>Connected services</h3>
+        <p class="desc">Services that can see you're signed in.</p>
+        <div id="servicesList"></div>
+      </div>
+    </div>
+
+    <!-- SESSIONS -->
+    <div class="tabview" id="tab-sessions">
+      <div class="card">
+        <h3><span class="ms">devices</span>Active sessions</h3>
+        <p class="desc">Devices currently signed in to your account. Anything unfamiliar? Revoke it.</p>
+        <div id="sessionsList"><p class="empty">Loading…</p></div>
+        <button class="mini-btn danger" id="revokeAllBtn" style="margin-top:14px">Sign out everywhere else</button>
+      </div>
+    </div>
+
+    <!-- DANGER -->
+    <div class="card" style="border-color:color-mix(in srgb, var(--md-error) 35%, transparent)">
+      <h3 style="color:var(--md-error)"><span class="ms" style="color:var(--md-error)">delete_forever</span>Delete account</h3>
+      <p class="desc">Permanently removes your account, sessions and encrypted vault. This cannot be undone.</p>
+      <button class="mini-btn danger" id="deleteBtn">Delete my account</button>
+      <div id="deleteUI" hidden style="margin-top:14px">
+        <div class="field"><label for="deletePw">Confirm your password</label><input id="deletePw" type="password" autocomplete="current-password"></div>
+        <button class="mini-btn danger" id="deleteConfirmBtn">Yes, delete everything</button>
+      </div>
+    </div>
+
+    <div style="text-align:center;margin-top:24px">
+      <button class="btn ghost" style="width:auto;padding:0 26px" id="logoutBtn"><span class="ms" style="font-size:18px">logout</span>Sign out</button>
+    </div>
+  </section>
+
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"><span class="ms" id="toastIcon">check_circle</span><span id="toastMsg"></span></div>
+
+<script src="/app.js" defer></script>
+</body>
+</html>

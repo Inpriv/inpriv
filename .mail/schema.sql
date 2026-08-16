@@ -1,46 +1,51 @@
--- Inpriv Mail — D1 schema
--- Messages stored as AES-256-GCM envelopes encrypted with MAIL_ENC_KEY
--- (server secret). Transport: TLS. Sessions: bearer tokens (sha256-at-rest).
+-- Inpriv Mail — D1 schema (zero-knowledge internal mail)
+-- The server stores only RSA-OAEP-wrapped AES envelopes; plaintext never
+-- leaves the browser. Passwords: PBKDF2-SHA256 verifier (3×100k chained).
 
 CREATE TABLE IF NOT EXISTS users (
-  id           TEXT PRIMARY KEY,
-  address      TEXT NOT NULL UNIQUE,
-  auth_hash    TEXT NOT NULL,               -- PBKDF2-SHA256, 100k iters
-  auth_salt    TEXT NOT NULL,
-  created_at   INTEGER NOT NULL,
-  last_login   INTEGER
+  id                     INTEGER PRIMARY KEY AUTOINCREMENT,
+  username               TEXT NOT NULL UNIQUE,
+  address                TEXT NOT NULL UNIQUE,   -- username@inpriv.xyz
+  auth_hash              TEXT NOT NULL,
+  auth_salt              TEXT NOT NULL,
+  public_key             TEXT NOT NULL,          -- b64 SPKI RSA-2048
+  encrypted_private_key  TEXT NOT NULL,          -- b64 wrapped pkcs8
+  priv_iv                TEXT NOT NULL,
+  priv_salt              TEXT NOT NULL,
+  priv_iter              INTEGER NOT NULL,
+  created_at             INTEGER NOT NULL,
+  last_login             INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS sessions (
-  id          TEXT PRIMARY KEY,             -- sha256(token)
-  user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  id          TEXT PRIMARY KEY,                  -- sha256(token)
+  user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   created_at  INTEGER NOT NULL,
   expires_at  INTEGER NOT NULL,
   ua          TEXT
 );
 
 CREATE TABLE IF NOT EXISTS messages (
-  id          TEXT PRIMARY KEY,
-  user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  folder      TEXT NOT NULL DEFAULT 'inbox',
-  from_addr   TEXT NOT NULL,
-  to_addr     TEXT NOT NULL,
-  subject_enc TEXT NOT NULL,                -- {"iv":"…","ct":"…"} AES-GCM(MAIL_ENC_KEY)
-  body_enc    TEXT NOT NULL,
-  read        INTEGER NOT NULL DEFAULT 0,
-  sent_at     INTEGER,
-  received_at INTEGER,
-  external_id TEXT                          -- resend message id for sent mail
+  id                INTEGER PRIMARY KEY AUTOINCREMENT,
+  owner_id          INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  direction         TEXT NOT NULL,               -- inbound | outbound
+  peer_address      TEXT NOT NULL,
+  peer_label        TEXT,
+  subject           TEXT,                        -- metadata only
+  encrypted_aes_key TEXT NOT NULL,               -- RSA-OAEP(user pubkey, AES key)
+  iv                TEXT NOT NULL,
+  ciphertext        TEXT NOT NULL,               -- AES-GCM ct (tag split off)
+  auth_tag          TEXT NOT NULL,
+  is_read           INTEGER NOT NULL DEFAULT 0,
+  created_at        INTEGER NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS send_log (
-  user_id TEXT NOT NULL,
-  bucket  INTEGER NOT NULL,                 -- hour bucket
-  c       INTEGER NOT NULL DEFAULT 0,
-  PRIMARY KEY (user_id, bucket)
+CREATE TABLE IF NOT EXISTS rl_counters (
+  k      TEXT NOT NULL,
+  bucket INTEGER NOT NULL,
+  c      INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (k, bucket)
 );
 
-CREATE INDEX IF NOT EXISTS idx_messages_user_folder ON messages(user_id, folder);
-CREATE INDEX IF NOT EXISTS idx_messages_sort_inbox  ON messages(user_id, folder, received_at DESC);
-CREATE INDEX IF NOT EXISTS idx_messages_sort_sent   ON messages(user_id, folder, sent_at DESC);
-CREATE INDEX IF NOT EXISTS idx_sessions_user        ON sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_messages_owner ON messages(owner_id, direction, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_sessions_user  ON sessions(user_id);
