@@ -152,8 +152,8 @@ export default {
       });
     }
 
-    // ── static frontend (login page + panel) for non-API GETs ──
-    if (request.method === "GET" && !path.startsWith("/api/")) {
+    // ── static frontend (login page + panel) for non-API GETs/HEADs ──
+    if ((request.method === "GET" || request.method === "HEAD") && !path.startsWith("/api/")) {
       return env.ASSETS.fetch(request);
     }
 
