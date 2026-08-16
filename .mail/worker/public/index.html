@@ -523,25 +523,56 @@ body {
   gap: 12px;
   background: var(--md-surface-container);
   border: 1px solid var(--md-primary);
-  border-radius: 18px;
-  padding: 12px 14px;
+  border-radius: 20px;
+  padding: 12px 16px;
   margin-bottom: 18px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.2, 1.4, 0, 1);
+  text-align: left;
+  user-select: none;
+}
+.sso-card:hover {
+  background: var(--md-surface-container-high);
+  border-color: var(--md-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px -6px var(--md-shadow-color);
+}
+.sso-card:active {
+  transform: scale(0.99);
 }
 .sso-av {
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   background: var(--md-primary-container);
   color: var(--md-on-primary-container);
   display: grid;
   place-items: center;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 15px;
   flex-shrink: 0;
 }
 .sso-meta { flex: 1; min-width: 0; }
 .sso-nick { font-size: 14px; font-weight: 700; color: var(--md-on-surface); }
-.sso-email { font-size: 12px; color: var(--md-primary); word-break: break-all; }
+.sso-email { font-size: 12px; color: var(--md-primary); word-break: break-all; margin-top: 2px; }
+.sso-action-icon {
+  color: var(--md-outline);
+  transition: color 0.2s, transform 0.2s;
+  flex-shrink: 0;
+}
+.sso-card:hover .sso-action-icon {
+  color: var(--md-primary);
+  transform: translateX(3px);
+}
+
+.pulse-focus {
+  animation: pulseGlow 0.8s cubic-bezier(0.2, 1.4, 0, 1);
+}
+@keyframes pulseGlow {
+  0% { box-shadow: 0 0 0 0 var(--md-primary); }
+  50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--md-primary) 50%, transparent); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
 
 /* ---------- Security Badge ---------- */
 .sec-badge {
@@ -1414,19 +1445,60 @@ function checkInprivIdSso() {
   if (!banner) return;
 
   if (state.idUser) {
+    const nick = state.idUser.nick || state.idUser.username;
+    const email = state.idUser.email || (state.idUser.username + '@inpriv.xyz');
     banner.innerHTML = `
-      <div class="sso-card">
-        <div class="sso-av">${initials(state.idUser.nick || state.idUser.username)}</div>
+      <div class="sso-card" id="ssoCard" role="button" tabindex="0" title="Click to unlock with Inpriv ID">
+        <div class="sso-av">${initials(nick)}</div>
         <div class="sso-meta">
-          <div class="sso-nick">Continue with Inpriv ID</div>
-          <div class="sso-email">${escapeHtml(state.idUser.email || (state.idUser.username + '@inpriv.xyz'))}</div>
+          <div class="sso-nick">Continue with Inpriv ID (${escapeHtml(nick)})</div>
+          <div class="sso-email">${escapeHtml(email)}</div>
         </div>
+        <span class="ms sso-action-icon">arrow_forward</span>
       </div>
     `;
+
     const uInput = $('#authUsername');
-    if (uInput && !uInput.value) {
+    if (uInput && (!uInput.value || uInput.value === '')) {
       uInput.value = state.idUser.username;
     }
+
+    const ssoCard = $('#ssoCard');
+    if (ssoCard) {
+      const activateSso = () => {
+        // Switch to login tab if not active
+        const loginTabBtn = $(`#authSeg button[data-mode="login"]`);
+        if (loginTabBtn && !loginTabBtn.classList.contains('active')) {
+          $$('#authSeg button').forEach(b => b.classList.remove('active'));
+          loginTabBtn.classList.add('active');
+          renderAuthForm('login');
+        }
+
+        const u = $('#authUsername');
+        const p = $('#authPassword');
+        if (u) u.value = state.idUser.username;
+        if (p) {
+          if (p.value) {
+            handleLogin(state.idUser.username, p.value);
+          } else {
+            p.focus();
+            p.classList.add('pulse-focus');
+            setTimeout(() => p.classList.remove('pulse-focus'), 800);
+            toast('Inpriv ID active', 'Enter your master password to unlock mailbox');
+          }
+        }
+      };
+
+      ssoCard.addEventListener('click', activateSso);
+      ssoCard.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          activateSso();
+        }
+      });
+    }
+  } else {
+    banner.innerHTML = '';
   }
 }
 
@@ -2251,18 +2323,38 @@ function renderAccountScreen() {
 async function bootstrap() {
   renderShell();
 
+  const handleIdUser = (u) => {
+    if (!u) return;
+    state.idUser = u;
+    updateIdStatusHeader();
+    checkInprivIdSso();
+  };
+
   // Listen for Inpriv ID SSO events
   window.addEventListener('inpriv:id', (ev) => {
     if (ev.detail && ev.detail.user) {
-      state.idUser = ev.detail.user;
-      updateIdStatusHeader();
-      checkInprivIdSso();
+      handleIdUser(ev.detail.user);
     }
   });
 
-  if (window.InprivID && window.InprivID.user) {
-    state.idUser = window.InprivID.user;
-    updateIdStatusHeader();
+  window.addEventListener('inpriv:connect', (ev) => {
+    if (ev.detail && ev.detail.user) {
+      handleIdUser(ev.detail.user);
+      const p = $('#authPassword');
+      if (p) {
+        p.focus();
+        p.classList.add('pulse-focus');
+        setTimeout(() => p.classList.remove('pulse-focus'), 800);
+      }
+    }
+  });
+
+  if (window.InprivID) {
+    if (window.InprivID.user) {
+      handleIdUser(window.InprivID.user);
+    } else if (typeof window.InprivID.check === 'function') {
+      window.InprivID.check(handleIdUser);
+    }
   }
 
   // Check URL parameters for fast login or register
