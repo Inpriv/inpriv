@@ -458,6 +458,43 @@
 
     .app-bar-brand span { color: var(--md-primary); }
 
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .app-bar-id-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      height: 30px;
+      padding: 0 11px 0 8px;
+      border-radius: 9999px;
+      background: var(--md-primary-container);
+      color: var(--md-on-primary-container);
+      border: 1px solid color-mix(in srgb, var(--md-primary) 35%, transparent);
+      text-decoration: none;
+      font-family: var(--font-sans);
+      font-size: 12.5px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      transition: transform 0.2s var(--md-easing-spring), box-shadow 0.2s var(--md-easing-standard);
+    }
+
+    .app-bar-id-chip .icon {
+      font-size: 16px;
+    }
+
+    .app-bar-id-chip:hover {
+      transform: translateY(-1px) scale(1.03);
+      box-shadow: 0 4px 14px -2px color-mix(in srgb, var(--md-primary) 35%, transparent);
+    }
+
+    .app-bar-id-chip:active {
+      transform: scale(0.96);
+    }
+
     .bar-actions { display: flex; align-items: center; gap: 4px; }
 
     .icon-btn {
@@ -699,9 +736,15 @@
 
 <div class="container">
   <nav class="app-bar" aria-label="Main Navigation">
-    <a href="https://inpriv.xyz" class="app-bar-brand" aria-label="Inpriv Homepage">
-      Inpriv<span>.</span>
-    </a>
+    <div class="brand-wrap">
+      <a href="https://inpriv.xyz" class="app-bar-brand" aria-label="Inpriv Homepage">
+        Inpriv<span>.</span>
+      </a>
+      <a href="https://id.inpriv.xyz" class="app-bar-id-chip" title="Inpriv ID — Account & Email" target="_blank" rel="noopener noreferrer">
+        <span class="icon" aria-hidden="true">badge</span>
+        <span>ID</span>
+      </a>
+    </div>
     <div class="bar-actions">
       <button class="icon-btn" id="lang-toggle" aria-label="Zmień język / Change language" type="button">
         <span class="icon" id="lang-icon" aria-hidden="true">translate</span>
@@ -874,16 +917,6 @@
       <div class="service-info">
         <h2 class="service-name">Temp</h2>
         <p class="service-desc" data-i18n="desc-temp">Disposable email addresses on inpriv.xyz. Random inbox, live polling, one-click shred.</p>
-      </div>
-      <span class="status-badge live" data-i18n="badge-live">Live</span>
-      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
-    </a>
-
-    <a href="https://id.inpriv.xyz" class="service-card" style="animation-delay: 0.98s;" target="_blank" rel="noopener noreferrer">
-      <div class="service-icon-box"><span class="icon" aria-hidden="true">badge</span></div>
-      <div class="service-info">
-        <h2 class="service-name">ID</h2>
-        <p class="service-desc" data-i18n="desc-id">One private account for every Inpriv tool. Quick sign-in, 2FA, encrypted sync.</p>
       </div>
       <span class="status-badge live" data-i18n="badge-live">Live</span>
       <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
