@@ -247,13 +247,20 @@ body {
   }
 }
 
+/* Suppress duplicate fixed widgets injected by id.js to prevent covering app bar / theme toggle / header actions */
+#inpriv-id-chip, .inpriv-id-chip, #inpriv-id-prompt, .inpriv-id-prompt, #inpriv-id-card, .inpriv-id-card {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
 /* ---------- Inpriv ID Header Pill ---------- */
 .id-status-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   height: 34px;
-  padding: 0 10px 0 6px;
+  padding: 0 10px 0 8px;
   border-radius: 9999px;
   background: var(--md-surface-container-high);
   border: 1px solid var(--md-outline-variant);
@@ -263,9 +270,13 @@ body {
   cursor: pointer;
   text-decoration: none;
   transition: all 0.2s cubic-bezier(0.2, 1.4, 0, 1);
-  max-width: 140px;
+  max-width: 120px;
+  flex-shrink: 1;
 }
-@media(min-width: 480px) { .id-status-pill { max-width: 220px; } }
+@media(min-width: 480px) { .id-status-pill { max-width: 200px; } }
+@media(max-width: 380px) {
+  .id-status-pill { max-width: 90px; }
+}
 .id-status-pill:hover { border-color: var(--md-primary); transform: translateY(-1px); }
 .id-status-pill .id-dot {
   width: 8px;
