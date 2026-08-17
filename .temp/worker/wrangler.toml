@@ -18,6 +18,12 @@ binding = "DB"
 database_name = "inpriv-temp"
 database_id = "4fd698d2-c51e-4390-8f6b-9968f5da902d"
 
+# Cross-check: custom mailbox names must not collide with Inpriv ID accounts
+[[d1_databases]]
+binding = "ID_DB"
+database_name = "inpriv-id"
+database_id = "1cd1ca2e-51fd-40d9-94d8-aa75f989291b"
+
 # Static frontend served from ./public (the single-file temp-mail tool)
 # run_worker_first: the worker MUST run on every request so the kill-switch
 # can replace the page with a maintenance screen

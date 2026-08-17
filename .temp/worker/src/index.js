@@ -24,6 +24,37 @@ const RESERVED = new Set([
   "no-reply", "noreply", "postmaster", "root", "security", "support", "webmaster",
 ]);
 
+// Prefixes that must never introduce an @inpriv.xyz mailbox — blocks
+// "admin123", "hello-world" etc., not just exact matches. Long prefixes
+// (≥4 chars) block ANY continuation; short ones (hi, mx, pop, www, ftp,
+// vpn, dev, mod, me) only block separator/digit continuations.
+const RESERVED_PREFIXES = [
+  "abuse", "account", "admin", "administrator", "alert", "api", "aurex",
+  "auth", "backup", "billing", "bot", "burn", "cert", "cluster", "contact",
+  "demo", "dev", "dns", "do-not-reply", "donotreply", "everyone", "example",
+  "feedback", "ftp", "gateway", "guest", "hello", "help", "hi", "hostmaster",
+  "info", "inpriv", "invoice", "legal", "login", "mail", "mailer", "master",
+  "me", "member", "mod", "moderator", "mx", "news", "newsletter", "noreply",
+  "no-reply", "no_reply", "notify", "official", "office", "operator", "owner",
+  "payment", "pop", "portal", "postmaster", "priv", "private", "public",
+  "register", "root", "sales", "sample", "secure", "security", "self",
+  "server", "service", "signin", "signup", "smtp", "ssl", "staff", "status",
+  "support", "sysop", "team", "temp", "test", "tls", "user", "vpn", "webmaster",
+  "welcome", "www", "zero"
+];
+
+function isReservedLocal(local) {
+  if (RESERVED.has(local)) return true;
+  for (const p of RESERVED_PREFIXES) {
+    if (!local.startsWith(p)) continue;
+    if (local === p) return true;
+    if (p.length >= 4) return true; // long prefixes block ANY continuation
+    const next = local[p.length];
+    if (next === "-" || next === "." || next === "_" || (next >= "0" && next <= "9")) return true;
+  }
+  return false;
+}
+
 const ADJECTIVES = [
   "amber", "ashen", "azure", "basalt", "birch", "bright", "calm", "cipher",
   "cobalt", "copper", "coral", "crimson", "dusk", "ember", "fern", "flint",
@@ -269,8 +300,16 @@ async function createMailbox(request, env) {
     if (!/^[a-z0-9]([a-z0-9._-]{0,28}[a-z0-9])?$/.test(customLocal)) {
       return json({ error: "Allowed: 2–30 chars, letters, digits, . _ -" }, 400);
     }
-    if (RESERVED.has(customLocal)) {
+    if (isReservedLocal(customLocal)) {
       return json({ error: "That address is reserved" }, 409);
+    }
+    // Never let a disposable mailbox shadow a real Inpriv ID account.
+    if (env.ID_DB) {
+      const taken = await env.ID_DB
+        .prepare("SELECT 1 FROM users WHERE username = ?")
+        .bind(customLocal)
+        .first();
+      if (taken) return json({ error: "That address belongs to an Inpriv ID account" }, 409);
     }
   }
 

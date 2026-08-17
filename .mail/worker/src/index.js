@@ -4,6 +4,43 @@
 import { maintenanceGate, maintenancePage } from "../../../common/gate.js";
 
 const DOMAIN = "inpriv.xyz";
+
+// Local parts that must never become @inpriv.xyz addresses on Inpriv Mail.
+const RESERVED_LOCALS = new Set([
+  "abuse", "admin", "administrator", "hostmaster", "mail", "mailer-daemon",
+  "no-reply", "noreply", "postmaster", "root", "security", "support", "webmaster",
+]);
+
+// Prefixes that must never introduce an @inpriv.xyz address — blocks
+// "admin123", "hello-world" etc., not just exact matches. Long prefixes
+// (≥4 chars) block ANY continuation; short ones (hi, mx, pop, www, ftp,
+// vpn, dev, mod, me) only block separator/digit continuations.
+const RESERVED_PREFIXES = [
+  "abuse", "account", "admin", "administrator", "alert", "api", "aurex",
+  "auth", "backup", "billing", "bot", "burn", "cert", "cluster", "contact",
+  "demo", "dev", "dns", "do-not-reply", "donotreply", "everyone", "example",
+  "feedback", "ftp", "gateway", "guest", "hello", "help", "hi", "hostmaster",
+  "info", "inpriv", "invoice", "legal", "login", "mail", "mailer", "master",
+  "me", "member", "mod", "moderator", "mx", "news", "newsletter", "noreply",
+  "no-reply", "no_reply", "notify", "official", "office", "operator", "owner",
+  "payment", "pop", "portal", "postmaster", "priv", "private", "public",
+  "register", "root", "sales", "sample", "secure", "security", "self",
+  "server", "service", "signin", "signup", "smtp", "ssl", "staff", "status",
+  "support", "sysop", "team", "temp", "test", "tls", "user", "vpn", "webmaster",
+  "welcome", "www", "zero"
+];
+
+function isReservedLocal(local) {
+  if (RESERVED_LOCALS.has(local)) return true;
+  for (const p of RESERVED_PREFIXES) {
+    if (!local.startsWith(p)) continue;
+    if (local === p) return true;
+    if (p.length >= 4) return true; // long prefixes block ANY continuation
+    const next = local[p.length];
+    if (next === "-" || next === "." || next === "_" || (next >= "0" && next <= "9")) return true;
+  }
+  return false;
+}
 const SESSION_TTL_MS = 30 * 24 * 3600 * 1000;
 const PASS_ITERS = 300_000;
 const PBKDF2_CAP = 100_000;
@@ -212,8 +249,9 @@ export default {
         }
 
         return json({
-          available: !mailUser && !idUser,
+          available: !mailUser && !idUser && !isReservedLocal(local),
           valid: true,
+          reserved: isReservedLocal(local),
           inpriv_id_exists: !!idUser,
           mail_exists: !!mailUser,
         }, 200, cors);
@@ -374,6 +412,9 @@ export default {
 
         if (!/^[a-z0-9](?:[a-z0-9._-]{1,30}[a-z0-9])?$/.test(username)) {
           return bad("invalid username (2-32 chars: a-z 0-9 . _ -)", 400, cors);
+        }
+        if (isReservedLocal(username)) {
+          return bad("this address is reserved", 409, cors);
         }
         if (password.length < 10) return bad("password too short (minimum 10 characters)", 400, cors);
         if (passwordConfirm && password !== passwordConfirm) return bad("passwords do not match", 400, cors);

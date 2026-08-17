@@ -122,10 +122,50 @@ async function authUser(req, env, rotate = true) {
 
 const RESERVED_USERNAMES = new Set([
   "admin", "administrator", "root", "system", "inpriv", "aurex", "aurexlabs",
-  "support", "security", "abuse", "postmaster", "noreply", "mailer-daemon",
-  "help", "account", "mail", "temp", "burn", "zero", "api", "auth", "login",
-  "dashboard", "billing", "status", "bot", "anonymous", "null", "undefined"
+  "support", "security", "abuse", "postmaster", "noreply", "no-reply",
+  "mailer-daemon", "help", "hello", "hi", "info", "contact", "team", "staff",
+  "account", "accounts", "billing", "invoice", "payments", "sales", "legal",
+  "mail", "temp", "burn", "zero", "api", "auth", "login", "signin", "signup",
+  "register", "dashboard", "status", "bot", "anonymous", "null", "undefined",
+  "webmaster", "hostmaster", "feedback", "welcome", "office", "priva", "priv",
+  "owner", "moderator", "mod", "service", "services", "dev", "devs", "sysop",
+  "operator", "everyone", "users", "member", "members", "me", "self", "user"
 ]);
+
+// Prefixes that must never introduce an @inpriv.xyz address — blocks
+// "admin123", "hello-world", "support-team" etc., not just exact matches.
+// Long prefixes (≥4 chars) block ANY continuation; short ones (mod, me, hi,
+// pop, mx, www, ftp, vpn, dev) only block separator/digit continuations, so
+// "mode" or "metal" stay available.
+const RESERVED_PREFIXES = [
+  "abuse", "account", "admin", "administrator", "alert", "api", "aurex",
+  "auth", "backup", "billing", "bot", "burn", "cert", "cluster", "contact",
+  "demo", "dev", "dns", "do-not-reply", "donotreply", "everyone", "example",
+  "feedback", "ftp", "gateway", "guest", "hello", "help", "hi", "hostmaster",
+  "info", "inpriv", "invoice", "legal", "login", "mail", "mailer", "master",
+  "me", "member", "mod", "moderator", "mx", "news", "newsletter", "noreply",
+  "no-reply", "no_reply", "notify", "official", "office", "operator", "owner",
+  "payment", "pop", "portal", "postmaster", "priv", "private", "public",
+  "register", "root", "sales", "sample", "secure", "security", "self",
+  "server", "service", "signin", "signup", "smtp", "ssl", "staff", "status",
+  "support", "sysop", "team", "temp", "test", "tls", "user", "vpn", "webmaster",
+  "welcome", "www", "zero"
+];
+
+function isReservedUsername(username) {
+  if (RESERVED_USERNAMES.has(username)) return true;
+  for (const p of RESERVED_PREFIXES) {
+    if (!username.startsWith(p)) continue;
+    if (username === p) return true;
+    // long prefixes (admin, hello, support…) block ANY continuation
+    if (p.length >= 4) return true;
+    // short prefixes (mod, me, hi…) only when followed by a separator or
+    // digit — blocks "mod-team" / "hi123" without blocking "mode", "metal"
+    const next = username[p.length];
+    if (next === "-" || next === "." || next === "_" || (next >= "0" && next <= "9")) return true;
+  }
+  return false;
+}
 
 export default {
   async fetch(request, env, ctx) {
@@ -185,7 +225,7 @@ export default {
         if (/^[-._]|[-._]$/.test(username) || /[._-]{2,}/.test(username)) {
           return bad("Inpriv ID cannot start/end with or contain consecutive symbols");
         }
-        if (RESERVED_USERNAMES.has(username)) {
+        if (isReservedUsername(username)) {
           return bad("this Inpriv ID is reserved");
         }
 
@@ -210,6 +250,15 @@ export default {
           "SELECT 1 FROM users WHERE username = ? OR email = ? OR (recovery_email IS NOT NULL AND recovery_email = ?)"
         ).bind(username, inprivEmail, recoveryEmail || "__none__").first();
         if (dup) return bad("an account with this Inpriv ID or recovery email already exists", 409);
+
+        // Never issue an address that a live Inpriv Temp mailbox could intercept.
+        if (env.TEMP_DB) {
+          const shadow = await env.TEMP_DB
+            .prepare("SELECT 1 FROM mailboxes WHERE address = ? AND expires_at > ?")
+            .bind(inprivEmail, now())
+            .first();
+          if (shadow) return bad("this address is currently in use — try again later", 409);
+        }
 
         const salt = b64(crypto.getRandomValues(new Uint8Array(16)));
         const ph = await passHash(password, salt);

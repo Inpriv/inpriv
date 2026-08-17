@@ -14,6 +14,12 @@ binding = "DB"
 database_name = "inpriv-id"
 database_id = "1cd1ca2e-51fd-40d9-94d8-aa75f989291b"
 
+# Cross-check: new accounts must not collide with a live Inpriv Temp mailbox
+[[d1_databases]]
+binding = "TEMP_DB"
+database_name = "inpriv-temp"
+database_id = "4fd698d2-c51e-4390-8f6b-9968f5da902d"
+
 # Static frontend (login/register + account panel) and the One Tap widget
 # (id.js) served to every *.inpriv.xyz service.
 # run_worker_first: the worker must intercept every request for the
