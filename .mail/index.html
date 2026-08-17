@@ -1336,6 +1336,24 @@ async function hybridEncryptDual(recipientPubKey, senderPubKey, plaintextStr) {
   };
 }
 
+// Client-side Hybrid Encryption for Sender copy (External email)
+async function hybridEncryptSingle(pubKey, plaintextStr) {
+  const aesKey = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt']);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ctBuf = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, aesKey, utf8.enc(plaintextStr));
+  const ctBytes = new Uint8Array(ctBuf);
+  const ciphertext = ctBytes.slice(0, ctBytes.length - 16);
+  const tag = ctBytes.slice(ctBytes.length - 16);
+  const rawAes = await crypto.subtle.exportKey('raw', aesKey);
+  const wrapped = await crypto.subtle.encrypt({ name: 'RSA-OAEP' }, pubKey, rawAes);
+  return {
+    encrypted_aes_key: b64.enc(wrapped),
+    iv: b64.enc(iv.buffer),
+    ciphertext: b64.enc(ciphertext.buffer),
+    auth_tag: b64.enc(tag.buffer)
+  };
+}
+
 async function hybridDecrypt(privKey, enc) {
   const rawAes = await crypto.subtle.decrypt({ name: 'RSA-OAEP' }, privKey, b64.dec(enc.encrypted_aes_key));
   const aesKey = await crypto.subtle.importKey('raw', rawAes, { name: 'AES-GCM' }, false, ['decrypt']);
@@ -1961,7 +1979,7 @@ function renderMessageCards() {
         <div class="empty-state-desc">
           ${state.activeTab === 'inbox'
             ? `Share your address <strong>${escapeHtml(state.user.email)}</strong>. Internal messages are encrypted in your browser; external inbound emails are encrypted at the gateway.`
-            : 'Tap Compose to send end-to-end encrypted mail to another Inpriv ID user.'}
+            : 'Tap Compose to send encrypted mail to Inpriv users or external email addresses (Gmail, etc.).'}
         </div>
       </div>
     `;
@@ -2020,7 +2038,7 @@ async function openMessageView(id) {
           </div>
         </div>
 
-        <div class="sec-badge">
+        <div class="sec-badge" id="viewSecBadge">
           ${mkIcon('verified_user')}
           <span>Zero-Knowledge Encrypted (RSA-OAEP-2048 + AES-256-GCM)</span>
         </div>
@@ -2055,6 +2073,16 @@ async function openMessageView(id) {
     $('#viewTo').textContent = msg.direction === 'inbound' ? state.user.email : (msg.peer_label || msg.peer_address);
     $('#viewDate').textContent = new Date(msg.created_at).toLocaleString();
 
+    const isExternalPeer = msg.peer_address && !msg.peer_address.toLowerCase().endsWith('@' + DOMAIN);
+    const secEl = $('#viewSecBadge');
+    if (secEl) {
+      if (isExternalPeer) {
+        secEl.innerHTML = `${mkIcon('public')} <span>External Email · Stored zero-knowledge encrypted in your mailbox</span>`;
+      } else {
+        secEl.innerHTML = `${mkIcon('verified_user')} <span>Zero-Knowledge Encrypted (RSA-OAEP-2048 + AES-256-GCM)</span>`;
+      }
+    }
+
     let decryptedText = '';
     if (!state.privKey) {
       throw new Error('Encryption key not in browser memory. Please unlock again.');
@@ -2085,7 +2113,7 @@ async function openMessageView(id) {
 
     $('#viewReplyBtn').addEventListener('click', () => {
       close();
-      const replyTo = msg.direction === 'inbound' ? (msg.peer_label || msg.peer_address) : msg.peer_address;
+      const replyTo = msg.direction === 'inbound' ? (msg.peer_address || msg.peer_label) : msg.peer_address;
       const replySub = (msg.subject && msg.subject.startsWith('Re:')) ? msg.subject : `Re: ${msg.subject || ''}`;
       openComposeModal(replyTo, replySub);
     });
@@ -2119,7 +2147,9 @@ function openComposeModal(prefillTo = '', prefillSubject = '') {
   if (!container) return;
   container.innerHTML = '';
 
-  const cleanTo = String(prefillTo || '').replace(/@inpriv\.xyz$/i, '');
+  const isPrefillExternal = prefillTo.includes('@') && !prefillTo.toLowerCase().endsWith('@' + DOMAIN);
+  let initMode = isPrefillExternal ? 'external' : 'inpriv';
+  const cleanTo = initMode === 'inpriv' ? String(prefillTo || '').replace(/@inpriv\.xyz$/i, '') : String(prefillTo || '');
   const cleanSubject = String(prefillSubject || '');
 
   const overlay = document.createElement('div');
@@ -2127,20 +2157,31 @@ function openComposeModal(prefillTo = '', prefillSubject = '') {
   overlay.innerHTML = `
     <div class="modal-sheet" role="dialog" aria-modal="true">
       <div class="modal-head">
-        <h2 class="modal-title">New Encrypted Message</h2>
+        <h2 class="modal-title">New Message</h2>
         <button class="icon-btn" id="composeCloseBtn" type="button" aria-label="Close">${mkIcon('close')}</button>
       </div>
 
-      <div class="sec-badge">
-        ${mkIcon('lock')}
-        <span>Zero-Knowledge E2EE · Encrypted in browser with recipient's public key</span>
+      <div class="auth-segmented" id="composeModeSeg" style="margin-bottom: 14px;">
+        <button type="button" class="mode-btn ${initMode === 'inpriv' ? 'active' : ''}" data-mode="inpriv">
+          ${mkIcon('lock')} <span>Inpriv E2EE</span>
+        </button>
+        <button type="button" class="mode-btn ${initMode === 'external' ? 'active' : ''}" data-mode="external">
+          ${mkIcon('public')} <span>External (Gmail, etc.)</span>
+        </button>
+      </div>
+
+      <div class="sec-badge" id="composeSecBadge">
+        ${initMode === 'inpriv'
+          ? `${mkIcon('lock')} <span>Zero-Knowledge E2EE · Encrypted in browser with recipient's public key</span>`
+          : `${mkIcon('public')} <span>External Relay · Dispatched from ${escapeHtml(state.user.email)} via secure relay. Stored encrypted in your Sent box.</span>`
+        }
       </div>
 
       <div class="field" style="position:relative">
-        <label for="cmpTo">To (Inpriv ID Username)</label>
+        <label for="cmpTo" id="cmpToLabel">${initMode === 'inpriv' ? 'To (Inpriv ID Username)' : 'To (Recipient Email Address)'}</label>
         <div class="input-wrap">
-          <input type="text" id="cmpTo" placeholder="username" autocomplete="off" autocapitalize="none" spellcheck="false" value="${escapeHtml(cleanTo)}">
-          <span class="input-suffix">@${DOMAIN}</span>
+          <input type="text" id="cmpTo" placeholder="${initMode === 'inpriv' ? 'username' : 'e.g. name@gmail.com, user@outlook.com'}" autocomplete="off" autocapitalize="none" spellcheck="false" value="${escapeHtml(cleanTo)}">
+          <span class="input-suffix" id="cmpSuffix" style="${initMode === 'inpriv' ? '' : 'display:none'}">@${DOMAIN}</span>
         </div>
         <div class="autocomplete-list hidden" id="cmpSuggestions"></div>
       </div>
@@ -2154,13 +2195,13 @@ function openComposeModal(prefillTo = '', prefillSubject = '') {
 
       <div class="field">
         <label for="cmpBody">Message</label>
-        <textarea id="cmpBody" rows="7" placeholder="Type your private message here…"></textarea>
+        <textarea id="cmpBody" rows="7" placeholder="Type your message here…"></textarea>
       </div>
 
       <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:10px">
         <button class="btn btn-outlined" id="composeCancelBtn" type="button">Cancel</button>
         <button class="btn btn-primary" id="composeSendBtn" type="button">
-          ${mkIcon('lock')} <span>Encrypt & Send</span>
+          ${initMode === 'inpriv' ? `${mkIcon('lock')} <span>Encrypt & Send</span>` : `${mkIcon('send')} <span>Send Email</span>`}
         </button>
       </div>
     </div>
@@ -2188,14 +2229,58 @@ function openComposeModal(prefillTo = '', prefillSubject = '') {
     if (e.target === overlay) close();
   });
 
-  // Autocomplete
   const toInput = $('#cmpTo');
   const sugg = $('#cmpSuggestions');
-  let debTimer = null;
+  let currentMode = initMode;
 
+  function setMode(m) {
+    currentMode = m;
+    $$('#composeModeSeg button').forEach(b => {
+      b.classList.toggle('active', b.dataset.mode === m);
+    });
+    const secBadge = $('#composeSecBadge');
+    const toLabel = $('#cmpToLabel');
+    const suffix = $('#cmpSuffix');
+    const sendBtn = $('#composeSendBtn');
+
+    if (m === 'inpriv') {
+      if (secBadge) secBadge.innerHTML = `${mkIcon('lock')} <span>Zero-Knowledge E2EE · Encrypted in browser with recipient's public key</span>`;
+      if (toLabel) toLabel.textContent = 'To (Inpriv ID Username)';
+      if (toInput) toInput.placeholder = 'username';
+      if (suffix) suffix.style.display = '';
+      if (sendBtn) sendBtn.innerHTML = `${mkIcon('lock')} <span>Encrypt & Send</span>`;
+    } else {
+      if (secBadge) secBadge.innerHTML = `${mkIcon('public')} <span>External Relay · Dispatched from ${escapeHtml(state.user.email)} via secure relay. Stored encrypted in your Sent box.</span>`;
+      if (toLabel) toLabel.textContent = 'To (Recipient Email Address)';
+      if (toInput) toInput.placeholder = 'e.g. name@gmail.com, user@outlook.com';
+      if (suffix) suffix.style.display = 'none';
+      if (sendBtn) sendBtn.innerHTML = `${mkIcon('send')} <span>Send Email</span>`;
+      if (sugg) sugg.classList.add('hidden');
+    }
+  }
+
+  $$('#composeModeSeg button').forEach(btn => {
+    btn.addEventListener('click', () => setMode(btn.dataset.mode));
+  });
+
+  // Autocomplete / Input Detection
+  let debTimer = null;
   toInput.addEventListener('input', () => {
     clearTimeout(debTimer);
-    const q = toInput.value.trim().toLowerCase();
+    const raw = toInput.value.trim();
+    const q = raw.toLowerCase();
+
+    // Auto-detect external email if user pastes/types email with @ that isn't @inpriv.xyz
+    if (q.includes('@') && !q.endsWith('@' + DOMAIN) && currentMode === 'inpriv') {
+      setMode('external');
+      return;
+    }
+
+    if (currentMode !== 'inpriv') {
+      sugg.classList.add('hidden');
+      return;
+    }
+
     if (q.length < 1) {
       sugg.classList.add('hidden');
       return;
@@ -2228,12 +2313,12 @@ function openComposeModal(prefillTo = '', prefillSubject = '') {
 
   // Send action
   $('#composeSendBtn').addEventListener('click', async () => {
-    const to = toInput.value.trim().toLowerCase();
+    let toVal = toInput.value.trim();
     const subject = $('#cmpSubject').value.trim();
     const body = $('#cmpBody').value;
 
-    if (!to) {
-      toast('Recipient required', 'Please specify a username.', 'error');
+    if (!toVal) {
+      toast('Recipient required', currentMode === 'inpriv' ? 'Please specify a username.' : 'Please specify an email address.', 'error');
       return;
     }
     if (!body) {
@@ -2243,44 +2328,86 @@ function openComposeModal(prefillTo = '', prefillSubject = '') {
 
     const sendBtn = $('#composeSendBtn');
     sendBtn.disabled = true;
-    sendBtn.innerHTML = `<span class="spinner"></span> <span>Encrypting…</span>`;
 
-    try {
-      // 1. Fetch recipient's public key
-      const keyData = await api(`/users/${encodeURIComponent(to)}/pubkey`);
-      if (!keyData.public_key) {
-        throw new Error(keyData.message || 'Recipient has not generated public encryption keys yet.');
+    // Determine whether sending external or internal
+    const isSendingExternal = currentMode === 'external' || (toVal.includes('@') && !toVal.toLowerCase().endsWith('@' + DOMAIN));
+
+    if (isSendingExternal) {
+      const emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+      if (!emailPattern.test(toVal)) {
+        toast('Invalid email', 'Please enter a valid email address (e.g. name@gmail.com).', 'error');
+        sendBtn.disabled = false;
+        return;
       }
 
-      const recPubKey = await crypto.subtle.importKey(
-        'spki',
-        b64.dec(keyData.public_key),
-        { name: 'RSA-OAEP', hash: 'SHA-256' },
-        false,
-        ['encrypt']
-      );
+      sendBtn.innerHTML = `<span class="spinner"></span> <span>Sending…</span>`;
 
-      // 2. Hybrid Encrypt for both Recipient and Sender (so Sender can decrypt in Sent)
-      const dual = await hybridEncryptDual(recPubKey, state.pubKey, body);
+      try {
+        // Encrypt copy for sender's Sent box
+        const senderEnvelope = await hybridEncryptSingle(state.pubKey, body);
 
-      // 3. Post to send endpoint
-      await api('/messages/send', {
-        method: 'POST',
-        body: JSON.stringify({
-          to_username: to,
-          subject,
-          recipient_envelope: dual.recipient_envelope,
-          sender_envelope: dual.sender_envelope
-        })
-      });
+        await api('/messages/send', {
+          method: 'POST',
+          body: JSON.stringify({
+            mode: 'external',
+            to: toVal.toLowerCase(),
+            subject,
+            text: body,
+            sender_envelope: senderEnvelope
+          })
+        });
 
-      toast('Message sent', `Delivered encrypted to ${to}@${DOMAIN}`);
-      close();
-      await loadMessages();
-    } catch (err) {
-      toast('Send failed', err.message, 'error');
-      sendBtn.disabled = false;
-      sendBtn.innerHTML = `${mkIcon('lock')} <span>Encrypt & Send</span>`;
+        toast('Message sent', `Delivered to ${toVal.toLowerCase()}`);
+        close();
+        await loadMessages();
+      } catch (err) {
+        toast('Send failed', err.message, 'error');
+        sendBtn.disabled = false;
+        sendBtn.innerHTML = `${mkIcon('send')} <span>Send Email</span>`;
+      }
+    } else {
+      let to = toVal.toLowerCase();
+      if (to.endsWith('@' + DOMAIN)) to = to.slice(0, -('@' + DOMAIN).length).trim();
+
+      sendBtn.innerHTML = `<span class="spinner"></span> <span>Encrypting…</span>`;
+
+      try {
+        // 1. Fetch recipient's public key
+        const keyData = await api(`/users/${encodeURIComponent(to)}/pubkey`);
+        if (!keyData.public_key) {
+          throw new Error(keyData.message || 'Recipient has not generated public encryption keys yet.');
+        }
+
+        const recPubKey = await crypto.subtle.importKey(
+          'spki',
+          b64.dec(keyData.public_key),
+          { name: 'RSA-OAEP', hash: 'SHA-256' },
+          false,
+          ['encrypt']
+        );
+
+        // 2. Hybrid Encrypt for both Recipient and Sender (so Sender can decrypt in Sent)
+        const dual = await hybridEncryptDual(recPubKey, state.pubKey, body);
+
+        // 3. Post to send endpoint
+        await api('/messages/send', {
+          method: 'POST',
+          body: JSON.stringify({
+            to_username: to,
+            subject,
+            recipient_envelope: dual.recipient_envelope,
+            sender_envelope: dual.sender_envelope
+          })
+        });
+
+        toast('Message sent', `Delivered encrypted to ${to}@${DOMAIN}`);
+        close();
+        await loadMessages();
+      } catch (err) {
+        toast('Send failed', err.message, 'error');
+        sendBtn.disabled = false;
+        sendBtn.innerHTML = `${mkIcon('lock')} <span>Encrypt & Send</span>`;
+      }
     }
   });
 }

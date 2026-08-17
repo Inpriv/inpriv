@@ -523,12 +523,84 @@ export default {
         return json(msg, 200, cors);
       }
 
-      // ── Send Encrypted Message ────────────────────────────────────────────
+      // ── Send Message (Inpriv Zero-Knowledge E2EE or External Relay) ─────────
       if (path === "/api/v1/messages/send" && request.method === "POST") {
         const body = await request.json();
-        let toUser = String(body.to_username || body.to || "").toLowerCase().trim();
-        if (toUser.endsWith("@inpriv.xyz")) toUser = toUser.slice(0, -"@inpriv.xyz".length).trim();
+        let rawTo = String(body.to_username || body.to || "").toLowerCase().trim();
         const subject = String(body.subject || "").slice(0, 200);
+        const isExternal = body.mode === "external" || (rawTo.includes("@") && !rawTo.endsWith("@" + DOMAIN));
+
+        if (!(await rateLimit(env.DB, `send:${me.id}`, 40, 3_600_000))) {
+          return bad("rate limit exceeded (40 messages/hour)", 429, cors);
+        }
+
+        const t = now();
+
+        if (isExternal) {
+          const toEmail = rawTo;
+          if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(toEmail)) {
+            return bad("invalid recipient email address", 400, cors);
+          }
+
+          const resendKey = env.RESEND_API_KEY || env.RESEND_KEY;
+          if (!resendKey) {
+            return bad("external email relay is not configured on this server (RESEND_API_KEY / RESEND_KEY required)", 503, cors);
+          }
+
+          const textBody = String(body.text || body.body || "").slice(0, 50_000);
+          if (!textBody) {
+            return bad("message body cannot be empty", 400, cors);
+          }
+
+          // Support sender's encrypted envelope so they can decrypt in their Sent mailbox
+          const sndEak = String((body.sender_envelope && body.sender_envelope.encrypted_aes_key) || body.sender_encrypted_aes_key || "");
+          const iv = String((body.sender_envelope && body.sender_envelope.iv) || body.iv || "");
+          const ct = String((body.sender_envelope && body.sender_envelope.ciphertext) || body.ciphertext || "");
+          const tag = String((body.sender_envelope && body.sender_envelope.auth_tag) || body.auth_tag || "");
+
+          if (!sndEak || !iv || !ct || !tag) {
+            return bad("missing sender encrypted envelope for Sent box", 400, cors);
+          }
+
+          // Send via Resend API
+          let resendRes;
+          try {
+            const res = await fetch("https://api.resend.com/emails", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${resendKey}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                from: `${me.username}@${DOMAIN}`,
+                to: toEmail,
+                subject: subject || "(no subject)",
+                text: textBody,
+              }),
+            });
+            resendRes = { status: res.status, body: await res.json().catch(() => ({})) };
+          } catch (err) {
+            return bad("could not reach external email relay: " + (err.message || String(err)), 502, cors);
+          }
+
+          if (resendRes.status >= 400) {
+            return bad("mail relay error: " + (resendRes.body?.message || "failed to send"), 502, cors);
+          }
+
+          // Store Sender's Outbound Copy (encrypted with Sender's public key)
+          const peerLabel = toEmail.split("@")[0];
+          const r1 = await env.DB.prepare(
+            `INSERT INTO messages (owner_id, direction, peer_address, peer_label, subject,
+                                   encrypted_aes_key, iv, ciphertext, auth_tag, created_at, is_read)
+             VALUES (?,?,?,?,?,?,?,?,?,?,1)`
+          ).bind(me.id, "outbound", toEmail, peerLabel, subject, sndEak, iv, ct, tag, t).run();
+
+          return json({ ok: true, id: r1.meta?.last_row_id, external: true, resend_id: resendRes.body?.id }, 200, cors);
+        }
+
+        // Internal Inpriv E2EE message
+        let toUser = rawTo;
+        if (toUser.endsWith("@" + DOMAIN)) toUser = toUser.slice(0, -("@" + DOMAIN).length).trim();
 
         const target = await env.DB.prepare("SELECT * FROM users WHERE username = ?").bind(toUser).first();
         if (!target) {
@@ -545,12 +617,6 @@ export default {
         if (!recEak || !iv || !ct || !tag) return bad("missing encrypted message envelope", 400, cors);
         if (ct.length > 300_000) return bad("message body exceeds maximum size (200 KB)", 400, cors);
 
-        if (!(await rateLimit(env.DB, `send:${me.id}`, 40, 3_600_000))) {
-          return bad("rate limit exceeded (40 messages/hour)", 429, cors);
-        }
-
-        const t = now();
-
         // 1. Sender's Outbound Copy (encrypted with Sender's public key)
         const r1 = await env.DB.prepare(
           `INSERT INTO messages (owner_id, direction, peer_address, peer_label, subject,
@@ -565,7 +631,7 @@ export default {
            VALUES (?,?,?,?,?,?,?,?,?,?,0)`
         ).bind(target.id, "inbound", me.address, me.username, subject, recEak, iv, ct, tag, t).run();
 
-        return json({ ok: true, id: r1.meta?.last_row_id }, 200, cors);
+        return json({ ok: true, id: r1.meta?.last_row_id, external: false }, 200, cors);
       }
 
       // ── Delete Message ────────────────────────────────────────────────────
