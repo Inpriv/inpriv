@@ -1,22 +1,22 @@
 <!DOCTYPE html>
 <!--
-  Inpriv Wipe — Metadata Sanitizer
+  Inpriv Wipe — Metadata Inspector & Sanitizer
   Copyright (c) 2026 Aurex Labs — MIT License
 
-  Strips and optionally rewrites EXIF/IPTC/XMP metadata on images using
+  Inspects EXIF/XMP/IPTC/ICC/GPS metadata, then strips or rewrites it using
   piexifjs (MIT, CDN) + canvas rasterization. 100% client-side; no data leaves
   the device.
 -->
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com fonts.gstatic.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.googleapis.com fonts.gstatic.com https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob:; media-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; connect-src 'self'; worker-src 'none'; manifest-src 'self'">
 <meta name="theme-color" content="#13140E">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="description" content="wipe — Aurex Labs Zero-knowledge local metadata sanitizer. 100% client-side. No data leaves your device.">
-<title>wipe — Metadata Sanitizer | Aurex Labs</title>
+<meta name="description" content="wipe — Aurex Labs zero-knowledge metadata inspector and sanitizer. See every EXIF, GPS, XMP tag before you wipe it. 100% client-side. No data leaves your device.">
+<title>wipe — Metadata Inspector &amp; Sanitizer | Aurex Labs</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:ital,opsz,wght@0,8..144,300..800;1,8..144,300..800&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
@@ -33,42 +33,42 @@
   --md-on-primary: #173800;
   --md-primary-container: #2E4F2F;
   --md-on-primary-container: #C7EFA0;
-  
+
   --md-secondary: #BCCBAF;
   --md-on-secondary: #27341F;
   --md-secondary-container: #3D4B34;
   --md-on-secondary-container: #D8E7CB;
-  
+
   --md-tertiary: #FFB4A5;
   --md-on-tertiary: #5E1709;
   --md-tertiary-container: #7E2D1E;
   --md-on-tertiary-container: #FFDAD3;
-  
+
   --md-error: #FFB4AB;
   --md-error-container: #93000A;
   --md-on-error: #690005;
-  
+
   --md-surface: #13140E;
   --md-on-surface: #E3E2D3;
   --md-on-surface-variant: #C3C8B6;
   --md-surface-dim: #1A1C17;
-  
+
   --md-surface-container-lowest: #0D0F09;
   --md-surface-container-low: #1A1C17;
   --md-surface-container: #1F211B;
   --md-surface-container-high: #292B25;
   --md-surface-container-highest: #34362F;
-  
+
   --md-outline: #8D9283;
   --md-outline-variant: #43483D;
-  
+
   --md-inverse-surface: #E3E2D3;
   --md-inverse-on-surface: #2F312C;
   --md-inverse-primary: #466E47;
-  
+
   --md-shadow-color: rgba(0, 0, 0, 0.4);
   --md-shadow-color-strong: rgba(0, 0, 0, 0.65);
-  
+
   --bg-grid-dot: #8D9283;
 }
 
@@ -78,42 +78,42 @@
   --md-on-primary: #FFFFFF;
   --md-primary-container: #C7EFA0;
   --md-on-primary-container: #0C2000;
-  
+
   --md-secondary: #55624C;
   --md-on-secondary: #FFFFFF;
   --md-secondary-container: #D8E7CB;
   --md-on-secondary-container: #131F0C;
-  
+
   --md-tertiary: #9C4231;
   --md-on-tertiary: #FFFFFF;
   --md-tertiary-container: #FFDAD3;
   --md-on-tertiary-container: #3D0A03;
-  
+
   --md-error: #BA1A1A;
   --md-error-container: #FFDAD6;
   --md-on-error: #FFFFFF;
-  
+
   --md-surface: #FAF9F0;
   --md-on-surface: #1A1C17;
   --md-on-surface-variant: #43483D;
   --md-surface-dim: #DBDAD0;
-  
+
   --md-surface-container-lowest: #FFFFFF;
   --md-surface-container-low: #F4F3E7;
   --md-surface-container: #EEEDDE;
   --md-surface-container-high: #E9E7D9;
   --md-surface-container-highest: #E3E2D3;
-  
+
   --md-outline: #74796C;
   --md-outline-variant: #C3C8B6;
-  
+
   --md-inverse-surface: #2F312C;
   --md-inverse-on-surface: #F0EFE7;
   --md-inverse-primary: #ABD37A;
-  
+
   --md-shadow-color: rgba(20, 25, 15, 0.15);
   --md-shadow-color-strong: rgba(20, 25, 15, 0.28);
-  
+
   --bg-grid-dot: #74796C;
 }
 
@@ -160,9 +160,9 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: background-color 0.5s var(--md-easing-standard), color 0.5s var(--md-easing-standard);
-  
+
   /* Layer 1: Ambient Gradients */
-  background-image: 
+  background-image:
     radial-gradient(ellipse 80% 60% at 85% 0%, color-mix(in srgb, var(--md-primary-container) 55%, transparent) 0%, transparent 60%),
     radial-gradient(ellipse 60% 50% at 0% 100%, color-mix(in srgb, var(--md-tertiary-container) 45%, transparent) 0%, transparent 70%);
   background-attachment: fixed;
@@ -219,9 +219,9 @@ body {
 
 /* Mobile Floating Pill Header */
 .mobile-header {
-  position: fixed; top: 12px; left: 12px; right: 12px; z-index: 100;
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 6px 6px 6px 16px;
+  position: fixed; top: calc(12px + var(--safe-area-top)); left: 12px; right: 12px; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between; gap: 6px;
+  padding: 6px 6px 6px 10px;
   border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--md-surface-container) 82%, transparent);
   backdrop-filter: blur(24px) saturate(180%);
@@ -234,12 +234,14 @@ body {
 .brand-title {
   display: flex; align-items: center; gap: 8px;
   font-size: 17px; font-weight: 700; letter-spacing: -0.01em; color: var(--md-on-surface);
+  white-space: nowrap;
 }
 .brand-title .accent {
   color: var(--md-primary); font-weight: 300; font-style: italic;
 }
 .brand-tagline {
   font-size: 10px; font-weight: 500; letter-spacing: 0.02em; color: var(--md-on-surface-variant);
+  white-space: nowrap;
 }
 
 .privacy-guard {
@@ -250,6 +252,7 @@ body {
   font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
   cursor: pointer; transition: all 0.3s var(--md-easing-spring-soft);
   border: 1px solid color-mix(in srgb, var(--md-outline-variant) 40%, transparent);
+  touch-action: manipulation; white-space: nowrap;
 }
 .privacy-guard:hover {
   background: var(--md-primary-container); color: var(--md-on-primary-container);
@@ -260,14 +263,16 @@ body {
   font-variation-settings: 'wght' 600, 'opsz' 20;
 }
 
-.theme-toggle-btn {
-  width: 40px; height: 40px; border-radius: var(--radius-circle);
+.theme-toggle-btn, .icon-btn {
+  width: 44px; height: 44px; border-radius: var(--radius-circle);
   border: none; background: transparent; color: var(--md-on-surface-variant);
-  display: flex; align-items: center; justify-content: center;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   cursor: pointer; transition: all 0.2s var(--md-easing-standard);
+  touch-action: manipulation;
 }
-.theme-toggle-btn:hover { background: color-mix(in srgb, var(--md-on-surface) 8%, transparent); color: var(--md-on-surface); }
-.theme-toggle-btn:active { transform: scale(0.92); }
+.theme-toggle-btn:hover, .icon-btn:hover { background: color-mix(in srgb, var(--md-on-surface) 8%, transparent); color: var(--md-on-surface); }
+.theme-toggle-btn:active, .icon-btn:active { transform: scale(0.92); }
+.icon-btn.danger:hover { color: var(--md-error); }
 
 /* Sidebar Navigation (Desktop) */
 .sidebar {
@@ -297,6 +302,7 @@ body {
   cursor: pointer; transition: all 0.3s var(--md-easing-spring-soft);
   border: none; background: transparent; width: 100%; text-align: left;
   min-height: var(--touch-target-min); position: relative;
+  touch-action: manipulation;
 }
 .nav-item .material-symbols-rounded { font-variation-settings: 'wght' 500, 'GRAD' 0, 'opsz' 24; }
 .nav-item:hover { background: color-mix(in srgb, var(--md-on-surface) 6%, transparent); color: var(--md-on-surface); transform: translateX(2px); }
@@ -317,13 +323,13 @@ body {
 /* Main Content Area */
 .main-content {
   flex: 1; margin-left: 0;
-  padding: 84px 16px 220px 16px;
+  padding: calc(84px + var(--safe-area-top)) 16px calc(120px + var(--safe-area-bottom)) 16px;
   width: 100%; max-width: 1200px; margin: 0 auto;
 }
 
 /* Bottom Navigation (Mobile) */
 .bottom-nav {
-  position: fixed; bottom: 12px; left: 12px; right: 12px; z-index: 100;
+  position: fixed; bottom: calc(12px + var(--safe-area-bottom)); left: 12px; right: 12px; z-index: 100;
   display: flex; justify-content: space-around; align-items: center;
   height: 64px; border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--md-surface-container) 88%, transparent);
@@ -340,7 +346,9 @@ body {
   font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
   cursor: pointer; transition: all 0.2s var(--md-easing-standard);
   border: none; background: transparent;
+  touch-action: manipulation; min-width: 0;
 }
+.bottom-nav-item:active { transform: scale(0.94); }
 .bottom-nav-item.active { color: var(--md-primary); }
 .bottom-nav-item .material-symbols-rounded { font-variation-settings: 'wght' 500, 'opsz' 24; transition: transform 0.3s var(--md-easing-spring); }
 .bottom-nav-item.active .material-symbols-rounded {
@@ -376,13 +384,13 @@ p.hero-subtitle { font-size: 14px; color: var(--md-on-surface-variant); margin-b
   background: var(--md-surface-container-low);
   border: 2px dashed var(--md-outline-variant);
   border-radius: var(--radius-card);
-  padding: 40px 20px; text-align: center; cursor: pointer;
+  padding: 36px 18px; text-align: center; cursor: pointer;
   transition: all 0.4s var(--md-easing-spring-soft);
   position: relative; overflow: hidden;
+  touch-action: manipulation;
 }
-.dropzone:hover {
+.dropzone:hover, .dropzone:active {
   border-color: var(--md-primary); background: var(--md-surface-container);
-  transform: translateY(-4px); box-shadow: 0 12px 32px -8px var(--md-shadow-color-strong);
 }
 .dropzone.dragover {
   border-style: solid; border-color: var(--md-primary);
@@ -401,7 +409,7 @@ p.hero-subtitle { font-size: 14px; color: var(--md-on-surface-variant); margin-b
   font-size: 36px;
   font-variation-settings: 'wght' 500, 'GRAD' 0, 'opsz' 48;
 }
-.dropzone:hover .dropzone-icon-wrap {
+.dropzone:hover .dropzone-icon-wrap, .dropzone:active .dropzone-icon-wrap {
   transform: scale(1.08) rotate(-4deg);
 }
 
@@ -410,8 +418,8 @@ p.hero-subtitle { font-size: 14px; color: var(--md-on-surface-variant); margin-b
   50% { box-shadow: 0 0 0 16px color-mix(in srgb, var(--md-primary) 0%, transparent); }
 }
 
-.dropzone-title { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; color: var(--md-on-surface); margin-bottom: 6px; }
-.dropzone-subtitle { font-size: 14px; color: var(--md-on-surface-variant); max-width: 380px; margin: 0 auto; line-height: 1.5; }
+.dropzone-title { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; color: var(--md-on-surface); margin-bottom: 6px; }
+.dropzone-subtitle { font-size: 13px; color: var(--md-on-surface-variant); max-width: 420px; margin: 0 auto; line-height: 1.5; }
 .dropzone-hint { margin-top: 14px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--md-primary); }
 
 /* Buttons & Actions */
@@ -422,7 +430,7 @@ p.hero-subtitle { font-size: 14px; color: var(--md-on-surface-variant); margin-b
   letter-spacing: 0.02em; cursor: pointer;
   transition: all 0.3s var(--md-easing-spring-soft);
   border: none; outline: none; position: relative; overflow: hidden;
-  text-decoration: none;
+  text-decoration: none; touch-action: manipulation; min-width: 0;
 }
 .btn .material-symbols-rounded { font-size: 20px; font-variation-settings: 'wght' 500, 'opsz' 24; }
 .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px -4px var(--md-shadow-color); }
@@ -459,7 +467,7 @@ p.hero-subtitle { font-size: 14px; color: var(--md-on-surface-variant); margin-b
   background: var(--md-surface-container-high);
   border: 1px solid var(--md-outline);
   border-radius: var(--radius-inner); color: var(--md-on-surface);
-  font-family: var(--font-primary); font-size: 14px;
+  font-family: var(--font-primary); font-size: 16px; /* 16px prevents iOS zoom-on-focus */
   transition: all 0.2s var(--md-easing-standard); outline: none;
 }
 .input-field:focus {
@@ -473,35 +481,83 @@ p.hero-subtitle { font-size: 14px; color: var(--md-on-surface-variant); margin-b
   padding: 4px 10px; border-radius: var(--radius-chip);
   font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
   border: 1px solid var(--md-outline-variant); background: var(--md-surface-container-high);
-  color: var(--md-on-surface-variant); word-break: break-all;
+  color: var(--md-on-surface-variant); word-break: break-word; max-width: 100%;
 }
 .meta-chip.warning { background: var(--md-tertiary-container); color: var(--md-on-tertiary-container); border-color: transparent; }
 .meta-chip.danger { background: var(--md-error-container); color: var(--md-on-error); border-color: transparent; }
 .meta-chip.success { background: var(--md-primary-container); color: var(--md-on-primary-container); border-color: transparent; }
+.meta-chip .material-symbols-rounded { font-size: 14px; }
 
-/* File Items */
-.file-item {
-  display: flex; align-items: center; gap: 14px;
-  padding: 14px 18px; background: var(--md-surface-container);
-  border: 1px solid var(--md-outline-variant); border-radius: var(--radius-inner);
-  margin-bottom: 10px; transition: all 0.3s var(--md-easing-spring-soft);
-  position: relative; overflow: hidden; max-width: 100%;
+/* File Cards (mobile-first: thumbnail + info + chips) */
+.file-card { padding: 14px; margin-bottom: 12px; scroll-margin-top: calc(110px + var(--safe-area-top)); }
+.file-card:hover { transform: none; }
+.file-row { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 12px; }
+.file-thumb {
+  width: 56px; height: 56px; border-radius: 14px; object-fit: cover;
+  background: var(--md-surface-container-high); flex-shrink: 0; display: block;
 }
-.file-item:hover { transform: translateX(2px); border-color: var(--md-primary); }
-.file-item .file-icon {
-  width: 44px; height: 44px; border-radius: var(--radius-circle); background: var(--md-primary-container);
-  color: var(--md-on-primary-container); display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+.file-thumb.ph {
+  display: flex; align-items: center; justify-content: center;
+  color: var(--md-on-surface-variant);
 }
-.file-item .file-info { flex: 1; min-width: 0; }
-.file-item .file-name { font-size: 14px; font-weight: 600; color: var(--md-on-surface); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.file-item .file-meta { font-size: 12px; color: var(--md-on-surface-variant); margin-top: 2px; }
+.file-thumb.ph .material-symbols-rounded { font-size: 26px; opacity: 0.7; }
+.file-info { flex: 1; min-width: 0; }
+.file-name {
+  font-size: 14px; font-weight: 700; color: var(--md-on-surface);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.file-meta { font-size: 12px; color: var(--md-on-surface-variant); margin-top: 2px; }
+.file-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 
-/* Mode Selection Cards */
-.mode-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 24px; }
+.meta-toggle { height: 44px; font-size: 13px; }
+.meta-toggle span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Metadata Panel */
+.meta-panel { margin-top: 12px; animation: fadeUp 0.35s var(--md-easing-spring) both; }
+.meta-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.meta-section {
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--radius-inner); padding: 12px; margin-bottom: 10px;
+}
+.meta-section-title {
+  font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--md-primary); margin-bottom: 8px;
+}
+.meta-rows { display: flex; flex-direction: column; gap: 6px; }
+.meta-row {
+  display: grid; grid-template-columns: minmax(96px, 42%) 1fr; gap: 8px;
+  font-size: 13px; line-height: 1.45;
+}
+.meta-key { color: var(--md-on-surface-variant); word-break: break-word; }
+.meta-val { color: var(--md-on-surface); word-break: break-word; overflow-wrap: anywhere; }
+.meta-osm {
+  display: inline-flex; align-items: center; gap: 6px; margin-top: 10px;
+  font-size: 12px; font-weight: 600; color: var(--md-primary); text-decoration: none;
+  touch-action: manipulation;
+}
+.meta-osm:hover { text-decoration: underline; }
+.meta-osm .material-symbols-rounded { font-size: 16px; }
+.meta-empty {
+  padding: 18px 12px; text-align: center; color: var(--md-on-surface-variant); font-size: 13px;
+  border: 1px dashed var(--md-outline-variant); border-radius: var(--radius-inner);
+}
+
+/* Mode Selection Cards — horizontal snap-scroll rail on mobile, grid on desktop */
+.mode-grid {
+  display: flex; gap: 10px; margin-bottom: 20px;
+  overflow-x: auto; scroll-snap-type: x mandatory;
+  padding: 4px 2px 8px; -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.mode-grid::-webkit-scrollbar { display: none; }
 .mode-card {
-  padding: 20px; cursor: pointer; position: relative; overflow: hidden;
+  min-width: 72%; scroll-snap-align: center; flex-shrink: 0;
+  padding: 18px; cursor: pointer; position: relative; overflow: hidden;
   transition: all 0.35s var(--md-easing-spring-soft);
+  touch-action: manipulation;
 }
+.mode-card:active { transform: scale(0.98); }
 .mode-card.active {
   border-color: var(--md-primary);
   background: var(--md-primary-container); color: var(--md-on-primary-container);
@@ -517,6 +573,12 @@ p.hero-subtitle { font-size: 14px; color: var(--md-on-surface-variant); margin-b
 .mode-card h3 { margin-bottom: 4px; font-size: 16px; font-weight: 700; }
 .mode-card p { font-size: 13px; color: var(--md-on-surface-variant); line-height: 1.4; }
 
+/* Home view stacking order: hero, dropzone, uploaded files, then mode rail */
+#view-home { display: flex; flex-direction: column; }
+#view-home .hero-block { order: -3; }
+#view-home .dropzone { order: -2; }
+#view-home #uploadedFiles { order: -1; }
+
 /* Processing Overlay */
 .processing-overlay {
   position: fixed; inset: 0; background: color-mix(in srgb, var(--md-surface) 88%, transparent);
@@ -524,6 +586,7 @@ p.hero-subtitle { font-size: 14px; color: var(--md-on-surface-variant); margin-b
   z-index: 200; display: flex; flex-direction: column;
   align-items: center; justify-content: center; gap: 20px;
   opacity: 0; pointer-events: none; transition: opacity 0.35s var(--md-easing-standard);
+  padding: 24px;
 }
 .processing-overlay.active { opacity: 1; pointer-events: all; }
 .spinner {
@@ -537,7 +600,7 @@ p.hero-subtitle { font-size: 14px; color: var(--md-on-surface-variant); margin-b
 
 /* Toast / Snackbar */
 .toast-container {
-  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  position: fixed; bottom: calc(88px + var(--safe-area-bottom)); left: 50%; transform: translateX(-50%);
   z-index: 300; display: flex; flex-direction: column; gap: 8px;
   pointer-events: none; width: calc(100% - 32px); max-width: 420px;
 }
@@ -594,10 +657,17 @@ p.hero-subtitle { font-size: 14px; color: var(--md-on-surface-variant); margin-b
   .bottom-nav { display: none; }
   .sidebar { display: flex; }
   .main-content { margin-left: calc(var(--sidebar-width) + 36px); padding: 32px 40px 100px 0; }
-  .mode-grid { grid-template-columns: repeat(3, 1fr); }
+  .mode-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px;
+    overflow: visible;
+  }
+  .mode-card { min-width: 0; }
+  #view-home .hero-block, #view-home .dropzone, #view-home #uploadedFiles { order: 0; }
   .architect-form { grid-template-columns: repeat(2, 1fr); }
   .dropzone { padding: 56px 40px; }
   .toast-container { bottom: 32px; }
+  .meta-row { grid-template-columns: 230px 1fr; font-size: 13.5px; }
+  .file-card { padding: 18px; }
 }
 
 .hidden { display: none !important; }
@@ -610,7 +680,10 @@ p.hero-subtitle { font-size: 14px; color: var(--md-on-surface-variant); margin-b
 
 <!-- Mobile Floating App Bar -->
 <header class="mobile-header">
-  <div style="display: flex; align-items: center; gap: 8px;">
+  <div style="display: flex; align-items: center; gap: 2px; min-width: 0;">
+    <button class="theme-toggle-btn" id="backBtn" onclick="navigateTo('home')" style="display:none" aria-label="Back to upload">
+      <span class="material-symbols-rounded">arrow_back</span>
+    </button>
     <div class="brand-title">wipe<span class="accent">.</span></div>
     <span class="brand-tagline">Aurex Labs</span>
   </div>
@@ -635,7 +708,7 @@ p.hero-subtitle { font-size: 14px; color: var(--md-on-surface-variant); margin-b
   <nav class="nav-section">
     <button class="nav-item active" data-view="home" onclick="navigateTo('home')">
       <span class="material-symbols-rounded">upload_file</span>
-      <span>Upload</span>
+      <span>Inspect &amp; Upload</span>
     </button>
     <button class="nav-item" data-view="wipe" onclick="navigateTo('wipe')">
       <span class="material-symbols-rounded">cleaning_services</span>
@@ -671,12 +744,24 @@ p.hero-subtitle { font-size: 14px; color: var(--md-on-surface-variant); margin-b
 <div class="app-shell">
   <main class="main-content" id="mainContent">
 
-    <!-- HOME / UPLOAD VIEW -->
+    <!-- HOME / INSPECT & UPLOAD VIEW -->
     <section class="view active" id="view-home">
-      <div style="margin-bottom: 24px;">
-        <h2 class="hero-title">Sanitize <span class="accent">Metadata.</span></h2>
-        <p class="hero-subtitle">Zero-knowledge local metadata sanitizer. 100% client-side privacy.</p>
+      <div class="hero-block" style="margin-bottom: 24px;">
+        <h2 class="hero-title">Inspect. Then <span class="accent">Wipe.</span></h2>
+        <p class="hero-subtitle">See every EXIF, GPS and XMP tag your photo carries — then strip it. 100% client-side.</p>
       </div>
+
+      <div class="dropzone" id="dropzone" onclick="triggerFileInput()">
+        <input type="file" id="fileInput" multiple accept="image/*" style="display:none" onchange="handleFiles(this.files); this.value=''">
+        <div class="dropzone-icon-wrap">
+          <span class="material-symbols-rounded">cloud_upload</span>
+        </div>
+        <div class="dropzone-title">Drop a photo or tap to upload</div>
+        <div class="dropzone-subtitle">Full metadata report appears instantly below — camera, GPS, timestamps, hidden XMP blocks. Nothing ever leaves your device.</div>
+        <div class="dropzone-hint">Local Client-Side Processing</div>
+      </div>
+
+      <div id="uploadedFiles" style="margin-top: 24px;"></div>
 
       <div class="mode-grid">
         <div class="card mode-card active" data-mode="wipe" onclick="selectMode('wipe')">
@@ -695,25 +780,13 @@ p.hero-subtitle { font-size: 14px; color: var(--md-on-surface-variant); margin-b
           <p>Granular control — inject custom GPS, camera models, timestamps, and copyright.</p>
         </div>
       </div>
-
-      <div class="dropzone" id="dropzone" onclick="triggerFileInput()">
-        <input type="file" id="fileInput" multiple accept="image/*,.jpg,.jpeg,.png,.tiff,.webp" style="display:none" onchange="handleFiles(this.files)">
-        <div class="dropzone-icon-wrap">
-          <span class="material-symbols-rounded">cloud_upload</span>
-        </div>
-        <div class="dropzone-title">Drop files here or tap to upload</div>
-        <div class="dropzone-subtitle">Supports JPG, PNG, TIFF, WebP. Non-JPEG files convert automatically for EXIF operations.</div>
-        <div class="dropzone-hint">Local Client-Side Processing</div>
-      </div>
-
-      <div id="uploadedFiles" style="margin-top: 24px;"></div>
     </section>
 
     <!-- TOTAL PURGE VIEW -->
     <section class="view" id="view-wipe">
       <div style="margin-bottom: 24px;">
         <h2 class="hero-title">Total <span class="accent">Purge.</span></h2>
-        <p class="hero-subtitle">Irreversibly strip all metadata footprints from your files.</p>
+        <p class="hero-subtitle">Irreversibly strip all metadata footprints — verified with a post-purge scan.</p>
       </div>
       <div id="wipeContent"></div>
     </section>
@@ -742,8 +815,8 @@ p.hero-subtitle { font-size: 14px; color: var(--md-on-surface-variant); margin-b
         <h2 class="hero-title">Processing <span class="accent">Queue.</span></h2>
         <p class="hero-subtitle">Batch process queued operations simultaneously.</p>
       </div>
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <div style="display: flex; gap: 12px; font-size: 13px; font-weight: 600; color: var(--md-on-surface-variant);">
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;">
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; font-size: 13px; font-weight: 600; color: var(--md-on-surface-variant);">
           <span id="queueTotal">0 files</span>
           <span id="queuePending">0 pending</span>
           <span id="queueDone">0 done</span>
@@ -763,7 +836,7 @@ p.hero-subtitle { font-size: 14px; color: var(--md-on-surface-variant); margin-b
 <nav class="bottom-nav" id="bottomNav">
   <button class="bottom-nav-item active" data-view="home" onclick="navigateTo('home')">
     <span class="material-symbols-rounded">upload_file</span>
-    <span>Upload</span>
+    <span>Inspect</span>
   </button>
   <button class="bottom-nav-item" data-view="wipe" onclick="navigateTo('wipe')">
     <span class="material-symbols-rounded">cleaning_services</span>
@@ -804,9 +877,8 @@ const state = {
   queue: [],
   processing: false,
   architectSettings: {
-    make: '', model: '', datetime: '',
-    gpsLat: '', gpsLng: '', gpsRefLat: 'N', gpsRefLng: 'E',
-    copyright: '', artist: '', software: ''
+    make: '', model: '', datetime: '', software: '',
+    copyright: '', artist: ''
   }
 };
 
@@ -817,6 +889,8 @@ const cameraDatabase = [
   { make:'Fujifilm', model:'X-T4' }, { make:'Fujifilm', model:'GFX 100S' },
   { make:'Apple', model:'iPhone 15 Pro' }, { make:'Google', model:'Pixel 8 Pro' }
 ];
+
+const IMG_EXTS = /\.(jpe?g|png|tiff?|webp|heic|heif|avif|bmp|gif)$/i;
 
 /* Helper: Yield execution to the browser event loop to prevent main-thread lockup */
 const yieldToMain = () => new Promise(resolve => setTimeout(resolve, 0));
@@ -835,25 +909,43 @@ function scheduleRender() {
   });
 }
 
+/* ---------- Theme (persisted) ---------- */
+function applyThemeIcons(next) {
+  const icon = next === 'dark' ? 'dark_mode' : 'light_mode';
+  const m = document.getElementById('mobileThemeIcon');
+  const d = document.getElementById('desktopThemeIcon');
+  if (m) m.textContent = icon;
+  if (d) d.textContent = icon;
+}
 function toggleTheme() {
   const html = document.documentElement;
   const current = html.getAttribute('data-theme') || 'dark';
   const next = current === 'dark' ? 'light' : 'dark';
   html.setAttribute('data-theme', next);
-  
-  const icon = next === 'dark' ? 'dark_mode' : 'light_mode';
-  document.getElementById('mobileThemeIcon').textContent = icon;
-  document.getElementById('desktopThemeIcon').textContent = icon;
+  applyThemeIcons(next);
+  try { localStorage.setItem('aurex_theme', next); } catch (e) {}
   showToast(`Switched to ${next} mode`, 'success');
 }
+(function initTheme() {
+  try {
+    const saved = localStorage.getItem('aurex_theme');
+    if (saved === 'light' || saved === 'dark') {
+      document.documentElement.setAttribute('data-theme', saved);
+      applyThemeIcons(saved);
+    }
+  } catch (e) {}
+})();
 
+/* ---------- Navigation ---------- */
 function navigateTo(view) {
   state.currentView = view;
   document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
   document.getElementById('view-' + view)?.classList.add('active');
   document.querySelectorAll('.sidebar .nav-item').forEach(el => el.classList.toggle('active', el.dataset.view === view));
   document.querySelectorAll('.bottom-nav-item').forEach(el => el.classList.toggle('active', el.dataset.view === view));
-  
+  const back = document.getElementById('backBtn');
+  if (back) back.style.display = view === 'home' ? 'none' : 'flex';
+
   scheduleRender();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -863,7 +955,7 @@ function selectMode(mode) {
   document.querySelectorAll('.mode-card').forEach(el => {
     el.classList.toggle('active', el.dataset.mode === mode);
   });
-  showToast('Mode: ' + mode.charAt(0).toUpperCase() + mode.slice(1), 'success');
+  showToast('Queue mode: ' + mode.charAt(0).toUpperCase() + mode.slice(1), 'success');
 }
 
 function togglePrivacyGuard() {
@@ -878,35 +970,327 @@ const dropzone = document.getElementById('dropzone');
 ['dragenter','dragover','dragleave','drop'].forEach(e => dropzone.addEventListener(e, ev => { ev.preventDefault(); ev.stopPropagation(); }, false));
 ['dragenter','dragover'].forEach(e => dropzone.addEventListener(e, () => dropzone.classList.add('dragover'), false));
 ['dragleave','drop'].forEach(e => dropzone.addEventListener(e, () => dropzone.classList.remove('dragover'), false));
-dropzone.addEventListener('drop', e => handleFiles(e.dataTransfer.files), false);
+dropzone.addEventListener('drop', e => { handleFiles(e.dataTransfer.files); }, false);
 
+/* ==========================================================================
+   METADATA INSPECTION ENGINE
+   Reads EXIF (piexifjs) + scans raw container bytes for metadata blocks
+   (XMP, ICC, IPTC, comments, PNG text chunks, WebP EXIF/XMP chunks).
+   ========================================================================== */
+
+function asciiOf(bytes, start, end) {
+  let s = '';
+  for (let i = start; i < end; i++) s += String.fromCharCode(bytes[i]);
+  return s;
+}
+
+function scanMetadata(bytes, mime) {
+  const info = { blocks: [], format: null };
+  if (!bytes || bytes.length < 12) { info.format = 'Unknown'; return info; }
+  const b = bytes;
+  const isJpeg = b[0] === 0xFF && b[1] === 0xD8;
+  const isPng  = b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4E && b[3] === 0x47;
+  const isRiff = b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46;
+  const isTiff = (b[0] === 0x49 && b[1] === 0x49 && b[2] === 0x2A) || (b[0] === 0x4D && b[1] === 0x4D && b[2] === 0x00 && b[3] === 0x2A);
+  if (isJpeg) { info.format = 'JPEG'; scanJpeg(b, info); }
+  else if (isPng) { info.format = 'PNG'; scanPng(b, info); }
+  else if (isRiff && asciiOf(b, 8, 12) === 'WEBP') { info.format = 'WebP'; scanRiff(b, info); }
+  else if (isTiff) { info.format = 'TIFF'; info.blocks.push('EXIF'); }
+  else if (asciiOf(b, 4, 8) === 'ftyp') { info.format = 'HEIF / HEIC'; }
+  else { info.format = (mime && mime.split('/')[1] || 'image').toUpperCase(); }
+  return info;
+}
+
+/* JPEG APPn/COM segment scanner (metadata lives before the SOS marker) */
+function scanJpeg(b, info) {
+  let i = 2;
+  const guard = Math.min(b.length - 4, 262144);
+  while (i < guard) {
+    if (b[i] !== 0xFF) break;
+    const m = b[i + 1];
+    if (m === 0xFF) { i++; continue; }              /* fill bytes */
+    if (m === 0xD8 || m === 0x01 || (m >= 0xD0 && m <= 0xD7)) { i += 2; continue; }
+    if (m === 0xD9) break;                          /* EOI */
+    const len = (b[i + 2] << 8) | b[i + 3];
+    if (len < 2) break;
+    if (m === 0xDA) break;                          /* start of scan — done */
+    const ps = i + 4, pe = Math.min(i + 2 + len, b.length);
+    const head = asciiOf(b, ps, Math.min(pe, ps + 80));
+    if (m === 0xE0) { if (head.startsWith('JFIF') || head.startsWith('JFXX')) info.blocks.push('JFIF'); }
+    else if (m === 0xE1) {
+      if (head.startsWith('Exif')) info.blocks.push('EXIF');
+      else if (head.startsWith('http') || head.startsWith('<?x') || head.includes('ns.adobe.com/xap')) info.blocks.push('XMP');
+    }
+    else if (m === 0xE2) {
+      if (head.startsWith('ICC_PROFILE')) info.blocks.push('ICC color profile');
+      else if (head.startsWith('MPF')) info.blocks.push('MPF (multi-picture)');
+    }
+    else if (m === 0xEC) info.blocks.push('Picture info');
+    else if (m === 0xED) info.blocks.push('IPTC / Photoshop');
+    else if (m === 0xEE) info.blocks.push('Adobe marker');
+    else if (m === 0xFE) info.blocks.push('JPEG comment');
+    i += 2 + len;
+  }
+}
+
+/* PNG chunk scanner (text chunks, eXIf, iCCP, tIME) */
+function scanPng(b, info) {
+  let i = 8;
+  const guard = Math.min(b.length - 8, 262144);
+  while (i + 8 < guard) {
+    const len = ((b[i] << 24) | (b[i + 1] << 16) | (b[i + 2] << 8) | b[i + 3]) >>> 0;
+    const type = asciiOf(b, i + 4, i + 8);
+    if (!/^[a-zA-Z]{4}$/.test(type)) break;
+    const ds = i + 8, de = Math.min(ds + len, b.length);
+    if (type === 'tEXt' || type === 'iTXt' || type === 'zTXt') {
+      const kw = asciiOf(b, ds, Math.min(de, ds + 40)).split('\0')[0] || 'text';
+      if (/xmp/i.test(kw)) info.blocks.push('XMP');
+      else info.blocks.push('Text chunk: ' + kw);
+    } else if (type === 'eXIf') info.blocks.push('EXIF');
+    else if (type === 'iCCP') info.blocks.push('ICC color profile');
+    else if (type === 'tIME') info.blocks.push('Timestamp');
+    i = de + 4; /* skip CRC */
+  }
+}
+
+/* RIFF/WebP chunk scanner (EXIF, XMP, ICCP) */
+function scanRiff(b, info) {
+  let i = 12;
+  const size = b.length;
+  while (i + 8 <= Math.min(size, 262144)) {
+    const fourcc = asciiOf(b, i, i + 4);
+    const len = (b[i + 4] | (b[i + 5] << 8) | (b[i + 6] << 16) | (b[i + 7] << 24)) >>> 0;
+    if (fourcc === 'EXIF') info.blocks.push('EXIF');
+    else if (fourcc === 'XMP ') info.blocks.push('XMP');
+    else if (fourcc === 'ICCP') info.blocks.push('ICC color profile');
+    i += 8 + len + (len % 2);
+  }
+}
+
+/* Decode a data URL back to bytes (for post-purge verification) */
+function bytesFromDataUrl(u) {
+  const b64 = (u.split(',')[1] || '');
+  const bin = atob(b64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return arr;
+}
+
+function inspectDataUrl(u) {
+  try { return scanMetadata(bytesFromDataUrl(u), 'image/jpeg'); }
+  catch (e) { return { blocks: [], format: 'JPEG' }; }
+}
+
+/* ---------- EXIF tag name maps (inverted from piexifjs enums) ---------- */
+let tagMapsBuilt = false;
+let IMAGE_NAMES = {}, EXIF_NAMES = {}, GPS_NAMES = {};
+function ensureTagMaps() {
+  if (tagMapsBuilt || typeof piexif === 'undefined') return;
+  tagMapsBuilt = true;
+  for (const [n, id] of Object.entries(piexif.ImageIFD || {})) IMAGE_NAMES[id] = n;
+  for (const [n, id] of Object.entries(piexif.ExifIFD || {})) EXIF_NAMES[id] = n;
+  for (const [n, id] of Object.entries(piexif.GPSIFD || {})) GPS_NAMES[id] = n;
+}
+
+const EXIF_POINTER_TAGS = new Set([0x8769, 0x8825, 0xA005]); /* ExifIFD / GPSInfo / Interop pointers */
+
+function parseExifDict(exifObj) {
+  const rows = [];
+  if (!exifObj) return rows;
+  const groups = [['0th', 'Image'], ['Exif', 'Photo'], ['GPS', 'GPS']];
+  for (const [ifd, label] of groups) {
+    const dict = exifObj[ifd];
+    if (!dict) continue;
+    const names = ifd === 'Exif' ? EXIF_NAMES : ifd === 'GPS' ? GPS_NAMES : IMAGE_NAMES;
+    for (const id of Object.keys(dict)) {
+      const key = Number(id);
+      if (EXIF_POINTER_TAGS.has(key)) continue;
+      const name = names[key] || GPS_NAMES[key] || ('Tag 0x' + key.toString(16).toUpperCase());
+      rows.push({ group: label, name, value: formatExifValue(dict[id], name) });
+    }
+  }
+  return rows;
+}
+
+function rational(x) {
+  const d = x[1] || 1;
+  return String(Math.round((x[0] / d) * 1000) / 1000);
+}
+
+function sanitizeStr(s) {
+  const cleaned = String(s)
+    .replace(/[\x00-\x1F\x7F]/g, ' ')
+    .replace(/^ASCII\s{0,4}/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return cleaned || '[binary data]';
+}
+
+function formatExifValue(v, name) {
+  if (v == null) return '';
+  if (typeof v === 'number') return String(v);
+  if (typeof v === 'string') return sanitizeStr(v);
+  if (Array.isArray(v)) {
+    /* Windows XP_ tags: byte arrays that are UTF-16LE strings */
+    if (/^XP_/.test(name) && v.length > 1 && typeof v[0] === 'number') {
+      let s = '';
+      for (let i = 0; i + 1 < v.length; i += 2) {
+        const c = v[i] | (v[i + 1] << 8);
+        if (!c) break;
+        s += String.fromCharCode(c);
+      }
+      if (s) return s;
+    }
+    /* GPS DMS triples / arrays of rationals */
+    if (v.length && Array.isArray(v[0])) return v.map(x => Array.isArray(x) ? rational(x) : String(x)).join(', ');
+    /* single rational [numerator, denominator] */
+    if (v.length === 2 && typeof v[0] === 'number' && typeof v[1] === 'number') {
+      if (/ExposureTime/.test(name)) { const s = v[0] / (v[1] || 1); return (s < 1 ? '1/' + Math.round(1 / s) : String(Math.round(s * 100) / 100)) + ' s'; }
+      if (/FNumber|Aperture/.test(name)) return 'f/' + (v[0] / (v[1] || 1)).toFixed(1);
+      if (/FocalLength/.test(name)) return Math.round((v[0] / (v[1] || 1)) * 10) / 10 + ' mm';
+      return rational(v);
+    }
+    return v.map(x => Array.isArray(x) ? rational(x) : String(x)).join(', ');
+  }
+  return sanitizeStr(String(v));
+}
+
+/* GPS rational triple -> signed decimal degrees */
+function gpsDecimal(exifObj) {
+  const g = exifObj && exifObj['GPS'];
+  if (!g || typeof piexif === 'undefined') return null;
+  const latArr = g[piexif.GPSIFD.GPSLatitude], lonArr = g[piexif.GPSIFD.GPSLongitude];
+  if (!latArr || !lonArr) return null;
+  const dms = a => (Array.isArray(a) && a.length === 3 && a.every(x => Array.isArray(x)))
+    ? (a[0][0] / (a[0][1] || 1)) + (a[1][0] / (a[1][1] || 1)) / 60 + (a[2][0] / (a[2][1] || 1)) / 3600
+    : null;
+  let lat = dms(latArr), lon = dms(lonArr);
+  if (lat == null || lon == null) return null;
+  if (g[piexif.GPSIFD.GPSLatitudeRef] === 'S') lat = -lat;
+  if (g[piexif.GPSIFD.GPSLongitudeRef] === 'W') lon = -lon;
+  const altArr = g[piexif.GPSIFD.GPSAltitude];
+  const alt = Array.isArray(altArr)
+    ? (altArr.length === 2 && typeof altArr[0] === 'number' && typeof altArr[1] === 'number'
+        ? Math.round((altArr[0] / (altArr[1] || 1)) * 10) / 10 + ' m'
+        : Array.isArray(altArr[0]) ? rational(altArr[0]) + ' m' : '')
+    : null;
+  const stamp = g[piexif.GPSIFD.GPSDateStamp] || null;
+  return { lat, lon, alt, stamp };
+}
+
+/* Sensitivity classification -> summary chips */
+function classifyMetadata(f) {
+  const chips = [];
+  const rows = f.exifRows || [];
+  const blocks = (f.meta && f.meta.blocks) || [];
+  const has = re => rows.some(r => re.test(r.name));
+  if (f.gps) chips.push({ t: 'Location', c: 'danger' });
+  if (has(/DateTime|DateStamp/)) chips.push({ t: 'Timestamp', c: 'warning' });
+  if (has(/^Make$|^Model$|^LensModel|^LensMake/)) chips.push({ t: 'Device', c: 'warning' });
+  if (has(/SerialNumber|InternalSerial/)) chips.push({ t: 'Serial No.', c: 'danger' });
+  if (has(/^Software|^ProcessingSoftware/)) chips.push({ t: 'Software', c: '' });
+  if (has(/^Artist|^Copyright|^OwnerName|^XP_Author/)) chips.push({ t: 'Author', c: 'warning' });
+  if (blocks.includes('XMP')) chips.push({ t: 'XMP', c: 'warning' });
+  if (blocks.includes('IPTC / Photoshop')) chips.push({ t: 'IPTC', c: 'warning' });
+  if (blocks.includes('ICC color profile')) chips.push({ t: 'ICC', c: '' });
+  if (blocks.includes('JPEG comment')) chips.push({ t: 'Comment', c: 'warning' });
+  const other = blocks.filter(x => x !== 'EXIF' && x !== 'JFIF');
+  const total = rows.length + other.length;
+  if (chips.length === 0) chips.push({ t: total > 0 ? 'Minimal metadata' : 'No metadata', c: 'success' });
+  return { chips, total };
+}
+
+/* ---------- File intake & enrichment ---------- */
 async function handleFiles(fileList) {
-  const validTypes = ['image/jpeg','image/jpg','image/png','image/tiff','image/webp'];
-  const newFiles = Array.from(fileList).filter(f => validTypes.includes(f.type) || f.name.match(/\.(jpe?g|png|tiff|webp)$/i));
-  if (newFiles.length === 0) { showToast('Please upload valid image files (JPG, PNG, TIFF, WebP)', 'error'); return; }
-  
-  setProcessing(`Reading ${newFiles.length} files...`);
-  
+  const arr = Array.from(fileList || []);
+  const newFiles = arr.filter(f => (f.type && f.type.startsWith('image/')) || IMG_EXTS.test(f.name));
+  if (newFiles.length === 0) { showToast('Please upload image files (JPG, PNG, WebP, TIFF)', 'error'); return; }
+
+  setProcessing(`Reading ${newFiles.length} file${newFiles.length > 1 ? 's' : ''}...`);
+  const newIds = [];
+
   for (let i = 0; i < newFiles.length; i++) {
     const file = newFiles[i];
     const fileObj = {
-      id: 'file_' + Date.now() + '_' + Math.random().toString(36).slice(2,9),
-      file, name: file.name, size: formatBytes(file.size), type: file.type,
-      exif: null, processed: false, result: null, mode: state.selectedMode || 'wipe'
+      id: 'file_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9),
+      file, name: file.name, sizeBytes: file.size, size: formatBytes(file.size),
+      type: file.type || '', dataUrl: null, thumb: null, dims: null,
+      meta: null, exifRows: [], gps: null, chips: null, totalTags: null,
+      metaLoaded: false, expanded: true,
+      processed: false, result: null, resultMeta: null, outputName: null,
+      mode: state.selectedMode || 'wipe'
     };
     state.files.push(fileObj);
     state.queue.push(fileObj);
-    readExif(fileObj);
-
-    // Yield every 5 files to prevent browser frame drops
+    newIds.push(fileObj.id);
+    enrichFile(fileObj); /* async, renders when done */
     if (i % 5 === 0) await yieldToMain();
   }
 
   setProcessing(null);
   scheduleRender();
   updateQueueBadge();
-  showToast(`${newFiles.length} file${newFiles.length > 1 ? 's' : ''} added`, 'success');
-  if (state.selectedMode) setTimeout(() => navigateTo(state.selectedMode), 300);
+  showToast(`${newFiles.length} file${newFiles.length > 1 ? 's' : ''} added — full metadata report below`, 'success');
+  if (newIds.length) {
+    requestAnimationFrame(() => {
+      const el = document.getElementById(newIds[0]);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+}
+
+function readAsDataURL(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result);
+    r.onerror = () => rej(r.error || new Error('read failed'));
+    r.readAsDataURL(file);
+  });
+}
+
+async function fileBytes(file) {
+  if (file.arrayBuffer) {
+    try { return new Uint8Array(await file.arrayBuffer()); } catch (e) { /* fall through */ }
+  }
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(new Uint8Array(r.result));
+    r.onerror = () => rej(r.error || new Error('read failed'));
+    r.readAsArrayBuffer(file);
+  });
+}
+
+function probeDimensions(url) {
+  return new Promise(res => {
+    const img = new Image();
+    img.onload = () => res({ w: img.naturalWidth, h: img.naturalHeight });
+    img.onerror = () => res(null);
+    img.src = url;
+  });
+}
+
+async function enrichFile(f) {
+  try { f.thumb = URL.createObjectURL(f.file); } catch (e) {}
+  const [dataUrl, bytes] = await Promise.all([
+    readAsDataURL(f.file).catch(() => null),
+    fileBytes(f.file).catch(() => null)
+  ]);
+  if (dataUrl) f.dataUrl = dataUrl;
+  if (bytes) f.meta = scanMetadata(bytes, f.type);
+  ensureTagMaps();
+  if (f.dataUrl && typeof piexif !== 'undefined') {
+    try {
+      const dict = piexif.load(f.dataUrl);
+      f.exifRows = parseExifDict(dict);
+      f.gps = gpsDecimal(dict);
+    } catch (e) { /* no EXIF or unsupported container */ }
+  }
+  const cls = classifyMetadata(f);
+  f.chips = cls.chips;
+  f.totalTags = cls.total;
+  if (f.thumb) { const d = await probeDimensions(f.thumb); if (d) f.dims = d; }
+  f.metaLoaded = true;
+  scheduleRender();
 }
 
 function formatBytes(bytes) {
@@ -916,53 +1300,97 @@ function formatBytes(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
-function readExif(fileObj) {
-  const reader = new FileReader();
-  reader.onload = e => {
-    fileObj.dataUrl = e.target.result;
-    try {
-      if (typeof piexif !== 'undefined') {
-        fileObj.exif = piexif.load(fileObj.dataUrl);
-        fileObj.exifSummary = summarizeExif(fileObj.exif);
-      } else {
-        fileObj.exif = {}; fileObj.exifSummary = { empty: true };
-      }
-    } catch (err) {
-      fileObj.exif = {}; fileObj.exifSummary = { empty: true, error: err.message };
-    }
-    scheduleRender();
-  };
-  reader.readAsDataURL(fileObj.file);
+/* ---------- Rendering: file cards with metadata panel ---------- */
+function toggleMeta(id) {
+  const f = state.files.find(x => x.id === id);
+  if (f) { f.expanded = !f.expanded; scheduleRender(); }
 }
 
-function summarizeExif(exifObj) {
-  const summary = {};
-  const ifd0 = exifObj['0th'] || {};
-  const gps = exifObj['GPS'] || {};
-  if (ifd0[piexif.ImageIFD.Make]) summary.make = ifd0[piexif.ImageIFD.Make];
-  if (ifd0[piexif.ImageIFD.Model]) summary.model = ifd0[piexif.ImageIFD.Model];
-  if (ifd0[piexif.ImageIFD.DateTime]) summary.datetime = ifd0[piexif.ImageIFD.DateTime];
-  if (gps[piexif.GPSIFD.GPSLatitude]) summary.hasGPS = true;
-  summary.empty = Object.keys(summary).length === 0;
-  return summary;
+function fileCard(f, opts = {}) {
+  const chips = (f.chips || []).map(c => `<span class="meta-chip ${c.c || ''}">${escapeHtml(c.t)}</span>`).join('');
+  const toggleLabel = f.metaLoaded
+    ? `${f.expanded ? 'Hide metadata' : 'View metadata'}${f.totalTags != null ? ' &middot; ' + f.totalTags + ' tags' : ''}`
+    : 'Reading metadata...';
+  return `
+  <div class="card file-card" id="${f.id}">
+    <div class="file-row">
+      ${f.thumb
+        ? `<img class="file-thumb" src="${f.thumb}" alt="Preview">`
+        : `<div class="file-thumb ph"><span class="material-symbols-rounded">image</span></div>`}
+      <div class="file-info">
+        <div class="file-name">${escapeHtml(f.name)}</div>
+        <div class="file-meta">${escapeHtml(f.size)} &bull; ${escapeHtml(f.type || 'unknown')}${f.dims ? ' &bull; ' + f.dims.w + '&times;' + f.dims.h : ''}${f.meta && f.meta.format ? ' &bull; ' + escapeHtml(f.meta.format) : ''}</div>
+        ${f.metaLoaded && chips ? `<div class="file-chips">${chips}</div>` : ''}
+      </div>
+      ${opts.showRemove !== false ? `<button class="icon-btn danger" onclick="removeFile('${f.id}')" aria-label="Remove file"><span class="material-symbols-rounded">delete</span></button>` : ''}
+    </div>
+    <button class="btn btn-ghost btn-block meta-toggle" onclick="toggleMeta('${f.id}')" aria-expanded="${!!f.expanded}">
+      <span class="material-symbols-rounded">${f.expanded ? 'expand_less' : 'expand_more'}</span>
+      <span>${toggleLabel}</span>
+    </button>
+    ${f.expanded ? `<div class="meta-panel">${metaPanel(f)}</div>` : ''}
+    ${opts.actions || ''}
+  </div>`;
+}
+
+function metaTable(title, pairs, extra = '') {
+  if (!pairs || !pairs.length) return '';
+  return `<div class="meta-section">
+    <div class="meta-section-title">${escapeHtml(title)}</div>
+    <div class="meta-rows">${pairs.map(([k, v]) =>
+      `<div class="meta-row"><span class="meta-key">${escapeHtml(String(k))}</span><span class="meta-val">${escapeHtml(String(v))}</span></div>`
+    ).join('')}</div>
+    ${extra}
+  </div>`;
+}
+
+function metaPanel(f) {
+  const rows = f.exifRows || [];
+  const dims = f.dims ? f.dims.w + ' × ' + f.dims.h + ' px' : '—';
+  let html = '';
+
+  /* File facts */
+  html += metaTable('File', [
+    ['File name', f.name],
+    ['Size', f.size],
+    ['Type', f.type || '—'],
+    ['Dimensions', dims],
+    ['Last modified', f.file && f.file.lastModified ? new Date(f.file.lastModified).toLocaleString() : '—']
+  ]);
+
+  /* GPS */
+  if (f.gps) {
+    const g = f.gps;
+    html += metaTable('Location (GPS)', [
+      ['Latitude', g.lat.toFixed(6)],
+      ['Longitude', g.lon.toFixed(6)],
+      ...(g.alt ? [['Altitude', g.alt]] : []),
+      ...(g.stamp ? [['GPS date', g.stamp]] : [])
+    ], `<a class="meta-osm" href="https://www.openstreetmap.org/?mlat=${g.lat.toFixed(6)}&mlon=${g.lon.toFixed(6)}#map=16/${g.lat.toFixed(6)}/${g.lon.toFixed(6)}" target="_blank" rel="noopener noreferrer"><span class="material-symbols-rounded">map</span>Open in OpenStreetMap</a>`);
+  }
+
+  /* EXIF groups */
+  const groupTitles = { Image: 'Device &amp; Capture (EXIF)', Photo: 'Photo (EXIF)', GPS: 'GPS (EXIF)' };
+  for (const g of ['Image', 'Photo', 'GPS']) {
+    const gr = rows.filter(r => r.group === g);
+    if (gr.length) html += metaTable(groupTitles[g], gr.map(r => [r.name, r.value]));
+  }
+
+  /* Container blocks (XMP, ICC, IPTC, comments...) */
+  const other = ((f.meta && f.meta.blocks) || []).filter(x => x !== 'EXIF');
+  if (other.length) html += metaTable('Other metadata blocks', other.map(x => [x, 'present']));
+
+  if (!rows.length && !other.length && !f.gps) {
+    html += `<div class="meta-empty">No EXIF, XMP, IPTC or comment metadata found in this file.</div>`;
+  }
+  return html;
 }
 
 function renderUploadedFiles() {
   const container = document.getElementById('uploadedFiles');
   if (!container) return;
   if (state.files.length === 0) { container.innerHTML = ''; return; }
-  container.innerHTML = state.files.map((f) => `
-    <div class="file-item" id="${f.id}">
-      <div class="file-icon"><span class="material-symbols-rounded">image</span></div>
-      <div class="file-info">
-        <div class="file-name">${escapeHtml(f.name)}</div>
-        <div class="file-meta">${f.size} &bull; ${f.type || 'Unknown'}</div>
-      </div>
-      <button class="btn btn-sm btn-ghost" onclick="removeFile('${f.id}')">
-        <span class="material-symbols-rounded">delete</span>
-      </button>
-    </div>
-  `).join('');
+  container.innerHTML = state.files.map(f => fileCard(f)).join('');
 }
 
 function removeFile(fileId) {
@@ -972,6 +1400,7 @@ function removeFile(fileId) {
   updateQueueBadge();
 }
 
+/* ---------- View renderers ---------- */
 function renderWipeView() {
   const container = document.getElementById('wipeContent');
   if (!container) return;
@@ -979,28 +1408,28 @@ function renderWipeView() {
     container.innerHTML = emptyState('Upload files first to begin sanitization', 'Go to Upload', 'home');
     return;
   }
-  container.innerHTML = state.files.map((f) => {
-    const hasGPS = f.exifSummary?.hasGPS;
-    const hasMeta = f.exif && !f.exifSummary?.empty;
-    return `
-    <div class="card" style="margin-bottom: 16px;">
-      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 16px;">
-        <div style="display:flex; align-items:center; gap: 12px;">
-          <div class="file-icon" style="width:40px;height:40px;border-radius:50%;background:var(--md-primary-container);color:var(--md-on-primary-container);display:flex;align-items:center;justify-content:center;"><span class="material-symbols-rounded">image</span></div>
-          <div><div style="font-weight:700;font-size:15px;">${escapeHtml(f.name)}</div><div style="font-size:12px;color:var(--md-on-surface-variant);">${f.size}</div></div>
-        </div>
-        <div style="display:flex; gap: 6px;">
-          ${hasGPS ? '<span class="meta-chip warning">GPS</span>' : ''}
-          ${hasMeta ? '<span class="meta-chip danger">EXIF</span>' : '<span class="meta-chip success">Clean</span>'}
-        </div>
-      </div>
-      <button class="btn btn-danger btn-block" onclick="wipeFile('${f.id}')" ${f.processed ? 'disabled' : ''}>
-        <span class="material-symbols-rounded">cleaning_services</span>
-        ${f.processed ? 'Purged' : 'Purge All Metadata'}
-      </button>
-      ${f.processed && f.result ? `<a href="${f.result}" download="${f.outputName || 'wiped_' + f.name}" class="btn btn-secondary btn-block" style="margin-top:8px;">Download Purged File</a>` : ''}
-    </div>`;
-  }).join('');
+  container.innerHTML = state.files.map(f => fileCard(f, { actions: wipeActions(f) })).join('');
+}
+
+function wipeActions(f) {
+  let after = '';
+  if (f.processed && f.resultMeta) {
+    const blocks = f.resultMeta.blocks || [];
+    const left = blocks.filter(b => b !== 'JFIF');
+    if (left.length) {
+      after = `<div class="meta-chips" style="margin-top:10px">${left.map(b => `<span class="meta-chip warning">${escapeHtml(b)} remains</span>`).join('')}</div>`;
+    } else {
+      after = `<div class="meta-chips" style="margin-top:10px"><span class="meta-chip success"><span class="material-symbols-rounded">verified</span>Verified clean &middot; no metadata left</span></div>`;
+    }
+  }
+  return `<div style="margin-top:10px;">
+    <button class="btn btn-danger btn-block" onclick="wipeFile('${f.id}')" ${f.processed ? 'disabled' : ''}>
+      <span class="material-symbols-rounded">cleaning_services</span>
+      ${f.processed ? 'Purged' : 'Purge All Metadata'}
+    </button>
+    ${f.processed && f.result ? `<a href="${f.result}" download="${escapeHtml(f.outputName || 'wiped_' + f.name)}" class="btn btn-secondary btn-block" style="margin-top:8px;"><span class="material-symbols-rounded">download</span>Download Purged File</a>` : ''}
+    ${after}
+  </div>`;
 }
 
 function renderGhostView() {
@@ -1010,20 +1439,17 @@ function renderGhostView() {
     container.innerHTML = emptyState('Upload files first to ghost their metadata', 'Go to Upload', 'home');
     return;
   }
-  container.innerHTML = state.files.map((f) => `
-    <div class="card" style="margin-bottom: 16px;">
-      <div style="display:flex; align-items:center; gap: 12px; margin-bottom: 16px;">
-        <div class="file-icon" style="width:40px;height:40px;border-radius:50%;background:var(--md-primary-container);color:var(--md-on-primary-container);display:flex;align-items:center;justify-content:center;"><span class="material-symbols-rounded">image</span></div>
-        <div><div style="font-weight:700;font-size:15px;">${escapeHtml(f.name)}</div><div style="font-size:12px;color:var(--md-on-surface-variant);">${f.size}</div></div>
-      </div>
-      <p style="font-size:13px;color:var(--md-on-surface-variant);margin-bottom:16px;">Ghost mode replaces metadata with synthetic, randomized camera fingerprints and synthetic GPS data.</p>
-      <button class="btn btn-primary btn-block" onclick="ghostFile('${f.id}')" ${f.processed ? 'disabled' : ''}>
-        <span class="material-symbols-rounded">visibility_off</span>
-        ${f.processed ? 'Ghosted' : 'Apply Ghost Fingerprint'}
-      </button>
-      ${f.processed && f.result ? `<a href="${f.result}" download="${f.outputName || 'ghost_' + f.name}" class="btn btn-secondary btn-block" style="margin-top:8px;">Download Ghosted File</a>` : ''}
-    </div>
-  `).join('');
+  container.innerHTML = state.files.map(f => fileCard(f, { actions: ghostActions(f) })).join('');
+}
+
+function ghostActions(f) {
+  return `<div style="margin-top:10px;">
+    <button class="btn btn-primary btn-block" onclick="ghostFile('${f.id}')" ${f.processed ? 'disabled' : ''}>
+      <span class="material-symbols-rounded">visibility_off</span>
+      ${f.processed ? 'Ghosted' : 'Apply Ghost Fingerprint'}
+    </button>
+    ${f.processed && f.result ? `<a href="${f.result}" download="${escapeHtml(f.outputName || 'ghost_' + f.name)}" class="btn btn-secondary btn-block" style="margin-top:8px;"><span class="material-symbols-rounded">download</span>Download Ghosted File</a>` : ''}
+  </div>`;
 }
 
 function renderArchitectView() {
@@ -1044,16 +1470,17 @@ function renderArchitectView() {
         <div class="input-group"><label class="input-label">Copyright</label><input type="text" class="input-field" placeholder="Copyright 2026" value="${escapeHtml(s.copyright)}" onchange="updateArchitectSetting('copyright',this.value)"></div>
       </div>
     </div>
-    ${state.files.map((f) => `
-    <div class="card" style="margin-bottom:16px;">
-      <div style="font-weight:700;margin-bottom:12px;">${escapeHtml(f.name)}</div>
-      <button class="btn btn-primary btn-block" onclick="architectFile('${f.id}')" ${f.processed ? 'disabled' : ''}>
-        <span class="material-symbols-rounded">tune</span>
-        ${f.processed ? 'Architected' : 'Inject Custom Metadata'}
-      </button>
-      ${f.processed && f.result ? `<a href="${f.result}" download="${f.outputName || 'architect_' + f.name}" class="btn btn-secondary btn-block" style="margin-top:8px;">Download File</a>` : ''}
-    </div>
-    `).join('')}`;
+    ${state.files.map(f => fileCard(f, { actions: architectActions(f) })).join('')}`;
+}
+
+function architectActions(f) {
+  return `<div style="margin-top:10px;">
+    <button class="btn btn-primary btn-block" onclick="architectFile('${f.id}')" ${f.processed ? 'disabled' : ''}>
+      <span class="material-symbols-rounded">tune</span>
+      ${f.processed ? 'Architected' : 'Inject Custom Metadata'}
+    </button>
+    ${f.processed && f.result ? `<a href="${f.result}" download="${escapeHtml(f.outputName || 'architect_' + f.name)}" class="btn btn-secondary btn-block" style="margin-top:8px;"><span class="material-symbols-rounded">download</span>Download File</a>` : ''}
+  </div>`;
 }
 
 function updateArchitectSetting(key, value) {
@@ -1068,6 +1495,41 @@ function emptyState(text, btnText, navTarget) {
   </div>`;
 }
 
+function renderQueueView() {
+  const list = document.getElementById('queueList');
+  const btn = document.getElementById('processQueueBtn');
+  const pending = state.queue.filter(f => !f.processed);
+  const done = state.queue.filter(f => f.processed);
+
+  document.getElementById('queueTotal').textContent = state.queue.length + ' files';
+  document.getElementById('queuePending').textContent = pending.length + ' pending';
+  document.getElementById('queueDone').textContent = done.length + ' done';
+  if (btn) btn.disabled = pending.length === 0 || state.processing;
+
+  if (state.queue.length === 0) {
+    list.innerHTML = emptyState('Queue is empty. Upload files to get started.', 'Go to Upload', 'home');
+    return;
+  }
+
+  list.innerHTML = state.queue.map(f => {
+    const chips = (f.chips || []).slice(0, 3).map(c => `<span class="meta-chip ${c.c || ''}">${escapeHtml(c.t)}</span>`).join('');
+    return `
+    <div class="card file-card" style="padding:12px 14px;">
+      <div class="file-row" style="margin-bottom:0;">
+        ${f.thumb
+          ? `<img class="file-thumb" src="${f.thumb}" alt="">`
+          : `<div class="file-thumb ph"><span class="material-symbols-rounded">image</span></div>`}
+        <div class="file-info">
+          <div class="file-name">${escapeHtml(f.name)}</div>
+          <div class="file-meta">Mode: ${escapeHtml(f.mode)} &bull; ${f.processed ? 'Done' : 'Pending'}</div>
+          ${chips ? `<div class="file-chips">${chips}</div>` : ''}
+        </div>
+        <div>${f.processed ? '<span class="meta-chip success">Done</span>' : '<span class="meta-chip">Pending</span>'}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 function setProcessing(text) {
   const overlay = document.getElementById('processingOverlay');
   const label = document.getElementById('processingText');
@@ -1076,35 +1538,69 @@ function setProcessing(text) {
   state.processing = !!text;
 }
 
-function ensureJpegDataUrl(fileObj) {
-  return new Promise((resolve, reject) => {
-    if (fileObj.file.type === 'image/jpeg' || fileObj.file.type === 'image/jpg') { resolve(fileObj.dataUrl); return; }
+/* ---------- Image pipeline ---------- */
+async function decodeBitmap(fileObj) {
+  if ('createImageBitmap' in window) {
+    try { return await createImageBitmap(fileObj.file, { imageOrientation: 'from-image' }); }
+    catch (e) {
+      try { return await createImageBitmap(fileObj.file); } catch (e2) { /* fall through */ }
+    }
+  }
+  return new Promise((res, rej) => {
     const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0);
-      resolve(canvas.toDataURL('image/jpeg', 0.95));
-    };
-    img.onerror = () => reject(new Error('Failed to decode image'));
+    img.onload = () => res(img);
+    img.onerror = () => rej(new Error('Failed to decode image'));
     img.src = fileObj.dataUrl;
   });
 }
 
+async function reencodeJpeg(fileObj, quality = 0.92) {
+  const bmp = await decodeBitmap(fileObj);
+  const canvas = document.createElement('canvas');
+  canvas.width = bmp.width || bmp.naturalWidth;
+  canvas.height = bmp.height || bmp.naturalHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(bmp, 0, 0);
+  if (bmp.close) bmp.close();
+  return canvas.toDataURL('image/jpeg', quality);
+}
+
+async function ensureJpegDataUrl(fileObj) {
+  if (fileObj.file.type === 'image/jpeg' || fileObj.file.type === 'image/jpg') return fileObj.dataUrl;
+  return reencodeJpeg(fileObj, 0.95);
+}
+
+/* ---------- Operations ---------- */
 async function wipeFile(fileId, shouldRender = true) {
   const fileObj = state.files.find(f => f.id === fileId);
   if (!fileObj || !fileObj.dataUrl) return;
   if (shouldRender) setProcessing('Purging metadata...');
   try {
-    const jpegUrl = await ensureJpegDataUrl(fileObj);
-    const cleaned = piexif.remove(jpegUrl);
-    fileObj.result = cleaned; fileObj.processed = true;
-    fileObj.outputName = 'wiped_' + fileObj.name.replace(/\.[^.]+$/, '.jpg');
+    /* piexif.remove only strips the EXIF segment — if XMP/ICC/IPTC/comments
+       exist we must re-encode through canvas to destroy them too. */
+    const stubborn = ((fileObj.meta && fileObj.meta.blocks) || []).some(x => x !== 'EXIF' && x !== 'JFIF');
+    const isJpeg = fileObj.file.type === 'image/jpeg' || fileObj.file.type === 'image/jpg';
+    let out;
+    if (stubborn || !isJpeg) {
+      out = await reencodeJpeg(fileObj, 0.92);
+      try { out = piexif.remove(out); } catch (e) { /* already clean */ }
+    } else {
+      try { out = piexif.remove(fileObj.dataUrl); }
+      catch (e) { out = await reencodeJpeg(fileObj, 0.92); }
+    }
+    fileObj.result = out;
+    fileObj.processed = true;
+    fileObj.outputName = 'wiped_' + fileObj.name.replace(/\.[^.]+$/, '') + '.jpg';
+    /* Post-purge verification scan */
+    const scan = inspectDataUrl(out);
+    try { piexif.load(out); if (!scan.blocks.includes('EXIF')) scan.blocks.push('EXIF'); } catch (e) { /* no EXIF left */ }
+    fileObj.resultMeta = scan;
     if (shouldRender) {
       setProcessing(null);
-      showToast('Metadata purged successfully', 'success');
+      const remaining = (scan.blocks || []).filter(b => b !== 'JFIF');
+      showToast(remaining.length ? 'Purged, but some blocks remain — see warnings' : 'Metadata purged — verified clean', remaining.length ? 'error' : 'success');
       scheduleRender();
     }
   } catch (err) {
@@ -1120,15 +1616,15 @@ async function ghostFile(fileId, shouldRender = true) {
   try {
     const jpegUrl = await ensureJpegDataUrl(fileObj);
     const camera = cameraDatabase[Math.floor(Math.random() * cameraDatabase.length)];
-    const dateStr = formatExifDate(new Date());
-    const exifObj = { "0th":{}, "Exif":{}, "GPS":{}, "1st":{}, "thumbnail":null };
+    const dateStr = formatExifDate(new Date(Date.now() - Math.floor(Math.random() * 180) * 86400000));
+    const exifObj = { "0th": {}, "Exif": {}, "GPS": {}, "1st": {}, "thumbnail": null };
     exifObj['0th'][piexif.ImageIFD.Make] = camera.make;
     exifObj['0th'][piexif.ImageIFD.Model] = camera.model;
     exifObj['0th'][piexif.ImageIFD.DateTime] = dateStr;
     const exifBytes = piexif.dump(exifObj);
     fileObj.result = piexif.insert(exifBytes, jpegUrl);
     fileObj.processed = true;
-    fileObj.outputName = 'ghost_' + fileObj.name.replace(/\.[^.]+$/, '.jpg');
+    fileObj.outputName = 'ghost_' + fileObj.name.replace(/\.[^.]+$/, '') + '.jpg';
     if (shouldRender) {
       setProcessing(null);
       showToast(`Ghosted as ${camera.make} ${camera.model}`, 'success');
@@ -1147,7 +1643,7 @@ async function architectFile(fileId, shouldRender = true) {
   if (shouldRender) setProcessing('Injecting metadata...');
   try {
     const jpegUrl = await ensureJpegDataUrl(fileObj);
-    const exifObj = { "0th":{}, "Exif":{}, "GPS":{}, "1st":{}, "thumbnail":null };
+    const exifObj = { "0th": {}, "Exif": {}, "GPS": {}, "1st": {}, "thumbnail": null };
     if (s.make) exifObj['0th'][piexif.ImageIFD.Make] = s.make;
     if (s.model) exifObj['0th'][piexif.ImageIFD.Model] = s.model;
     if (s.software) exifObj['0th'][piexif.ImageIFD.Software] = s.software;
@@ -1155,7 +1651,7 @@ async function architectFile(fileId, shouldRender = true) {
     const exifBytes = piexif.dump(exifObj);
     fileObj.result = piexif.insert(exifBytes, jpegUrl);
     fileObj.processed = true;
-    fileObj.outputName = 'architect_' + fileObj.name.replace(/\.[^.]+$/, '.jpg');
+    fileObj.outputName = 'architect_' + fileObj.name.replace(/\.[^.]+$/, '') + '.jpg';
     if (shouldRender) {
       setProcessing(null);
       showToast('Custom metadata injected', 'success');
@@ -1170,34 +1666,6 @@ async function architectFile(fileId, shouldRender = true) {
 function formatExifDate(date) {
   const pad = n => String(n).padStart(2, '0');
   return `${date.getFullYear()}:${pad(date.getMonth()+1)}:${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
-}
-
-function renderQueueView() {
-  const list = document.getElementById('queueList');
-  const btn = document.getElementById('processQueueBtn');
-  const pending = state.queue.filter(f => !f.processed);
-  const done = state.queue.filter(f => f.processed);
-  
-  document.getElementById('queueTotal').textContent = state.queue.length + ' files';
-  document.getElementById('queuePending').textContent = pending.length + ' pending';
-  document.getElementById('queueDone').textContent = done.length + ' done';
-  if (btn) btn.disabled = pending.length === 0 || state.processing;
-  
-  if (state.queue.length === 0) {
-    list.innerHTML = emptyState('Queue is empty. Upload files to get started.', 'Go to Upload', 'home');
-    return;
-  }
-  
-  list.innerHTML = state.queue.map(f => `
-    <div class="file-item">
-      <div class="file-icon"><span class="material-symbols-rounded">image</span></div>
-      <div class="file-info">
-        <div class="file-name">${escapeHtml(f.name)}</div>
-        <div class="file-meta">Mode: ${f.mode} &bull; ${f.processed ? 'Done' : 'Pending'}</div>
-      </div>
-      <div>${f.processed ? '<span class="meta-chip success">Done</span>' : '<span class="meta-chip">Pending</span>'}</div>
-    </div>
-  `).join('');
 }
 
 async function processQueue() {
@@ -1216,7 +1684,7 @@ async function processQueue() {
       else if (fileObj.mode === 'architect') await architectFile(fileObj.id, false);
     } catch (err) { console.error(err); }
 
-    // Yield control back to browser thread on every iteration to prevent loop timeout
+    /* Yield control back to browser thread on every iteration to prevent loop timeout */
     await yieldToMain();
   }
 
