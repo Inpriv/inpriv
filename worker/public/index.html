@@ -637,19 +637,26 @@
     }
 
     .featured-btn {
-      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      display: inline-flex; align-items: center; justify-content: center; gap: 7px;
       width: 100%;
-      height: 42px; border-radius: 12px;
-      background: var(--md-primary); color: var(--md-on-primary);
-      font-size: 13.5px; font-weight: 700;
-      transition: all 0.25s var(--md-easing-standard);
-      box-shadow: 0 4px 14px -3px color-mix(in srgb, var(--md-primary) 40%, transparent);
+      height: 44px; border-radius: 9999px;
+      background: linear-gradient(160deg, color-mix(in srgb, var(--md-primary) 96%, white) 0%, var(--md-primary) 55%, color-mix(in srgb, var(--md-primary) 94%, black) 100%);
+      color: var(--md-on-primary);
+      font-size: 14px; font-weight: 700; letter-spacing: 0.01em;
+      transition: transform 0.25s var(--md-easing-spring), box-shadow 0.25s var(--md-easing-standard);
+      box-shadow:
+        0 4px 14px -3px color-mix(in srgb, var(--md-primary) 40%, transparent),
+        inset 0 1px 0 color-mix(in srgb, white 25%, transparent);
     }
 
     .featured-card:hover .featured-btn {
-      background: color-mix(in srgb, var(--md-primary) 90%, white);
-      box-shadow: 0 6px 18px -3px color-mix(in srgb, var(--md-primary) 55%, transparent);
+      transform: translateY(-1px);
+      box-shadow:
+        0 8px 22px -4px color-mix(in srgb, var(--md-primary) 55%, transparent),
+        inset 0 1px 0 color-mix(in srgb, white 28%, transparent);
     }
+
+    .featured-btn:active { transform: scale(0.97); }
 
     .featured-btn .icon { font-size: 18px; transition: transform 0.2s var(--md-easing-spring); }
     .featured-card:hover .featured-btn .icon { transform: translateX(3px); }
@@ -929,7 +936,7 @@
       .featured-title { font-size: 20px; }
       .featured-desc { font-size: 13.5px; }
       .featured-cta-row { padding-top: 0; }
-      .featured-btn { width: auto; padding: 0 18px; }
+      .featured-btn { width: auto; padding: 0 26px; height: 46px; font-size: 14.5px; }
 
       .controls-bar {
         flex-direction: row; align-items: center; justify-content: space-between;
