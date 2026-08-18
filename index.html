@@ -637,26 +637,38 @@
     }
 
     .featured-btn {
-      display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
       width: 100%;
       height: 44px; border-radius: 9999px;
-      background: linear-gradient(160deg, color-mix(in srgb, var(--md-primary) 96%, white) 0%, var(--md-primary) 55%, color-mix(in srgb, var(--md-primary) 94%, black) 100%);
+      background: linear-gradient(180deg,
+        color-mix(in srgb, var(--md-primary) 86%, white) 0%,
+        var(--md-primary) 48%,
+        color-mix(in srgb, var(--md-primary) 84%, black) 100%);
       color: var(--md-on-primary);
-      font-size: 14px; font-weight: 700; letter-spacing: 0.01em;
-      transition: transform 0.25s var(--md-easing-spring), box-shadow 0.25s var(--md-easing-standard);
+      font-size: 14px; font-weight: 800; letter-spacing: 0.01em;
+      border: 1px solid color-mix(in srgb, var(--md-primary) 62%, black);
       box-shadow:
-        0 4px 14px -3px color-mix(in srgb, var(--md-primary) 40%, transparent),
-        inset 0 1px 0 color-mix(in srgb, white 25%, transparent);
+        0 6px 18px -6px color-mix(in srgb, var(--md-primary) 60%, transparent),
+        0 2px 5px color-mix(in srgb, black 30%, transparent),
+        inset 0 1px 0 color-mix(in srgb, white 45%, transparent);
+      transition: transform 0.25s var(--md-easing-spring), box-shadow 0.25s var(--md-easing-standard), filter 0.25s var(--md-easing-standard);
     }
 
     .featured-card:hover .featured-btn {
-      transform: translateY(-1px);
+      transform: translateY(-2px);
+      filter: saturate(1.08) brightness(1.04);
       box-shadow:
-        0 8px 22px -4px color-mix(in srgb, var(--md-primary) 55%, transparent),
-        inset 0 1px 0 color-mix(in srgb, white 28%, transparent);
+        0 10px 26px -8px color-mix(in srgb, var(--md-primary) 70%, transparent),
+        0 4px 8px color-mix(in srgb, black 30%, transparent),
+        inset 0 1px 0 color-mix(in srgb, white 50%, transparent);
     }
 
-    .featured-btn:active { transform: scale(0.97); }
+    .featured-btn:active { transform: translateY(0) scale(0.97); }
+
+    .featured-btn:focus-visible {
+      outline: 2px solid var(--md-primary);
+      outline-offset: 3px;
+    }
 
     .featured-btn .icon { font-size: 18px; transition: transform 0.2s var(--md-easing-spring); }
     .featured-card:hover .featured-btn .icon { transform: translateX(3px); }
