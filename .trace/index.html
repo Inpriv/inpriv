@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<!--
+  Inpriv Trace — IP, DNS & WebRTC Leak Test
+  Copyright (c) 2026 Aurex Labs — MIT License
+
+  One scan, three checks: HTTP/IP egress intel, DNS-over-HTTPS egress comparison,
+  and WebRTC ICE candidate inspection. Zero-knowledge: nothing is uploaded —
+  lookups go directly from your browser to public APIs (ipwho.is / ipapi.co / DoH).
+-->
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com fonts.gstatic.com; script-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.googleapis.com fonts.gstatic.com; img-src 'self' data: blob: https://hush.best; media-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'; connect-src 'self' https://ipwho.is https://ipapi.co https://cloudflare-dns.com https://dns.google; worker-src 'none'; manifest-src 'self'">
+  <title>Inpriv Trace — IP, DNS &amp; WebRTC Leak Test</title>
+  <meta name="description" content="One scan, three privacy checks: see your public IP and ISP, test DNS leaks over DoH, and detect WebRTC IP leaks. Runs fully in your browser." />
+  <link rel="icon" type="image/png" href="https://hush.best/icon.png" />
+  <link rel="apple-touch-icon" href="https://hush.best/icon.png" />
+  <link rel="shortcut icon" href="https://hush.best/icon.png" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:ital,opsz,wght@0,8..144,100..1000;1,8..144,100..1000&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap">
+
+  <style>
+    /* ===== 1. DESIGN TOKENS (Aurex Labs M3 Earthy Forest) ===== */
+    :root {
+      --md-easing-standard: cubic-bezier(0.2, 0.0, 0.0, 1.0);
+      --md-easing-emphasized: cubic-bezier(0.3, 0.0, 0.0, 1.0);
+      --md-easing-spring: cubic-bezier(0.2, 1.4, 0.0, 1.0);
+      --md-easing-spring-soft: cubic-bezier(0.34, 1.3, 0.64, 1.0);
+      --font-primary: 'Roboto Flex', system-ui, -apple-system, sans-serif;
+    }
+    [data-theme="light"] {
+      --md-primary: #466E47; --md-on-primary: #FFFFFF;
+      --md-primary-container: #C7EFA0; --md-on-primary-container: #0C2000;
+      --md-secondary: #55624C; --md-on-secondary: #FFFFFF;
+      --md-secondary-container: #D8E7CB; --md-on-secondary-container: #131F0C;
+      --md-tertiary: #9C4231; --md-on-tertiary: #FFFFFF;
+      --md-tertiary-container: #FFDAD3; --md-on-tertiary-container: #3D0A03;
+      --md-error: #BA1A1A;
+      --md-surface: #FAF9F0; --md-on-surface: #1A1C17; --md-on-surface-variant: #43483D;
+      --md-surface-dim: #DBDAD0;
+      --md-surface-container-lowest: #FFFFFF; --md-surface-container-low: #F4F3E7;
+      --md-surface-container: #EEEDDE; --md-surface-container-high: #E9E7D9; --md-surface-container-highest: #E3E2D3;
+      --md-outline: #74796C; --md-outline-variant: #C3C8B6;
+      --md-inverse-surface: #2F312C; --md-inverse-on-surface: #F0EFE7; --md-inverse-primary: #ABD37A;
+      --md-shadow-color: rgba(20, 25, 15, 0.15); --md-shadow-color-strong: rgba(20, 25, 15, 0.28);
+    }
+    [data-theme="dark"] {
+      --md-primary: #ABD37A; --md-on-primary: #173800;
+      --md-primary-container: #2E4F2F; --md-on-primary-container: #C7EFA0;
+      --md-secondary: #BCCBAF; --md-on-secondary: #27341F;
+      --md-secondary-container: #3D4B34; --md-on-secondary-container: #D8E7CB;
+      --md-tertiary: #FFB4A5; --md-on-tertiary: #5E1709;
+      --md-tertiary-container: #7E2D1E; --md-on-tertiary-container: #FFDAD3;
+      --md-error: #FFB4AB;
+      --md-surface: #13140E; --md-on-surface: #E3E2D3; --md-on-surface-variant: #C3C8B6;
+      --md-surface-dim: #13140E;
+      --md-surface-container-lowest: #0D0F09; --md-surface-container-low: #1A1C17;
+      --md-surface-container: #1F211B; --md-surface-container-high: #292B25; --md-surface-container-highest: #34362F;
+      --md-outline: #8D9283; --md-outline-variant: #43483D;
+      --md-inverse-surface: #E3E2D3; --md-inverse-on-surface: #2F312C; --md-inverse-primary: #466E47;
+      --md-shadow-color: rgba(0, 0, 0, 0.4); --md-shadow-color-strong: rgba(0, 0, 0, 0.65);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-primary); background-color: var(--md-surface); color: var(--md-on-surface);
+      min-height: 100vh; padding: 24px 16px 140px 16px; position: relative; overflow-x: hidden;
+      transition: background-color 0.5s var(--md-easing-standard), color 0.5s var(--md-easing-standard);
+      font-optical-sizing: auto; -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%;
+    }
+    @media (min-width: 600px) { body { padding: 32px 24px 160px 24px; } }
+
+    /* Ambient background: gradients + dot grid + blur blob */
+    body::before {
+      content: ""; position: fixed; inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 85% 0%, color-mix(in srgb, var(--md-primary-container) 55%, transparent) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 0% 100%, color-mix(in srgb, var(--md-tertiary-container) 45%, transparent) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+    }
+    .bg-grid {
+      position: fixed; inset: 0;
+      background-image: radial-gradient(circle at 1px 1px, var(--md-outline-variant) 1px, transparent 0);
+      background-size: 28px 28px; opacity: 0.18;
+      mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+      -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+      pointer-events: none; z-index: 0;
+    }
+    .bg-blob {
+      position: fixed; top: -100px; right: -100px; width: 420px; height: 420px; border-radius: 50%;
+      background: radial-gradient(circle, color-mix(in srgb, var(--md-tertiary) 22%, transparent), transparent 70%);
+      filter: blur(60px); animation: drift 22s ease-in-out infinite; pointer-events: none; z-index: 0;
+    }
+    .app-wrapper { max-width: 1080px; margin: 0 auto; position: relative; z-index: 1; }
+
+    .material-symbols-rounded {
+      font-family: 'Material Symbols Rounded'; font-weight: normal; font-style: normal;
+      font-size: 24px; line-height: 1; display: inline-block; white-space: nowrap; word-wrap: normal; direction: ltr;
+      -webkit-font-smoothing: antialiased; font-variation-settings: 'wght' 500, 'GRAD' 0, 'opsz' 24;
+      -webkit-font-feature-settings: 'liga';
+    }
+    @keyframes barIn { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--md-primary) 35%, transparent); } 50% { box-shadow: 0 0 0 18px color-mix(in srgb, var(--md-primary) 0%, transparent); } }
+    @keyframes drift { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-60px, 40px) scale(1.1); } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+    /* ===== 2. APP BAR ===== */
+    .app-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      height: 54px; padding: 6px 8px 6px 18px; border-radius: 9999px;
+      background: color-mix(in srgb, var(--md-surface-container) 80%, transparent);
+      backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 1px solid color-mix(in srgb, var(--md-outline-variant) 50%, transparent);
+      box-shadow: 0 4px 20px -4px var(--md-shadow-color);
+      animation: barIn 0.7s var(--md-easing-spring);
+      margin-bottom: 32px;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .brand-icon { width: 36px; height: 36px; border-radius: 50%; background: var(--md-primary-container); color: var(--md-on-primary-container); display: flex; align-items: center; justify-content: center; flex-shrink: 0; text-decoration: none; }
+    .brand-text { min-width: 0; overflow: hidden; }
+    .brand-h1 { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.1; color: var(--md-on-surface); display: flex; align-items: center; gap: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .brand-h1 span { color: var(--md-primary); }
+    .brand-tagline { font-size: 10px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--md-on-surface-variant); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .app-bar-actions { display: flex; align-items: center; gap: 4px; }
+    .icon-btn { width: 40px; height: 40px; border-radius: 50%; border: none; background: transparent; color: var(--md-on-surface); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background-color 0.2s var(--md-easing-standard), transform 0.15s var(--md-easing-spring); }
+    .icon-btn:hover { background-color: color-mix(in srgb, var(--md-on-surface) 8%, transparent); }
+    .icon-btn:active { transform: scale(0.92); }
+
+    /* ===== 3. HERO + RUN ===== */
+    .hero { text-align: center; margin-bottom: 28px; animation: fadeUp 0.8s var(--md-easing-spring); }
+    .hero-eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--md-primary); background: color-mix(in srgb, var(--md-primary-container) 40%, transparent); border: 1px solid color-mix(in srgb, var(--md-outline-variant) 50%, transparent); padding: 6px 14px; border-radius: 9999px; margin-bottom: 18px; }
+    .hero-eyebrow .material-symbols-rounded { font-size: 14px; }
+    .hero h2 { font-size: clamp(32px, 9vw, 44px); font-weight: 800; letter-spacing: -0.025em; line-height: 1.05; margin-bottom: 14px; }
+    .hero h2 .accent { color: var(--md-primary); font-style: italic; font-weight: 300; }
+    .hero p { font-size: 14px; line-height: 1.6; color: var(--md-on-surface-variant); max-width: 560px; margin: 0 auto 26px; }
+    @media (min-width: 600px) { .hero p { font-size: 15px; } }
+    .hero-facts { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 22px; }
+    .hero-fact { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; color: var(--md-on-surface-variant); background: color-mix(in srgb, var(--md-surface-container-high) 70%, transparent); border: 1px solid color-mix(in srgb, var(--md-outline-variant) 50%, transparent); padding: 6px 12px; border-radius: 9999px; }
+    .hero-fact .material-symbols-rounded { font-size: 14px; color: var(--md-primary); }
+
+    .run-cta { max-width: 480px; margin: 0 auto 10px; }
+    .run-btn {
+      width: 100%; height: 52px; border-radius: 9999px; border: none; cursor: pointer;
+      background: var(--md-primary); color: var(--md-on-primary);
+      font-family: var(--font-primary); font-size: 15px; font-weight: 600; letter-spacing: 0.02em;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      box-shadow: 0 6px 20px -4px var(--md-shadow-color);
+      transition: transform 0.15s var(--md-easing-spring), box-shadow 0.3s var(--md-easing-standard);
+      position: relative; overflow: hidden;
+    }
+    .run-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 28px -6px var(--md-shadow-color-strong); }
+    .run-btn:active { transform: scale(0.96); }
+    .run-btn.running { background: var(--md-secondary-container); color: var(--md-on-secondary-container); }
+    .run-btn .spinner { width: 18px; height: 18px; border-radius: 50%; border: 2px solid color-mix(in srgb, currentColor 30%, transparent); border-top-color: currentColor; animation: spin 0.8s linear infinite; }
+    .run-hint { text-align: center; font-size: 11px; color: var(--md-on-surface-variant); opacity: 0.7; margin-top: 10px; }
+
+    .progress-wrap { max-width: 480px; margin: 26px auto 0; opacity: 0; transform: translateY(-8px); transition: opacity 0.4s var(--md-easing-standard), transform 0.4s var(--md-easing-spring-soft); pointer-events: none; }
+    .progress-wrap.show { opacity: 1; transform: translateY(0); }
+    .progress-track { height: 4px; border-radius: 2px; background: var(--md-surface-container-highest); overflow: hidden; }
+    .progress-fill { height: 100%; width: 0%; border-radius: 2px; background: var(--md-primary); transition: width 0.6s var(--md-easing-spring-soft); }
+    .progress-label { display: flex; justify-content: space-between; margin-top: 8px; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--md-on-surface-variant); }
+
+    /* ===== 4. RESULTS ===== */
+    .results { display: none; }
+    .results.show { display: block; }
+
+    .status-card {
+      border-radius: 24px; padding: 22px; margin-bottom: 20px;
+      background: var(--md-surface-container-low); border: 1px solid var(--md-outline-variant);
+      display: flex; gap: 16px; align-items: flex-start;
+      animation: fadeUp 0.8s var(--md-easing-spring);
+    }
+    @media (min-width: 600px) { .status-card { border-radius: 28px; padding: 28px; margin-bottom: 24px; } }
+    .status-badge-icon { width: 52px; height: 52px; border-radius: 18px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--md-surface-container-high); color: var(--md-on-surface-variant); }
+    .status-badge-icon .material-symbols-rounded { font-size: 28px; }
+    .status-badge-icon.scanning { animation: pulse 2.8s infinite; background: var(--md-secondary-container); color: var(--md-on-secondary-container); }
+    .status-body { min-width: 0; flex: 1; }
+    .status-title { font-size: 18px; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 6px; line-height: 1.25; }
+    @media (min-width: 700px) { .status-title { font-size: 20px; } }
+    .status-subtitle { font-size: 13px; line-height: 1.55; color: var(--md-on-surface-variant); }
+    .status-card.secure { border-color: color-mix(in srgb, var(--md-primary) 45%, var(--md-outline-variant)); background: color-mix(in srgb, var(--md-primary-container) 14%, var(--md-surface-container-low)); }
+    .status-card.secure .status-badge-icon { background: var(--md-primary-container); color: var(--md-on-primary-container); }
+    .status-card.leaking { border-color: color-mix(in srgb, var(--md-tertiary) 45%, var(--md-outline-variant)); background: color-mix(in srgb, var(--md-tertiary-container) 16%, var(--md-surface-container-low)); }
+    .status-card.leaking .status-badge-icon { background: var(--md-tertiary-container); color: var(--md-on-tertiary-container); }
+
+    .score-wrap { display: flex; align-items: center; gap: 14px; padding: 14px 20px; border-radius: 18px; background: color-mix(in srgb, var(--md-surface-container) 65%, transparent); border: 1px solid color-mix(in srgb, var(--md-outline-variant) 50%, transparent); margin-bottom: 20px; }
+    .score-ring { width: 64px; height: 64px; flex-shrink: 0; position: relative; }
+    .score-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+    .score-ring circle { fill: none; stroke-width: 6; }
+    .score-ring .track { stroke: var(--md-surface-container-highest); }
+    .score-ring .fill { stroke: var(--md-primary); stroke-linecap: round; stroke-dasharray: 163.4; stroke-dashoffset: 163.4; transition: stroke-dashoffset 1s var(--md-easing-spring-soft); }
+    .score-ring .score-num { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 800; color: var(--md-on-surface); font-variant-numeric: tabular-nums; }
+    .score-ring .score-num small { font-size: 9px; font-weight: 700; color: var(--md-on-surface-variant); margin-left: 1px; }
+    .score-text { min-width: 0; }
+    .score-text-title { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--md-on-surface-variant); margin-bottom: 4px; }
+    .score-text-sub { font-size: 12px; line-height: 1.45; color: var(--md-on-surface-variant); opacity: 0.8; }
+
+    .check-card {
+      border-radius: 24px; background: var(--md-surface-container-low); border: 1px solid var(--md-outline-variant);
+      padding: 18px; margin-bottom: 16px;
+      animation: fadeUp 0.8s var(--md-easing-spring);
+    }
+    @media (min-width: 600px) { .check-card { border-radius: 28px; padding: 24px; margin-bottom: 20px; } }
+    .check-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .check-icon-box { width: 40px; height: 40px; border-radius: 14px; background: var(--md-surface-container-high); color: var(--md-on-surface-variant); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .check-icon-box .material-symbols-rounded { font-size: 22px; }
+    .check-head-text { min-width: 0; flex: 1; }
+    .check-title { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+    .check-desc { font-size: 11px; color: var(--md-on-surface-variant); margin-top: 2px; }
+    .check-state { display: inline-flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 5px 10px; border-radius: 9999px; background: var(--md-surface-container-high); color: var(--md-on-surface-variant); flex-shrink: 0; }
+    .check-state .material-symbols-rounded { font-size: 14px; }
+    .check-state.ok { background: color-mix(in srgb, var(--md-primary-container) 55%, transparent); color: var(--md-on-primary-container); }
+    .check-state.warn { background: color-mix(in srgb, var(--md-tertiary-container) 60%, transparent); color: var(--md-on-tertiary-container); }
+    .check-state.info { background: color-mix(in srgb, var(--md-secondary-container) 55%, transparent); color: var(--md-on-secondary-container); }
+    .check-body { display: grid; gap: 10px; }
+
+    .field-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border-radius: 12px; background: color-mix(in srgb, var(--md-surface-container) 60%, transparent); }
+    .field-key { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--md-on-surface-variant); flex-shrink: 0; }
+    .field-val { font-size: 13px; font-weight: 500; color: var(--md-on-surface); text-align: right; word-break: break-word; display: flex; align-items: center; gap: 6px; justify-content: flex-end; min-width: 0; }
+    .field-val .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+    .copy-inline { border: none; background: transparent; color: var(--md-on-surface-variant); cursor: pointer; padding: 4px; border-radius: 6px; display: flex; transition: color 0.2s, background-color 0.2s; flex-shrink: 0; }
+    .copy-inline .material-symbols-rounded { font-size: 15px; }
+    .copy-inline:hover { color: var(--md-primary); background: color-mix(in srgb, var(--md-primary) 12%, transparent); }
+    .skeleton-text { display: inline-block; width: 110px; height: 12px; border-radius: 6px; background: linear-gradient(90deg, var(--md-surface-container-highest) 25%, var(--md-surface-container) 50%, var(--md-surface-container-highest) 75%); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
+
+    .tag { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; padding: 4px 10px; border-radius: 9999px; }
+    .tag .material-symbols-rounded { font-size: 12px; }
+    .tag.safe { background: color-mix(in srgb, var(--md-primary-container) 60%, transparent); color: var(--md-on-primary-container); }
+    .tag.warn { background: color-mix(in srgb, var(--md-tertiary-container) 65%, transparent); color: var(--md-on-tertiary-container); }
+    .tag.neutral { background: var(--md-surface-container-high); color: var(--md-on-surface-variant); }
+    .tag.vpn { background: color-mix(in srgb, var(--md-secondary-container) 65%, transparent); color: var(--md-on-secondary-container); }
+    .tags-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+
+    .resolver-row { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 14px; background: color-mix(in srgb, var(--md-surface-container) 60%, transparent); }
+    .resolver-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .resolver-name { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; }
+    .resolver-ms { font-size: 12px; font-variant-numeric: tabular-nums; color: var(--md-on-surface-variant); font-weight: 600; }
+    .resolver-detail { font-size: 12px; line-height: 1.5; color: var(--md-on-surface-variant); }
+    .resolver-detail strong { color: var(--md-on-surface); font-weight: 600; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+    .dot.ok { background: var(--md-primary); }
+    .dot.warn { background: var(--md-tertiary); }
+
+    .ip-grid { display: grid; gap: 10px; }
+    @media (min-width: 700px) { .ip-grid { grid-template-columns: 1fr 1fr; } }
+    .ip-card { display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 14px; background: color-mix(in srgb, var(--md-surface-container) 60%, transparent); }
+    .ip-card-label { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--md-on-surface-variant); display: flex; align-items: center; gap: 6px; }
+    .ip-card-label .material-symbols-rounded { font-size: 14px; }
+    .ip-card-val { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 15px; font-weight: 600; color: var(--md-on-surface); word-break: break-all; cursor: pointer; }
+    .ip-card-meta { font-size: 11px; line-height: 1.45; color: var(--md-on-surface-variant); }
+    .ip-card-meta strong { color: var(--md-on-surface); font-weight: 600; }
+
+    .table-wrap { border-radius: 14px; border: 1px solid color-mix(in srgb, var(--md-outline-variant) 55%, transparent); overflow-x: auto; background: color-mix(in srgb, var(--md-surface-container-lowest) 55%, transparent); }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    thead th { font-size: 9px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--md-on-surface-variant); text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--md-outline-variant); white-space: nowrap; }
+    tbody td { padding: 9px 12px; color: var(--md-on-surface); border-bottom: 1px solid color-mix(in srgb, var(--md-outline-variant) 35%, transparent); white-space: nowrap; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody td.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+    .section-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--md-on-surface-variant); margin: 26px 0 12px; display: flex; align-items: center; gap: 8px; }
+    .section-label .material-symbols-rounded { font-size: 15px; color: var(--md-primary); }
+
+    details.note { border: 1px solid color-mix(in srgb, var(--md-outline-variant) 55%, transparent); border-radius: 16px; background: color-mix(in srgb, var(--md-surface-container) 50%, transparent); overflow: hidden; }
+    details.note summary { cursor: pointer; padding: 13px 16px; font-size: 12px; font-weight: 700; color: var(--md-on-surface-variant); display: flex; align-items: center; gap: 8px; list-style: none; }
+    details.note summary::-webkit-details-marker { display: none; }
+    details.note summary .material-symbols-rounded { font-size: 16px; color: var(--md-primary); }
+    details.note[open] summary { border-bottom: 1px solid color-mix(in srgb, var(--md-outline-variant) 45%, transparent); }
+    details.note .note-body { padding: 14px 16px; font-size: 12px; line-height: 1.65; color: var(--md-on-surface-variant); display: grid; gap: 10px; }
+    details.note .note-body strong { color: var(--md-on-surface); font-weight: 600; }
+
+    footer { margin-top: 48px; text-align: center; font-size: 11px; color: var(--md-on-surface-variant); opacity: 0.75; line-height: 1.7; padding-bottom: env(safe-area-inset-bottom); }
+    footer a { color: var(--md-primary); text-decoration: none; font-weight: 600; }
+    footer a:hover { text-decoration: underline; }
+    .footer-links { display: flex; gap: 18px; justify-content: center; margin-top: 6px; flex-wrap: wrap; }
+
+    .toast {
+      position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(20px);
+      display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 12px;
+      background: var(--md-inverse-surface); color: var(--md-inverse-on-surface);
+      box-shadow: 0 8px 24px var(--md-shadow-color-strong);
+      opacity: 0; pointer-events: none; z-index: 100; max-width: calc(100vw - 32px);
+      transition: opacity 0.3s var(--md-easing-standard), transform 0.3s var(--md-easing-spring);
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast .material-symbols-rounded { font-size: 20px; color: var(--md-inverse-primary); flex-shrink: 0; }
+    .toast span:last-child { font-size: 13px; font-weight: 500; word-break: break-all; }
+    @media (min-width: 600px) { .toast { bottom: 24px; } }
+  </style>
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-blob"></div>
+  <div class="app-wrapper">
+
+    <!-- App bar -->
+    <header class="app-bar">
+      <div class="brand">
+        <a class="brand-icon" href="https://inpriv.xyz" aria-label="Inpriv home"><span class="material-symbols-rounded">eco</span></a>
+        <div class="brand-text">
+          <h1 class="brand-h1">Inpriv<span>.</span></h1>
+          <div class="brand-tagline">Network &amp; Leak Trace</div>
+        </div>
+      </div>
+      <div class="app-bar-actions">
+        <button class="icon-btn" id="exportBtn" title="Copy audit report (JSON)" aria-label="Copy audit report">
+          <span class="material-symbols-rounded">file_download</span>
+        </button>
+        <button class="icon-btn" id="themeToggleBtn" title="Toggle theme" aria-label="Toggle theme">
+          <span class="material-symbols-rounded" id="themeIcon">light_mode</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-eyebrow"><span class="material-symbols-rounded">travel_explore</span> IP · DNS · WebRTC</div>
+      <h2>What does the internet<br><span class="accent">see about you?</span></h2>
+      <p>One scan checks your public IP &amp; ISP, whether your DNS queries escape your VPN tunnel, and if WebRTC is leaking your real address — all in your browser.</p>
+      <div class="hero-facts">
+        <span class="hero-fact"><span class="material-symbols-rounded">bolt</span> ~10 seconds</span>
+        <span class="hero-fact"><span class="material-symbols-rounded">visibility_off</span> Nothing stored</span>
+        <span class="hero-fact"><span class="material-symbols-rounded">code</span> Open source</span>
+      </div>
+    </section>
+
+    <!-- Run -->
+    <section class="run-cta">
+      <button class="run-btn" id="runBtn">
+        <span class="material-symbols-rounded">radar</span><span>Run Full Scan</span>
+      </button>
+      <div class="run-hint">Reads public IP/DNS/WebRTC data only. No accounts, no storage.</div>
+      <div class="progress-wrap" id="progressWrap">
+        <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="progress-label"><span id="progressStage">Starting</span><span id="progressPct">0%</span></div>
+      </div>
+    </section>
+
+    <!-- Results -->
+    <section class="results" id="results">
+
+      <div class="status-card" id="statusCard">
+        <div class="status-badge-icon scanning" id="statusIconBg"><span class="material-symbols-rounded" id="statusIcon">radar</span></div>
+        <div class="status-body">
+          <div class="status-title" id="statusTitle">Running scan…</div>
+          <div class="status-subtitle" id="statusSubtitle">Gathering IP, DNS and WebRTC signals.</div>
+        </div>
+      </div>
+
+      <div class="score-wrap">
+        <div class="score-ring">
+          <svg viewBox="0 0 64 64" aria-hidden="true">
+            <circle class="track" cx="32" cy="32" r="26"></circle>
+            <circle class="fill" id="scoreFill" cx="32" cy="32" r="26"></circle>
+          </svg>
+          <div class="score-num" id="scoreNum">0<small>/100</small></div>
+        </div>
+        <div class="score-text">
+          <div class="score-text-title" id="scoreTitle">Privacy score</div>
+          <div class="score-text-sub" id="scoreSub">Calculating…</div>
+        </div>
+      </div>
+
+      <!-- Check 1: IP -->
+      <div class="section-label"><span class="material-symbols-rounded">public</span> IP &amp; Network</div>
+      <div class="check-card" id="checkIp">
+        <div class="check-head">
+          <div class="check-icon-box"><span class="material-symbols-rounded">public</span></div>
+          <div class="check-head-text">
+            <div class="check-title">IP Address &amp; ISP</div>
+            <div class="check-desc">The address websites see when you connect</div>
+          </div>
+          <span class="check-state" id="ipState"><span class="material-symbols-rounded">sync</span> Scanning</span>
+        </div>
+        <div class="check-body" id="ipBody"></div>
+      </div>
+
+      <!-- Check 2: DNS -->
+      <div class="section-label"><span class="material-symbols-rounded">dns</span> DNS Leak</div>
+      <div class="check-card" id="checkDns">
+        <div class="check-head">
+          <div class="check-icon-box"><span class="material-symbols-rounded">dns</span></div>
+          <div class="check-head-text">
+            <div class="check-title">DNS Resolvers</div>
+            <div class="check-desc">Where your DNS queries exit — should stay inside your tunnel</div>
+          </div>
+          <span class="check-state" id="dnsState"><span class="material-symbols-rounded">sync</span> Scanning</span>
+        </div>
+        <div class="check-body" id="dnsBody"></div>
+      </div>
+
+      <!-- Check 3: WebRTC -->
+      <div class="section-label"><span class="material-symbols-rounded">stream</span> WebRTC Leak</div>
+      <div class="check-card" id="checkWebrtc">
+        <div class="check-head">
+          <div class="check-icon-box"><span class="material-symbols-rounded">stream</span></div>
+          <div class="check-head-text">
+            <div class="check-title">WebRTC Interfaces</div>
+            <div class="check-desc">Peer-to-peer paths your browser can expose</div>
+          </div>
+          <span class="check-state" id="webrtcState"><span class="material-symbols-rounded">sync</span> Scanning</span>
+        </div>
+        <div class="check-body" id="webrtcBody"></div>
+      </div>
+
+      <details class="note" id="explainNote">
+        <summary><span class="material-symbols-rounded">help</span> What am I looking at?</summary>
+        <div class="note-body">
+          <div><strong>IP check</strong> — shows the public address and network every site sees. If you are on a VPN, this should be the VPN's address, tagged as VPN/datacenter.</div>
+          <div><strong>DNS leak</strong> — your browser resolves domains somewhere. If that resolver egresses outside your VPN/proxy network (different ISP or country), sites can infer who resolves for you: a DNS leak.</div>
+          <div><strong>WebRTC leak</strong> — browsers build direct peer connections (calls, file sharing) and may list your real interface IPs in the process. If a residential IP appears here while you use a VPN, your origin is leaking.</div>
+          <div><strong>Privacy note</strong> — probes go directly from your browser to public APIs (ipwho.is, ipapi.co, Cloudflare/Google DNS). Nothing is logged or stored by this page.</div>
+          <div><strong>Fixes</strong> — enable your VPN's DNS/WebRTC protection, use uBlock Origin's "Prevent WebRTC from leaking local IP" or browser flags, and re-test.</div>
+        </div>
+      </details>
+
+    </section>
+
+    <footer>
+      <div>Part of the <a href="https://inpriv.xyz" rel="noopener">Inpriv</a> privacy suite — open source, MIT.</div>
+      <div class="footer-links">
+        <a href="https://inpriv.xyz" rel="noopener">All tools</a>
+        <a href="https://github.com/salo-yek/inpriv" rel="noopener noreferrer" target="_blank">Source</a>
+      </div>
+      <div style="margin-top:8px;opacity:.7">© 2026 Aurex Labs</div>
+    </footer>
+
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite">
+    <span class="material-symbols-rounded" id="toastIcon">check_circle</span>
+    <span id="toastText">Copied</span>
+  </div>
+  <script>
+    /* ===================== Theme ===================== */
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    const themeIcon = document.getElementById('themeIcon');
+    const htmlElem = document.documentElement;
+    function setTheme(theme) { htmlElem.setAttribute('data-theme', theme); localStorage.setItem('aurex_theme', theme); themeIcon.textContent = theme === 'dark' ? 'light_mode' : 'dark_mode'; }
+    const savedTheme = localStorage.getItem('aurex_theme') || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    setTheme(savedTheme);
+    themeToggleBtn.addEventListener('click', () => setTheme(htmlElem.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
+
+    /* ===================== Toast + copy ===================== */
+    const toast = document.getElementById('toast');
+    const toastText = document.getElementById('toastText');
+    const toastIcon = document.getElementById('toastIcon');
+    let toastTimeout;
+    function showToast(message, icon) {
+      clearTimeout(toastTimeout);
+      toastText.textContent = message;
+      toastIcon.textContent = icon || 'check_circle';
+      toast.classList.add('show');
+      toastTimeout = setTimeout(() => toast.classList.remove('show'), 2800);
+    }
+    function copyText(t, label) {
+      if (!t || t === '—' || t === 'None exposed') return;
+      try { navigator.clipboard.writeText(t).then(() => showToast((label || 'Copied') + ': ' + t, 'content_copy')); } catch (e) {}
+    }
+    document.addEventListener('click', e => {
+      const btn = e.target.closest('[data-copy]');
+      if (btn) copyText(btn.getAttribute('data-copy'), btn.getAttribute('data-label'));
+    });
+
+    /* ===================== Progress ===================== */
+    const progressWrap = document.getElementById('progressWrap');
+    const progressFill = document.getElementById('progressFill');
+    const progressStage = document.getElementById('progressStage');
+    const progressPct = document.getElementById('progressPct');
+    function setProgress(p, stage) {
+      progressWrap.classList.add('show');
+      progressFill.style.width = p + '%';
+      progressPct.textContent = Math.round(p) + '%';
+      if (stage) progressStage.textContent = stage;
+    }
+    function hideProgress() { progressWrap.classList.remove('show'); }
+
+    /* ===================== IP intel (ipwho.is -> ipapi.co fallback) ===================== */
+    const VPN_DATACENTER_KEYWORDS = ['mullvad','m247','nordvpn','expressvpn','proton','cyberghost','surfshark','pia','private internet access','datacenter','hosting','server','digitalocean','linode','ovh','vultr','hetzner','choopa','tzulo','clouvider','datapacket','leaseweb','cogent','fastly','cloudflare','servers','cloud','host','m227','pvt','vpn'];
+    function isVpnDc(s) { const c = (s || '').toLowerCase(); return VPN_DATACENTER_KEYWORDS.some(k => c.includes(k)); }
+
+    async function getIpIntel(ip) {
+      try {
+        const res = await fetch(ip ? ('https://ipwho.is/' + ip) : 'https://ipwho.is/');
+        const d = await res.json();
+        if (d && d.success) {
+          const conn = d.connection || {};
+          const sec = d.security || {};
+          const isp = conn.isp || conn.org || 'Unknown ISP';
+          return {
+            ip: d.ip, isp: isp, org: conn.org || '', asn: conn.asn ? 'AS' + conn.asn : '', domain: conn.domain || '',
+            country: d.country || '', countryCode: d.country_code || '', city: d.city || '', region: d.region || '',
+            flag: (d.flag && d.flag.emoji) || '', lat: d.latitude, lon: d.longitude, eu: d.is_eu,
+            postal: d.postal || '', timezone: (d.timezone && d.timezone.id) || '',
+            vpnDc: isVpnDc(isp + ' ' + (conn.org || '') + ' AS' + (conn.asn || '')) || !!(sec.hosting || sec.vpn || sec.proxy)
+          };
+        }
+      } catch (e) {}
+      try {
+        const r2 = await fetch(ip ? ('https://ipapi.co/' + ip + '/json/') : 'https://ipapi.co/json/');
+        const d = await r2.json();
+        if (d && d.ip) {
+          const isp = d.org || 'Unknown ISP';
+          return {
+            ip: d.ip, isp: isp, org: d.org || '', asn: d.asn || '', domain: '',
+            country: d.country_name || '', countryCode: d.country_code || '', city: d.city || '', region: d.region || '',
+            flag: '', lat: d.latitude, lon: d.longitude, eu: d.in_eu,
+            postal: d.postal || '', timezone: d.timezone || '', vpnDc: isVpnDc(isp)
+          };
+        }
+      } catch (e) {}
+      return null;
+    }
+
+    /* ===================== Field renderer ===================== */
+    function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+    function row(key, val, opts) {
+      opts = opts || {};
+      if (val === null || val === undefined || val === '') val = '—';
+      const valHtml = opts.mono ? '<span class="mono">' + esc(val) + '</span>' : esc(val);
+      const copyBtn = (opts.nocopy || val === '—') ? '' : '<button class="copy-inline" data-copy="' + esc(val) + '" data-label="' + esc(key) + '" title="Copy"><span class="material-symbols-rounded">content_copy</span></button>';
+      return '<div class="field-row"><span class="field-key">' + esc(key) + '</span><span class="field-val">' + valHtml + copyBtn + '</span></div>';
+    }
+    function tag(kind, icon, text) { return '<span class="tag ' + kind + '"><span class="material-symbols-rounded">' + icon + '</span>' + esc(text) + '</span>'; }
+
+    /* ===================== State ===================== */
+    const audit = {
+      http: null,
+      dns: { results: [], osAttempted: null, verdict: null },
+      webrtc: { candidates: [], publicIps: new Map(), localIps: new Set(), mediaDevices: null, verdict: null }
+    };
+
+    /* ===================== Check 1: IP ===================== */
+    async function runIpCheck() {
+      const state = document.getElementById('ipState');
+      const body = document.getElementById('ipBody');
+      state.className = 'check-state'; state.innerHTML = '<span class="material-symbols-rounded">sync</span> Scanning';
+      body.innerHTML = row('IP address', 'Loading…', { nocopy: true });
+      const intel = await getIpIntel();
+      audit.http = intel;
+      if (!intel) {
+        state.className = 'check-state warn'; state.innerHTML = '<span class="material-symbols-rounded">warning</span> Unavailable';
+        body.innerHTML = row('IP address', 'Lookup failed', { nocopy: true }) + row('Note', 'IP lookup services unreachable from this browser', { nocopy: true });
+        return;
+      }
+      state.className = 'check-state info'; state.innerHTML = '<span class="material-symbols-rounded">check</span> Your exit';
+      const loc = [intel.city, intel.region, intel.country].filter(Boolean).join(', ');
+      const maps = (intel.lat && intel.lon)
+        ? '<a href="https://www.openstreetmap.org/?mlat=' + intel.lat + '&mlon=' + intel.lon + '#map=10/' + intel.lat + '/' + intel.lon + '" target="_blank" rel="noopener" style="color:var(--md-primary);text-decoration:none;font-weight:700;">Open in maps <span class="material-symbols-rounded" style="font-size:13px;vertical-align:-2px">open_in_new</span></a>'
+        : '—';
+      body.innerHTML =
+        row('IP address', intel.ip, { mono: true }) +
+        row('ISP', intel.isp) +
+        row('Organization', intel.org || '—') +
+        row('ASN', intel.asn || '—') +
+        row('Location', (intel.flag ? intel.flag + ' ' : '') + loc) +
+        row('Timezone', intel.timezone || '—') +
+        '<div class="field-row"><span class="field-key">Map</span><span class="field-val">' + maps + '</span></div>' +
+        '<div class="field-row"><span class="field-key">Connection</span><span class="field-val">' +
+        (intel.vpnDc ? tag('vpn', 'vpn_key', 'VPN / Datacenter') : tag('safe', 'home', 'Residential ISP')) +
+        '</span></div>';
+    }
+
+    /* ===================== Check 2: DNS ===================== */
+    const DOH_RESOLVERS = [
+      { name: 'Cloudflare', endpoint: 'https://cloudflare-dns.com/dns-query', color: '#F38020', egressIp: '1.1.1.1' },
+      { name: 'Google', endpoint: 'https://dns.google/resolve', color: '#4285F4', egressIp: '8.8.8.8' }
+    ];
+
+    async function dohQuery(resolver, name, type) {
+      const url = resolver.endpoint + '?name=' + encodeURIComponent(name) + '&type=' + type;
+      const headers = resolver.endpoint.includes('cloudflare') ? { 'accept': 'application/dns-json' } : {};
+      const res = await fetch(url, { headers: headers });
+      return await res.json();
+    }
+
+    async function probeResolver(resolver) {
+      const t0 = performance.now();
+      const r = Math.random().toString(36).slice(2, 10);
+      const testName = r + '.inpriv-trace-test.xyz';
+      let ok = false, err = null;
+      try {
+        const data = await dohQuery(resolver, testName, 'A');
+        if (data && (data.Status === 3 || data.Status === 0 || Array.isArray(data.Answer))) ok = true;
+        else if (data) ok = true;
+        else err = 'No response';
+      } catch (e) { err = 'Network/CORS blocked'; }
+      const ms = Math.round(performance.now() - t0);
+      let intel = null;
+      if (ok) intel = await getIpIntel(resolver.egressIp);
+      return { ok: ok, ms: ms, err: err, intel: intel, egressIp: resolver.egressIp };
+    }
+
+    function renderResolverRow(resolver, result) {
+      let detail;
+      if (!result.ok) {
+        detail = '<span style="color:var(--md-tertiary)"><span class="material-symbols-rounded" style="font-size:14px;vertical-align:-3px">warning</span> ' + esc(result.err || 'Failed') + ' — resolver unreachable from this browser</span>';
+      } else {
+        const loc = result.intel ? [result.intel.city, result.intel.country].filter(Boolean).join(', ') : 'Unknown';
+        const isp = result.intel ? result.intel.isp : 'Unknown';
+        const asn = result.intel && result.intel.asn ? ' (' + result.intel.asn + ')' : '';
+        detail = 'Egress <strong>' + esc(result.egressIp) + '</strong> · ' + esc(isp) + esc(asn) + ' · ' + esc(loc) + ' <span style="opacity:.65">(known anycast resolver IP)</span>';
+      }
+      return '<div class="resolver-row">' +
+        '<div class="resolver-top">' +
+          '<span class="resolver-name"><span class="dot" style="background:' + (result.ok ? resolver.color : 'var(--md-tertiary)') + '"></span>' + resolver.name + ' DoH</span>' +
+          '<span class="resolver-ms">' + result.ms + ' ms</span>' +
+        '</div>' +
+        '<div class="resolver-detail">' + detail + '</div>' +
+      '</div>';
+    }
+
+    async function observeOsResolver() {
+      const r = Math.random().toString(36).slice(2, 10);
+      const host = r + '.dnsleak-test.inpriv.xyz';
+      try {
+        const t0 = performance.now();
+        await fetch('https://' + host + '/noop', { mode: 'no-cors', cache: 'no-store' });
+        return { attempted: true, ms: Math.round(performance.now() - t0), host: host };
+      } catch (e) { return { attempted: false, ms: null, host: host }; }
+    }
+
+    async function runDnsCheck() {
+      const state = document.getElementById('dnsState');
+      const body = document.getElementById('dnsBody');
+      state.className = 'check-state'; state.innerHTML = '<span class="material-symbols-rounded">sync</span> Scanning';
+      body.innerHTML = '<div class="resolver-row"><div class="resolver-detail">Querying DoH resolvers…</div></div>';
+
+      const osr = await observeOsResolver();
+      audit.dns.osAttempted = osr.attempted;
+
+      const results = [];
+      for (const res of DOH_RESOLVERS) results.push({ resolver: res, result: await probeResolver(res) });
+      audit.dns.results = results;
+
+      const reachable = results.filter(r => r.result.ok);
+      const egressCountries = reachable.map(r => (r.result.intel && r.result.intel.country) || '').filter(Boolean);
+      const uniqueCountries = [];
+      egressCountries.forEach(c => { if (uniqueCountries.indexOf(c) < 0) uniqueCountries.push(c); });
+      const httpCountry = audit.http ? audit.http.country : '';
+
+      let verdict;
+      if (reachable.length === 0) {
+        verdict = { kind: 'info', title: 'DoH endpoints blocked', sub: 'Both Cloudflare and Google DoH endpoints were unreachable from this browser. This can indicate strict DNS filtering on your network.' };
+      } else {
+        const tunnelLeak = audit.http && audit.http.vpnDc && reachable.some(r => r.result.intel && !r.result.intel.vpnDc);
+        const geoMismatch = httpCountry && uniqueCountries.length && !uniqueCountries.every(c => c === httpCountry);
+        if (tunnelLeak) {
+          verdict = { kind: 'warn', title: 'Possible DNS leak', sub: 'Your HTTP traffic exits via a VPN/datacenter IP, but at least one DNS resolver egress resolves to a residential network — your DNS queries may be escaping the tunnel.' };
+        } else if (geoMismatch) {
+          verdict = { kind: 'warn', title: 'DNS egress mismatch', sub: 'DNS resolver egress geolocates to ' + uniqueCountries.join(', ') + ' while your HTTP exit is in ' + httpCountry + '. Common with smart-DNS or ISP redirect, but worth checking if you expected the tunnel to cover DNS.' };
+        } else {
+          verdict = { kind: 'ok', title: 'No DNS leak detected', sub: 'DNS resolver egress is consistent with your HTTP exit. Queries stay inside the expected network.' };
+        }
+      }
+      audit.dns.verdict = verdict;
+
+      state.className = 'check-state ' + (verdict.kind === 'warn' ? 'warn' : verdict.kind === 'ok' ? 'ok' : 'info');
+      state.innerHTML = '<span class="material-symbols-rounded">' + (verdict.kind === 'warn' ? 'warning' : verdict.kind === 'ok' ? 'check_circle' : 'info') + '</span> ' + esc(verdict.title);
+
+      let html = results.map(pair => renderResolverRow(pair.resolver, pair.result)).join('');
+      if (osr.attempted) {
+        html += '<div class="resolver-row"><div class="resolver-top"><span class="resolver-name"><span class="dot ok"></span>OS resolver probe</span></div>' +
+          '<div class="resolver-detail">A fresh random hostname was resolved through your browser/OS path in ~' + osr.ms + ' ms. Browsers do not expose which resolver or IP was used — connectivity check only.</div></div>';
+      }
+      html += '<div class="field-row"><span class="field-key">Verdict</span><span class="field-val" style="max-width:70%">' + esc(verdict.sub) + '</span></div>';
+      body.innerHTML = html;
+    }
+
+    /* ===================== Check 3: WebRTC ===================== */
+    const STUN_SERVERS = [
+      { urls: 'stun:stun.l.google.com:19302', name: 'Google (19302)' },
+      { urls: 'stun:stun.cloudflare.com:3478', name: 'Cloudflare (3478)' },
+      { urls: 'stun:stun.services.mozilla.com:3478', name: 'Mozilla (3478)' },
+      { urls: 'stun:stun.nextcloud.com:443', name: 'Nextcloud (443)' }
+    ];
+    let peerConnections = [];
+
+    function isPrivateIP(ip) { return /^(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.|127\.)/.test(ip); }
+
+    async function auditMediaDevices() {
+      try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return { shielded: true, count: 0, labels: false };
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const hasLabels = devices.some(d => d.label && d.label.length > 0);
+        return { shielded: false, count: devices.length, labels: hasLabels };
+      } catch (e) { return { shielded: true, count: 0, labels: false }; }
+    }
+
+    function parseCandidate(candidateStr, serverName) {
+      const parts = candidateStr.split(' ');
+      if (parts.length < 8) return;
+      const ip = parts[4], port = parts[5], type = parts[7], proto = parts[2].toLowerCase();
+      if (!ip) return;
+      const key = type + '-' + proto + '-' + ip + '-' + port;
+      if (audit.webrtc.candidates.some(c => c.key === key)) return;
+      audit.webrtc.candidates.push({ key: key, type: type, proto: proto, ip: ip, port: port, serverName: serverName });
+      const ipv4 = /^([0-9]{1,3}\.){3}[0-9]{1,3}$/;
+      const ipv6 = /^([a-f0-9:]+:+)+[a-f0-9]+$/i;
+      if (ipv4.test(ip)) {
+        if (isPrivateIP(ip)) {
+          audit.webrtc.localIps.add(ip);
+        } else {
+          audit.webrtc.publicIps.set(ip, { type: type, proto: proto, serverName: serverName });
+          getIpIntel(ip).then(intel => {
+            if (intel) {
+              const cur = audit.webrtc.publicIps.get(ip) || {};
+              audit.webrtc.publicIps.set(ip, Object.assign({}, cur, intel));
+              renderWebrtcBody();
+            }
+          });
+        }
+      } else if (ipv6.test(ip) && !ip.startsWith('fe80')) {
+        audit.webrtc.publicIps.set(ip, { type: type + ' (IPv6)', proto: proto, serverName: serverName });
+      } else if (ip.endsWith('.local')) {
+        audit.webrtc.localIps.add('mDNS masked (' + ip.substring(0, 8) + '…)');
+      }
+      renderWebrtcBody();
+    }
+
+    function webrtcVerdict() {
+      const publics = Array.from(audit.webrtc.publicIps.keys());
+      if (publics.length === 0) {
+        return { kind: 'ok', title: 'WebRTC fully shielded', sub: 'STUN produced zero public IP candidates. Browser policy or firewall blocks WebRTC disclosures.' };
+      }
+      const httpIp = audit.http ? audit.http.ip : null;
+      let leak = null;
+      for (const ip of publics) {
+        const w = audit.webrtc.publicIps.get(ip) || {};
+        if (httpIp && ip === httpIp) continue;
+        const sameAsn = audit.http && w.asn && audit.http.asn && w.asn === audit.http.asn;
+        const sameIsp = audit.http && w.isp && audit.http.isp && (w.isp.toLowerCase().includes(audit.http.isp.toLowerCase()) || audit.http.isp.toLowerCase().includes(w.isp.toLowerCase()));
+        if (w.vpnDc || sameAsn || sameIsp) continue;
+        leak = { ip: ip, isp: w.isp || 'Residential ISP' };
+        break;
+      }
+      if (leak) {
+        return { kind: 'warn', title: 'WebRTC is leaking your real IP', sub: 'STUN bypassed your proxy/VPN gateway and revealed a residential address: ' + leak.ip + ' (' + leak.isp + ').' };
+      }
+      if (publics.length > 1 || (httpIp && publics[0] !== httpIp)) {
+        return { kind: 'ok', title: 'Protected — multi-interface tunnel', sub: 'WebRTC and HTTP route through distinct public IPs, but both are verified VPN/datacenter endpoints. Your origin stays hidden.' };
+      }
+      return { kind: 'ok', title: 'Protected — gateway aligned', sub: 'WebRTC public interface matches your HTTP gateway.' };
+    }
+
+    function renderWebrtcBody() {
+      const body = document.getElementById('webrtcBody');
+      const publics = Array.from(audit.webrtc.publicIps.entries());
+      const locals = Array.from(audit.webrtc.localIps);
+      const md = audit.webrtc.mediaDevices;
+      let cards = '';
+      if (publics.length > 0) {
+        cards += publics.map(pair => {
+          const ip = pair[0], meta = pair[1];
+          const locLine = meta.city || meta.country ? ' · ' + [meta.city, meta.country].filter(Boolean).join(', ') : '';
+          const ispLine = meta.isp
+            ? '<div class="ip-card-meta"><strong>' + esc(meta.isp) + '</strong>' + (meta.asn ? ' · ' + esc(meta.asn) : '') + esc(locLine) + '</div>'
+            : '<div class="ip-card-meta">Resolved via STUN (' + esc(meta.serverName || 'STUN') + ')</div>';
+          const tags = meta.isp
+            ? (meta.vpnDc ? tag('vpn', 'vpn_key', 'VPN / Datacenter') : tag('warn', 'home', 'Residential ISP'))
+            : tag('neutral', 'sync', 'Checking intel…');
+          return '<div class="ip-card"><div class="ip-card-label"><span class="material-symbols-rounded">language</span> Public interface</div>' +
+            '<div class="ip-card-val" data-copy="' + esc(ip) + '" data-label="WebRTC IP" title="Tap to copy">' + esc(ip) + '</div>' +
+            ispLine + '<div class="tags-row">' + tags + '</div></div>';
+        }).join('');
+      }
+      const hasRealLocal = locals.some(x => !x.includes('mDNS'));
+      cards += '<div class="ip-card"><div class="ip-card-label"><span class="material-symbols-rounded">lan</span> Local interfaces</div>' +
+        '<div class="ip-card-val" style="cursor:default">' + (locals.length ? esc(locals.join(', ')) : 'None exposed') + '</div>' +
+        '<div class="ip-card-meta">' + (hasRealLocal ? 'Private IPv4 host interface exposed' : 'Anonymized via mDNS') + '</div>' +
+        '<div class="tags-row">' + (hasRealLocal ? tag('warn', 'warning', 'Host exposed') : tag('safe', 'verified_user', 'mDNS shield active')) + '</div>' +
+        '</div>';
+      if (md && !md.shielded) {
+        cards += '<div class="ip-card"><div class="ip-card-label"><span class="material-symbols-rounded">devices</span> Media devices</div>' +
+          '<div class="ip-card-val" style="cursor:default">' + md.count + ' visible</div>' +
+          '<div class="ip-card-meta">Microphones &amp; cameras enumerated' + (md.labels ? ' — labels visible (permission granted)' : ' — labels anonymized') + '</div>' +
+          '<div class="tags-row">' + (md.labels ? tag('warn', 'visibility', 'Labels disclosed') : tag('safe', 'visibility_off', 'Anonymized')) + '</div></div>';
+      }
+      const candRows = audit.webrtc.candidates.length
+        ? audit.webrtc.candidates.map(c => '<tr><td><strong>' + esc(c.type.toUpperCase()) + '</strong></td><td>' + esc(c.proto.toUpperCase()) + '</td><td class="mono">' + esc(c.ip) + '</td><td>' + esc(c.port) + '</td><td>' + esc(c.serverName) + '</td></tr>').join('')
+        : '<tr><td colspan="5" style="text-align:center;color:var(--md-on-surface-variant);padding:16px">Gathering ICE candidates…</td></tr>';
+      body.innerHTML = '<div class="ip-grid">' + cards + '</div>' +
+        '<div class="table-wrap"><table><thead><tr><th>Type</th><th>Proto</th><th>IP</th><th>Port</th><th>Via</th></tr></thead><tbody>' + candRows + '</tbody></table></div>';
+    }
+
+    async function runWebrtcCheck() {
+      const state = document.getElementById('webrtcState');
+      state.className = 'check-state'; state.innerHTML = '<span class="material-symbols-rounded">sync</span> Scanning';
+      renderWebrtcBody();
+      audit.webrtc.mediaDevices = await auditMediaDevices();
+      renderWebrtcBody();
+      const RTCPeerConnection = window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
+      if (!RTCPeerConnection) {
+        audit.webrtc.verdict = { kind: 'ok', title: 'WebRTC disabled', sub: 'WebRTC is disabled or restricted at browser level. No interface leaks possible.' };
+        renderWebrtcFinal();
+        return;
+      }
+      await new Promise(resolve => {
+        STUN_SERVERS.forEach(server => {
+          try {
+            const pc = new RTCPeerConnection({ iceServers: [server] });
+            peerConnections.push(pc);
+            pc.createDataChannel('inpriv-trace-probe');
+            pc.onicecandidate = e => { if (e.candidate) parseCandidate(e.candidate.candidate, server.name); };
+            pc.createOffer({ offerToReceiveAudio: true }).then(offer => {
+              pc.setLocalDescription(offer);
+              offer.sdp.split('\r\n').forEach(line => { if (line.startsWith('a=candidate:')) parseCandidate(line.substring(12), server.name + ' (SDP)'); });
+            }).catch(() => {});
+          } catch (e) {}
+        });
+        setTimeout(resolve, 3600);
+      });
+      peerConnections.forEach(pc => { try { pc.close(); } catch (e) {} });
+      peerConnections = [];
+      audit.webrtc.verdict = webrtcVerdict();
+      renderWebrtcFinal();
+    }
+
+    function renderWebrtcFinal() {
+      const state = document.getElementById('webrtcState');
+      const v = audit.webrtc.verdict;
+      renderWebrtcBody();
+      state.className = 'check-state ' + (v.kind === 'warn' ? 'warn' : 'ok');
+      state.innerHTML = '<span class="material-symbols-rounded">' + (v.kind === 'warn' ? 'warning' : 'check_circle') + '</span> ' + esc(v.title);
+    }
+
+    /* ===================== Score ===================== */
+    function computeScore() {
+      let score = 100;
+      const notes = [];
+      const wv = audit.webrtc.verdict, dv = audit.dns.verdict;
+      if (wv && wv.kind === 'warn') { score -= 45; notes.push('WebRTC leaks a residential IP'); }
+      if (dv && dv.kind === 'warn') { score -= 25; notes.push('DNS egress inconsistent with your exit'); }
+      const locals = Array.from(audit.webrtc.localIps);
+      if (locals.some(x => !x.includes('mDNS'))) { score -= 10; notes.push('Local IPv4 interfaces exposed via WebRTC'); }
+      if (audit.webrtc.mediaDevices && audit.webrtc.mediaDevices.labels) { score -= 5; notes.push('Media device labels visible'); }
+      if (!audit.http) { score -= 10; notes.push('IP lookup unavailable'); }
+      return { score: Math.max(0, score), notes: notes };
+    }
+
+    function renderScore() {
+      const s = computeScore();
+      const score = s.score, notes = s.notes;
+      const fill = document.getElementById('scoreFill');
+      const num = document.getElementById('scoreNum');
+      const title = document.getElementById('scoreTitle');
+      const sub = document.getElementById('scoreSub');
+      const r = 26, circ = 2 * Math.PI * r;
+      fill.style.strokeDasharray = circ;
+      fill.style.strokeDashoffset = circ;
+      requestAnimationFrame(() => requestAnimationFrame(() => { fill.style.strokeDashoffset = circ * (1 - score / 100); }));
+      num.innerHTML = score + '<small>/100</small>';
+      if (score >= 90) { title.textContent = 'Excellent privacy posture'; }
+      else if (score >= 70) { title.textContent = 'Good, with minor gaps'; }
+      else { title.textContent = 'Needs attention'; }
+      sub.textContent = notes.length ? notes.join(' · ') : 'All checks passed — nothing unexpected leaked.';
+    }
+
+    function overallStatus() {
+      const wv = audit.webrtc.verdict, dv = audit.dns.verdict;
+      const leaking = (wv && wv.kind === 'warn') || (dv && dv.kind === 'warn');
+      const card = document.getElementById('statusCard');
+      const iconBg = document.getElementById('statusIconBg');
+      const icon = document.getElementById('statusIcon');
+      iconBg.classList.remove('scanning');
+      if (leaking) {
+        card.className = 'status-card leaking';
+        icon.textContent = 'gpp_bad';
+        document.getElementById('statusTitle').textContent = 'Leaks detected';
+        document.getElementById('statusSubtitle').textContent = 'At least one check found traffic or interfaces escaping your expected tunnel. Review the sections below.';
+      } else {
+        card.className = 'status-card secure';
+        icon.textContent = 'verified_user';
+        document.getElementById('statusTitle').textContent = 'No leaks detected';
+        document.getElementById('statusSubtitle').textContent = 'Your IP, DNS and WebRTC paths are consistent with your current connection. Nothing unexpected was exposed.';
+      }
+    }
+
+    /* ===================== Main scan ===================== */
+    let scanning = false;
+    async function runScan() {
+      if (scanning) return;
+      scanning = true;
+      const runBtn = document.getElementById('runBtn');
+      runBtn.classList.add('running');
+      runBtn.innerHTML = '<div class="spinner"></div><span>Scanning…</span>';
+      document.getElementById('results').classList.add('show');
+
+      peerConnections.forEach(pc => { try { pc.close(); } catch (e) {} });
+      peerConnections = [];
+      audit.http = null;
+      audit.dns = { results: [], osAttempted: null, verdict: null };
+      audit.webrtc = { candidates: [], publicIps: new Map(), localIps: new Set(), mediaDevices: null, verdict: null };
+
+      const sib = document.getElementById('statusIconBg');
+      document.getElementById('statusCard').className = 'status-card';
+      sib.className = 'status-badge-icon scanning';
+      document.getElementById('statusIcon').textContent = 'radar';
+      document.getElementById('statusTitle').textContent = 'Running scan…';
+      document.getElementById('statusSubtitle').textContent = 'Gathering IP, DNS and WebRTC signals.';
+      document.getElementById('scoreNum').innerHTML = '0<small>/100</small>';
+
+      setProgress(8, 'IP egress');
+      const ipP = runIpCheck();
+      const webrtcP = runWebrtcCheck();
+      setProgress(30, 'WebRTC ICE');
+      await ipP;
+      setProgress(55, 'DNS resolvers');
+      await runDnsCheck();
+      await webrtcP;
+      setProgress(100, 'Done');
+      renderScore();
+      overallStatus();
+      setTimeout(hideProgress, 1600);
+      runBtn.classList.remove('running');
+      runBtn.innerHTML = '<span class="material-symbols-rounded">refresh</span><span>Run Full Scan</span>';
+      scanning = false;
+    }
+
+    document.getElementById('runBtn').addEventListener('click', runScan);
+
+    /* Export JSON report */
+    document.getElementById('exportBtn').addEventListener('click', () => {
+      const report = {
+        app: 'Inpriv Trace', version: '1.0.0', timestamp: new Date().toISOString(),
+        httpEgress: audit.http || 'unavailable',
+        dns: audit.dns.results.map(pair => ({ resolver: pair.resolver.name, ok: pair.result.ok, ms: pair.result.ms, egress: pair.result.egressIp, intel: pair.result.intel ? { isp: pair.result.intel.isp, country: pair.result.intel.country } : null })),
+        dnsVerdict: audit.dns.verdict ? audit.dns.verdict.title : null,
+        webrtc: {
+          publicIps: Array.from(audit.webrtc.publicIps.entries()).map(pair => ({ ip: pair[0], isp: pair[1].isp || null, vpnDc: !!pair[1].vpnDc })),
+          localInterfaces: Array.from(audit.webrtc.localIps),
+          candidates: audit.webrtc.candidates.map(c => ({ type: c.type, proto: c.proto, ip: c.ip, port: c.port, via: c.serverName })),
+          verdict: audit.webrtc.verdict ? audit.webrtc.verdict.title : null
+        },
+        score: computeScore()
+      };
+      const jsonStr = JSON.stringify(report, null, 2);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(jsonStr).then(() => showToast('Audit report copied as JSON', 'file_download')).catch(() => showToast('Copy failed — clipboard blocked', 'error'));
+      } else { showToast('Clipboard unavailable in this browser', 'error'); }
+    });
+
+    window.addEventListener('DOMContentLoaded', runScan);
+  </script>
+</body>
+</html>

@@ -12,7 +12,7 @@ No trackers. No remote logs. No compromises — everything runs in your browser.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Website](https://img.shields.io/badge/website-inpriv.xyz-466E47)](https://inpriv.xyz)
-[![Tools](https://img.shields.io/badge/tools-15%20live%20%2B%207%20in%20dev-ABD37A)](https://inpriv.xyz)
+[![Tools](https://img.shields.io/badge/tools-14%20live%20%2B%207%20in%20dev-ABD37A)](https://inpriv.xyz)
 [![Zero-Knowledge](https://img.shields.io/badge/zero--knowledge-%E2%9C%93-C7EFA0)]()
 [![By Aurex Labs](https://img.shields.io/badge/by-Aurex%20Labs-9C4231)]()
 
@@ -35,13 +35,11 @@ Inpriv is an ecosystem of **zero-knowledge, fully client-side web utilities** �
 - **Hush** — [hush.best](https://hush.best) — E2E encrypted chat. Forward-secret rooms, QR sharing, zero metadata
 - **Wipe** — [wipe.inpriv.xyz](https://wipe.inpriv.xyz) — metadata (EXIF/GPS) sanitizer for images
 - **Compress** — [compress.inpriv.xyz](https://compress.inpriv.xyz) — image compression, no uploads
-- **WebRTC Leak** — [webrtc.inpriv.xyz](https://webrtc.inpriv.xyz) — real-IP leak detection
+- **Trace** — [trace.inpriv.xyz](https://trace.inpriv.xyz) — one scan: IP & ISP intel, DNS leak test, WebRTC leak check
 - **Pay** — [pay.inpriv.xyz](https://pay.inpriv.xyz) — crypto payment bridge
 - **Hash** — [hash.inpriv.xyz](https://hash.inpriv.xyz) — SHA & MD5 checksums, in-browser
-- **DNS Leak** — [dns.inpriv.xyz](https://dns.inpriv.xyz) — DNS audit over DoH
 - **QR** — [qr.inpriv.xyz](https://qr.inpriv.xyz) — generate & read QR codes, offline
 - **Keyring** — [keyring.inpriv.xyz](https://keyring.inpriv.xyz) — zero-knowledge secret vault
-- **IP Info** — [ipinfo.inpriv.xyz](https://ipinfo.inpriv.xyz) — what your browser reveals
 - **Brute** — [brute.inpriv.xyz](https://brute.inpriv.xyz) — hash brute-force matcher
 - **TOTP** — [totp.inpriv.xyz](https://totp.inpriv.xyz) — RFC 6238 authenticator, encrypted vault
 - **Burn** — [burn.inpriv.xyz](https://burn.inpriv.xyz) — ephemeral encrypted notes, read-once
@@ -110,13 +108,14 @@ inpriv/
 ├── .hush/              # E2E chat — web app + signaling server
 ├── .wipe/              # Metadata sanitizer
 ├── .compress/          # Image compression
-├── .webrtc/            # WebRTC leak test
+├── .trace/             # IP + DNS + WebRTC leak test (one scan)
 ├── .pay/               # Crypto payment bridge
 ├── .hash/              # Checksum generator
-├── .dns/               # DNS leak test (DoH)
+├── .webrtc/            # redirects to trace.inpriv.xyz
 ├── .qr/                # QR generator/reader
 ├── .keyring/           # Encrypted secret vault
-├── .ipinfo/            # Browser fingerprint inspector
+├── .dns/               # redirects to trace.inpriv.xyz
+├── .ipinfo/            # redirects to trace.inpriv.xyz
 ├── .brute/             # Hash brute-force matcher
 ├── .stego/             # LSB steganography — hide encrypted messages in PNGs
 ├── .temp/              # disposable email — random @inpriv.xyz inboxes, Resend inbound
@@ -137,7 +136,7 @@ inpriv/
 
 ## <img src="assets/icons/map.svg" width="18" height="18" align="center" alt=""> Roadmap
 
-- [x] 15 core tools live on production
+- [x] 14 core tools live on production
 - [ ] PWA + offline support
 - [ ] Zero wallet — security audit before release
 - [ ] Mail — encrypted disposable email
