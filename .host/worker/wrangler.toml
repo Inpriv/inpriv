@@ -35,9 +35,8 @@ binding = "ASSETS"
 run_worker_first = true
 
 [vars]
-# DRIVE_FOLDER_ID — optional Google Drive folder id to keep uploads tidy.
-# Leave empty to store in the service account's root My Drive.
-DRIVE_FOLDER_ID = ""
+# DRIVE_FOLDER_ID — the user's shared Drive folder where uploads are stored.
+DRIVE_FOLDER_ID = "1eLqnZRjoBEby5PueC5Fu3Kb09aq9Ndz-"
 
 # Secrets (set via `npx wrangler secret put <NAME>`):
 #   DRIVE_SERVICE_ACCOUNT — full JSON of the Google service-account key file

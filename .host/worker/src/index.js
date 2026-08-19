@@ -75,7 +75,11 @@ export default {
       }
 
       // ── API ──
-      if (path === "/api/health") return json({ ok: true, service: "host", ts: Date.now() });
+      if (path === "/api/health") {
+        let drive = "off";
+        try { await getAccessToken(env); drive = env.DRIVE_OAUTH ? "oauth" : "sa"; } catch (e) { drive = String(e.message || e).split(":")[0]; }
+        return json({ ok: true, service: "host", drive, ts: Date.now() });
+      }
       if (path === "/api/auth/login" && request.method === "POST") return await login(request, env, cors);
       if (path === "/api/auth/logout" && request.method === "POST") return json({ ok: true }, 200, cors);
 
@@ -520,8 +524,38 @@ function scanText(text, fname) {
   return { status: blocked ? "blocked" : "pass", findings, summary };
 }
 
-// ── Google Drive (service account, JWT signed with WebCrypto) ───────────────
+// ── Google Drive (user OAuth refresh token preferred; service account fallback) ──
 async function getAccessToken(env) {
+  const nowSec0 = Math.floor(Date.now() / 1000);
+
+  // Preferred: user OAuth — files are owned by the user and use their quota
+  if (env.DRIVE_OAUTH) {
+    let oa;
+    try { oa = JSON.parse(env.DRIVE_OAUTH); } catch { throw new Error("drive_bad_oauth_secret"); }
+    const cached = await env.KV.get("drive_token");
+    if (cached) {
+      try {
+        const t = JSON.parse(cached);
+        if (t.exp - 300 > nowSec0) return t.token;
+      } catch {}
+    }
+    const res = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "refresh_token",
+        client_id: oa.client_id,
+        client_secret: oa.client_secret,
+        refresh_token: oa.refresh_token,
+      }),
+    });
+    if (!res.ok) throw new Error("drive_oauth_refresh_failed: " + res.status + " " + (await res.text()).slice(0, 120));
+    const d = await res.json();
+    await env.KV.put("drive_token", JSON.stringify({ token: d.access_token, exp: nowSec0 + (d.expires_in || 3600) }), { expirationTtl: 3300 });
+    return d.access_token;
+  }
+
+  // Fallback: service account JWT (works only on Workspace shared drives)
   if (!env.DRIVE_SERVICE_ACCOUNT) throw new Error("drive_not_configured");
   let sa;
   try { sa = JSON.parse(env.DRIVE_SERVICE_ACCOUNT); } catch { throw new Error("drive_bad_secret"); }
