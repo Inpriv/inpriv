@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<!--
+  Inpriv Host — private static file hosting with a built-in privacy shield
+  Copyright (c) 2026 Aurex Labs — MIT License
+
+  Host your own sites, pages and files on host.inpriv.xyz. Every upload is
+  scanned server-side for IP loggers, WebRTC leaks, trackers and beacons
+  before it is published. Files that fail the scan are never served.
+-->
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com fonts.gstatic.com; script-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.googleapis.com fonts.gstatic.com; img-src 'self' data: blob: https://hush.best; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'; connect-src 'self'; worker-src 'none'; manifest-src 'self'">
+  <title>Inpriv Host — Private Static Hosting</title>
+  <meta name="description" content="Host your own static files and sites with a built-in privacy shield. Every upload is scanned for IP loggers, WebRTC leaks and trackers before it goes live." />
+  <link rel="icon" type="image/png" href="https://hush.best/icon.png" />
+  <link rel="apple-touch-icon" href="https://hush.best/icon.png" />
+  <link rel="shortcut icon" href="https://hush.best/icon.png" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:ital,opsz,wght@0,8..144,100..1000;1,8..144,100..1000&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap">
+
+  <style>
+    /* ===== 1. DESIGN TOKENS (Aurex Labs M3 Earthy Forest) ===== */
+    :root {
+      --md-easing-standard: cubic-bezier(0.2, 0.0, 0.0, 1.0);
+      --md-easing-emphasized: cubic-bezier(0.3, 0.0, 0.0, 1.0);
+      --md-easing-spring: cubic-bezier(0.2, 1.4, 0, 1);
+      --md-sys-shape-corner-xl: 28px;
+      --md-sys-shape-corner-lg: 24px;
+      --md-sys-shape-corner-md: 16px;
+      --md-sys-shape-corner-sm: 12px;
+      --md-sys-shape-corner-full: 9999px;
+    }
+    html[data-theme="light"] {
+      --md-primary: #466E47;
+      --md-on-primary: #FFFFFF;
+      --md-primary-container: #C7EFA0;
+      --md-on-primary-container: #32110A;
+      --md-secondary-container: #DEE8C8;
+      --md-on-secondary-container: #25361F;
+      --md-tertiary: #8B6032;
+      --md-tertiary-container: #FFDCC2;
+      --md-on-tertiary-container: #2F1600;
+      --md-error: #BA1A1A;
+      --md-error-container: #FFDAD6;
+      --md-on-error-container: #93000A;
+      --md-surface: #FAF9F0;
+      --md-surface-dim: #DBD9CB;
+      --md-surface-container: #F0EFE4;
+      --md-surface-container-high: #EAE9DD;
+      --md-surface-container-highest: #E4E3D7;
+      --md-on-surface: #1B1C16;
+      --md-on-surface-variant: #45483D;
+      --md-outline: #75786C;
+      --md-outline-variant: #C5C8BA;
+      --md-success: #3E6B3F;
+      --md-success-container: #C4EFB4;
+      --md-warning: #7A5900;
+      --md-warning-container: #FFDF9A;
+      --md-shadow: 0 2px 6px -1px rgb(0 0 0 / 0.08), 0 8px 24px -4px rgb(0 0 0 / 0.10);
+      --md-glass: rgba(250, 249, 240, 0.72);
+      color-scheme: light;
+    }
+    html[data-theme="dark"] {
+      --md-primary: #ABD37A;
+      --md-on-primary: #1B2E12;
+      --md-primary-container: #2E4F2F;
+      --md-on-primary-container: #C7EFA0;
+      --md-secondary-container: #3D4B34;
+      --md-on-secondary-container: #D5E7BC;
+      --md-tertiary: #FFB77C;
+      --md-tertiary-container: #6D431F;
+      --md-on-tertiary-container: #FFDCC2;
+      --md-error: #FFB4AB;
+      --md-error-container: #93000A;
+      --md-on-error-container: #FFDAD6;
+      --md-surface: #13140E;
+      --md-surface-dim: #13140E;
+      --md-surface-container: #1B1C15;
+      --md-surface-container-high: #25271F;
+      --md-surface-container-highest: #303227;
+      --md-on-surface: #E3E2D3;
+      --md-on-surface-variant: #C5C8BA;
+      --md-outline: #8F9285;
+      --md-outline-variant: #45483D;
+      --md-success: #ABD37A;
+      --md-success-container: #2E4F2F;
+      --md-warning: #FFDF9A;
+      --md-warning-container: #55410A;
+      --md-shadow: 0 2px 6px -1px rgb(0 0 0 / 0.25), 0 10px 32px -4px rgb(0 0 0 / 0.4);
+      --md-glass: rgba(19, 20, 14, 0.72);
+      color-scheme: dark;
+    }
+
+    /* ===== 2. BASE ===== */
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html { overscroll-behavior: none; }
+    body {
+      font-family: 'Roboto Flex', system-ui, -apple-system, sans-serif;
+      background: var(--md-surface);
+      color: var(--md-on-surface);
+      min-height: 100dvh;
+      font-size: 15px;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+    body::before {
+      content: "";
+      position: fixed; inset: 0; z-index: -1; pointer-events: none;
+      background:
+        radial-gradient(ellipse 60% 40% at 85% -10%, color-mix(in srgb, var(--md-primary) 14%, transparent), transparent 70%),
+        radial-gradient(ellipse 50% 35% at 0% 100%, color-mix(in srgb, var(--md-tertiary) 9%, transparent), transparent 70%);
+      opacity: 0.9;
+    }
+    .ms, .icon { font-family: 'Material Symbols Rounded'; font-weight: normal; font-style: normal; font-size: 22px; line-height: 1; letter-spacing: normal; text-transform: none; display: inline-block; white-space: nowrap; word-wrap: normal; direction: ltr; -webkit-font-feature-settings: 'liga'; -webkit-font-smoothing: antialiased; font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; user-select: none; }
+    .icon-filled { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    a { color: var(--md-primary); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+    input { font-family: inherit; }
+    ::selection { background: color-mix(in srgb, var(--md-primary) 30%, transparent); }
+
+    /* ===== 3. APP BAR ===== */
+    .app-bar {
+      position: sticky; top: 0; z-index: 40;
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px clamp(16px, 4vw, 28px);
+      background: var(--md-glass);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border-bottom: 1px solid color-mix(in srgb, var(--md-outline-variant) 45%, transparent);
+    }
+    .brand-icon {
+      width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+      background: var(--md-primary-container); color: var(--md-on-primary-container);
+      display: flex; align-items: center; justify-content: center;
+      transition: transform 0.4s var(--md-easing-spring);
+    }
+    .brand-icon:hover { transform: scale(1.06) rotate(-4deg); }
+    .brand-icon .icon { font-size: 21px; }
+    .brand-name { font-size: 1.12rem; font-weight: 600; letter-spacing: -0.01em; }
+    .brand-name em { font-style: normal; color: var(--md-primary); }
+    .app-bar-spacer { flex: 1; }
+    .icon-btn {
+      width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--md-on-surface); font-size: 15px; font-weight: 500;
+      transition: background-color 0.2s var(--md-easing-standard), transform 0.15s var(--md-easing-spring);
+    }
+    .icon-btn:hover { background: color-mix(in srgb, var(--md-on-surface) 8%, transparent); }
+    .icon-btn:active { transform: scale(0.92); }
+    .account-chip {
+      display: flex; align-items: center; gap: 8px;
+      height: 38px; padding: 0 14px 0 8px;
+      border-radius: var(--md-sys-shape-corner-full);
+      background: var(--md-secondary-container); color: var(--md-on-secondary-container);
+      font-size: 0.85rem; font-weight: 600; max-width: 190px;
+    }
+    .account-chip .avatar {
+      width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+      background: var(--md-primary); color: var(--md-on-primary);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.78rem; font-weight: 700; text-transform: uppercase;
+    }
+    .account-chip span.uname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* ===== 4. LAYOUT ===== */
+    main { max-width: 880px; margin: 0 auto; padding: 20px clamp(14px, 4vw, 28px) 96px; }
+    .page { display: none; animation: pageIn 0.45s var(--md-easing-emphasized); }
+    .page.active { display: block; }
+    @keyframes pageIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+    .card {
+      background: var(--md-surface-container);
+      border: 1px solid color-mix(in srgb, var(--md-outline-variant) 40%, transparent);
+      border-radius: var(--md-sys-shape-corner-lg);
+      box-shadow: var(--md-shadow);
+      padding: clamp(18px, 3.5vw, 26px);
+      margin-bottom: 16px;
+    }
+
+    /* ===== 5. LOGIN ===== */
+    #loginPage { display: none; align-items: center; justify-content: center; min-height: calc(100dvh - 140px); }
+    #loginPage.active { display: flex; }
+    .login-card { width: 100%; max-width: 420px; text-align: center; }
+    .login-logo {
+      width: 68px; height: 68px; border-radius: 22px; margin: 0 auto 18px;
+      background: var(--md-primary-container); color: var(--md-on-primary-container);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 8px 24px color-mix(in srgb, var(--md-primary) 25%, transparent);
+    }
+    .login-logo .icon { font-size: 34px; }
+    .login-card h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 6px; }
+    .login-card h1 em { font-style: normal; color: var(--md-primary); }
+    .login-sub { color: var(--md-on-surface-variant); font-size: 0.92rem; margin-bottom: 26px; }
+    .field { text-align: left; margin-bottom: 14px; }
+    .field label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--md-on-surface-variant); margin-bottom: 6px; margin-left: 4px; }
+    .field input {
+      width: 100%; height: 52px; font-size: 16px;
+      padding: 0 18px; border-radius: var(--md-sys-shape-corner-md);
+      border: 1px solid var(--md-outline-variant);
+      background: var(--md-surface); color: var(--md-on-surface);
+      outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .field input:focus { border-color: var(--md-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-primary) 22%, transparent); }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      height: 50px; padding: 0 26px;
+      border-radius: var(--md-sys-shape-corner-full);
+      font-size: 0.95rem; font-weight: 600; letter-spacing: 0.01em;
+      background: var(--md-primary); color: var(--md-on-primary);
+      transition: transform 0.15s var(--md-easing-spring), box-shadow 0.2s, opacity 0.2s, background-color 0.2s;
+      box-shadow: 0 2px 10px color-mix(in srgb, var(--md-primary) 30%, transparent);
+    }
+    .btn:hover { box-shadow: 0 4px 18px color-mix(in srgb, var(--md-primary) 40%, transparent); }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.55; cursor: wait; }
+    .btn .icon { font-size: 19px; }
+    .btn-full { width: 100%; }
+    .btn-tonal { background: var(--md-secondary-container); color: var(--md-on-secondary-container); box-shadow: none; }
+    .btn-text { background: transparent; color: var(--md-primary); box-shadow: none; height: 42px; padding: 0 14px; }
+    .login-error {
+      display: none; margin-bottom: 14px; padding: 12px 16px;
+      border-radius: var(--md-sys-shape-corner-sm);
+      background: var(--md-error-container); color: var(--md-on-error-container);
+      font-size: 0.87rem; font-weight: 500; text-align: left;
+    }
+    .login-error.show { display: block; animation: shake 0.4s var(--md-easing-standard); }
+    @keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+    .login-foot { margin-top: 20px; font-size: 0.85rem; color: var(--md-on-surface-variant); }
+    .login-hint {
+      margin-top: 26px; padding-top: 18px; border-top: 1px dashed var(--md-outline-variant);
+      font-size: 0.8rem; color: var(--md-on-surface-variant); display: flex; gap: 10px; align-items: flex-start; text-align: left;
+    }
+    .login-hint .icon { font-size: 18px; color: var(--md-primary); flex-shrink: 0; margin-top: 1px; }
+
+    /* ===== 6. STATS ROW ===== */
+    .stats-row { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 16px; }
+    .stat-card {
+      background: var(--md-surface-container); border-radius: var(--md-sys-shape-corner-lg);
+      border: 1px solid color-mix(in srgb, var(--md-outline-variant) 40%, transparent);
+      padding: 16px 20px; box-shadow: var(--md-shadow);
+      display: flex; align-items: center; gap: 14px;
+    }
+    .stat-icon {
+      width: 44px; height: 44px; border-radius: 14px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--md-primary-container); color: var(--md-on-primary-container);
+    }
+    .stat-icon .icon { font-size: 22px; }
+    .stat-label { font-size: 0.76rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--md-on-surface-variant); }
+    .stat-value { font-size: 1.18rem; font-weight: 700; letter-spacing: -0.01em; }
+    .stat-sub { font-size: 0.78rem; color: var(--md-on-surface-variant); }
+    .quota-bar { height: 8px; border-radius: 9999px; background: color-mix(in srgb, var(--md-outline-variant) 55%, transparent); overflow: hidden; margin-top: 8px; }
+    .quota-fill { height: 100%; border-radius: 9999px; background: linear-gradient(90deg, var(--md-primary), color-mix(in srgb, var(--md-primary) 65%, var(--md-tertiary))); transition: width 0.8s var(--md-easing-emphasized); }
+
+    /* ===== 7. UPLOAD ===== */
+    .dropzone {
+      border: 2px dashed color-mix(in srgb, var(--md-outline-variant) 80%, transparent);
+      border-radius: var(--md-sys-shape-corner-lg);
+      padding: 36px 20px; text-align: center; cursor: pointer;
+      transition: border-color 0.25s, background-color 0.25s, transform 0.2s var(--md-easing-spring);
+    }
+    .dropzone:hover, .dropzone:focus-visible { border-color: var(--md-primary); background: color-mix(in srgb, var(--md-primary) 5%, transparent); outline: none; }
+    .dropzone.dragover { border-color: var(--md-primary); background: color-mix(in srgb, var(--md-primary) 10%, transparent); transform: scale(1.01); }
+    .dz-icon {
+      width: 58px; height: 58px; border-radius: 18px; margin: 0 auto 14px;
+      background: var(--md-primary-container); color: var(--md-on-primary-container);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .dz-icon .icon { font-size: 28px; }
+    .dz-title { font-size: 1.02rem; font-weight: 600; margin-bottom: 4px; }
+    .dz-title em { font-style: normal; color: var(--md-primary); }
+    .dz-sub { font-size: 0.82rem; color: var(--md-on-surface-variant); max-width: 480px; margin: 0 auto; }
+    .upload-limits { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 16px; }
+    .limit-chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 12px; border-radius: 9999px; font-size: 0.74rem; font-weight: 600;
+      background: color-mix(in srgb, var(--md-on-surface) 6%, transparent); color: var(--md-on-surface-variant);
+    }
+    .limit-chip .icon { font-size: 14px; }
+
+    .upload-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px; border-radius: var(--md-sys-shape-corner-md);
+      background: var(--md-surface-container-high);
+      margin-top: 10px; border: 1px solid color-mix(in srgb, var(--md-outline-variant) 35%, transparent);
+    }
+    .upload-item .ficon { width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: var(--md-secondary-container); color: var(--md-on-secondary-container); }
+    .upload-item .ficon .icon { font-size: 19px; }
+    .upload-item .fmeta { flex: 1; min-width: 0; }
+    .upload-item .fname { font-size: 0.88rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .upload-item .fstatus { font-size: 0.76rem; color: var(--md-on-surface-variant); margin-top: 2px; }
+    .upload-item .fstatus.err { color: var(--md-error); font-weight: 600; }
+    .progress-track { height: 5px; border-radius: 9999px; background: color-mix(in srgb, var(--md-outline-variant) 55%, transparent); overflow: hidden; margin-top: 7px; }
+    .progress-fill { height: 100%; width: 0%; border-radius: 9999px; background: var(--md-primary); transition: width 0.25s ease; }
+    .spinner {
+      width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+      border: 2.5px solid color-mix(in srgb, var(--md-primary) 25%, transparent);
+      border-top-color: var(--md-primary);
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .abort-btn { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--md-on-surface-variant); flex-shrink: 0; }
+    .abort-btn:hover { background: color-mix(in srgb, var(--md-error) 12%, transparent); color: var(--md-error); }
+    .abort-btn .icon { font-size: 18px; }
+
+    /* ===== 8. FILES LIST ===== */
+    .section-head { display: flex; align-items: center; gap: 10px; margin: 26px 0 12px; }
+    .section-head h2 { font-size: 1.05rem; font-weight: 700; letter-spacing: -0.01em; }
+    .section-head .count-pill { font-size: 0.74rem; font-weight: 700; padding: 3px 10px; border-radius: 9999px; background: var(--md-primary-container); color: var(--md-on-primary-container); }
+    .section-head .spacer { flex: 1; }
+    .search-input {
+      height: 42px; width: 200px; font-size: 0.85rem;
+      padding: 0 14px; border-radius: 9999px;
+      border: 1px solid var(--md-outline-variant); background: var(--md-surface); color: var(--md-on-surface); outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .search-input:focus { border-color: var(--md-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-primary) 20%, transparent); }
+    .file-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 13px 16px; border-radius: var(--md-sys-shape-corner-md);
+      background: var(--md-surface-container);
+      border: 1px solid color-mix(in srgb, var(--md-outline-variant) 35%, transparent);
+      margin-bottom: 9px;
+      transition: transform 0.15s var(--md-easing-spring), box-shadow 0.2s;
+    }
+    .file-row:hover { transform: translateY(-1px); box-shadow: var(--md-shadow); }
+    .file-row .ficon { width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: var(--md-secondary-container); color: var(--md-on-secondary-container); }
+    .file-row .ficon .icon { font-size: 20px; }
+    .file-row .fmeta { flex: 1; min-width: 0; }
+    .file-row .fname { font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .file-row .fname .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+    .badge { font-size: 0.68rem; font-weight: 700; padding: 2px 9px; border-radius: 9999px; letter-spacing: 0.03em; }
+    .badge-public { background: var(--md-success-container); color: var(--md-on-primary-container); }
+    html[data-theme="dark"] .badge-public { color: #C7EFA0; }
+    .badge-private { background: var(--md-warning-container); color: var(--md-on-warning-container, #7A5900); }
+    .file-row .furl { font-size: 0.76rem; color: var(--md-on-surface-variant); margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, 'Cascadia Code', monospace; }
+    .file-row .fmeta2 { font-size: 0.73rem; color: var(--md-on-surface-variant); margin-top: 3px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .row-actions { display: flex; gap: 4px; flex-shrink: 0; }
+    .row-btn {
+      width: 38px; height: 38px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--md-on-surface-variant);
+      transition: background-color 0.2s, color 0.2s, transform 0.15s var(--md-easing-spring);
+    }
+    .row-btn:hover { background: color-mix(in srgb, var(--md-on-surface) 8%, transparent); color: var(--md-on-surface); }
+    .row-btn:active { transform: scale(0.9); }
+    .row-btn.danger:hover { background: color-mix(in srgb, var(--md-error) 14%, transparent); color: var(--md-error); }
+    .row-btn .icon { font-size: 19px; }
+    .empty-state { text-align: center; padding: 44px 20px; color: var(--md-on-surface-variant); }
+    .empty-state .bigicon { width: 64px; height: 64px; border-radius: 20px; background: var(--md-surface-container-high); display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; }
+    .empty-state .bigicon .icon { font-size: 30px; color: var(--md-on-surface-variant); }
+    .empty-state p { font-size: 0.88rem; }
+
+    /* ===== 9. SCANNER RESULTS ===== */
+    .scan-card { border-left: 4px solid var(--md-primary); }
+    .scan-card.blocked { border-left-color: var(--md-error); }
+    .scan-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .scan-head .icon-box { width: 42px; height: 42px; border-radius: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--md-success-container); color: var(--md-success); }
+    .scan-card.blocked .scan-head .icon-box { background: var(--md-error-container); color: var(--md-error); }
+    .scan-head h3 { font-size: 1rem; font-weight: 700; }
+    .scan-head .scan-sub { font-size: 0.78rem; color: var(--md-on-surface-variant); }
+    .verdict-chip { margin-left: auto; font-size: 0.72rem; font-weight: 700; padding: 5px 12px; border-radius: 9999px; letter-spacing: 0.04em; text-transform: uppercase; }
+    .verdict-pass { background: var(--md-success-container); color: var(--md-success); }
+    .verdict-block { background: var(--md-error-container); color: var(--md-error); }
+    .finding {
+      display: flex; gap: 10px; align-items: flex-start;
+      padding: 11px 14px; border-radius: var(--md-sys-shape-corner-sm);
+      background: var(--md-surface-container-high);
+      margin-bottom: 8px; font-size: 0.84rem;
+    }
+    .finding .icon { font-size: 18px; flex-shrink: 0; margin-top: 2px; }
+    .finding.sev-block .icon, .finding.sev-block strong { color: var(--md-error); }
+    .finding.sev-warn .icon, .finding.sev-warn strong { color: var(--md-warning); }
+    .finding.sev-info .icon { color: var(--md-primary); }
+    .finding.sev-pass .icon, .finding.sev-pass strong { color: var(--md-success); }
+    .finding .fx { color: var(--md-on-surface-variant); font-size: 0.78rem; margin-top: 2px; }
+    .finding code { font-family: ui-monospace, 'Cascadia Code', monospace; font-size: 0.76rem; background: color-mix(in srgb, var(--md-on-surface) 7%, transparent); padding: 1px 6px; border-radius: 6px; word-break: break-all; }
+
+    /* ===== 10. TOASTS ===== */
+    #toasts { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 2147482000; display: flex; flex-direction: column; gap: 8px; width: min(420px, calc(100vw - 32px)); }
+    .toast {
+      display: flex; align-items: center; gap: 10px;
+      padding: 13px 16px; border-radius: var(--md-sys-shape-corner-md);
+      background: var(--md-surface-container-highest); color: var(--md-on-surface);
+      box-shadow: 0 8px 30px rgb(0 0 0 / 0.28);
+      font-size: 0.86rem; font-weight: 500;
+      animation: toastIn 0.4s var(--md-easing-spring);
+      border: 1px solid color-mix(in srgb, var(--md-outline-variant) 45%, transparent);
+    }
+    .toast.out { animation: toastOut 0.3s var(--md-easing-standard) forwards; }
+    .toast .icon { font-size: 19px; flex-shrink: 0; }
+    .toast.ok .icon { color: var(--md-success); }
+    .toast.err .icon { color: var(--md-error); }
+    @keyframes toastIn { from { opacity: 0; transform: translateY(20px) scale(0.96); } to { opacity: 1; transform: none; } }
+    @keyframes toastOut { to { opacity: 0; transform: translateY(10px) scale(0.97); } }
+
+    /* ===== 11. MODAL ===== */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 2147483000;
+      background: rgb(0 0 0 / 0.55);
+      display: flex; align-items: flex-end; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.3s var(--md-easing-standard);
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: auto; }
+    .modal-sheet {
+      width: 100%; max-width: 560px; max-height: 86dvh; overflow-y: auto;
+      background: var(--md-surface-container); color: var(--md-on-surface);
+      border-radius: var(--md-sys-shape-corner-xl) var(--md-sys-shape-corner-xl) 0 0;
+      padding: 8px 22px calc(22px + env(safe-area-inset-bottom));
+      transform: translateY(100%);
+      transition: transform 0.42s var(--md-easing-emphasized);
+      -webkit-overflow-scrolling: touch;
+    }
+    .modal-overlay.open .modal-sheet { transform: translateY(0); }
+    .modal-grip { width: 36px; height: 4px; border-radius: 9999px; background: var(--md-outline-variant); margin: 8px auto 16px; }
+    .modal-title { font-size: 1.12rem; font-weight: 700; margin-bottom: 2px; letter-spacing: -0.01em; }
+    .modal-sub { font-size: 0.82rem; color: var(--md-on-surface-variant); margin-bottom: 18px; word-break: break-all; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+    .modal-actions .btn { flex: 1; }
+    .btn-danger { background: var(--md-error); color: var(--md-on-error, #fff); }
+    @media (min-width: 640px) {
+      .modal-overlay { align-items: center; }
+      .modal-sheet { border-radius: var(--md-sys-sys-shape-corner-xl, 28px); border-radius: 28px; margin: 20px; }
+    }
+
+    /* ===== 12. SECURITY PAGE ===== */
+    .sec-feature { display: flex; gap: 14px; padding: 14px 0; border-bottom: 1px solid color-mix(in srgb, var(--md-outline-variant) 30%, transparent); }
+    .sec-feature:last-child { border-bottom: none; }
+    .sec-feature .icon-box { width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: var(--md-primary-container); color: var(--md-on-primary-container); }
+    .sec-feature .icon-box .icon { font-size: 20px; }
+    .sec-feature h4 { font-size: 0.92rem; font-weight: 700; margin-bottom: 3px; }
+    .sec-feature p { font-size: 0.82rem; color: var(--md-on-surface-variant); }
+    .page-head { margin-bottom: 16px; }
+    .page-head h1 { font-size: 1.45rem; font-weight: 700; letter-spacing: -0.02em; }
+    .page-head p { color: var(--md-on-surface-variant); font-size: 0.88rem; margin-top: 4px; }
+
+    /* ===== 13. RESPONSIVE ===== */
+    @media (min-width: 700px) {
+      .stats-row { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 560px) {
+      .search-input { width: 130px; }
+      .account-chip span.uname { display: none; }
+      .account-chip { padding: 0; width: 42px; height: 42px; justify-content: center; border-radius: 50%; }
+      .row-actions .row-btn { width: 40px; height: 40px; }
+    }
+    /* Inpriv ID floating widget suppression (this app has its own header chip) */
+    #inpriv-id-chip, .inpriv-id-chip, #inpriv-id-prompt, .inpriv-id-prompt, #inpriv-id-card, .inpriv-id-card {
+      display: none !important; visibility: hidden !important; pointer-events: none !important;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <!-- ═══════════ APP BAR ═══════════ -->
+  <header class="app-bar">
+    <a class="brand-icon" href="https://inpriv.xyz" aria-label="Inpriv home"><span class="icon" aria-hidden="true">cloud_upload</span></a>
+    <div class="brand-name">Inpriv<em>.</em> Host</div>
+    <div class="app-bar-spacer"></div>
+    <button class="icon-btn" id="themeToggle" aria-label="Toggle theme" title="Toggle theme"><span class="icon" aria-hidden="true">dark_mode</span></button>
+    <a class="icon-btn" href="https://inpriv.xyz" aria-label="Inpriv suite" title="Inpriv suite" style="text-decoration:none"><span class="icon" aria-hidden="true">apps</span></a>
+    <button class="account-chip" id="accountChip" style="display:none" aria-label="Account">
+      <span class="avatar" id="avatarEl">u</span>
+      <span class="uname" id="unameEl">username</span>
+      <span class="icon" aria-hidden="true" style="font-size:17px">expand_more</span>
+    </button>
+  </header>
+
+  <main>
+    <!-- ═══════════ LOGIN ═══════════ -->
+    <section id="loginPage" class="page active">
+      <div class="card login-card">
+        <div class="login-logo"><span class="icon" aria-hidden="true">cloud_upload</span></div>
+        <h1>Inpriv <em>Host</em></h1>
+        <p class="login-sub">Private static hosting with a built-in privacy shield.<br>Sign in with your Inpriv ID to manage your files.</p>
+        <div class="login-error" id="loginError" role="alert"></div>
+        <div class="field">
+          <label for="loginUser">Username or address</label>
+          <input id="loginUser" type="text" autocomplete="username" placeholder="username" spellcheck="false" autocapitalize="none" />
+        </div>
+        <div class="field">
+          <label for="loginPass">Master password</label>
+          <input id="loginPass" type="password" autocomplete="current-password" placeholder="Your master password" />
+        </div>
+        <button class="btn btn-full" id="loginBtn"><span class="icon" aria-hidden="true">login</span>Sign in with Inpriv ID</button>
+        <p class="login-foot">No account yet? <a href="https://id.inpriv.xyz" target="_blank" rel="noopener noreferrer">Create one at id.inpriv.xyz</a> — it takes a minute.</p>
+        <div class="login-hint">
+          <span class="icon" aria-hidden="true">shield_lock</span>
+          <span>Every upload is scanned for IP loggers, WebRTC leaks and hidden trackers <strong>before</strong> it is published. The file owner's IP is never stored. Your credentials are verified against Inpriv ID and never touch this service's storage.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ DASHBOARD ═══════════ -->
+    <section id="dashPage" class="page">
+      <div class="stats-row" style="margin-top:8px">
+        <div class="stat-card">
+          <div class="stat-icon"><span class="icon" aria-hidden="true">cloud</span></div>
+          <div style="flex:1;min-width:0">
+            <div class="stat-label">Storage used</div>
+            <div class="stat-value" id="statUsed">0 B</div>
+            <div class="quota-bar"><div class="quota-fill" id="quotaFill" style="width:0%"></div></div>
+            <div class="stat-sub" id="statQuota">0 B of 50 GB per account</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><span class="icon" aria-hidden="true">description</span></div>
+          <div>
+            <div class="stat-label">Files</div>
+            <div class="stat-value" id="statFiles">0</div>
+            <div class="stat-sub" id="statPublic">0 public links</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><span class="icon" aria-hidden="true">verified_user</span></div>
+          <div>
+            <div class="stat-label">Privacy shield</div>
+            <div class="stat-value">Active</div>
+            <div class="stat-sub" id="statScans">0 scans passed</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="Upload files">
+          <div class="dz-icon"><span class="icon" aria-hidden="true">upload_file</span></div>
+          <div class="dz-title">Drop files here or <em>browse</em></div>
+          <div class="dz-sub">Every file is scanned for IP loggers, WebRTC leaks and trackers before it goes live. Text files are served with a strict sandbox; images and media pass through directly.</div>
+          <div class="upload-limits">
+            <span class="limit-chip"><span class="icon" aria-hidden="true">straighten</span>Max 100 MB per file</span>
+            <span class="limit-chip"><span class="icon" aria-hidden="true">cloud</span>50 GB per account</span>
+            <span class="limit-chip"><span class="icon" aria-hidden="true">bolt</span>Unmetered bandwidth</span>
+          </div>
+        </div>
+        <input type="file" id="fileInput" multiple hidden />
+        <div id="uploadList"></div>
+      </div>
+
+      <div class="section-head">
+        <h2>Your files</h2>
+        <span class="count-pill" id="fileCount">0</span>
+        <div class="spacer"></div>
+        <input class="search-input" id="searchInput" type="search" placeholder="Search files" aria-label="Search files" />
+      </div>
+      <div id="fileList">
+        <div class="empty-state card">
+          <div class="bigicon"><span class="icon" aria-hidden="true">folder_open</span></div>
+          <p>No files yet — upload your first page, image or archive above.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ SECURITY PAGE ═══════════ -->
+    <section id="secPage" class="page">
+      <div class="page-head" style="margin-top:8px">
+        <h1>Privacy Shield</h1>
+        <p>How Inpriv Host protects you and everyone who visits your pages.</p>
+      </div>
+      <div class="card">
+        <div class="sec-feature">
+          <div class="icon-box"><span class="icon" aria-hidden="true">block</span></div>
+          <div>
+            <h4>IP logger &amp; tracker blocking</h4>
+            <p>Before an HTML/text file is published, it is scanned for IP grabbers (iplogger.org, grabify, yip.su and 60+ more domains), hidden pixel beacons, and known tracking scripts. Anything found — the file is rejected. Nothing is served unverified.</p>
+          </div>
+        </div>
+        <div class="sec-feature">
+          <div class="icon-box"><span class="icon" aria-hidden="true">podcasts</span></div>
+          <div>
+            <h4>WebRTC leak neutralized</h4>
+            <p>Served pages run inside a strict sandbox: no plugins, no same-origin access, no embedding. The sandbox headers plus our CSP strip the browser features a WebRTC leak needs, so visitor IPs cannot be harvested through your pages.</p>
+          </div>
+        </div>
+        <div class="mal-list">
+          <div class="sec-feature">
+            <div class="icon-box"><span class="icon" aria-hidden="true">hide_source</span></div>
+            <div>
+              <h4>Stealth headers on every response</h4>
+              <p>Referrer, origin and cache data are stripped. Visitors of your pages do not leak the page they came from, and the platform adds no identifiers of its own.</p>
+            </div>
+          </div>
+          <div class="sec-feature">
+            <div class="icon-box"><span class="icon" aria-hidden="true">vpn_key_off</span></div>
+            <div>
+              <h4>Owner IP never stored</h4>
+              <p>Uploads and management actions are processed without writing your IP address or user agent to any log. The database keeps only what the file list needs: name, size, timestamps and Drive file id.</p>
+            </div>
+          </div>
+          <div class="sec-feature">
+            <div class="icon-box"><span class="icon" aria-hidden="true">shield_lock</span></div>
+            <div>
+              <h4>Encrypted transport, everywhere</h4>
+              <p>TLS 1.3 in transit, AES-256 at rest on Google's storage layer, and a strict CSP on the dashboard itself. Secrets live in Cloudflare's encrypted secret store — never in the code repository.</p>
+            </div>
+          </div>
+          <div class="sec-feature">
+            <div class="icon-box"><span class="icon" aria-hidden="true">verified</span></div>
+            <div>
+              <h4>Every upload verified</h4>
+              <p>A scan record is attached to each file. If a scan fails, the file is quarantined and never reaches the public route. You see the exact finding and line number, so you can fix and re-upload.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ═══════════ MODALS ═══════════ -->
+  <div class="modal-overlay" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <div class="modal-sheet">
+      <div class="modal-grip"></div>
+      <h3 class="modal-title" id="confirmTitle">Delete file</h3>
+      <p class="modal-sub" id="confirmText">Are you sure?</p>
+      <div class="modal-actions">
+        <button class="btn btn-tonal" data-modal-cancel>Cancel</button>
+        <button class="btn btn-danger" id="confirmBtn">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="linkModal" role="dialog" aria-modal="true" aria-labelledby="linkModalTitle">
+    <div class="modal-sheet">
+      <div class="modal-grip"></div>
+      <h3 class="modal-title" id="linkModalTitle">Public link</h3>
+      <p class="modal-sub" id="linkModalUrl">https://host.inpriv.xyz/u/…</p>
+      <div class="modal-actions">
+        <button class="btn btn-tonal" id="openLinkBtn"><span class="icon" aria-hidden="true">open_in_new</span>Open</button>
+        <button class="btn" id="copyLinkBtn"><span class="icon" aria-hidden="true">content_copy</span>Copy link</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ TOASTS ═══════════ -->
+  <div id="toasts" aria-live="polite"></div>
+
+  <script>
+    'use strict';
+    /* ═══ Inpriv Host — dashboard logic ═══
+       Talks only to this origin (/api/…). No third-party requests, no telemetry. */
+
+    // ── config ──
+    const API = '/api';
+    const MAX_FILE = 100 * 1024 * 1024;        // 100 MB
+    const CHUNK = 6 * 1024 * 1024;             // 6 MB per chunk
+    const QUOTA = 50 * 1024 * 1024 * 1024;     // 50 GB display
+    let token = '';
+    let user = null;
+    let files = [];
+    try { token = sessionStorage.getItem('host_token') || ''; } catch {}
+
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+    // ── api helper (auth + auto-logout on 401) ──
+    async function api(path, opts = {}) {
+      const h = { ...(opts.headers || {}) };
+      if (token) h['Authorization'] = 'Bearer ' + token;
+      if (opts.json !== undefined) { h['Content-Type'] = 'application/json'; opts.body = JSON.stringify(opts.json); }
+      const res = await fetch(API + path, { ...opts, headers: h });
+      let data = null;
+      try { data = await res.json(); } catch {}
+      if (res.status === 401 && token) { logout(true); throw new Error(data?.error || 'Session expired'); }
+      if (!res.ok) throw new Error(data?.error || ('HTTP ' + res.status));
+      return data;
+    }
+
+    // ── toasts ──
+    function toast(msg, kind = 'ok') {
+      const t = document.createElement('div');
+      t.className = 'toast ' + (kind === 'err' ? 'err' : 'ok');
+      t.innerHTML = '<span class="icon" aria-hidden="true">' + (kind === 'err' ? 'error' : 'check_circle') + '</span><span>' + esc(msg) + '</span>';
+      $('toasts').appendChild(t);
+      setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 350); }, 3800);
+    }
+
+    // ── theme ──
+    const themeBtn = $('themeToggle');
+    function applyTheme(t) {
+      document.documentElement.setAttribute('data-theme', t);
+      const ic = themeBtn.querySelector ? themeBtn.querySelector('.icon') : null;
+      if (ic) ic.textContent = t === 'dark' ? 'light_mode' : 'dark_mode';
+      try { localStorage.setItem('aurex_theme', t); } catch {}
+    }
+    let savedTheme = 'dark';
+    try { savedTheme = localStorage.getItem('aurex_theme') || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'); } catch {}
+    applyTheme(savedTheme);
+    themeBtn.addEventListener('click', () => applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
+
+    // ── pages / navigation ──
+    function showPage(id) {
+      (document.querySelectorAll ? document.querySelectorAll('.page') : []).forEach(p => p.classList.remove('active'));
+      $(id).classList.add('active');
+      window.scrollTo({ top: 0 });
+    }
+
+    // ── login ──
+    async function doLogin() {
+      const u = $('loginUser').value.trim(), p = $('loginPass').value;
+      const err = $('loginError');
+      err.classList.remove('show');
+      if (!u || !p) { err.textContent = 'Enter your username and password.'; err.classList.add('show'); return; }
+      $('loginBtn').disabled = true;
+      $('loginBtn').innerHTML = '<span class="spinner" style="width:18px;height:18px;border-width:2px"></span>Signing in…';
+      try {
+        const r = await fetch(API + '/auth/login', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user: u, password: p })
+        });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(d.error || 'Sign-in failed');
+        token = d.token; user = d.user;
+        sessionStorage.setItem('host_token', token);
+        await enterDashboard();
+      } catch (e) {
+        err.textContent = e.message; err.classList.add('show');
+      } finally {
+        $('loginBtn').disabled = false;
+        $('loginBtn').innerHTML = '<span class="icon" aria-hidden="true">login</span>Sign in with Inpriv ID';
+      }
+    }
+    function logout(silent) {
+      if (token) api('/auth/logout', { method: 'POST' }).catch(() => {});
+      token = ''; user = null;
+      sessionStorage.removeItem('host_token');
+      $('accountChip').style.display = 'none';
+      showPage('loginPage');
+      if (!silent) toast('Signed out');
+    }
+
+    async function enterDashboard() {
+      $('accountChip').style.display = 'flex';
+      $('unameEl').textContent = user.nick || user.username;
+      $('avatarEl').textContent = (user.username || 'u').slice(0, 2);
+      showPage('dashPage');
+      await refreshFiles();
+    }
+
+    $('loginBtn').addEventListener('click', doLogin);
+    $('loginPass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+    $('accountChip').addEventListener('click', () => {
+      if (confirm('Sign out of Inpriv Host?')) logout();
+    });
+
+    // ── files list ──
+    async function refreshFiles() {
+      try {
+        const d = await api('/files');
+        files = d.files || [];
+        renderFiles();
+        renderStats();
+      } catch (e) { toast(e.message, 'err'); }
+    }
+
+    function fmtSize(n) {
+      if (!n && n !== 0) return '—';
+      if (n < 1024) return n + ' B';
+      const u = ['KB', 'MB', 'GB', 'TB']; let i = -1;
+      do { n /= 1024; i++; } while (n >= 1024 && i < u.length - 1);
+      return n.toFixed(n >= 100 ? 0 : 1) + ' ' + u[i];
+    }
+    function fmtDate(ts) {
+      try { return new Date(ts * 1000).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }); } catch { return '—'; }
+    }
+    function fileIcon(f) {
+      const e = (f.name.split('.').pop() || '').toLowerCase();
+      if (['html', 'htm'].includes(e)) return 'html';
+      if (e === 'css') return 'css';
+      if (e === 'js' || e === 'mjs') return 'javascript';
+      if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'ico', 'avif'].includes(e)) return 'image';
+      if (['mp4', 'webm', 'mov', 'mp3', 'wav', 'ogg'].includes(e)) return 'movie';
+      if (['zip', 'rar', '7z', 'tar', 'gz'].includes(e)) return 'folder_zip';
+      if (['txt', 'md', 'json', 'xml', 'csv'].includes(e)) return 'description';
+      return 'draft';
+    }
+
+    function renderStats() {
+      const used = files.reduce((s, f) => s + (f.size || 0), 0);
+      $('statUsed').textContent = fmtSize(used);
+      $('quotaFill').style.width = Math.min(100, (used / QUOTA) * 100).toFixed(2) + '%';
+      $('statQuota').textContent = fmtSize(used) + ' of 50 GB per account';
+      $('statFiles').textContent = files.length;
+      $('statPublic').textContent = files.filter(f => f.visibility === 'public').length + ' public links';
+      $('statScans').textContent = files.length + ' scans passed';
+    }
+
+    function renderFiles() {
+      const q = ($('searchInput').value || '').toLowerCase().trim();
+      const list = q ? files.filter(f => f.name.toLowerCase().includes(q)) : files;
+      $('fileCount').textContent = files.length;
+      const box = $('fileList');
+      if (!list.length) {
+        box.innerHTML = '<div class="empty-state card"><div class="bigicon"><span class="icon" aria-hidden="true">' + (q ? 'search_off' : 'folder_open') + '</span></div><p>' + (q ? 'No files match your search.' : 'No files yet — upload your first page, image or archive above.') + '</p></div>';
+        return;
+      }
+      box.innerHTML = list.map(f => {
+        const url = 'https://host.inpriv.xyz' + f.url;
+        return '<div class="file-row" data-id="' + esc(f.id) + '">' +
+          '<div class="ficon"><span class="icon" aria-hidden="true">' + fileIcon(f) + '</span></div>' +
+          '<div class="fmeta">' +
+            '<div class="fname"><span class="nm">' + esc(f.name) + '</span>' +
+              (f.visibility === 'public' ? '<span class="badge badge-public">public</span>' : '<span class="badge badge-private">private</span>') +
+            '</div>' +
+            '<div class="furl">' + esc(url) + '</div>' +
+            '<div class="fmeta2"><span>' + fmtSize(f.size) + '</span><span>' + fmtDate(f.created_at) + '</span>' +
+              (f.hits ? '<span>' + f.hits + ' views</span>' : '') +
+              (f.scan_blocked ? '<span style="color:var(--md-error);font-weight:700">scan failed</span>' : '<span style="color:var(--md-success)">scan passed</span>') +
+            '</div>' +
+          '</div>' +
+          '<div class="row-actions">' +
+            '<button class="row-btn" data-act="link" title="Show link" aria-label="Show link"><span class="icon" aria-hidden="true">link</span></button>' +
+            '<button class="row-btn" data-act="priv" title="' + (f.visibility === 'public' ? 'Make private' : 'Make public') + '" aria-label="Toggle visibility"><span class="icon" aria-hidden="true">' + (f.visibility === 'public' ? 'visibility_off' : 'visibility') + '</span></button>' +
+            '<button class="row-btn" data-act="del" title="Delete" aria-label="Delete file"><span class="icon" aria-hidden="true">delete</span></button>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    $('searchInput').addEventListener('input', renderFiles);
+
+    // ── row actions (delegated) ──
+    let pendingDelete = null;
+    document.addEventListener('click', async (e) => {
+      const btn = e.target.closest('.row-btn');
+      if (!btn) return;
+      const row = btn.closest('.file-row');
+      const f = files.find(x => x.id === row.dataset.id);
+      if (!f) return;
+      const act = btn.dataset.act;
+      if (act === 'link') {
+        $('linkModalUrl').textContent = 'https://host.inpriv.xyz' + f.url;
+        $('linkModal').classList.add('open');
+        $('copyLinkBtn').onclick = async () => {
+          try { await navigator.clipboard.writeText('https://host.inpriv.xyz' + f.url); toast('Link copied'); } catch { toast('Copy failed — long-press the link instead', 'err'); }
+          $('linkModal').classList.remove('open');
+        };
+        $('openLinkBtn').onclick = () => { window.open('https://host.inpriv.xyz' + f.url, '_blank', 'noopener'); $('linkModal').classList.remove('open'); };
+      } else if (act === 'priv') {
+        try {
+          const d = await api('/files/' + encodeURIComponent(f.id) + '/visibility', { method: 'POST', json: { visibility: f.visibility === 'public' ? 'private' : 'public' } });
+          f.visibility = d.visibility; renderFiles(); renderStats();
+          toast(d.visibility === 'public' ? 'File is now public' : 'File is now private');
+        } catch (err2) { toast(err2.message, 'err'); }
+      } else if (act === 'del') {
+        pendingDelete = f;
+        $('confirmText').textContent = 'Delete "' + f.name + '" permanently? This cannot be undone.';
+        $('confirmModal').classList.add('open');
+      }
+    });
+
+    // ── modals ──
+    function closeModal(m) { $(m).classList.remove('open'); }
+    const qsa = (sel) => (document.querySelectorAll ? [...document.querySelectorAll(sel)] : []);
+    document.querySelectorAll?.('[data-modal-cancel]').forEach(b => b.addEventListener('click', () => closeModal('confirmModal')));
+    qsa('.modal-overlay').forEach(o => o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); }));
+    $('confirmBtn').addEventListener('click', async () => {
+      if (!pendingDelete) return;
+      try {
+        await api('/files/' + encodeURIComponent(pendingDelete.id), { method: 'DELETE' });
+        files = files.filter(x => x.id !== pendingDelete.id);
+        renderFiles(); renderStats();
+        toast('File deleted');
+      } catch (e) { toast(e.message, 'err'); }
+      closeModal('confirmModal'); pendingDelete = null;
+    });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') qsa('.modal-overlay.open').forEach(o => o.classList.remove('open')); });
+
+    // ── upload (chunked) ──
+    const dz = $('dropzone');
+    const fi = $('fileInput');
+    dz.addEventListener('click', () => fi.click());
+    dz.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fi.click(); } });
+    ['dragenter', 'dragover'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('dragover'); }));
+    ['dragleave', 'drop'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove('dragover'); }));
+    dz.addEventListener('drop', e => { if (e.dataTransfer?.files?.length) handleFiles([...e.dataTransfer.files]); });
+    fi.addEventListener('change', () => { if (fi.files.length) handleFiles([...fi.files]); fi.value = ''; });
+
+    async function handleFiles(list) {
+      for (const file of list) {
+        if (file.size > MAX_FILE) { toast('"' + file.name + '" exceeds 100 MB — skipped', 'err'); continue; }
+        await uploadFile(file);
+      }
+      await refreshFiles();
+    }
+
+    async function uploadFile(file) {
+      const id = 'up' + Math.random().toString(36).slice(2, 9);
+      const el = document.createElement('div');
+      el.className = 'upload-item'; el.id = id;
+      el.innerHTML =
+        '<div class="ficon"><span class="icon" aria-hidden="true">' + fileIcon({ name: file.name }) + '</span></div>' +
+        '<div class="fmeta"><div class="fname">' + esc(file.name) + '</div>' +
+        '<div class="fstatus" data-st>Waiting…</div>' +
+        '<div class="progress-track"><div class="progress-fill" data-bar></div></div></div>' +
+        '<div class="spinner" data-spin style="visibility:hidden"></div>' +
+        '<button class="abort-btn" data-abort aria-label="Cancel upload"><span class="icon" aria-hidden="true">close</span></button>';
+      $('uploadList').appendChild(el);
+      const st = el.querySelector('[data-st]'), bar = el.querySelector('[data-bar]'), spin = el.querySelector('[data-spin]');
+      let aborted = false;
+      el.querySelector('[data-abort]').addEventListener('click', () => { aborted = true; el.remove(); });
+
+      try {
+        // 1. begin
+        st.textContent = 'Starting…'; spin.style.visibility = 'visible';
+        const begin = await api('/upload/begin', { method: 'POST', json: { name: file.name, size: file.size, mime: file.type || 'application/octet-stream' } });
+        if (aborted) { try { await api('/upload/' + begin.upload_id + '/abort', { method: 'POST' }); } catch {} return; }
+        // 2. chunks
+        const total = Math.max(1, Math.ceil(file.size / CHUNK));
+        for (let i = 0; i < total; i++) {
+          if (aborted) { try { await api('/upload/' + begin.upload_id + '/abort', { method: 'POST' }); } catch {} return; }
+          const blob = file.slice(i * CHUNK, Math.min((i + 1) * CHUNK, file.size));
+          st.textContent = 'Uploading ' + (i + 1) + ' of ' + total + '…';
+          bar.style.width = ((i / total) * 92).toFixed(1) + '%';
+          const d = await api('/upload/' + begin.upload_id + '/chunk?seq=' + i, { method: 'PUT', body: blob, headers: { 'Content-Type': 'application/octet-stream' } });
+          if (d && d.error) throw new Error(d.error);
+        }
+        // 3. complete
+        st.textContent = 'Scanning for loggers & trackers…';
+        bar.style.width = '94%';
+        const done = await api('/upload/' + begin.upload_id + '/complete', { method: 'POST' });
+        bar.style.width = '100%';
+        spin.style.visibility = 'hidden';
+        if (done.blocked) {
+          el.style.borderColor = 'var(--md-error)';
+          st.className = 'fstatus err';
+          st.textContent = 'Blocked by privacy shield — ' + done.scan.summary;
+          renderFindings(done.scan, file.name);
+        } else {
+          st.textContent = 'Published — scan passed (' + (done.scan?.findings?.length || 0) + ' notes)';
+          st.style.color = 'var(--md-success)';
+          toast('"' + file.name + '" published');
+        }
+        setTimeout(() => el.remove(), done.blocked ? 9000 : 2600);
+      } catch (e) {
+        spin.style.visibility = 'hidden';
+        el.style.borderColor = 'var(--md-error)';
+        st.className = 'fstatus err';
+        st.textContent = 'Failed — ' + e.message;
+        setTimeout(() => el.remove(), 9000);
+      }
+    }
+
+    // ── scan findings panel ──
+    function renderFindings(scan, fname) {
+      if (!scan || !scan.findings?.length) return;
+      const card = document.createElement('div');
+      card.className = 'card scan-card blocked';
+      const items = scan.findings.map(x =>
+        '<div class="finding sev-' + esc(x.severity) + '"><span class="icon" aria-hidden="true">' +
+        (x.severity === 'block' ? 'gpp_bad' : x.severity === 'warn' ? 'warning' : x.severity === 'info' ? 'info' : 'check_circle') +
+        '</span><div><strong>' + esc(x.title) + '</strong>' +
+        (x.detail ? '<div class="fx">' + esc(x.detail) + '</div>' : '') +
+        (x.evidence ? '<div class="fx"><code>' + esc(x.evidence) + '</code></div>' : '') +
+        '</div></div>').join('');
+      const iconBox = '<div style="width:42px;height:42px;border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--md-error-container);color:var(--md-error)"><span class="icon" aria-hidden="true">gpp_bad</span></div>';
+      card.innerHTML =
+        '<div class="scan-head">' + iconBox +
+        '<div><h3>Privacy scan — ' + esc(fname) + '</h3><div class="scan-sub">' + esc(scan.summary || '') + '</div></div>' +
+        '<span class="verdict-chip verdict-block">blocked</span></div>' + items;
+      $('uploadList').prepend(card);
+    }
+    // ── boot: restore session ──
+    (async function boot() {
+      if (!token) return;
+      try {
+        const d = await api('/me');
+        user = d.user;
+        await enterDashboard();
+      } catch { /* 401 handled → login shown */ }
+    })();
+  </script>
+</body>
+</html>

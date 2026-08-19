@@ -1,0 +1,45 @@
+name = "inpriv-host"
+main = "src/index.js"
+compatibility_date = "2025-08-01"
+workers_dev = true
+
+# Custom domain — Inpriv Host on host.inpriv.xyz
+# (routes MUST stay above the first [table] — see cloudflare-workers skill)
+routes = [
+  { pattern = "host.inpriv.xyz", custom_domain = true }
+]
+
+# Service database (files, chunks, sessions, rate-limit counters)
+[[d1_databases]]
+binding = "DB"
+database_name = "inpriv-host"
+database_id = "f6286739-fdfb-4fae-9148-377496175489"
+
+# Cross-read: verify credentials against Inpriv ID accounts
+[[d1_databases]]
+binding = "ID_DB"
+database_name = "inpriv-id"
+database_id = "1cd1ca2e-51fd-40d9-94d8-aa75f989291b"
+
+# Drive OAuth token cache
+[[kv_namespaces]]
+binding = "KV"
+id = "2143a54e5e0b427f821a9e30680db0a5"
+
+# Static frontend served from ./public (the single-file Host dashboard)
+# run_worker_first: the worker MUST run on every request so the kill-switch
+# can replace the page with a maintenance screen
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = true
+
+[vars]
+# DRIVE_FOLDER_ID — optional Google Drive folder id to keep uploads tidy.
+# Leave empty to store in the service account's root My Drive.
+DRIVE_FOLDER_ID = ""
+
+# Secrets (set via `npx wrangler secret put <NAME>`):
+#   DRIVE_SERVICE_ACCOUNT — full JSON of the Google service-account key file
+#                           (Google Cloud → IAM & Admin → Service Accounts →
+#                            Keys → Add key → JSON). One line, no formatting needed.

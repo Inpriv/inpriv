@@ -12,7 +12,7 @@ No trackers. No remote logs. No compromises — everything runs in your browser.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Website](https://img.shields.io/badge/website-inpriv.xyz-466E47)](https://inpriv.xyz)
-[![Tools](https://img.shields.io/badge/tools-14%20live%20%2B%207%20in%20dev-ABD37A)](https://inpriv.xyz)
+[![Tools](https://img.shields.io/badge/tools-15%20live%20%2B%206%20in%20dev-ABD37A)](https://inpriv.xyz)
 [![Zero-Knowledge](https://img.shields.io/badge/zero--knowledge-%E2%9C%93-C7EFA0)]()
 [![By Aurex Labs](https://img.shields.io/badge/by-Aurex%20Labs-9C4231)]()
 
@@ -37,6 +37,7 @@ Inpriv is an ecosystem of **zero-knowledge, fully client-side web utilities** �
 - **Compress** — [compress.inpriv.xyz](https://compress.inpriv.xyz) — image compression, no uploads
 - **Trace** — [trace.inpriv.xyz](https://trace.inpriv.xyz) — one scan: IP & ISP intel, DNS leak test, WebRTC leak check
 - **Pay** — [pay.inpriv.xyz](https://pay.inpriv.xyz) — crypto payment bridge
+- **Host** — [host.inpriv.xyz](https://host.inpriv.xyz) — private static file hosting (Google Drive) with IP-logger/WebRTC-leak scan before publish
 - **Hash** — [hash.inpriv.xyz](https://hash.inpriv.xyz) — SHA & MD5 checksums, in-browser
 - **QR** — [qr.inpriv.xyz](https://qr.inpriv.xyz) — generate & read QR codes, offline
 - **Keyring** — [keyring.inpriv.xyz](https://keyring.inpriv.xyz) — zero-knowledge secret vault
@@ -109,6 +110,7 @@ inpriv/
 ├── .wipe/              # Metadata sanitizer
 ├── .compress/          # Image compression
 ├── .trace/             # IP + DNS + WebRTC leak test (one scan)
+├── .host/              # private static hosting — Google Drive + privacy shield
 ├── .pay/               # Crypto payment bridge
 ├── .hash/              # Checksum generator
 ├── .webrtc/            # redirects to trace.inpriv.xyz
@@ -136,7 +138,7 @@ inpriv/
 
 ## <img src="assets/icons/map.svg" width="18" height="18" align="center" alt=""> Roadmap
 
-- [x] 14 core tools live on production
+- [x] 15 core tools live on production
 - [ ] PWA + offline support
 - [ ] Zero wallet — security audit before release
 - [ ] Mail — encrypted disposable email

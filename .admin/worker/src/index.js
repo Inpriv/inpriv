@@ -29,6 +29,7 @@ const SERVICES = [
   "totp",
   "wipe",
   "account",
+  "host",
 ];
 const SERVICES_META = {
   landing:  { name: "Landing (inpriv.xyz)", url: "https://inpriv.xyz", icon: "home" },
@@ -45,6 +46,7 @@ const SERVICES_META = {
   totp:      { name: "TOTP / 2FA", url: "https://totp.inpriv.xyz", icon: "pin" },
   wipe:     { name: "Metadata Wipe", url: "https://wipe.inpriv.xyz", icon: "auto_fix_high" },
   account:  { name: "Inpriv ID (accounts)", url: "https://id.inpriv.xyz", icon: "badge" },
+  host:     { name: "Host (static files)", url: "https://host.inpriv.xyz", icon: "cloud_upload" },
 };
 const SESSION_TTL = 7 * 24 * 3600; // seconds
 const COOKIE = "inpriv_admin";
