@@ -203,6 +203,172 @@ async function serverHybridEncrypt(pubKeyB64, plaintextStr) {
   };
 }
 
+// ── Inbound external email (Resend webhook `email.received`) ───────────────
+const SVIX_TOLERANCE_S = 5 * 60;            // reject webhook timestamps outside ±5 min
+const INBOUND_MAX_TEXT_CHARS = 100_000;     // stored plaintext cap (encrypted at rest)
+
+async function verifySvix(secret, svixId, svixTs, svixSigHeader, rawBody) {
+  if (!secret || !svixId || !svixTs || !svixSigHeader || typeof rawBody !== "string") return false;
+
+  const b64Secret = secret.startsWith("whsec_") ? secret.slice("whsec_".length) : secret;
+  let key;
+  try {
+    key = await crypto.subtle.importKey(
+      "raw", b64d(b64Secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
+    );
+  } catch {
+    return false;
+  }
+  const mac = await crypto.subtle.sign("HMAC", key, enc.encode(`${svixId}.${svixTs}.${rawBody}`));
+  const expected = b64(mac);
+
+  for (const part of svixSigHeader.split(/\s+/)) {
+    const comma = part.indexOf(",");
+    if (comma < 0) continue;
+    if (part.slice(0, comma) === "v1" && constantTimeEq(part.slice(comma + 1), expected)) return true;
+  }
+  return false;
+}
+
+// Minimal HTML → readable plain text (inbound viewer renders plain text only).
+function htmlToText(html) {
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|tr|li|h[1-6])>/gi, "\n")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+async function handleInbound(request, env) {
+  const secret = env.RESEND_WEBHOOK_SECRET;
+  if (!secret) {
+    return json({ error: "inbound not configured: set RESEND_WEBHOOK_SECRET" }, 503);
+  }
+
+  // Verify the svix signature against the RAW body (never a re-serialized copy).
+  const raw = await request.text();
+  const svixId = request.headers.get("svix-id") || "";
+  const svixTs = request.headers.get("svix-timestamp") || "";
+  const svixSig = request.headers.get("svix-signature") || "";
+
+  if (!(await verifySvix(secret, svixId, svixTs, svixSig, raw))) {
+    return json({ error: "invalid webhook signature" }, 401);
+  }
+  const ts = Number(svixTs);
+  if (!Number.isFinite(ts) || Math.abs(Date.now() / 1000 - ts) > SVIX_TOLERANCE_S) {
+    return json({ error: "webhook timestamp outside tolerance" }, 400);
+  }
+
+  let event;
+  try {
+    event = JSON.parse(raw);
+  } catch {
+    return json({ error: "invalid JSON" }, 400);
+  }
+  if (event.type !== "email.received") {
+    return json({ ok: true, ignored: event.type || "unknown" });
+  }
+
+  const d = event.data || {};
+
+  // Catch-all webhook: accept every address silently, store only for real users.
+  const recipients = [
+    ...(Array.isArray(d.to) ? d.to : []),
+    ...(Array.isArray(d.received_for) ? d.received_for : []),
+  ].map((s) => String(s).trim().toLowerCase()).filter(Boolean);
+
+  let target = null;
+  for (const r of recipients) {
+    if (!r.endsWith("@" + DOMAIN)) continue;
+    const row = await env.DB.prepare(
+      "SELECT id, username, address, public_key FROM users WHERE address = ?"
+    ).bind(r).first();
+    if (row) { target = row; break; }
+  }
+  if (!target) return json({ ok: true, ignored: "no such mailbox" }); // 200 → no retry, no enumeration
+
+  // Webhooks carry metadata only — fetch the body via the Received emails API
+  // (needs a read-capable key; metadata-only fallback if missing/unauthorized).
+  const readKey = env.RESEND_READ_API_KEY || env.RESEND_API_KEY || env.RESEND_KEY || "";
+  const emailId = String(d.email_id || "");
+  let text = null;
+  let fromName = null;
+
+  if (readKey && emailId) {
+    try {
+      const res = await fetch(`https://api.resend.com/emails/receiving/${encodeURIComponent(emailId)}`, {
+        headers: { Authorization: `Bearer ${readKey}` },
+      });
+      if (res.ok) {
+        const email = await res.json();
+        text = String(email.text || "").slice(0, INBOUND_MAX_TEXT_CHARS) || null;
+        if (!text && email.html) text = htmlToText(String(email.html)).slice(0, INBOUND_MAX_TEXT_CHARS) || null;
+        const hf = (email.headers && email.headers.from) || "";
+        const nm = String(hf).match(/^[^<]+(?=\s*<)/);
+        if (nm) fromName = nm[0].trim().replace(/^"|"$/g, "").slice(0, 200) || null;
+      } else if (res.status === 401) {
+        console.error("inbound: read key not read-capable (401) — storing metadata only");
+      } else {
+        console.error(`inbound: content fetch ${res.status}`);
+      }
+    } catch (err) {
+      console.error("inbound: content fetch failed", err);
+    }
+  }
+
+  // Attachment list (metadata only — names/sizes/types from the webhook).
+  const atts = Array.isArray(d.attachments) ? d.attachments : [];
+  let plaintext = text || "(This email had no readable text body.)";
+  if (atts.length) {
+    const lines = atts.map((a) => {
+      const kb = Math.max(1, Math.round((a.size || 0) / 1024));
+      return `• ${a.filename || "attachment"} (${a.content_type || "file"}, ~${kb} KB)`;
+    });
+    plaintext += `\n\n— Attachments (${atts.length}) —\n${lines.join("\n")}\n(Attachment downloads are not supported yet; only the list is stored.)`;
+  }
+
+  // Encrypt to the recipient's public key — identical envelope format to
+  // internal messages, so the existing browser decrypt path just works.
+  let envelope;
+  try {
+    envelope = await serverHybridEncrypt(target.public_key, plaintext);
+  } catch (err) {
+    console.error("inbound: hybrid encrypt failed", err);
+    return json({ error: "encryption failure" }, 500); // 500 → Resend retries
+  }
+
+  const fromAddr = String(d.from || "unknown@unknown").toLowerCase().slice(0, 320);
+  const label = fromName || fromAddr.split("@")[0];
+
+  try {
+    await env.DB.prepare(
+      `INSERT INTO messages (owner_id, direction, peer_address, peer_label, subject,
+                             encrypted_aes_key, iv, ciphertext, auth_tag, created_at, is_read)
+       VALUES (?,?,?,?,?,?,?,?,?,?,0)`
+    ).bind(
+      target.id, "inbound", fromAddr, label,
+      String(d.subject || "(no subject)").slice(0, 500),
+      envelope.encrypted_aes_key, envelope.iv, envelope.ciphertext, envelope.auth_tag,
+      now()
+    ).run();
+  } catch (err) {
+    console.error("inbound: store failed", err);
+    return json({ error: "storage failure" }, 500); // 500 → Resend retries
+  }
+
+  return json({ ok: true, stored: true });
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -221,12 +387,20 @@ export default {
     }
 
     const gate = await maintenanceGate("mail");
-    if (gate.locked && path !== "/api/v1/health") {
+    if (gate.locked && path !== "/api/v1/health" && path !== "/api/v1/inbound") {
       return maintenancePage("Inpriv Mail", gate.message);
     }
 
     if (path === "/api/v1/health") {
       return json({ status: "ok", service: "inpriv-mail", domain: DOMAIN, time: now() }, 200, cors);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // 0. INBOUND EMAIL (Resend webhook `email.received`, svix-signed)
+    // ══════════════════════════════════════════════════════════════════════
+    if (path === "/api/v1/inbound") {
+      if (request.method !== "POST") return bad("method not allowed", 405, cors);
+      return handleInbound(request, env);
     }
 
     try {
