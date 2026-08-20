@@ -99,7 +99,12 @@ export default {
       if (path === "/api/pubkey" && request.method === "GET") return await adminPubKey(request, env, cors);
 
       if (path === "/api/me" && request.method === "GET")
-        return authed(request, env, cors, async (me) => json({ user: pub(me.user), limits: await limitsFor(env, me.uid) }));
+        return authed(request, env, cors, async (me) => {
+          const lr = await env.DB.prepare(
+            "SELECT requested_mb, status, created_at, decided_at, granted_mb FROM limit_requests WHERE user_id = ? ORDER BY id DESC LIMIT 1"
+          ).bind(me.uid).first();
+          return json({ user: pub(me.user), limits: await limitsFor(env, me.uid), limit_request: lr || null });
+        });
       if (path === "/api/files" && request.method === "GET")
         return authed(request, env, cors, (me) => listFiles(me, env, cors));
       if (path === "/api/upload/begin" && request.method === "POST")
@@ -134,7 +139,8 @@ export default {
       if (m && request.method === "DELETE")
         return authed(request, env, cors, (me) => deleteFile(m[1], me, env, cors));
 
-      if (path === "/api/limit-request" && request.method === "POST") return await limitRequest(request, env, cors, ctx);
+      if (path === "/api/limit-request" && request.method === "POST")
+        return authed(request, env, cors, (me) => limitRequest(request, me, env, cors, ctx));
 
       return bad("not_found", 404);
     } catch (e) {
@@ -419,8 +425,10 @@ async function setCustomSlug(fid, request, me, env, cors) {
   return json({ ok: true, custom, url: "/s/" + custom }, 200, cors);
 }
 
-// ── limit-increase request → encrypted message into saloyek@inpriv.xyz ───────
-// The request asks for more STORAGE (GB), not a bigger per-file cap.
+// ── limit-increase request → queue in D1, decided on admin.inpriv.xyz ─────────
+// The request asks for more STORAGE (GB), not a bigger per-file cap. The reason
+// text stays end-to-end encrypted to the operator's Mail pubkey — the worker
+// (and the admin panel backend) never sees it in plaintext.
 async function adminPubKey(request, env, cors) {
   const u = await env.MAIL_DB.prepare("SELECT public_key FROM users WHERE id = ?").bind(ADMIN_MAIL_USER_ID).first();
   if (!u?.public_key) return bad("admin mailbox unavailable", 503);
@@ -430,50 +438,40 @@ async function adminPubKey(request, env, cors) {
   });
 }
 
-async function limitRequest(request, env, cors, ctx) {
-  // rate limit by IP prefix (hashed key, no raw IP stored)
-  if (!(await rateLimit(env.DB, "limitreq:" + guestKey(request).slice(6), 3, 24 * 3600 * 1000)))
-    return bad("You already sent requests today — wait for a reply at your contact address", 429);
+async function limitRequest(request, me, env, cors, ctx) {
+  // rate limit per account (no raw IP stored — hashed prefix bucket only)
+  if (!(await rateLimit(env.DB, "limitreq:" + me.uid, 3, 24 * 3600 * 1000)))
+    return bad("You already sent requests today — the operator reviews them in the admin panel", 429);
 
   const body = await request.json().catch(() => ({}));
   const contact = String(body.contact || "").trim().slice(0, 120);
   const currentGb = Number(body.current_gb || 0);
   const requestedGb = Number(body.requested_gb || 0);
-  const envelope = body.envelope; // { encrypted_aes_key, iv, ciphertext, auth_tag } — reason text, RSA-OAEP to admin pubkey
-  if (!contact || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(contact)) return bad("Enter a valid contact e-mail", 400);
+  const envelope = body.envelope; // { encrypted_aes_key, iv, ciphertext, auth_tag } — reason text, RSA-OAEP to operator pubkey
+  if (contact && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(contact)) return bad("Enter a valid contact e-mail", 400);
   if (!Number.isInteger(requestedGb) || requestedGb < 2 || requestedGb > 50) return bad("Request between 2 GB and 50 GB of storage", 400);
   if (!envelope || !envelope.ciphertext || !envelope.encrypted_aes_key) return bad("Missing encrypted reason", 400);
 
-  const claimed = "uid:" + (typeof body.user_id === "string" ? body.user_id.slice(0, 40) : "guest");
   const r = await env.DB.prepare(
-    "INSERT INTO limit_requests (user_id, contact, current_mb, requested_mb, reason_enc, created_at) VALUES (?,?,?,?,?,?)"
-  ).bind(claimed, contact, Math.min(100000, Math.round(currentGb * 1024)), requestedGb * 1024, JSON.stringify(envelope).slice(0, 4000), Date.now()).run();
+    "INSERT INTO limit_requests (user_id, contact, current_mb, requested_mb, reason_enc, created_at, status) VALUES (?,?,?,?,?,?, 'pending')"
+  ).bind(me.uid, contact || "", Math.min(100000, Math.round(currentGb * 1024)), requestedGb * 1024, JSON.stringify(envelope).slice(0, 4000), Date.now()).run();
   const rid = r?.meta?.last_row_id;
 
-  // deliver as an Inpriv Mail message (zero-knowledge — reason stays encrypted)
-  ctx.waitUntil((async () => {
-    try {
-      const admin = await env.MAIL_DB.prepare("SELECT id FROM users WHERE id = ?").bind(ADMIN_MAIL_USER_ID).first();
-      if (!admin) return;
-      // envelope fields are already encrypted client-side to the admin pubkey
-      // note: reason_enc is already encrypted to the admin pubkey client-side;
-      // the notification above contains only routing metadata (no reason text).
-      await env.MAIL_DB.prepare(
-        "INSERT INTO messages (owner_id, direction, peer_address, subject, encrypted_aes_key, iv, ciphertext, auth_tag, is_read, created_at) VALUES (?,?,?,?,?,?,?,?,0,?)"
-      ).bind(ADMIN_MAIL_USER_ID, "inbound", contact, "Host storage limit request #" + rid, envelope.encrypted_aes_key, envelope.iv, envelope.ciphertext, envelope.auth_tag, Date.now()).run();
-    } catch {}
-  })());
-
-  return json({ ok: true, request_id: rid, message: "Request sent — reply arrives at " + contact }, 200, cors);
+  return json({ ok: true, request_id: rid, message: "Request sent — the operator reviews it in the admin panel" }, 200, cors);
 }
+
 async function listFiles(me, env, cors) {
   const { results } = await env.DB.prepare(
     "SELECT id, name, slug, custom_slug, size, mime, visibility, hits, scan_status, scan_summary, expires_at, created_at FROM files WHERE user_id = ? AND drive_file_id IS NOT NULL ORDER BY created_at DESC LIMIT 500"
   ).bind(me.uid).all();
   const used = (results || []).reduce((s, f) => s + (f.size || 0), 0);
+  const lr = await env.DB.prepare(
+    "SELECT requested_mb, status, created_at, decided_at, granted_mb FROM limit_requests WHERE user_id = ? ORDER BY id DESC LIMIT 1"
+  ).bind(me.uid).first();
   return json({
     files: (results || []).map((f) => ({ ...f, url: f.custom_slug ? "/s/" + f.custom_slug : "/f/" + f.slug })),
     used, quota: USER_QUOTA_BYTES, limits: await limitsFor(env, me.uid),
+    limit_request: lr || null,
   }, 200, cors);
 }
 

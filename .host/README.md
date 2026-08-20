@@ -35,18 +35,25 @@ Visitor ──GET /f/<slug> or /s/<custom>◀── Worker ◀──stream──
 | Management | manage key (shown once after upload) | full file manager |
 | Privacy shield | yes — identical scanner | yes — identical scanner |
 
-## Approving a storage raise (operator)
+## Reviewing a storage raise (operator)
 
-Requests arrive as encrypted Inpriv Mail messages ("Host storage limit request #N")
-plus rows in `limit_requests`. To approve, set the account's quota in D1
-(`account_limits.quota_bytes`, bytes — e.g. `5368709120` = 5 GB; keep approvals ≤ 50 GB):
+Requests land in **admin.inpriv.xyz → "Host limit requests"** (queue in D1
+`limit_requests`, no e-mail involved). Each row shows the requester, current vs
+requested storage and the status; **Approve** sets `account_limits.quota_bytes`
+in one click (grant field, 1–50 GB) and the user's dashboard picks the new
+limit up on the next `/api/files` refresh — no redeploy needed.
+
+The reason text is end-to-end encrypted (RSA-OAEP + AES-GCM to the operator's
+Inpriv Mail key). To read reasons inside the panel, click **Unlock reasons**
+and enter the Inpriv Mail password — the private key is unwrapped and reasons
+decrypted in that browser tab only; the key never leaves the browser.
+
+Manual fallback (D1, bytes — e.g. `5368709120` = 5 GB):
 
 ```sh
 npx wrangler d1 execute inpriv-host --remote --command \
   "INSERT INTO account_limits (user_id, quota_bytes) VALUES ('<inpriv-id-user-id>', <bytes>) ON CONFLICT(user_id) DO UPDATE SET quota_bytes = excluded.quota_bytes"
 ```
-
-The dashboard picks the new limit up on the next `/api/files` refresh (no redeploy needed).
 
 ## Privacy shield
 
@@ -116,8 +123,9 @@ npx wrangler deploy
 ```
 
 Self-hosting note: the worker also binds `ID_DB` (Inpriv ID) for sign-in and
-`MAIL_DB` (Inpriv Mail) to deliver encrypted limit requests to the operator.
-Point them at your own instances to run a fully independent copy.
+`MAIL_DB` (Inpriv Mail) to fetch the operator's public key for encrypting
+limit-request reasons. Point them at your own instances to run a fully
+independent copy.
 
 ## Structure
 

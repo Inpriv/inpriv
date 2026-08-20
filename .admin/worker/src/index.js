@@ -80,6 +80,8 @@ export default {
       if (path === "/api/info" && method === "POST") return await setInfo(request, env, cors);
       if (path === "/api/service" && method === "POST") return await setService(request, env, cors);
       if (path === "/api/audit") return await getAudit(env, cors);
+      if (path === "/api/limit-requests" && method === "GET") return await listLimitRequests(env, cors);
+      if (path === "/api/limit-request" && method === "POST") return await decideLimitRequest(request, env, cors);
 
       if (path === "/" || path === "/index.html") return dashboard();
       return json({ error: "not found" }, 404, cors);
@@ -282,6 +284,77 @@ async function getAuditRecords(env) {
 
 async function getAudit(env, cors) {
   return json({ audit: await getAuditRecords(env) }, 200, cors);
+}
+
+// ── Host limit requests (review queue) ──────────────────────────────────────
+// Requests land in HOST_DB.limit_requests from host.inpriv.xyz. Approving
+// raises the account's storage quota (account_limits.quota_bytes) in one click.
+// reason_enc stays sealed (RSA-OAEP to the operator's Mail key) — the worker
+// never decrypts it; the dashboard decrypts client-side after Mail unlock.
+async function listLimitRequests(env, cors) {
+  const { results } = await env.HOST_DB.prepare(
+    "SELECT id, user_id, contact, current_mb, requested_mb, reason_enc, created_at, status, decided_at, granted_mb FROM limit_requests ORDER BY (status = 'pending') DESC, id DESC LIMIT 100"
+  ).all();
+  const rows = results || [];
+  // resolve requester usernames in one query (users live in Inpriv ID)
+  const uids = [...new Set(rows.map((r) => r.user_id).filter(Boolean))];
+  const names = {};
+  if (uids.length) {
+    const qs = uids.map(() => "?").join(",");
+    const { results: us } = await env.ID_DB.prepare(
+      `SELECT id, username, nick FROM users WHERE id IN (${qs})`
+    ).bind(...uids).all();
+    for (const u of us || []) names[u.id] = u.nick || u.username || "unknown";
+  }
+  return json({
+    requests: rows.map((r) => ({
+      id: r.id,
+      user_id: r.user_id,
+      username: names[r.user_id] || null,
+      contact: r.contact || "",
+      current_mb: r.current_mb,
+      requested_mb: r.requested_mb,
+      reason_enc: r.reason_enc, // sealed — decrypted client-side only
+      created_at: r.created_at,
+      status: r.status,
+      decided_at: r.decided_at,
+      granted_mb: r.granted_mb,
+    })),
+  }, 200, cors);
+}
+
+async function decideLimitRequest(request, env, cors) {
+  const b = await request.json().catch(() => ({}));
+  const id = Number(b.id);
+  const decision = String(b.decision || "");
+  const grantGb = Number(b.grant_gb || 0);
+  if (!Number.isInteger(id) || id <= 0) return json({ error: "invalid_id" }, 400, cors);
+  if (decision !== "approve" && decision !== "deny") return json({ error: "invalid_decision" }, 400, cors);
+  if (decision === "approve" && (!Number.isInteger(grantGb) || grantGb < 1 || grantGb > 50))
+    return json({ error: "grant must be 1–50 GB" }, 400, cors);
+
+  const row = await env.HOST_DB.prepare("SELECT id, user_id, requested_mb, status FROM limit_requests WHERE id = ?").bind(id).first();
+  if (!row) return json({ error: "not_found" }, 404, cors);
+  if (row.status !== "pending") return json({ error: "already_decided" }, 409, cors);
+
+  if (decision === "approve") {
+    const grantedMb = grantGb * 1024;
+    await env.HOST_DB.batch([
+      env.HOST_DB.prepare(
+        "INSERT INTO account_limits (user_id, quota_bytes) VALUES (?, ?) ON CONFLICT(user_id) DO UPDATE SET quota_bytes = excluded.quota_bytes"
+      ).bind(row.user_id, grantedMb * 1024 * 1024),
+      env.HOST_DB.prepare(
+        "UPDATE limit_requests SET status = 'approved', decided_at = ?, granted_mb = ? WHERE id = ?"
+      ).bind(Date.now(), grantedMb, id),
+    ]);
+    await audit(env, "limit_approve", { request_id: id, user_id: row.user_id, granted_gb: grantGb });
+  } else {
+    await env.HOST_DB.prepare(
+      "UPDATE limit_requests SET status = 'denied', decided_at = ?, granted_mb = NULL WHERE id = ?"
+    ).bind(Date.now(), id).run();
+    await audit(env, "limit_deny", { request_id: id, user: row.user_id });
+  }
+  return json({ ok: true }, 200, cors);
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────

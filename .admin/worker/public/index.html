@@ -150,6 +150,50 @@ input[type="text"]:focus,textarea:focus{border-color:var(--primary)}
 .a-action{font-weight:500}
 .a-action.danger{color:var(--error)}
 
+/* limit requests */
+.req-row{
+  border:1px solid var(--outline-var);border-radius:18px;background:var(--surface);
+  padding:16px;margin-bottom:12px
+}
+.req-row.pending{border-color:color-mix(in srgb,var(--primary) 45%,var(--outline-var))}
+.req-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.req-id{font-weight:600;font-size:.9rem}
+.req-user{font-size:.85rem;color:var(--on-surface-var)}
+.req-date{font-size:.75rem;color:var(--on-surface-var);margin-left:auto;white-space:nowrap;font-variant-numeric:tabular-nums}
+.req-meta{font-size:.82rem;color:var(--on-surface-var);display:flex;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+.req-meta b{color:var(--on-surface);font-weight:600}
+.req-contact{word-break:break-all}
+.req-reason{
+  font-size:.83rem;background:var(--surface-container);border-radius:12px;padding:10px 12px;
+  white-space:pre-wrap;word-break:break-word;color:var(--on-surface);margin-bottom:12px;
+  max-height:160px;overflow:auto
+}
+.req-reason.sealed{color:var(--on-surface-var);font-style:italic;background:transparent;border:1px dashed var(--outline-var)}
+.req-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.req-gb{
+  width:86px;padding:10px 12px;font-size:.88rem;font-family:inherit;color:var(--on-surface);
+  background:var(--surface);border:1px solid var(--outline);border-radius:9999px;outline:none;text-align:center
+}
+.req-gb:focus{border-color:var(--primary)}
+.status-chip{
+  display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:9999px;
+  font-size:.74rem;font-weight:600;letter-spacing:.02em
+}
+.status-chip.pending{background:color-mix(in srgb,var(--primary) 18%,transparent);color:var(--on-surface)}
+.status-chip.approved{background:var(--secondary-container);color:var(--on-secondary-container)}
+.status-chip.denied{background:var(--error-container);color:var(--on-error-container)}
+.unlock-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.unlock-row input[type="password"]{
+  flex:1;min-width:200px;padding:12px 14px;font-size:.9rem;font-family:inherit;color:var(--on-surface);
+  background:var(--surface);border:1px solid var(--outline);border-radius:12px;outline:none
+}
+.unlock-row input[type="password"]:focus{border-color:var(--primary)}
+.pending-count{
+  display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:9999px;
+  background:var(--primary);color:var(--on-primary);font-size:.75rem;font-weight:700
+}
+.pending-count.zero{display:none}
+
 /* toast */
 #toast{
   position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);
@@ -242,6 +286,18 @@ input[type="text"]:focus,textarea:focus{border-color:var(--primary)}
       </div>
     </section>
 
+    <!-- host limit requests -->
+    <section class="card" id="card-limits">
+      <h2><span class="msymbol">upgrade</span> Host limit requests <span class="pending-count zero" id="pending-count">0</span></h2>
+      <p class="sub">Storage-raise requests from host.inpriv.xyz. <strong>Approve</strong> sets the account quota in one click. The reason text is end-to-end encrypted — unlock it with your Inpriv Mail password (decrypted in this tab only).</p>
+      <div class="unlock-row" id="unlock-row" style="display:none">
+        <input type="password" id="mail-pass" placeholder="Inpriv Mail password (to decrypt reasons)" autocomplete="off">
+        <button class="btn btn-tonal btn-sm" id="mail-unlock-btn"><span class="msymbol">key</span> Unlock reasons</button>
+        <span id="unlock-state" style="font-size:.78rem;color:var(--on-surface-var)"></span>
+      </div>
+      <div id="requests-list"></div>
+    </section>
+
     <!-- services -->
     <section class="card" id="card-services">
       <h2><span class="msymbol">apps</span> Services</h2>
@@ -330,6 +386,10 @@ function startRetryCountdown(sec) {
 async function enterApp() {
   $("login-view").style.display = "none";
   $("app-view").style.display = "flex";
+  try {
+    const r = await fetch(`${API}/api/me`);
+    if (r.ok) sessUser = (await r.json()).user || "";
+  } catch {}
   await refresh();
 }
 $("logout-btn").onclick = async () => {
@@ -347,9 +407,164 @@ async function refresh() {
     renderInfo(st);
     renderServices(st);
     renderAudit(st.audit || []);
+    await refreshRequests();
   } catch { toast("Failed to fetch state", true); }
   finally { busy(false); }
 }
+
+// ── Host limit requests ──
+let limitRequests = [];
+let adminPrivKey = null;   // operator RSA private key (unwrapped in this tab)
+let sessUser = "";
+
+async function refreshRequests() {
+  try {
+    const res = await fetch(`${API}/api/limit-requests`);
+    if (res.status === 401) return location.reload();
+    const d = await res.json();
+    limitRequests = d.requests || [];
+    renderRequests();
+    if (adminPrivKey) await decryptAllReasons();
+  } catch { /* card stays empty on error */ }
+}
+
+function reqGb(mb) { return mb >= 1024 ? (mb / 1024) : mb; }
+function reqSizeLabel(mb) { return mb >= 1024 ? `${(mb / 1024)} GB` : `${mb} MB`; }
+
+function renderRequests() {
+  const list = $("requests-list");
+  const pending = limitRequests.filter((r) => r.status === "pending").length;
+  const pc = $("pending-count");
+  pc.textContent = pending;
+  pc.classList.toggle("zero", pending === 0);
+  $("unlock-row").style.display = limitRequests.some((r) => r.reason_enc) ? "flex" : "none";
+  if (!limitRequests.length) {
+    list.innerHTML = '<p style="color:var(--on-surface-var)">No requests yet.</p>';
+    return;
+  }
+  list.innerHTML = "";
+  for (const r of limitRequests) {
+    const row = document.createElement("div");
+    row.className = "req-row" + (r.status === "pending" ? " pending" : "");
+    const statusChip = `<span class="status-chip ${r.status}">${r.status === "approved" ? "approved" + (r.granted_mb ? " · " + reqSizeLabel(r.granted_mb) : "") : r.status}</span>`;
+    const date = new Date(r.created_at).toLocaleString();
+    const decided = r.decided_at ? new Date(r.decided_at).toLocaleDateString() : "";
+    row.innerHTML = `
+      <div class="req-head">
+        <span class="req-id">#${r.id}</span>
+        <span class="req-user">${r.username ? escapeHtml(r.username) : "unknown user"}</span>
+        ${statusChip}
+        <span class="req-date">${date}${decided ? " · decided " + decided : ""}</span>
+      </div>
+      <div class="req-meta">
+        <span>now <b>${reqSizeLabel(r.current_mb)}</b></span>
+        <span>asks <b>${reqSizeLabel(r.requested_mb)}</b></span>
+        ${r.contact ? `<span class="req-contact">reply-to <b>${escapeHtml(r.contact)}</b></span>` : ""}
+      </div>
+      <div class="req-reason sealed" id="reason-${r.id}">Reason encrypted — unlock to read</div>
+      ${r.status === "pending" ? `
+      <div class="req-actions">
+        <input class="req-gb" id="grant-${r.id}" type="number" min="1" max="50" step="1" value="${Math.max(1, Math.min(50, Math.round(reqGb(r.requested_mb))))}" title="Grant storage (GB)">
+        <span style="font-size:.8rem;color:var(--on-surface-var)">GB</span>
+        <span class="grow"></span>
+        <button class="btn btn-filled btn-sm" data-decide="approve" data-id="${r.id}"><span class="msymbol">check</span> Approve</button>
+        <button class="btn btn-error btn-sm" data-decide="deny" data-id="${r.id}"><span class="msymbol">close</span> Deny</button>
+      </div>` : ""}
+    `;
+    list.appendChild(row);
+  }
+  list.querySelectorAll("[data-decide]").forEach((btn) =>
+    btn.addEventListener("click", () => decideRequest(btn.dataset.id, btn.dataset.decide, btn))
+  );
+}
+
+async function decideRequest(id, decision, btn) {
+  const grant = document.getElementById(`grant-${id}`);
+  const grantGb = grant ? parseInt(grant.value, 10) : 0;
+  if (decision === "approve" && (!grantGb || grantGb < 1 || grantGb > 50)) {
+    toast("Enter the granted storage in GB (1–50)", true);
+    return;
+  }
+  btn.disabled = true;
+  try {
+    await post("/api/limit-request", { id: Number(id), decision, grant_gb: grantGb || 0 });
+    toast(decision === "approve" ? `Approved — quota raised to ${grantGb} GB` : "Request denied");
+    await refreshRequests();
+  } catch (err) {
+    toast("Error: " + err.message, true);
+    btn.disabled = false;
+  }
+}
+
+// ── decrypt reasons (zero-knowledge: happens in this tab, key never sent) ──
+const PBKDF2_CAP = 100000;
+const b64dec = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+
+async function deriveAesFromPassword(password, saltB64, iterations) {
+  const rounds = Math.max(1, Math.ceil(iterations / PBKDF2_CAP));
+  let material = new TextEncoder().encode(password);
+  let bits;
+  for (let r = 0; r < rounds; r++) {
+    const key = await crypto.subtle.importKey("raw", material, "PBKDF2", false, ["deriveBits"]);
+    bits = await crypto.subtle.deriveBits(
+      { name: "PBKDF2", salt: b64dec(saltB64), iterations: Math.min(iterations - r * PBKDF2_CAP, PBKDF2_CAP), hash: "SHA-256" },
+      key, 256
+    );
+    material = new Uint8Array(bits);
+  }
+  return crypto.subtle.importKey("raw", bits, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+}
+
+async function unlockReasons() {
+  const pw = $("mail-pass").value;
+  const state = $("unlock-state");
+  if (!pw) { state.textContent = "Enter your Inpriv Mail password."; return; }
+  state.textContent = "Checking…";
+  try {
+    const res = await fetch("https://mail.inpriv.xyz/api/v1/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: sessUser || "saloyek", password: pw }),
+    });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok || !d.token) throw new Error("wrong password");
+    const u = d.user || {};
+    if (!u.encrypted_private_key) throw new Error("no key material");
+    // unwrap the RSA private key exactly like the Mail client does
+    const aesKey = await deriveAesFromPassword(pw, u.priv_salt, u.priv_iter || 300000);
+    const pkcs8 = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: b64dec(u.priv_iv) }, aesKey, b64dec(u.encrypted_private_key)
+    );
+    adminPrivKey = await crypto.subtle.importKey("pkcs8", pkcs8, { name: "RSA-OAEP", hash: "SHA-256" }, false, ["decrypt"]);
+    $("mail-pass").value = "";
+    state.textContent = "";
+    $("mail-unlock-btn").innerHTML = '<span class="msymbol">lock_open</span> Reasons unlocked';
+    await decryptAllReasons();
+  } catch (e) {
+    state.textContent = e.message === "wrong password" ? "Wrong Inpriv Mail password." : "Unlock failed.";
+  }
+}
+
+async function decryptAllReasons() {
+  for (const r of limitRequests) {
+    const el = document.getElementById(`reason-${r.id}`);
+    if (!el || !r.reason_enc) continue;
+    try {
+      const env = JSON.parse(r.reason_enc);
+      const rawAes = await crypto.subtle.decrypt({ name: "RSA-OAEP" }, adminPrivKey, b64dec(env.encrypted_aes_key));
+      const aesKey = await crypto.subtle.importKey("raw", rawAes, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+      const ct = new Uint8Array([...b64dec(env.ciphertext), ...b64dec(env.auth_tag)]);
+      const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64dec(env.iv) }, aesKey, ct);
+      el.textContent = new TextDecoder().decode(pt).replace(/^Limit request\n.*?\n.*?\n\n/s, "");
+      el.classList.remove("sealed");
+    } catch {
+      el.textContent = "Could not decrypt (different key?).";
+    }
+  }
+}
+
+$("mail-unlock-btn").addEventListener("click", unlockReasons);
+$("mail-pass").addEventListener("keydown", (e) => { if (e.key === "Enter") unlockReasons(); });
 
 function renderGlobal(st) {
   const on = !!st.global.locked;
@@ -407,6 +622,8 @@ function renderAudit(rows) {
     const label = {
       login: "login", global_lock: "global lock", global_unlock: "global unlock",
       info_on: "info on", info_off: "info off",
+      limit_approve: "host limit approved" + (r.granted_gb ? ` (+${r.granted_gb} GB)` : ""),
+      limit_deny: "host limit denied",
     }[r.action] || (r.action.startsWith("lock_") ? `lock: ${r.action.slice(5)}` : r.action.startsWith("unlock_") ? `unlock: ${r.action.slice(7)}` : r.action);
     const msg = r.message ? ` — “${escapeHtml(r.message.slice(0, 60))}”` : "";
     return `<div class="a-row"><span class="a-ts">${d.toLocaleString("pl-PL")}</span><span class="a-action ${danger.test(r.action) ? "danger" : ""}">${label}${msg}</span></div>`;
