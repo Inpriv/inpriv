@@ -10,7 +10,8 @@ published. Files that fail the scan are quarantined and never served.
 - **Inpriv ID** (`id.inpriv.xyz`): 100 MB per file, permanent links, custom URLs
   (`host.inpriv.xyz/s/your-name`), file manager — and a "request higher limit" flow
   (encrypted end-to-end, delivered to the operator's Inpriv Mail inbox)
-- Storage: Google Drive (user OAuth) · 50 GB per account · 2 GB/week rolling for guests
+- Storage: Google Drive (user OAuth) · 1 GB per account by default (raisable on request;
+  approvals are capped at 50 GB per account) · 2 GB/week rolling for guests
 - License: MIT — deploy your own instance (see *Deploy* below)
 
 ## How it works
@@ -27,12 +28,25 @@ Visitor ──GET /f/<slug> or /s/<custom>◀── Worker ◀──stream──
 
 | | Guest (no account) | Signed-in (Inpriv ID) |
 |---|---|---|
-| Per-file limit | 50 MB | 100 MB (raisable on request) |
-| Storage | 2 GB / network / week | 50 GB per account |
+| Per-file limit | 50 MB | 100 MB |
+| Storage | 2 GB / network / week | 1 GB (raisable on request, up to 50 GB) |
 | Link style | random `host.inpriv.xyz/f/xxxx` | random + custom `host.inpriv.xyz/s/your-name` |
 | Lifetime | 7 days, auto-delete | permanent |
 | Management | manage key (shown once after upload) | full file manager |
 | Privacy shield | yes — identical scanner | yes — identical scanner |
+
+## Approving a storage raise (operator)
+
+Requests arrive as encrypted Inpriv Mail messages ("Host storage limit request #N")
+plus rows in `limit_requests`. To approve, set the account's quota in D1
+(`account_limits.quota_bytes`, bytes — e.g. `5368709120` = 5 GB; keep approvals ≤ 50 GB):
+
+```sh
+npx wrangler d1 execute inpriv-host --remote --command \
+  "INSERT INTO account_limits (user_id, quota_bytes) VALUES ('<inpriv-id-user-id>', <bytes>) ON CONFLICT(user_id) DO UPDATE SET quota_bytes = excluded.quota_bytes"
+```
+
+The dashboard picks the new limit up on the next `/api/files` refresh (no redeploy needed).
 
 ## Privacy shield
 

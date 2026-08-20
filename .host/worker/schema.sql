@@ -28,10 +28,11 @@ CREATE INDEX IF NOT EXISTS idx_files_user ON files(user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_files_slug ON files(slug);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_files_custom ON files(custom_slug) WHERE custom_slug IS NOT NULL;
 
--- per-account per-file limit raises (approved by the operator)
+-- per-account limits (storage quota raises approved by the operator)
 CREATE TABLE IF NOT EXISTS account_limits (
   user_id        TEXT PRIMARY KEY,
-  max_file_bytes INTEGER NOT NULL
+  max_file_bytes INTEGER,
+  quota_bytes    INTEGER                         -- storage quota; default = 1 GB when NULL
 );
 
 -- limit-increase requests (reason text arrives encrypted — see limit_requests.reason_enc)

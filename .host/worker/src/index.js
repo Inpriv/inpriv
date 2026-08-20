@@ -19,7 +19,7 @@ import {
 // ── config ───────────────────────────────────────────────────────────────────
 const MAX_FILE_BYTES = 100 * 1024 * 1024;         // 100 MB per file (signed-in)
 const ANON_MAX_FILE_BYTES = 50 * 1024 * 1024;     // 50 MB per file (guest)
-const USER_QUOTA_BYTES = 50 * 1024 * 1024 * 1024; // 50 GB per account
+const USER_QUOTA_BYTES = 1 * 1024 * 1024 * 1024;  // 1 GB storage per account by default
 const ANON_QUOTA_BYTES = 2 * 1024 * 1024 * 1024;  // rolling 2 GB per guest (IP-prefix bucket)
 const ANON_TTL_MS = 7 * 24 * 3600 * 1000;         // guest files expire after 7 days
 // D1 rows are capped at ~2 MB — chunks MUST stay safely below that or the
@@ -233,11 +233,16 @@ async function login(request, env, cors) {
   return json({ token, user: pub({ id: idu.id, username: idu.username, nick: idu.nick }) }, 200, cors);
 }
 
-// ── per-account limits (raised via request → saloyek approves) ───────────────
+// ── per-account limits (storage quota raised via request → saloyek approves;
+//   max_file_bytes kept for future per-file raises, defaults apply otherwise) ──
 async function limitsFor(env, uid) {
-  const r = await env.DB.prepare("SELECT max_file_bytes FROM account_limits WHERE user_id = ?").bind(uid).first();
+  const r = await env.DB.prepare("SELECT max_file_bytes, quota_bytes FROM account_limits WHERE user_id = ?").bind(uid).first();
   const maxFile = r?.max_file_bytes || MAX_FILE_BYTES;
-  return { max_file_bytes: maxFile, max_file_mb: Math.round(maxFile / 1048576), quota_bytes: USER_QUOTA_BYTES, quota_gb: Math.round(USER_QUOTA_BYTES / 1073741824) };
+  const quota = r?.quota_bytes || USER_QUOTA_BYTES;
+  return {
+    max_file_bytes: maxFile, max_file_mb: Math.round(maxFile / 1048576),
+    quota_bytes: quota, quota_gb: +(quota / 1073741824).toFixed(2),
+  };
 }
 
 // ── anonymous (guest) uploads — no account, 7-day expiry, IP-prefix quota ───
@@ -262,7 +267,7 @@ async function guestBegin(request, env, cors) {
     "SELECT COALESCE(SUM(size),0) AS used FROM files WHERE user_id = ? AND created_at > ?"
   ).bind(key, Date.now() - 7 * 24 * 3600 * 1000).first();
   if (used + size > ANON_QUOTA_BYTES)
-    return bad("Guest storage full (2 GB / 7 days) — sign in for 50 GB", 413);
+    return bad("Guest storage full (2 GB / 7 days) — sign in with Inpriv ID for permanent hosting", 413);
 
   const id = uuid();
   const slug = await newSlug(env);
@@ -415,6 +420,7 @@ async function setCustomSlug(fid, request, me, env, cors) {
 }
 
 // ── limit-increase request → encrypted message into saloyek@inpriv.xyz ───────
+// The request asks for more STORAGE (GB), not a bigger per-file cap.
 async function adminPubKey(request, env, cors) {
   const u = await env.MAIL_DB.prepare("SELECT public_key FROM users WHERE id = ?").bind(ADMIN_MAIL_USER_ID).first();
   if (!u?.public_key) return bad("admin mailbox unavailable", 503);
@@ -431,17 +437,17 @@ async function limitRequest(request, env, cors, ctx) {
 
   const body = await request.json().catch(() => ({}));
   const contact = String(body.contact || "").trim().slice(0, 120);
-  const currentMb = Number(body.current_mb || 0);
-  const requestedMb = Number(body.requested_mb || 0);
+  const currentGb = Number(body.current_gb || 0);
+  const requestedGb = Number(body.requested_gb || 0);
   const envelope = body.envelope; // { encrypted_aes_key, iv, ciphertext, auth_tag } — reason text, RSA-OAEP to admin pubkey
   if (!contact || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(contact)) return bad("Enter a valid contact e-mail", 400);
-  if (!Number.isInteger(requestedMb) || requestedMb < 101 || requestedMb > 10240) return bad("Request between 101 MB and 10 GB", 400);
+  if (!Number.isInteger(requestedGb) || requestedGb < 2 || requestedGb > 50) return bad("Request between 2 GB and 50 GB of storage", 400);
   if (!envelope || !envelope.ciphertext || !envelope.encrypted_aes_key) return bad("Missing encrypted reason", 400);
 
   const claimed = "uid:" + (typeof body.user_id === "string" ? body.user_id.slice(0, 40) : "guest");
   const r = await env.DB.prepare(
     "INSERT INTO limit_requests (user_id, contact, current_mb, requested_mb, reason_enc, created_at) VALUES (?,?,?,?,?,?)"
-  ).bind(claimed, contact, Math.min(100000, currentMb | 0), requestedMb, JSON.stringify(envelope).slice(0, 4000), Date.now()).run();
+  ).bind(claimed, contact, Math.min(100000, Math.round(currentGb * 1024)), requestedGb * 1024, JSON.stringify(envelope).slice(0, 4000), Date.now()).run();
   const rid = r?.meta?.last_row_id;
 
   // deliver as an Inpriv Mail message (zero-knowledge — reason stays encrypted)
@@ -454,7 +460,7 @@ async function limitRequest(request, env, cors, ctx) {
       // the notification above contains only routing metadata (no reason text).
       await env.MAIL_DB.prepare(
         "INSERT INTO messages (owner_id, direction, peer_address, subject, encrypted_aes_key, iv, ciphertext, auth_tag, is_read, created_at) VALUES (?,?,?,?,?,?,?,?,0,?)"
-      ).bind(ADMIN_MAIL_USER_ID, "inbound", contact, "Host limit request #" + rid, envelope.encrypted_aes_key, envelope.iv, envelope.ciphertext, envelope.auth_tag, Date.now()).run();
+      ).bind(ADMIN_MAIL_USER_ID, "inbound", contact, "Host storage limit request #" + rid, envelope.encrypted_aes_key, envelope.iv, envelope.ciphertext, envelope.auth_tag, Date.now()).run();
     } catch {}
   })());
 
@@ -484,8 +490,8 @@ async function beginUpload(request, me, env, cors) {
     "SELECT COUNT(*) AS n, COALESCE(SUM(size),0) AS used FROM files WHERE user_id = ?"
   ).bind(me.uid).first();
   if (n >= MAX_FILES) return bad("File limit reached (5000)", 400);
-  if (used + size > USER_QUOTA_BYTES)
-    return bad(`Quota exceeded — ${(USER_QUOTA_BYTES - used) / 1e9 < 1 ? Math.round((USER_QUOTA_BYTES - used) / 1e6) + " MB" : Math.round((USER_QUOTA_BYTES - used) / 1e9) + " GB"} left`, 413);
+  if (used + size > limits.quota_bytes)
+    return bad("Storage limit reached — request a higher limit or delete some files", 413);
 
   const id = uuid();
   const slug = await newSlug(env);

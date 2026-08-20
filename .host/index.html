@@ -596,7 +596,7 @@
             <div class="stat-label">Storage used</div>
             <div class="stat-value" id="statUsed">0 B</div>
             <div class="quota-bar"><div class="quota-fill" id="quotaFill" style="width:0%"></div></div>
-            <div class="stat-sub" id="statQuota">0 B of 50 GB per account</div>
+            <div class="stat-sub" id="statQuota">0 B of 1 GB storage limit</div>
           </div>
         </div>
         <div class="stat-card">
@@ -616,10 +616,10 @@
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon"><span class="icon" aria-hidden="true">speed</span></div>
+          <div class="stat-icon"><span class="icon" aria-hidden="true">storage</span></div>
           <div style="flex:1;min-width:0">
-            <div class="stat-label">Per-file limit</div>
-            <div class="stat-value" id="statLimit">100 MB</div>
+            <div class="stat-label">Storage limit</div>
+            <div class="stat-value" id="statQuotaLimit">1 GB</div>
             <button class="btn btn-tonal" id="limitBtn" style="margin-top:8px;height:36px;padding:0 16px;font-size:.8rem"><span class="icon" aria-hidden="true">upgrade</span>Request higher limit</button>
           </div>
         </div>
@@ -632,7 +632,7 @@
           <div class="dz-sub">Every file is scanned for IP loggers, WebRTC leaks and trackers before it goes live. Text files are served with a strict sandbox; images and media pass through directly.</div>
           <div class="upload-limits">
             <span class="limit-chip"><span class="icon" aria-hidden="true">straighten</span><span id="chipLimit">Max 100 MB per file</span></span>
-            <span class="limit-chip"><span class="icon" aria-hidden="true">cloud</span>50 GB per account</span>
+            <span class="limit-chip"><span class="icon" aria-hidden="true">cloud</span><span id="chipQuota">1 GB storage</span></span>
             <span class="limit-chip"><span class="icon" aria-hidden="true">bolt</span>Unmetered bandwidth</span>
           </div>
         </div>
@@ -761,12 +761,12 @@
         <input id="limitContact" type="email" placeholder="you@example.com" />
       </div>
       <div class="field" style="margin:14px 0 4px">
-        <label for="limitSize">Requested per-file limit (MB)</label>
-        <input id="limitSize" type="number" min="101" max="10240" value="250" />
+        <label for="limitSize">Requested storage (GB)</label>
+        <input id="limitSize" type="number" min="2" max="50" step="1" value="5" />
       </div>
       <div class="field" style="margin:14px 0 4px">
         <label for="limitReason">Reason (encrypted)</label>
-        <textarea id="limitReason" rows="3" placeholder="Why do you need a bigger limit?"></textarea>
+        <textarea id="limitReason" rows="3" placeholder="Why do you need more storage?"></textarea>
       </div>
       <p class="modal-sub" id="limitError" style="color:var(--md-error);display:none"></p>
       <div class="modal-actions">
@@ -790,7 +790,8 @@
     const GUEST_MAX_FILE = 50 * 1024 * 1024;   // 50 MB (guest)
     // server tells us the real chunk size in /upload/begin (D1 row cap ≈ 2 MB)
     let CHUNK = 1.5 * 1024 * 1024;             // safe default until begin responds
-    const QUOTA = 50 * 1024 * 1024 * 1024;     // 50 GB display
+    const QUOTA = 1024 * 1024 * 1024;          // 1 GB default storage (server can raise per account)
+    let quotaBytes = QUOTA;
     let token = '';
     let user = null;
     let files = [];
@@ -1038,10 +1039,13 @@
 
     function renderStats() {
       const used = files.reduce((s, f) => s + (f.size || 0), 0);
+      if (limits?.quota_bytes) quotaBytes = limits.quota_bytes;
+      const quotaLabel = fmtSize(quotaBytes);
       $('statUsed').textContent = fmtSize(used);
-      $('quotaFill').style.width = Math.min(100, (used / QUOTA) * 100).toFixed(2) + '%';
-      $('statQuota').textContent = fmtSize(used) + ' of ' + (limits?.quota_gb || 50) + ' GB per account';
-      $('statLimit').textContent = (limits?.max_file_mb || 100) + ' MB';
+      $('quotaFill').style.width = Math.min(100, (used / quotaBytes) * 100).toFixed(2) + '%';
+      $('statQuota').textContent = fmtSize(used) + ' of ' + quotaLabel + ' storage limit';
+      $('statQuotaLimit').textContent = quotaLabel;
+      $('chipQuota').textContent = quotaLabel + ' storage';
       $('chipLimit').textContent = 'Max ' + (limits?.max_file_mb || 100) + ' MB per file';
       $('statFiles').textContent = files.length;
       $('statPublic').textContent = files.filter(f => f.visibility === 'public').length + ' public links';
@@ -1160,12 +1164,12 @@
     // limit request modal (reason encrypted to the operator's pubkey, E2E)
     $('limitSendBtn').addEventListener('click', async () => {
       const contact = $('limitContact').value.trim();
-      const sizeMb = parseInt($('limitSize').value, 10);
+      const sizeGb = parseInt($('limitSize').value, 10);
       const reason = $('limitReason').value.trim();
       const errEl = $('limitError');
       errEl.style.display = 'none';
       if (!contact || !contact.includes('@')) { errEl.textContent = 'Enter a valid contact e-mail.'; errEl.style.display = 'block'; return; }
-      if (!sizeMb || sizeMb < 101 || sizeMb > 10240) { errEl.textContent = 'Request between 101 MB and 10 GB.'; errEl.style.display = 'block'; return; }
+      if (!sizeGb || sizeGb < 2 || sizeGb > 50) { errEl.textContent = 'Request between 2 GB and 50 GB of storage.'; errEl.style.display = 'block'; return; }
       if (!reason) { errEl.textContent = 'Add a short reason so the operator can decide.'; errEl.style.display = 'block'; return; }
       $('limitSendBtn').disabled = true;
       try {
@@ -1181,7 +1185,7 @@
         const aes = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt']);
         const iv = crypto.getRandomValues(new Uint8Array(12));
         const enc = new TextEncoder();
-        const ctBuf = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, aes, enc.encode('Limit request\nContact: ' + contact + '\nCurrent: ' + (limits?.max_file_mb || 100) + ' MB\nRequested: ' + sizeMb + ' MB\n\n' + reason));
+        const ctBuf = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, aes, enc.encode('Limit request\nContact: ' + contact + '\nCurrent storage: ' + fmtSize(quotaBytes) + '\nRequested: ' + sizeGb + ' GB\n\n' + reason));
         const ctBytes = new Uint8Array(ctBuf);
         const rawAes = await crypto.subtle.exportKey('raw', aes);
         const wrapped = await crypto.subtle.encrypt({ name: 'RSA-OAEP' }, rsa, rawAes);
@@ -1195,7 +1199,7 @@
         // 3. send
         const sr = await fetch(API + '/limit-request', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contact, current_mb: limits?.max_file_mb || 100, requested_mb: sizeMb, envelope, user_id: user?.id })
+          body: JSON.stringify({ contact, current_gb: +(quotaBytes / 1073741824).toFixed(2), requested_gb: sizeGb, envelope, user_id: user?.id })
         });
         const sd = await sr.json().catch(() => ({}));
         if (!sr.ok) throw new Error(sd.error || 'Send failed');
