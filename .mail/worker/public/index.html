@@ -1021,6 +1021,19 @@ body {
   transform: translateY(0) scale(1);
 }
 
+.confirm-desc {
+  color: var(--md-on-surface-variant);
+  font-size: 14px;
+  line-height: 1.55;
+  margin: -6px 0 18px;
+}
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
 .modal-head {
   display: flex;
   align-items: center;
@@ -1235,6 +1248,44 @@ function fmtTime(ts) {
   }
   const sameYear = d.getFullYear() === now.getFullYear();
   return d.toLocaleDateString([], sameYear ? { month: 'short', day: 'numeric' } : { month: 'short', day: 'numeric', year: '2-digit' });
+}
+
+/* ---------- Confirm Dialog (in-app; native confirm() is blocked in in-app browsers) ---------- */
+function confirmDialog({ title, desc = '', confirmLabel = 'Delete', danger = true }) {
+  return new Promise((resolve) => {
+    const container = $('#modalContainer');
+    if (!container) { resolve(false); return; }
+
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = `
+      <div class="modal-sheet" role="dialog" aria-modal="true">
+        <div class="modal-head">
+          <h2 class="modal-title">${escapeHtml(title)}</h2>
+        </div>
+        ${desc ? `<div class="confirm-desc">${escapeHtml(desc)}</div>` : ''}
+        <div class="modal-actions">
+          <button class="btn btn-outlined" id="cfCancelBtn" type="button">Cancel</button>
+          <button class="btn ${danger ? 'btn-danger' : 'btn-primary'}" id="cfOkBtn" type="button">${escapeHtml(confirmLabel)}</button>
+        </div>
+      </div>
+    `;
+    container.appendChild(overlay);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => overlay.classList.add('open'));
+    });
+
+    const done = (result) => {
+      overlay.classList.remove('open');
+      setTimeout(() => overlay.remove(), 320);
+      resolve(result);
+    };
+    $('#cfOkBtn', overlay).addEventListener('click', () => done(true));
+    $('#cfCancelBtn', overlay).addEventListener('click', () => done(false));
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) done(false);
+    });
+  });
 }
 
 /* ---------- API Call Helper ---------- */
@@ -2066,6 +2117,27 @@ async function openMessageView(id) {
     if (e.target === overlay) close();
   });
 
+  // Delete works even if fetching/decrypting the body fails below.
+  $('#viewDeleteBtn').addEventListener('click', async () => {
+    const ok = await confirmDialog({
+      title: 'Delete this message?',
+      desc: 'This permanently removes the message from your mailbox. This cannot be undone.',
+      confirmLabel: 'Delete'
+    });
+    if (ok) {
+      try {
+        await api('/messages/delete', { method: 'POST', body: JSON.stringify({ id }) });
+        state.messages = state.messages.filter(x => x.id !== id);
+        updateCounts();
+        renderMessageCards();
+        toast('Message deleted', 'Removed from mailbox.');
+        close();
+      } catch (e) {
+        toast('Delete failed', e.message, 'error');
+      }
+    }
+  });
+
   try {
     const msg = await api(`/messages/${id}`);
     $('#viewSubject').textContent = msg.subject || '(No Subject)';
@@ -2084,23 +2156,29 @@ async function openMessageView(id) {
     }
 
     let decryptedText = '';
+    let decryptFailed = false;
     if (!state.privKey) {
-      throw new Error('Encryption key not in browser memory. Please unlock again.');
-    }
-
-    try {
-      decryptedText = await hybridDecrypt(state.privKey, msg);
-    } catch (decErr) {
-      throw new Error('Decryption failed: ' + decErr.message);
+      decryptFailed = true;
+      decryptedText = 'Encryption key not in browser memory. Please unlock again.';
+    } else {
+      try {
+        decryptedText = await hybridDecrypt(state.privKey, msg);
+      } catch (decErr) {
+        decryptFailed = true;
+        decryptedText = 'Decryption failed: ' + decErr.message;
+      }
     }
 
     const bodyEl = $('#viewBody');
     bodyEl.classList.remove('decrypting');
     bodyEl.textContent = decryptedText;
+    if (decryptFailed) {
+      bodyEl.innerHTML = `<span style="color:var(--md-error)">${mkIcon('error')} ${escapeHtml(decryptedText)}</span>`;
+    }
 
     // Mark as read in local list
     const target = state.messages.find(x => x.id === id);
-    if (target) {
+    if (target && !decryptFailed) {
       target.is_read = 1;
       updateCounts();
       renderMessageCards();
@@ -2116,21 +2194,6 @@ async function openMessageView(id) {
       const replyTo = msg.direction === 'inbound' ? (msg.peer_address || msg.peer_label) : msg.peer_address;
       const replySub = (msg.subject && msg.subject.startsWith('Re:')) ? msg.subject : `Re: ${msg.subject || ''}`;
       openComposeModal(replyTo, replySub);
-    });
-
-    $('#viewDeleteBtn').addEventListener('click', async () => {
-      if (confirm('Delete this message permanently?')) {
-        try {
-          await api('/messages/delete', { method: 'POST', body: JSON.stringify({ id: msg.id }) });
-          state.messages = state.messages.filter(x => x.id !== id);
-          updateCounts();
-          renderMessageCards();
-          toast('Message deleted', 'Removed from mailbox.');
-          close();
-        } catch (e) {
-          toast('Delete failed', e.message, 'error');
-        }
-      }
     });
   } catch (err) {
     const bodyEl = $('#viewBody');
