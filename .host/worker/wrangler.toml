@@ -21,6 +21,16 @@ binding = "ID_DB"
 database_name = "inpriv-id"
 database_id = "1cd1ca2e-51fd-40d9-94d8-aa75f989291b"
 
+# Cross-write: deliver limit-increase requests to saloyek@inpriv.xyz (encrypted)
+[[d1_databases]]
+binding = "MAIL_DB"
+database_name = "inpriv-mail"
+database_id = "d5c75cf0-46ba-4721-99fc-da18d2ccbabe"
+
+# Nightly purge of expired guest uploads
+[triggers]
+crons = ["23 2 * * *"]
+
 # Drive OAuth token cache
 [[kv_namespaces]]
 binding = "KV"

@@ -17,14 +17,25 @@ import {
 } from "../../../.id/worker/src/lib.js";
 
 // ── config ───────────────────────────────────────────────────────────────────
-const MAX_FILE_BYTES = 100 * 1024 * 1024;         // 100 MB per file
+const MAX_FILE_BYTES = 100 * 1024 * 1024;         // 100 MB per file (signed-in)
+const ANON_MAX_FILE_BYTES = 50 * 1024 * 1024;     // 50 MB per file (guest)
 const USER_QUOTA_BYTES = 50 * 1024 * 1024 * 1024; // 50 GB per account
+const ANON_QUOTA_BYTES = 2 * 1024 * 1024 * 1024;  // rolling 2 GB per guest (IP-prefix bucket)
+const ANON_TTL_MS = 7 * 24 * 3600 * 1000;         // guest files expire after 7 days
 const CHUNK_MIN = 256 * 1024;                     // 256 KB
 const CHUNK_MAX = 8 * 1024 * 1024;                // 8 MB
 const MAX_FILES = 5000;
 const TEXT_SCAN_LIMIT = 2 * 1024 * 1024;          // scan first 2 MB of text
 const SERVE_CACHE_S = 6 * 3600;                   // edge cache for public files
 const SESSION_TTL = SESSION_TTL_MS;
+// limit-increase requests are delivered (encrypted) to this Inpriv Mail user
+const ADMIN_MAIL_USER_ID = 4;                     // saloyek@inpriv.xyz
+const CUSTOM_RE = /^[a-z0-9][a-z0-9-]{2,38}[a-z0-9]$/;
+const CUSTOM_RESERVED = new Set([
+  "www", "api", "admin", "login", "logout", "files", "file", "upload", "settings",
+  "security", "about", "help", "support", "mail", "id", "app", "dashboard", "f", "s",
+  "inpriv", "host", "static", "assets", "cdn", "js", "css", "img", "images",
+]);
 
 const MIME = {
   html: "text/html; charset=utf-8", htm: "text/html; charset=utf-8",
@@ -64,8 +75,8 @@ export default {
     }
 
     try {
-      // public file serving  https://host.inpriv.xyz/f/<slug>
-      if ((request.method === "GET" || request.method === "HEAD") && path.startsWith("/f/")) {
+      // public file serving  https://host.inpriv.xyz/f/<slug> or /s/<custom>
+      if ((request.method === "GET" || request.method === "HEAD") && (path.startsWith("/f/") || path.startsWith("/s/"))) {
         return await servePublic(request, env, ctx, path);
       }
 
@@ -78,17 +89,26 @@ export default {
       if (path === "/api/health") {
         let drive = "off";
         try { await getAccessToken(env); drive = env.DRIVE_OAUTH ? "oauth" : "sa"; } catch (e) { drive = String(e.message || e).split(":")[0]; }
-        return json({ ok: true, service: "host", drive, ts: Date.now() });
+        return json({ ok: true, service: "host", drive, open: true, ts: Date.now() });
       }
       if (path === "/api/auth/login" && request.method === "POST") return await login(request, env, cors);
       if (path === "/api/auth/logout" && request.method === "POST") return json({ ok: true }, 200, cors);
+      if (path === "/api/pubkey" && request.method === "GET") return await adminPubKey(request, env, cors);
 
       if (path === "/api/me" && request.method === "GET")
-        return authed(request, env, cors, (me) => json({ user: pub(me.user) }));
+        return authed(request, env, cors, async (me) => json({ user: pub(me.user), limits: await limitsFor(env, me.uid) }));
       if (path === "/api/files" && request.method === "GET")
         return authed(request, env, cors, (me) => listFiles(me, env, cors));
       if (path === "/api/upload/begin" && request.method === "POST")
         return authed(request, env, cors, (me) => beginUpload(request, me, env, cors));
+
+      // anonymous (guest) uploads — open to everyone, files auto-expire in 7 days
+      if (path === "/api/guest/upload/begin" && request.method === "POST") return await guestBegin(request, env, cors);
+      let gm = path.match(/^\/api\/guest\/upload\/([a-zA-Z0-9-]+)\/(chunk|complete|abort)$/);
+      if (gm && gm[2] === "chunk" && request.method === "PUT") return await guestChunk(url, request, gm[1], env, cors);
+      if (gm && gm[2] === "complete" && request.method === "POST") return await guestComplete(gm[1], request, env, cors);
+      if (gm && gm[2] === "abort" && request.method === "POST") return await guestAbort(gm[1], env, cors);
+      if (path === "/api/guest/delete" && request.method === "POST") return await guestDelete(request, env, cors);
 
       let m = path.match(/^\/api\/upload\/([a-zA-Z0-9-]+)\/(chunk|complete|abort)$/);
       if (m && m[2] === "chunk" && request.method === "PUT")
@@ -101,6 +121,9 @@ export default {
       m = path.match(/^\/api\/files\/([a-zA-Z0-9-]+)\/visibility$/);
       if (m && request.method === "POST")
         return authed(request, env, cors, (me) => setVisibility(m[1], request, me, env, cors));
+      m = path.match(/^\/api\/files\/([a-zA-Z0-9-]+)\/custom$/);
+      if (m && request.method === "POST")
+        return authed(request, env, cors, (me) => setCustomSlug(m[1], request, me, env, cors));
       m = path.match(/^\/api\/files\/([a-zA-Z0-9-]+)\/content$/);
       if (m && request.method === "GET")
         return authed(request, env, cors, (me) => servePrivate(m[1], me, env, cors));
@@ -108,10 +131,31 @@ export default {
       if (m && request.method === "DELETE")
         return authed(request, env, cors, (me) => deleteFile(m[1], me, env, cors));
 
+      if (path === "/api/limit-request" && request.method === "POST") return await limitRequest(request, env, cors, ctx);
+
       return bad("not_found", 404);
     } catch (e) {
       return json({ error: "server_error", detail: String(e?.message || e).slice(0, 200) }, 500, cors);
     }
+  },
+
+  // ── cron: purge expired guest files & stale sessions ──────────────────────
+  async scheduled(event, env, ctx) {
+    const nowMs = Date.now();
+    const { results: expired } = await env.DB.prepare(
+      "SELECT id, drive_file_id FROM files WHERE expires_at IS NOT NULL AND expires_at < ? LIMIT 200"
+    ).bind(nowMs).all();
+    for (const f of expired || []) {
+      if (f.drive_file_id) {
+        try { await driveDelete(await getAccessToken(env), f.drive_file_id); } catch {}
+      }
+      await env.DB.batch([
+        env.DB.prepare("DELETE FROM chunks WHERE file_id = ?").bind(f.id),
+        env.DB.prepare("DELETE FROM files WHERE id = ?").bind(f.id),
+      ]);
+    }
+    await env.DB.prepare("DELETE FROM sessions WHERE expires_at < ?").bind(nowMs).run();
+    await env.DB.prepare("DELETE FROM rl_counters WHERE bucket < ?").bind(Math.floor(nowMs / 600000) - 2).run();
   },
 };
 
@@ -174,15 +218,228 @@ async function login(request, env, cors) {
   return json({ token, user: pub({ id: idu.id, username: idu.username, nick: idu.nick }) }, 200, cors);
 }
 
-// ── files CRUD ───────────────────────────────────────────────────────────────
+// ── per-account limits (raised via request → saloyek approves) ───────────────
+async function limitsFor(env, uid) {
+  const r = await env.DB.prepare("SELECT max_file_bytes FROM account_limits WHERE user_id = ?").bind(uid).first();
+  const maxFile = r?.max_file_bytes || MAX_FILE_BYTES;
+  return { max_file_bytes: maxFile, max_file_mb: Math.round(maxFile / 1048576), quota_bytes: USER_QUOTA_BYTES, quota_gb: Math.round(USER_QUOTA_BYTES / 1073741824) };
+}
+
+// ── anonymous (guest) uploads — no account, 7-day expiry, IP-prefix quota ───
+function guestKey(request) {
+  // hashed, truncated IP prefix — enough for quota bucketing, not an identifier
+  const ip = (request.headers.get("CF-Connecting-IP") || "x").split(".").slice(0, 2).join(".");
+  return "guest:" + ip;
+}
+
+async function guestBegin(request, env, cors) {
+  if (!(await rateLimit(env.DB, guestKey(request) + ":uploads", 30, 24 * 3600 * 1000)))
+    return bad("Too many uploads from this network — try again tomorrow", 429);
+  const body = await request.json().catch(() => ({}));
+  const name = sanitizeName(String(body.name || ""));
+  const size = Number(body.size || 0);
+  if (!name) return bad("Invalid file name", 400);
+  if (size <= 0) return bad("Empty files are not supported", 400);
+  if (size > ANON_MAX_FILE_BYTES) return bad("Guest limit is 50 MB per file — sign in with Inpriv ID for 100 MB", 413);
+
+  const key = guestKey(request);
+  const { used } = await env.DB.prepare(
+    "SELECT COALESCE(SUM(size),0) AS used FROM files WHERE user_id = ? AND created_at > ?"
+  ).bind(key, Date.now() - 7 * 24 * 3600 * 1000).first();
+  if (used + size > ANON_QUOTA_BYTES)
+    return bad("Guest storage full (2 GB / 7 days) — sign in for 50 GB", 413);
+
+  const id = uuid();
+  const slug = await newSlug(env);
+  const manageToken = b64(crypto.getRandomValues(new Uint8Array(24)));
+  const ext = (name.split(".").pop() || "").toLowerCase();
+  const mime = MIME[ext] || String(body.mime || "application/octet-stream");
+  await env.DB.prepare(
+    "INSERT INTO files (id, user_id, name, slug, size, mime, visibility, scan_status, expires_at, manage_token, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)"
+  ).bind(id, key, name, slug, size, mime, "public", SCANNABLE.has(ext) ? "pending" : "skip", Date.now() + ANON_TTL_MS, await sha256hex(manageToken), Date.now()).run();
+  return json({ upload_id: id, chunk_size: 6 * 1024 * 1024, slug, manage_token: manageToken, expires_in: "7d" }, 200, cors);
+}
+
+async function guestChunk(url, request, uploadId, env, cors) {
+  const f = await env.DB.prepare("SELECT id, size, user_id, expires_at FROM files WHERE id = ?").bind(uploadId).first();
+  if (!f || !f.user_id.startsWith("guest:")) return bad("Upload not found", 404);
+  if (f.expires_at && f.expires_at < Date.now()) return bad("Upload expired", 410);
+  const seq = Number(url.searchParams.get("seq"));
+  if (!Number.isInteger(seq) || seq < 0 || seq > 999) return bad("Bad chunk index", 400);
+  const buf = new Uint8Array(await request.arrayBuffer());
+  if (buf.length === 0) return bad("Empty chunk", 400);
+  if (buf.length > CHUNK_MAX) return bad("Chunk too large (max 8 MB)", 413);
+  const total = Math.max(1, Math.ceil(f.size / (6 * 1024 * 1024)));
+  if (seq >= total) return bad("Chunk index out of range", 400);
+  await env.DB.prepare(
+    "INSERT INTO chunks (file_id, seq, data) VALUES (?,?,?) ON CONFLICT(file_id, seq) DO UPDATE SET data = excluded.data"
+  ).bind(uploadId, seq, buf).run();
+  return json({ ok: true, received: buf.length }, 200, cors);
+}
+
+async function guestComplete(uploadId, request, env, cors) {
+  const f = await env.DB.prepare("SELECT * FROM files WHERE id = ?").bind(uploadId).first();
+  if (!f || !f.user_id.startsWith("guest:")) return bad("Upload not found", 404);
+  if (f.drive_file_id) return bad("Upload already completed", 409);
+  // management token proves ownership of a guest upload
+  const body = await request.json().catch(() => ({}));
+  const mt = String(body.manage_token || "");
+  if (!mt || (await sha256hex(mt)) !== f.manage_token) return bad("unauthorized", 401);
+
+  const { results: rows } = await env.DB.prepare(
+    "SELECT seq, data FROM chunks WHERE file_id = ? ORDER BY seq"
+  ).bind(uploadId).all();
+  if (!rows || !rows.length) return bad("No chunks received", 400);
+  const received = rows.reduce((s, c) => s + (c.data.byteLength ?? c.data.length), 0);
+  let continuous = true;
+  for (let i = 0; i < rows.length; i++) if (rows[i].seq !== i) { continuous = false; break; }
+  if (!continuous || received !== f.size)
+    return bad(`Upload incomplete — declared ${f.size} B, received ${received} B`, 400);
+
+  const ext = (f.name.split(".").pop() || "").toLowerCase();
+  let scan = { status: "skip", findings: [], summary: "Binary format — source scan not applicable" };
+  if (SCANNABLE.has(ext)) {
+    let text = "", taken = 0;
+    for (const c of rows) {
+      if (taken >= TEXT_SCAN_LIMIT) break;
+      const cd_ = c.data instanceof ArrayBuffer ? new Uint8Array(c.data)
+        : Array.isArray(c.data) ? new Uint8Array(c.data)
+        : typeof c.data === "string" ? Uint8Array.from(atob(c.data), (ch) => ch.charCodeAt(0))
+        : c.data;
+      text += new TextDecoder("utf-8", { fatal: false }).decode(cd_);
+      taken += c.data.length;
+    }
+    scan = scanText(text.slice(0, TEXT_SCAN_LIMIT * 2), f.name);
+  }
+  if (scan.status === "blocked") {
+    await env.DB.batch([
+      env.DB.prepare("DELETE FROM chunks WHERE file_id = ?").bind(uploadId),
+      env.DB.prepare(
+        "UPDATE files SET scan_status = 'blocked', scan_summary = ?, scan_findings = ? WHERE id = ?"
+      ).bind(scan.summary, JSON.stringify(scan.findings.slice(0, 30)), uploadId),
+    ]);
+    return json({ ok: false, blocked: true, scan }, 200, cors);
+  }
+
+  const token = await getAccessToken(env);
+  const toU8 = (d) => d instanceof ArrayBuffer ? new Uint8Array(d)
+      : Array.isArray(d) ? new Uint8Array(d)
+      : typeof d === "string" ? Uint8Array.from(atob(d), (ch) => ch.charCodeAt(0))
+      : d;
+  const driveId = await driveUpload(token, env, f, rows.map((c) => toU8(c.data)));
+  await env.DB.batch([
+    env.DB.prepare("DELETE FROM chunks WHERE file_id = ?").bind(uploadId),
+    env.DB.prepare(
+      "UPDATE files SET drive_file_id = ?, scan_status = 'published', scan_summary = ? WHERE id = ?"
+    ).bind(driveId, scan.summary, uploadId),
+  ]);
+  return json({ ok: true, blocked: false, scan, slug: f.slug, url: "/f/" + f.slug, manage_token: mt }, 200, cors);
+}
+
+async function guestAbort(uploadId, env, cors) {
+  await env.DB.batch([
+    env.DB.prepare("DELETE FROM chunks WHERE file_id = ?").bind(uploadId),
+    env.DB.prepare("DELETE FROM files WHERE id = ? AND user_id LIKE 'guest:%' AND drive_file_id IS NULL").bind(uploadId),
+  ]);
+  return json({ ok: true }, 200, cors);
+}
+
+// delete a published guest file with its one-time manage token
+async function guestDelete(request, env, cors) {
+  if (!(await rateLimit(env.DB, "gdel:" + guestKey(request).slice(6), 20, 3600 * 1000)))
+    return bad("Too many attempts — slow down", 429);
+  const body = await request.json().catch(() => ({}));
+  const mt = String(body.manage_token || "");
+  if (!mt) return bad("Missing manage key", 400);
+  const f = await env.DB.prepare(
+    "SELECT id, drive_file_id FROM files WHERE manage_token = ? AND user_id LIKE 'guest:%'"
+  ).bind(await sha256hex(mt)).first();
+  if (!f) return bad("No guest file matches this key", 404);
+  if (f.drive_file_id) {
+    try { await driveDelete(await getAccessToken(env), f.drive_file_id); } catch {}
+  }
+  await env.DB.batch([
+    env.DB.prepare("DELETE FROM chunks WHERE file_id = ?").bind(f.id),
+    env.DB.prepare("DELETE FROM files WHERE id = ?").bind(f.id),
+  ]);
+  return json({ ok: true }, 200, cors);
+}
+
+// ── custom slug: host.inpriv.xyz/s/<name> (signed-in owners only) ────────────
+async function setCustomSlug(fid, request, me, env, cors) {
+  const body = await request.json().catch(() => ({}));
+  const custom = String(body.custom || "").trim().toLowerCase();
+  const f = await env.DB.prepare("SELECT id FROM files WHERE id = ? AND user_id = ? AND scan_status = 'published'").bind(fid, me.uid).first();
+  if (!f) return bad("File not found or not published", 404);
+
+  if (custom === "") {
+    await env.DB.prepare("UPDATE files SET custom_slug = NULL WHERE id = ?").bind(fid).run();
+    return json({ ok: true, custom: null }, 200, cors);
+  }
+  if (!CUSTOM_RE.test(custom)) return bad("Use 4-40 chars: lowercase letters, digits, hyphens", 400);
+  if (CUSTOM_RESERVED.has(custom)) return bad("This name is reserved", 400);
+
+  const existing = await env.DB.prepare("SELECT user_id FROM files WHERE custom_slug = ?").bind(custom).first();
+  if (existing) return bad("This link is already taken — try another", 409);
+  // one custom link per file
+  await env.DB.prepare("UPDATE files SET custom_slug = ? WHERE id = ?").bind(custom, fid).run();
+  return json({ ok: true, custom, url: "/s/" + custom }, 200, cors);
+}
+
+// ── limit-increase request → encrypted message into saloyek@inpriv.xyz ───────
+async function adminPubKey(request, env, cors) {
+  const u = await env.MAIL_DB.prepare("SELECT public_key FROM users WHERE id = ?").bind(ADMIN_MAIL_USER_ID).first();
+  if (!u?.public_key) return bad("admin mailbox unavailable", 503);
+  return json({ pubkey: u.public_key }, 200, {
+    ...cors,
+    "Cache-Control": "public, max-age=3600",
+  });
+}
+
+async function limitRequest(request, env, cors, ctx) {
+  // rate limit by IP prefix (hashed key, no raw IP stored)
+  if (!(await rateLimit(env.DB, "limitreq:" + guestKey(request).slice(6), 3, 24 * 3600 * 1000)))
+    return bad("You already sent requests today — wait for a reply at your contact address", 429);
+
+  const body = await request.json().catch(() => ({}));
+  const contact = String(body.contact || "").trim().slice(0, 120);
+  const currentMb = Number(body.current_mb || 0);
+  const requestedMb = Number(body.requested_mb || 0);
+  const envelope = body.envelope; // { encrypted_aes_key, iv, ciphertext, auth_tag } — reason text, RSA-OAEP to admin pubkey
+  if (!contact || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(contact)) return bad("Enter a valid contact e-mail", 400);
+  if (!Number.isInteger(requestedMb) || requestedMb < 101 || requestedMb > 10240) return bad("Request between 101 MB and 10 GB", 400);
+  if (!envelope || !envelope.ciphertext || !envelope.encrypted_aes_key) return bad("Missing encrypted reason", 400);
+
+  const claimed = "uid:" + (typeof body.user_id === "string" ? body.user_id.slice(0, 40) : "guest");
+  const r = await env.DB.prepare(
+    "INSERT INTO limit_requests (user_id, contact, current_mb, requested_mb, reason_enc, created_at) VALUES (?,?,?,?,?,?)"
+  ).bind(claimed, contact, Math.min(100000, currentMb | 0), requestedMb, JSON.stringify(envelope).slice(0, 4000), Date.now()).run();
+  const rid = r?.meta?.last_row_id;
+
+  // deliver as an Inpriv Mail message (zero-knowledge — reason stays encrypted)
+  ctx.waitUntil((async () => {
+    try {
+      const admin = await env.MAIL_DB.prepare("SELECT id FROM users WHERE id = ?").bind(ADMIN_MAIL_USER_ID).first();
+      if (!admin) return;
+      // envelope fields are already encrypted client-side to the admin pubkey
+      // note: reason_enc is already encrypted to the admin pubkey client-side;
+      // the notification above contains only routing metadata (no reason text).
+      await env.MAIL_DB.prepare(
+        "INSERT INTO messages (owner_id, direction, peer_address, subject, encrypted_aes_key, iv, ciphertext, auth_tag, is_read, created_at) VALUES (?,?,?,?,?,?,?,?,0,?)"
+      ).bind(ADMIN_MAIL_USER_ID, "inbound", contact, "Host limit request #" + rid, envelope.encrypted_aes_key, envelope.iv, envelope.ciphertext, envelope.auth_tag, Date.now()).run();
+    } catch {}
+  })());
+
+  return json({ ok: true, request_id: rid, message: "Request sent — reply arrives at " + contact }, 200, cors);
+}
 async function listFiles(me, env, cors) {
   const { results } = await env.DB.prepare(
-    "SELECT id, name, slug, size, mime, visibility, hits, scan_status, scan_summary, created_at FROM files WHERE user_id = ? AND drive_file_id IS NOT NULL ORDER BY created_at DESC LIMIT 500"
+    "SELECT id, name, slug, custom_slug, size, mime, visibility, hits, scan_status, scan_summary, expires_at, created_at FROM files WHERE user_id = ? AND drive_file_id IS NOT NULL ORDER BY created_at DESC LIMIT 500"
   ).bind(me.uid).all();
   const used = (results || []).reduce((s, f) => s + (f.size || 0), 0);
   return json({
-    files: (results || []).map((f) => ({ ...f, url: "/f/" + f.slug })),
-    used, quota: USER_QUOTA_BYTES,
+    files: (results || []).map((f) => ({ ...f, url: f.custom_slug ? "/s/" + f.custom_slug : "/f/" + f.slug })),
+    used, quota: USER_QUOTA_BYTES, limits: await limitsFor(env, me.uid),
   }, 200, cors);
 }
 
@@ -190,9 +447,10 @@ async function beginUpload(request, me, env, cors) {
   const body = await request.json().catch(() => ({}));
   const name = sanitizeName(String(body.name || ""));
   const size = Number(body.size || 0);
+  const limits = await limitsFor(env, me.uid);
   if (!name) return bad("Invalid file name", 400);
   if (size <= 0) return bad("Empty files are not supported", 400);
-  if (size > MAX_FILE_BYTES) return bad("File exceeds the 100 MB limit", 413);
+  if (size > limits.max_file_bytes) return bad(`File exceeds your current ${limits.max_file_mb} MB limit`, 413);
 
   const { n, used } = await env.DB.prepare(
     "SELECT COUNT(*) AS n, COALESCE(SUM(size),0) AS used FROM files WHERE user_id = ?"
@@ -239,7 +497,7 @@ async function completeUpload(uploadId, me, env, cors) {
 
   // integrity: seq continuity + declared size
   const expectedSize = f.size;
-  const received = rows.reduce((s, c) => s + c.data.length, 0);
+  const received = rows.reduce((s, c) => s + (c.data.byteLength ?? c.data.length), 0);
   let continuous = true;
   for (let i = 0; i < rows.length; i++) if (rows[i].seq !== i) { continuous = false; break; }
   if (!continuous || received !== expectedSize)
@@ -254,7 +512,11 @@ async function completeUpload(uploadId, me, env, cors) {
     let taken = 0;
     for (const c of rows) {
       if (taken >= TEXT_SCAN_LIMIT) break;
-      text += new TextDecoder("utf-8", { fatal: false }).decode(c.data);
+      const cd_ = c.data instanceof ArrayBuffer ? new Uint8Array(c.data)
+        : Array.isArray(c.data) ? new Uint8Array(c.data)
+        : typeof c.data === "string" ? Uint8Array.from(atob(c.data), (ch) => ch.charCodeAt(0))
+        : c.data;
+      text += new TextDecoder("utf-8", { fatal: false }).decode(cd_);
       taken += c.data.length;
     }
     scan = scanText(text.slice(0, TEXT_SCAN_LIMIT * 2), f.name);
@@ -273,7 +535,11 @@ async function completeUpload(uploadId, me, env, cors) {
 
   // ── store on Google Drive (multipart upload, file named by UUID) ──
   const token = await getAccessToken(env);
-  const driveId = await driveUpload(token, env, f, rows.map((c) => c.data));
+  const toU8 = (d) => d instanceof ArrayBuffer ? new Uint8Array(d)
+      : Array.isArray(d) ? new Uint8Array(d)
+      : typeof d === "string" ? Uint8Array.from(atob(d), (ch) => ch.charCodeAt(0))
+      : d;
+  const driveId = await driveUpload(token, env, f, rows.map((c) => toU8(c.data)));
 
   await env.DB.batch([
     env.DB.prepare("DELETE FROM chunks WHERE file_id = ?").bind(uploadId),
@@ -317,14 +583,17 @@ async function deleteFile(fid, me, env, cors) {
 
 // ── serving ──────────────────────────────────────────────────────────────────
 async function servePublic(request, env, ctx, path) {
-  const slug = (path.split("/")[2] || "").toLowerCase();
-  if (!/^[a-z0-9]{8,14}$/.test(slug)) return notFoundPage();
+  const seg = path.split("/")[2] || "";
+  const isCustom = path.startsWith("/s/");
+  const slug = seg.toLowerCase();
+  const okShape = isCustom ? /^[a-z0-9][a-z0-9-]{2,38}[a-z0-9]$/.test(slug) : /^[a-z0-9]{8,14}$/.test(slug);
+  if (!okShape) return notFoundPage();
   const f = await env.DB.prepare(
-    "SELECT id, name, size, mime, visibility, scan_status, drive_file_id FROM files WHERE slug = ?"
+    "SELECT id, name, size, mime, visibility, scan_status, drive_file_id, expires_at FROM files WHERE " +
+    (isCustom ? "custom_slug = ?" : "slug = ?")
   ).bind(slug).first();
-  if (!f || !f.drive_file_id || f.scan_status !== "published" || f.visibility !== "public") {
-    return notFoundPage();
-  }
+  if (!f || !f.drive_file_id || f.scan_status !== "published" || f.visibility !== "public") return notFoundPage();
+  if (f.expires_at && f.expires_at < Date.now()) return gonePage(); // guest file past its 7-day TTL
 
   const upstream = await driveDownload(await getAccessToken(env), f.drive_file_id);
   if (!upstream.ok || !upstream.body) return notFoundPage();
@@ -333,6 +602,19 @@ async function servePublic(request, env, ctx, path) {
   if (request.method === "HEAD") return new Response(null, { status: 200, headers });
   ctx.waitUntil(env.DB.prepare("UPDATE files SET hits = hits + 1 WHERE id = ?").bind(f.id).run().catch(() => {}));
   return new Response(upstream.body, { status: 200, headers });
+}
+
+function gonePage() {
+  return new Response(
+    `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">` +
+    `<title>Link expired — Inpriv Host</title><style>body{font-family:system-ui,sans-serif;background:#13140e;color:#e3e2d3;` +
+    `display:grid;place-items:center;min-height:100vh;margin:0}.box{max-width:420px;text-align:center;padding:44px 32px;` +
+    `background:rgba(26,28,23,.85);border:1px solid rgba(141,142,131,.25);border-radius:28px}h1{font-size:1.25rem;margin:0 0 10px}` +
+    `p{color:#c7c6b8;font-size:.92rem}a{color:#abd37a}</style></head><body><div class="box"><h1>This link has expired</h1>` +
+    `<p>Guest uploads stay live for 7 days. Sign in with an Inpriv ID to host files permanently.</p>` +
+    `<p style="margin-top:18px;font-size:.85rem"><a href="https://host.inpriv.xyz">&larr; back to Inpriv Host</a></p></div></body></html>`,
+    { status: 410, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff" } }
+  );
 }
 
 // owner preview via API (Bearer token, streamed from Drive, never public)

@@ -207,6 +207,14 @@
       outline: none; transition: border-color 0.2s, box-shadow 0.2s;
     }
     .field input:focus { border-color: var(--md-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-primary) 22%, transparent); }
+    .field textarea {
+      width: 100%; font-size: 15px; font-family: inherit;
+      padding: 14px 18px; border-radius: var(--md-sys-shape-corner-md);
+      border: 1px solid var(--md-outline-variant);
+      background: var(--md-surface); color: var(--md-on-surface);
+      outline: none; resize: vertical; transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .field textarea:focus { border-color: var(--md-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-primary) 22%, transparent); }
     .btn {
       display: inline-flex; align-items: center; justify-content: center; gap: 8px;
       height: 50px; padding: 0 26px;
@@ -481,7 +489,7 @@
       <div class="card login-card">
         <div class="login-logo"><span class="icon" aria-hidden="true">cloud_upload</span></div>
         <h1>Inpriv <em>Host</em></h1>
-        <p class="login-sub">Private static hosting with a built-in privacy shield.<br>Sign in with your Inpriv ID to manage your files.</p>
+        <p class="login-sub">Private static hosting with a built-in privacy shield.<br>Upload as a guest or sign in with your Inpriv ID.</p>
         <div class="login-error" id="loginError" role="alert"></div>
         <div class="field">
           <label for="loginUser">Username or address</label>
@@ -492,11 +500,57 @@
           <input id="loginPass" type="password" autocomplete="current-password" placeholder="Your master password" />
         </div>
         <button class="btn btn-full" id="loginBtn"><span class="icon" aria-hidden="true">login</span>Sign in with Inpriv ID</button>
+        <button class="btn btn-tonal btn-full" id="guestBtn" style="margin-top:10px"><span class="icon" aria-hidden="true">bolt</span>Continue as guest</button>
         <p class="login-foot">No account yet? <a href="https://id.inpriv.xyz" target="_blank" rel="noopener noreferrer">Create one at id.inpriv.xyz</a> — it takes a minute.</p>
         <div class="login-hint">
           <span class="icon" aria-hidden="true">shield_lock</span>
           <span>Every upload is scanned for IP loggers, WebRTC leaks and hidden trackers <strong>before</strong> it is published. The file owner's IP is never stored. Your credentials are verified against Inpriv ID and never touch this service's storage.</span>
         </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ GUEST MODE ═══════════ -->
+    <section id="guestPage" class="page">
+      <div class="stats-row" style="margin-top:8px">
+        <div class="stat-card">
+          <div class="stat-icon"><span class="icon" aria-hidden="true">bolt</span></div>
+          <div style="flex:1;min-width:0">
+            <div class="stat-label">Guest mode</div>
+            <div class="stat-value">No account needed</div>
+            <div class="stat-sub">Links are random · files expire after 7 days</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="dropzone" id="guestDropzone" role="button" tabindex="0" aria-label="Upload files as guest">
+          <div class="dz-icon"><span class="icon" aria-hidden="true">upload_file</span></div>
+          <div class="dz-title">Drop files here or <em>browse</em></div>
+          <div class="dz-sub">Same privacy shield as signed-in hosting: every file is scanned for IP loggers, WebRTC leaks and trackers before it goes live.</div>
+          <div class="upload-limits">
+            <span class="limit-chip"><span class="icon" aria-hidden="true">straighten</span>Max 50 MB per file</span>
+            <span class="limit-chip"><span class="icon" aria-hidden="true">cloud</span>2 GB per network / week</span>
+            <span class="limit-chip"><span class="icon" aria-hidden="true">schedule</span>Auto-deleted after 7 days</span>
+          </div>
+        </div>
+        <input type="file" id="guestFileInput" multiple hidden />
+        <div id="guestUploadList"></div>
+      </div>
+      <div class="card" style="margin-top:16px;display:flex;gap:14px;align-items:center">
+        <div class="icon-box"><span class="icon" aria-hidden="true">upgrade</span></div>
+        <div style="flex:1">
+          <h4 style="margin:0 0 4px">Want more?</h4>
+          <p style="margin:0;font-size:.85rem;color:var(--md-muted)">Sign in with Inpriv ID for 100 MB files, permanent links, custom URLs and a file manager.</p>
+        </div>
+        <button class="btn btn-tonal" id="guestToLogin">Sign in</button>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <h3 style="margin:0 0 10px;font-size:1rem">Manage a guest file</h3>
+        <p style="margin:0 0 12px;font-size:.85rem;color:var(--md-muted)">If you saved the manage key of a guest upload, paste it below to delete the file before it expires.</p>
+        <div style="display:flex;gap:10px">
+          <input class="search-input" id="guestManageKey" type="text" placeholder="Manage key" style="flex:1" />
+          <button class="btn btn-danger" id="guestManageDel"><span class="icon" aria-hidden="true">delete</span>Delete file</button>
+        </div>
+        <div id="guestManageHint" style="margin-top:8px;font-size:.8rem;color:var(--md-muted)">You get the key right after a guest upload — save it, it is shown only once.</div>
       </div>
     </section>
 
@@ -528,6 +582,14 @@
             <div class="stat-sub" id="statScans">0 scans passed</div>
           </div>
         </div>
+        <div class="stat-card">
+          <div class="stat-icon"><span class="icon" aria-hidden="true">speed</span></div>
+          <div style="flex:1;min-width:0">
+            <div class="stat-label">Per-file limit</div>
+            <div class="stat-value" id="statLimit">100 MB</div>
+            <button class="btn btn-tonal" id="limitBtn" style="margin-top:8px;height:36px;padding:0 16px;font-size:.8rem"><span class="icon" aria-hidden="true">upgrade</span>Request higher limit</button>
+          </div>
+        </div>
       </div>
 
       <div class="card">
@@ -536,7 +598,7 @@
           <div class="dz-title">Drop files here or <em>browse</em></div>
           <div class="dz-sub">Every file is scanned for IP loggers, WebRTC leaks and trackers before it goes live. Text files are served with a strict sandbox; images and media pass through directly.</div>
           <div class="upload-limits">
-            <span class="limit-chip"><span class="icon" aria-hidden="true">straighten</span>Max 100 MB per file</span>
+            <span class="limit-chip"><span class="icon" aria-hidden="true">straighten</span><span id="chipLimit">Max 100 MB per file</span></span>
             <span class="limit-chip"><span class="icon" aria-hidden="true">cloud</span>50 GB per account</span>
             <span class="limit-chip"><span class="icon" aria-hidden="true">bolt</span>Unmetered bandwidth</span>
           </div>
@@ -639,6 +701,48 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="customModal" role="dialog" aria-modal="true" aria-labelledby="customModalTitle">
+    <div class="modal-sheet">
+      <div class="modal-grip"></div>
+      <h3 class="modal-title" id="customModalTitle">Custom link</h3>
+      <p class="modal-sub">Pick a short name for this file. Letters, digits and hyphens (4–40 chars).</p>
+      <div class="field" style="margin:14px 0 4px">
+        <label for="customInput">host.inpriv.xyz/s/…</label>
+        <input id="customInput" type="text" placeholder="my-page" spellcheck="false" autocapitalize="none" maxlength="40" />
+      </div>
+      <p class="modal-sub" id="customError" style="color:var(--md-error);display:none"></p>
+      <div class="modal-actions">
+        <button class="btn btn-tonal" data-modal-cancel2>Cancel</button>
+        <button class="btn" id="customSaveBtn"><span class="icon" aria-hidden="true">edit</span>Save link</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="limitModal" role="dialog" aria-modal="true" aria-labelledby="limitModalTitle">
+    <div class="modal-sheet">
+      <div class="modal-grip"></div>
+      <h3 class="modal-title" id="limitModalTitle">Request a higher limit</h3>
+      <p class="modal-sub">Requests go to the operator (saloyek@inpriv.xyz). Your reason is encrypted end-to-end and unreadable to anyone else.</p>
+      <div class="field" style="margin:14px 0 4px">
+        <label for="limitContact">Contact e-mail (for the reply)</label>
+        <input id="limitContact" type="email" placeholder="you@example.com" />
+      </div>
+      <div class="field" style="margin:14px 0 4px">
+        <label for="limitSize">Requested per-file limit (MB)</label>
+        <input id="limitSize" type="number" min="101" max="10240" value="250" />
+      </div>
+      <div class="field" style="margin:14px 0 4px">
+        <label for="limitReason">Reason (encrypted)</label>
+        <textarea id="limitReason" rows="3" placeholder="Why do you need a bigger limit?"></textarea>
+      </div>
+      <p class="modal-sub" id="limitError" style="color:var(--md-error);display:none"></p>
+      <div class="modal-actions">
+        <button class="btn btn-tonal" data-modal-cancel2>Cancel</button>
+        <button class="btn" id="limitSendBtn"><span class="icon" aria-hidden="true">send</span>Send request</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ═══════════ TOASTS ═══════════ -->
   <div id="toasts" aria-live="polite"></div>
 
@@ -649,12 +753,14 @@
 
     // ── config ──
     const API = '/api';
-    const MAX_FILE = 100 * 1024 * 1024;        // 100 MB
+    const MAX_FILE = 100 * 1024 * 1024;        // 100 MB (signed-in default)
+    const GUEST_MAX_FILE = 50 * 1024 * 1024;   // 50 MB (guest)
     const CHUNK = 6 * 1024 * 1024;             // 6 MB per chunk
     const QUOTA = 50 * 1024 * 1024 * 1024;     // 50 GB display
     let token = '';
     let user = null;
     let files = [];
+    let limits = { max_file_mb: 100 };
     try { token = sessionStorage.getItem('host_token') || ''; } catch {}
 
     const $ = (id) => document.getElementById(id);
@@ -744,6 +850,104 @@
       await refreshFiles();
     }
 
+    // ── guest mode ──
+    $('guestBtn').addEventListener('click', () => showPage('guestPage'));
+    $('guestToLogin').addEventListener('click', () => showPage('loginPage'));
+
+    function guestUploadUI(file) {
+      const id = 'g' + Math.random().toString(36).slice(2, 9);
+      const el = document.createElement('div');
+      el.className = 'upload-item'; el.id = id;
+      el.innerHTML =
+        '<div class="ficon"><span class="icon" aria-hidden="true">' + fileIcon({ name: file.name }) + '</span></div>' +
+        '<div class="fmeta"><div class="fname">' + esc(file.name) + '</div>' +
+        '<div class="fstatus" data-st>Waiting…</div>' +
+        '<div class="progress-track"><div class="progress-fill" data-bar></div></div></div>' +
+        '<div class="spinner" data-spin style="visibility:hidden"></div>' +
+        '<button class="abort-btn" data-abort aria-label="Cancel upload"><span class="icon" aria-hidden="true">close</span></button>';
+      $('guestUploadList').appendChild(el);
+      const st = el.querySelector('[data-st]'), bar = el.querySelector('[data-bar]'), spin = el.querySelector('[data-spin]');
+      let aborted = false;
+      el.querySelector('[data-abort]').addEventListener('click', () => { aborted = true; el.remove(); });
+      return { el, st, bar, spin, get aborted() { return aborted; } };
+    }
+
+    async function guestHandleFiles(list) {
+      for (const file of list) {
+        if (file.size > GUEST_MAX_FILE) { toast('"' + file.name + '" exceeds the 50 MB guest limit — sign in for 100 MB', 'err'); continue; }
+        await guestUploadFile(file);
+      }
+    }
+
+    async function guestUploadFile(file) {
+      const ui = guestUploadUI(file);
+      try {
+        ui.st.textContent = 'Starting…'; ui.spin.style.visibility = 'visible';
+        const begin = await fetch(API + '/guest/upload/begin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: file.name, size: file.size, mime: file.type || 'application/octet-stream' }) });
+        let bd = await begin.json().catch(() => ({}));
+        if (!begin.ok) throw new Error(bd.error || 'Upload rejected');
+        if (ui.aborted) { try { await fetch(API + '/guest/upload/' + begin.upload_id + '/abort', { method: 'POST' }); } catch {} return; }
+        const total = Math.max(1, Math.ceil(file.size / CHUNK));
+        for (let i = 0; i < total; i++) {
+          if (ui.aborted) { try { await fetch(API + '/guest/upload/' + begin.upload_id + '/abort', { method: 'POST' }); } catch {} return; }
+          const blob = file.slice(i * CHUNK, Math.min((i + 1) * CHUNK, file.size));
+          ui.st.textContent = 'Uploading ' + (i + 1) + ' of ' + total + '…';
+          ui.bar.style.width = ((i / total) * 92).toFixed(1) + '%';
+          const cr = await fetch(API + '/guest/upload/' + begin.upload_id + '/chunk?seq=' + i, { method: 'PUT', body: blob, headers: { 'Content-Type': 'application/octet-stream' } });
+          if (!cr.ok) { const cd = await cr.json().catch(() => ({})); throw new Error(cd.error || 'Chunk failed'); }
+        }
+        ui.st.textContent = 'Scanning for loggers & trackers…';
+        ui.bar.style.width = '94%';
+        const fin = await fetch(API + '/guest/upload/' + begin.upload_id + '/complete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ manage_token: begin.manage_token }) });
+        const fd = await fin.json().catch(() => ({}));
+        if (!fin.ok) throw new Error(fd.error || 'Completion failed');
+        ui.bar.style.width = '100%'; ui.spin.style.visibility = 'hidden';
+        if (fd.blocked) {
+          ui.el.style.borderColor = 'var(--md-error)';
+          ui.st.className = 'fstatus err';
+          ui.st.textContent = 'Blocked by privacy shield — ' + fd.scan.summary;
+        } else {
+          ui.st.textContent = 'Live for 7 days — scan passed';
+          ui.st.style.color = 'var(--md-success)';
+          const link = 'https://host.inpriv.xyz' + fd.url;
+          const key = begin.manage_token;
+          const line = document.createElement('div');
+          line.className = 'card';
+          line.style.cssText = 'margin-top:10px;display:flex;gap:12px;align-items:center;flex-wrap:wrap';
+          line.innerHTML =
+            '<div class="icon-box"><span class="icon" aria-hidden="true">link</span></div>' +
+            '<div style="flex:1;min-width:200px"><div class="fname">' + esc(file.name) + '</div>' +
+            '<div class="furl">' + esc(link) + '</div>' +
+            '<div class="fmeta2"><span>expires in 7 days</span></div></div>' +
+            '<button class="btn btn-tonal" data-copy><span class="icon" aria-hidden="true">content_copy</span>Copy link</button>' +
+            '<button class="btn btn-tonal" data-copykey><span class="icon" aria-hidden="true">key</span>Manage key</button>';
+          line.querySelector('[data-copy]').onclick = () => navigator.clipboard.writeText(link).then(() => toast('Link copied')).catch(() => toast('Copy failed', 'err'));
+          line.querySelector('[data-copykey]').onclick = () => navigator.clipboard.writeText(key).then(() => toast('Manage key copied — save it, shown only once')).catch(() => toast('Copy failed', 'err'));
+          $('guestUploadList').appendChild(line);
+          toast('"' + file.name + '" published for 7 days');
+        }
+        setTimeout(() => ui.el.remove(), fd.blocked ? 9000 : 2600);
+      } catch (e) {
+        ui.spin.style.visibility = 'hidden';
+        ui.el.style.borderColor = 'var(--md-error)';
+        ui.st.className = 'fstatus err';
+        ui.st.textContent = 'Failed — ' + e.message;
+        setTimeout(() => ui.el.remove(), 9000);
+      }
+    }
+
+    // guest dropzone wiring
+    (function guestDZ() {
+      const dz = $('guestDropzone'), fi = $('guestFileInput');
+      if (!dz || !fi) return;
+      dz.addEventListener('click', () => fi.click());
+      dz.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fi.click(); } });
+      ['dragenter', 'dragover'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('dragover'); }));
+      ['dragleave', 'drop'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove('dragover'); }));
+      dz.addEventListener('drop', e => { if (e.dataTransfer?.files?.length) guestHandleFiles([...e.dataTransfer.files]); });
+      fi.addEventListener('change', () => { if (fi.files.length) guestHandleFiles([...fi.files]); fi.value = ''; });
+    })();
+
     $('loginBtn').addEventListener('click', doLogin);
     $('loginPass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
     $('accountChip').addEventListener('click', () => {
@@ -755,6 +959,7 @@
       try {
         const d = await api('/files');
         files = d.files || [];
+        if (d.limits) limits = d.limits;
         renderFiles();
         renderStats();
       } catch (e) { toast(e.message, 'err'); }
@@ -786,11 +991,19 @@
       const used = files.reduce((s, f) => s + (f.size || 0), 0);
       $('statUsed').textContent = fmtSize(used);
       $('quotaFill').style.width = Math.min(100, (used / QUOTA) * 100).toFixed(2) + '%';
-      $('statQuota').textContent = fmtSize(used) + ' of 50 GB per account';
+      $('statQuota').textContent = fmtSize(used) + ' of ' + (limits?.quota_gb || 50) + ' GB per account';
+      $('statLimit').textContent = (limits?.max_file_mb || 100) + ' MB';
+      $('chipLimit').textContent = 'Max ' + (limits?.max_file_mb || 100) + ' MB per file';
       $('statFiles').textContent = files.length;
       $('statPublic').textContent = files.filter(f => f.visibility === 'public').length + ' public links';
       $('statScans').textContent = files.length + ' scans passed';
     }
+
+    $('limitBtn').addEventListener('click', () => {
+      $('limitError').style.display = 'none';
+      $('limitModal').classList.add('open');
+      setTimeout(() => $('limitContact').focus(), 60);
+    });
 
     function renderFiles() {
       const q = ($('searchInput').value || '').toLowerCase().trim();
@@ -812,11 +1025,13 @@
             '<div class="furl">' + esc(url) + '</div>' +
             '<div class="fmeta2"><span>' + fmtSize(f.size) + '</span><span>' + fmtDate(f.created_at) + '</span>' +
               (f.hits ? '<span>' + f.hits + ' views</span>' : '') +
-              (f.scan_blocked ? '<span style="color:var(--md-error);font-weight:700">scan failed</span>' : '<span style="color:var(--md-success)">scan passed</span>') +
+              (f.expires_at ? '<span style="color:var(--md-tertiary)">expires ' + fmtDate(f.expires_at / 1000) + '</span>' : '') +
+              (f.scan_status === 'blocked' ? '<span style="color:var(--md-error);font-weight:700">scan failed</span>' : '<span style="color:var(--md-success)">scan passed</span>') +
             '</div>' +
           '</div>' +
           '<div class="row-actions">' +
             '<button class="row-btn" data-act="link" title="Show link" aria-label="Show link"><span class="icon" aria-hidden="true">link</span></button>' +
+            '<button class="row-btn" data-act="custom" title="Custom link" aria-label="Set custom link"><span class="icon" aria-hidden="true">edit</span></button>' +
             '<button class="row-btn" data-act="priv" title="' + (f.visibility === 'public' ? 'Make private' : 'Make public') + '" aria-label="Toggle visibility"><span class="icon" aria-hidden="true">' + (f.visibility === 'public' ? 'visibility_off' : 'visibility') + '</span></button>' +
             '<button class="row-btn" data-act="del" title="Delete" aria-label="Delete file"><span class="icon" aria-hidden="true">delete</span></button>' +
           '</div>' +
@@ -843,6 +1058,12 @@
           $('linkModal').classList.remove('open');
         };
         $('openLinkBtn').onclick = () => { window.open('https://host.inpriv.xyz' + f.url, '_blank', 'noopener'); $('linkModal').classList.remove('open'); };
+      } else if (act === 'custom') {
+        pendingCustom = f;
+        $('customInput').value = f.custom_slug || '';
+        $('customError').style.display = 'none';
+        $('customModal').classList.add('open');
+        setTimeout(() => $('customInput').focus(), 60);
       } else if (act === 'priv') {
         try {
           const d = await api('/files/' + encodeURIComponent(f.id) + '/visibility', { method: 'POST', json: { visibility: f.visibility === 'public' ? 'private' : 'public' } });
@@ -860,7 +1081,95 @@
     function closeModal(m) { $(m).classList.remove('open'); }
     const qsa = (sel) => (document.querySelectorAll ? [...document.querySelectorAll(sel)] : []);
     document.querySelectorAll?.('[data-modal-cancel]').forEach(b => b.addEventListener('click', () => closeModal('confirmModal')));
+    qsa('[data-modal-cancel2]').forEach(b => b.addEventListener('click', () => { closeModal('customModal'); closeModal('limitModal'); }));
     qsa('.modal-overlay').forEach(o => o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); }));
+
+    // custom link modal
+    let pendingCustom = null;
+    $('customSaveBtn').addEventListener('click', async () => {
+      if (!pendingCustom) return;
+      const val = $('customInput').value.trim().toLowerCase();
+      try {
+        const d = await api('/files/' + encodeURIComponent(pendingCustom.id) + '/custom', { method: 'POST', json: { custom: val } });
+        pendingCustom.custom_slug = d.custom;
+        pendingCustom.url = d.custom ? '/s/' + d.custom : '/f/' + pendingCustom.slug;
+        await refreshFiles();
+        toast(d.custom ? 'Custom link live: host.inpriv.xyz/s/' + d.custom : 'Custom link removed');
+        closeModal('customModal');
+      } catch (e) {
+        $('customError').textContent = e.message;
+        $('customError').style.display = 'block';
+      }
+    });
+    $('customInput').addEventListener('keydown', e => { if (e.key === 'Enter') $('customSaveBtn').click(); });
+
+    // limit request modal (reason encrypted to the operator's pubkey, E2E)
+    $('limitSendBtn').addEventListener('click', async () => {
+      const contact = $('limitContact').value.trim();
+      const sizeMb = parseInt($('limitSize').value, 10);
+      const reason = $('limitReason').value.trim();
+      const errEl = $('limitError');
+      errEl.style.display = 'none';
+      if (!contact || !contact.includes('@')) { errEl.textContent = 'Enter a valid contact e-mail.'; errEl.style.display = 'block'; return; }
+      if (!sizeMb || sizeMb < 101 || sizeMb > 10240) { errEl.textContent = 'Request between 101 MB and 10 GB.'; errEl.style.display = 'block'; return; }
+      if (!reason) { errEl.textContent = 'Add a short reason so the operator can decide.'; errEl.style.display = 'block'; return; }
+      $('limitSendBtn').disabled = true;
+      try {
+        // 1. fetch the operator's public key
+        const pr = await fetch(API + '/pubkey');
+        const pd = await pr.json();
+        if (!pr.ok || !pd.pubkey) throw new Error(pd.error || 'Operator key unavailable');
+        // 2. RSA-OAEP + AES-GCM envelope (same scheme as Inpriv Mail)
+        const pem = pd.pubkey;
+        const b64body = pem.replace(/-----[^-]+-----/g, '').replace(/\s+/g, '');
+        const der = Uint8Array.from(atob(b64body), c => c.charCodeAt(0));
+        const rsa = await crypto.subtle.importKey('spki', der, { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['encrypt']);
+        const aes = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt']);
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const enc = new TextEncoder();
+        const ctBuf = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, aes, enc.encode('Limit request\nContact: ' + contact + '\nCurrent: ' + (limits?.max_file_mb || 100) + ' MB\nRequested: ' + sizeMb + ' MB\n\n' + reason));
+        const ctBytes = new Uint8Array(ctBuf);
+        const rawAes = await crypto.subtle.exportKey('raw', aes);
+        const wrapped = await crypto.subtle.encrypt({ name: 'RSA-OAEP' }, rsa, rawAes);
+        const b64e = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf)));
+        const envelope = {
+          encrypted_aes_key: b64e(wrapped),
+          iv: b64e(iv.buffer),
+          ciphertext: b64e(ctBytes.slice(0, ctBytes.length - 16).buffer),
+          auth_tag: b64e(ctBytes.slice(ctBytes.length - 16).buffer),
+        };
+        // 3. send
+        const sr = await fetch(API + '/limit-request', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contact, current_mb: limits?.max_file_mb || 100, requested_mb: sizeMb, envelope, user_id: user?.id })
+        });
+        const sd = await sr.json().catch(() => ({}));
+        if (!sr.ok) throw new Error(sd.error || 'Send failed');
+        toast('Request #' + sd.request_id + ' sent — reply to ' + contact);
+        closeModal('limitModal');
+        $('limitContact').value = ''; $('limitReason').value = '';
+      } catch (e) {
+        errEl.textContent = e.message;
+        errEl.style.display = 'block';
+      } finally {
+        $('limitSendBtn').disabled = false;
+      }
+    });
+
+    // guest delete by manage key
+    $('guestManageDel').addEventListener('click', async () => {
+      const key = $('guestManageKey').value.trim();
+      if (!key) { $('guestManageHint').textContent = 'Paste the manage key first.'; return; }
+      try {
+        const r = await fetch(API + '/guest/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ manage_token: key }) });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(d.error || 'Delete failed');
+        $('guestManageKey').value = '';
+        $('guestManageHint').textContent = 'File deleted.';
+        toast('Guest file deleted');
+      } catch (e) { $('guestManageHint').textContent = e.message; }
+    });
+
     $('confirmBtn').addEventListener('click', async () => {
       if (!pendingDelete) return;
       try {
@@ -884,8 +1193,10 @@
     fi.addEventListener('change', () => { if (fi.files.length) handleFiles([...fi.files]); fi.value = ''; });
 
     async function handleFiles(list) {
+      const maxBytes = (limits?.max_file_bytes) || MAX_FILE;
+      const maxMb = limits?.max_file_mb || 100;
       for (const file of list) {
-        if (file.size > MAX_FILE) { toast('"' + file.name + '" exceeds 100 MB — skipped', 'err'); continue; }
+        if (file.size > maxBytes) { toast('"' + file.name + '" exceeds your ' + maxMb + ' MB limit — request a raise below', 'err'); continue; }
         await uploadFile(file);
       }
       await refreshFiles();
