@@ -112,6 +112,11 @@ body::before {
   user-select: none;
 }
 
+/* The hidden attribute must always win over component display rules
+   (.auth-wrap grid, .badge inline-flex would otherwise keep "hidden"
+   sections visible — e.g. the login card staying on screen after sign-in) */
+[hidden] { display: none !important; }
+
 main {
   position: relative; z-index: 1;
   max-width: 1200px; margin: 0 auto;
