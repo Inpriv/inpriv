@@ -22,8 +22,11 @@ const ANON_MAX_FILE_BYTES = 50 * 1024 * 1024;     // 50 MB per file (guest)
 const USER_QUOTA_BYTES = 50 * 1024 * 1024 * 1024; // 50 GB per account
 const ANON_QUOTA_BYTES = 2 * 1024 * 1024 * 1024;  // rolling 2 GB per guest (IP-prefix bucket)
 const ANON_TTL_MS = 7 * 24 * 3600 * 1000;         // guest files expire after 7 days
+// D1 rows are capped at ~2 MB — chunks MUST stay safely below that or the
+// chunk PUT dies with SQLITE_TOOBIG. 1.5 MB keeps headroom for row overhead.
+const CHUNK_BYTES = 1.5 * 1024 * 1024;            // 1.5 MB per chunk (client uses this)
+const CHUNK_MAX = 2 * 1024 * 1024;                // 2 MB hard cap per chunk request
 const CHUNK_MIN = 256 * 1024;                     // 256 KB
-const CHUNK_MAX = 8 * 1024 * 1024;                // 8 MB
 const MAX_FILES = 5000;
 const TEXT_SCAN_LIMIT = 2 * 1024 * 1024;          // scan first 2 MB of text
 const SERVE_CACHE_S = 6 * 3600;                   // edge cache for public files
@@ -165,11 +168,13 @@ async function authed(request, env, cors, handler) {
   const token = h.startsWith("Bearer ") ? h.slice(7).trim() : "";
   if (!token) return json({ error: "unauthorized" }, 401, cors);
   const sid = await sha256hex(token);
+  // sessions are self-contained (username/nick copied in at login) — Host's
+  // own DB has no users table, user records live in Inpriv ID
   const row = await env.DB.prepare(
-    "SELECT s.expires_at, u.id AS uid, u.username, u.nick FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.id = ?"
+    "SELECT expires_at, user_id AS uid, username, nick FROM sessions WHERE id = ?"
   ).bind(sid).first();
   if (!row || row.expires_at < Date.now()) return json({ error: "unauthorized" }, 401, cors);
-  return handler({ uid: row.uid, user: { id: row.uid, username: row.username, nick: row.nick } });
+  return handler({ uid: row.uid, user: { id: row.uid, username: row.username || "", nick: row.nick || row.username || "user" } });
 }
 const pub = (u) => ({ id: u.id, username: u.username, nick: u.nick || u.username });
 
@@ -185,11 +190,14 @@ async function login(request, env, cors) {
   if (!(await rateLimit(env.DB, rkey, 10, 15 * 60 * 1000)))
     return bad("Too many attempts — try again in 15 minutes", 429);
 
-  // resolve the account in Inpriv ID
+  // resolve the account in Inpriv ID — accept bare username, full Inpriv
+  // address, or an external recovery address (ID stores usernames WITHOUT
+  // the @inpriv.xyz suffix, so "saloyek" must resolve the same as
+  // "saloyek@inpriv.xyz")
   const local = input.split("@")[0];
   const idu = await env.ID_DB.prepare(
-    "SELECT id, username, nick, pass_hash, pass_salt, pass_iters, totp_enabled FROM users WHERE username = ? OR email = ? OR recovery_email = ? LIMIT 1"
-  ).bind(local + "@inpriv.xyz", input, input).first();
+    "SELECT id, username, nick, pass_hash, pass_salt, pass_iters, totp_enabled FROM users WHERE username IN (?, ?) OR email IN (?, ?) OR recovery_email IN (?, ?) LIMIT 1"
+  ).bind(local, input, local + "@inpriv.xyz", input, input, local + "@inpriv.xyz").first();
 
   // anti-enumeration: burn the same PBKDF2 work when the user doesn't exist
   let ok = false;
@@ -201,20 +209,27 @@ async function login(request, env, cors) {
   }
   if (!idu || !ok) return bad("Invalid credentials", 401);
 
-  // TOTP when enabled on the Inpriv ID account
+  // TOTP when enabled on the Inpriv ID account — the secret stays sealed in
+  // ID's vault, so Host delegates verification to ID's service endpoint
   if (idu.totp_enabled) {
     if (!totp) return json({ totp_required: true }, 200, cors);
-    const ts = await env.ID_DB.prepare("SELECT secret FROM totp_secrets WHERE user_id = ?").bind(idu.id).first();
-    if (!ts || !(await verifyTOTP(totp, base32Decode(ts.secret), Date.now())))
-      return bad("Invalid 2FA code", 401);
+    const v = await fetch("https://id.inpriv.xyz/api/totp/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Inpriv-Service": env.SERVICE_KEY || "" },
+      body: JSON.stringify({ username: idu.username, code: totp }),
+    });
+    let vd = null;
+    try { vd = await v.json(); } catch {}
+    if (!v.ok || !vd?.ok) return bad("Invalid 2FA code", 401);
   }
 
-  // host-local session (token hashed at rest)
+  // host-local session (token hashed at rest; username/nick denormalised so
+  // Host never needs to join against Inpriv ID's users table)
   const token = b64(crypto.getRandomValues(new Uint8Array(32)));
   const sid = await sha256hex(token);
   await env.DB.prepare(
-    "INSERT INTO sessions (id, user_id, created_at, expires_at) VALUES (?,?,?,?)"
-  ).bind(sid, idu.id, Date.now(), Date.now() + SESSION_TTL).run();
+    "INSERT INTO sessions (id, user_id, username, nick, created_at, expires_at) VALUES (?,?,?,?,?,?)"
+  ).bind(sid, idu.id, idu.username, idu.nick || idu.username, Date.now(), Date.now() + SESSION_TTL).run();
   return json({ token, user: pub({ id: idu.id, username: idu.username, nick: idu.nick }) }, 200, cors);
 }
 
@@ -257,7 +272,7 @@ async function guestBegin(request, env, cors) {
   await env.DB.prepare(
     "INSERT INTO files (id, user_id, name, slug, size, mime, visibility, scan_status, expires_at, manage_token, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)"
   ).bind(id, key, name, slug, size, mime, "public", SCANNABLE.has(ext) ? "pending" : "skip", Date.now() + ANON_TTL_MS, await sha256hex(manageToken), Date.now()).run();
-  return json({ upload_id: id, chunk_size: 6 * 1024 * 1024, slug, manage_token: manageToken, expires_in: "7d" }, 200, cors);
+  return json({ upload_id: id, chunk_size: CHUNK_BYTES, slug, manage_token: manageToken, expires_in: "7d" }, 200, cors);
 }
 
 async function guestChunk(url, request, uploadId, env, cors) {
@@ -268,13 +283,28 @@ async function guestChunk(url, request, uploadId, env, cors) {
   if (!Number.isInteger(seq) || seq < 0 || seq > 999) return bad("Bad chunk index", 400);
   const buf = new Uint8Array(await request.arrayBuffer());
   if (buf.length === 0) return bad("Empty chunk", 400);
-  if (buf.length > CHUNK_MAX) return bad("Chunk too large (max 8 MB)", 413);
-  const total = Math.max(1, Math.ceil(f.size / (6 * 1024 * 1024)));
+  if (buf.length > CHUNK_MAX) return bad("Chunk too large (max 2 MB)", 413);
+  const total = Math.max(1, Math.ceil(f.size / CHUNK_BYTES));
   if (seq >= total) return bad("Chunk index out of range", 400);
   await env.DB.prepare(
     "INSERT INTO chunks (file_id, seq, data) VALUES (?,?,?) ON CONFLICT(file_id, seq) DO UPDATE SET data = excluded.data"
   ).bind(uploadId, seq, buf).run();
   return json({ ok: true, received: buf.length }, 200, cors);
+}
+
+// read chunks in pages — a single SELECT of a whole 100 MB file would blow
+// past D1's per-query response cap; 8 × 1.5 MB pages stay well under it
+async function fetchChunks(env, uploadId, pageSize = 8) {
+  const rows = [];
+  for (let off = 0; ; off += pageSize) {
+    const { results } = await env.DB.prepare(
+      "SELECT seq, data FROM chunks WHERE file_id = ? ORDER BY seq LIMIT ? OFFSET ?"
+    ).bind(uploadId, pageSize, off).all();
+    if (!results || !results.length) break;
+    rows.push(...results);
+    if (results.length < pageSize) break;
+  }
+  return rows;
 }
 
 async function guestComplete(uploadId, request, env, cors) {
@@ -286,9 +316,7 @@ async function guestComplete(uploadId, request, env, cors) {
   const mt = String(body.manage_token || "");
   if (!mt || (await sha256hex(mt)) !== f.manage_token) return bad("unauthorized", 401);
 
-  const { results: rows } = await env.DB.prepare(
-    "SELECT seq, data FROM chunks WHERE file_id = ? ORDER BY seq"
-  ).bind(uploadId).all();
+  const rows = await fetchChunks(env, uploadId);
   if (!rows || !rows.length) return bad("No chunks received", 400);
   const received = rows.reduce((s, c) => s + (c.data.byteLength ?? c.data.length), 0);
   let continuous = true;
@@ -466,7 +494,7 @@ async function beginUpload(request, me, env, cors) {
   await env.DB.prepare(
     "INSERT INTO files (id, user_id, name, slug, size, mime, visibility, scan_status, created_at) VALUES (?,?,?,?,?,?,?,?,?)"
   ).bind(id, me.uid, name, slug, size, mime, "private", SCANNABLE.has(ext) ? "pending" : "skip", Date.now()).run();
-  return json({ upload_id: id, chunk_size: 6 * 1024 * 1024, slug }, 200, cors);
+  return json({ upload_id: id, chunk_size: CHUNK_BYTES, slug }, 200, cors);
 }
 
 async function putChunk(url, request, uploadId, me, env, cors) {
@@ -476,8 +504,8 @@ async function putChunk(url, request, uploadId, me, env, cors) {
   if (!Number.isInteger(seq) || seq < 0 || seq > 999) return bad("Bad chunk index", 400);
   const buf = new Uint8Array(await request.arrayBuffer());
   if (buf.length === 0) return bad("Empty chunk", 400);
-  if (buf.length > CHUNK_MAX) return bad("Chunk too large (max 8 MB)", 413);
-  const total = Math.max(1, Math.ceil(f.size / (6 * 1024 * 1024)));
+  if (buf.length > CHUNK_MAX) return bad("Chunk too large (max 2 MB)", 413);
+  const total = Math.max(1, Math.ceil(f.size / CHUNK_BYTES));
   if (seq >= total) return bad("Chunk index out of range", 400);
   await env.DB.prepare(
     "INSERT INTO chunks (file_id, seq, data) VALUES (?,?,?) ON CONFLICT(file_id, seq) DO UPDATE SET data = excluded.data"
@@ -490,9 +518,7 @@ async function completeUpload(uploadId, me, env, cors) {
   if (!f) return bad("Upload not found", 404);
   if (f.drive_file_id) return bad("Upload already completed", 409);
 
-  const { results: rows } = await env.DB.prepare(
-    "SELECT seq, data FROM chunks WHERE file_id = ? ORDER BY seq"
-  ).bind(uploadId).all();
+  const rows = await fetchChunks(env, uploadId);
   if (!rows || !rows.length) return bad("No chunks received", 400);
 
   // integrity: seq continuity + declared size

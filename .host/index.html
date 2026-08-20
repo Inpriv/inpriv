@@ -316,6 +316,9 @@
     .abort-btn { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--md-on-surface-variant); flex-shrink: 0; }
     .abort-btn:hover { background: color-mix(in srgb, var(--md-error) 12%, transparent); color: var(--md-error); }
     .abort-btn .icon { font-size: 18px; }
+    /* iOS-safe visually-hidden file input (display:none inputs can refuse .click() on older Safari) */
+    .file-input-hidden { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); }
+    body.modal-open { overflow: hidden; }
 
     /* ===== 8. FILES LIST ===== */
     .section-head { display: flex; align-items: center; gap: 10px; margin: 26px 0 12px; }
@@ -449,15 +452,40 @@
     .page-head h1 { font-size: 1.45rem; font-weight: 700; letter-spacing: -0.02em; }
     .page-head p { color: var(--md-on-surface-variant); font-size: 0.88rem; margin-top: 4px; }
 
-    /* ===== 13. RESPONSIVE ===== */
+    /* ===== 13. RESPONSIVE (mobile-first: base = phone, min-width upgrades) ===== */
+    /* touch targets ≥ 44px everywhere; desktop refines visuals only */
+    @media (hover: none) and (pointer: coarse) {
+      .row-btn { width: 44px; height: 44px; }
+      .icon-btn { width: 44px; height: 44px; }
+      .abort-btn { width: 40px; height: 40px; }
+      .row-btn .icon { font-size: 21px; }
+      /* iOS zooms the page when focusing inputs < 16px — keep them at 16px */
+      .search-input, #guestManageKey { font-size: 16px; }
+    }
+    /* small phones: keep row actions reachable, shrink monospace URLs */
+    @media (max-width: 480px) {
+      .file-row { flex-wrap: wrap; }
+      .file-row .row-actions { width: 100%; justify-content: flex-end; margin-top: 6px; }
+      .file-row .furl { font-size: 0.7rem; }
+      .section-head { flex-wrap: wrap; }
+      .search-input { width: 100%; }
+      .dz-sub { font-size: 0.78rem; }
+      .dropzone { padding: 30px 16px; }
+      .upload-limits { gap: 6px; }
+      .limit-chip { font-size: 0.7rem; padding: 4px 10px; }
+      .login-card { padding: clamp(16px, 5vw, 26px); }
+      .stat-card { padding: 14px 16px; }
+      .login-hint { font-size: 0.76rem; }
+    }
     @media (min-width: 700px) {
-      .stats-row { grid-template-columns: repeat(3, 1fr); }
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (min-width: 980px) {
+      .stats-row { grid-template-columns: repeat(4, 1fr); }
     }
     @media (max-width: 560px) {
-      .search-input { width: 130px; }
       .account-chip span.uname { display: none; }
       .account-chip { padding: 0; width: 42px; height: 42px; justify-content: center; border-radius: 50%; }
-      .row-actions .row-btn { width: 40px; height: 40px; }
     }
     /* Inpriv ID floating widget suppression (this app has its own header chip) */
     #inpriv-id-chip, .inpriv-id-chip, #inpriv-id-prompt, .inpriv-id-prompt, #inpriv-id-card, .inpriv-id-card {
@@ -499,6 +527,10 @@
           <label for="loginPass">Master password</label>
           <input id="loginPass" type="password" autocomplete="current-password" placeholder="Your master password" />
         </div>
+        <div class="field" id="totpField" style="display:none">
+          <label for="loginTotp">Two-factor code (2FA)</label>
+          <input id="loginTotp" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="6-digit code" maxlength="6" spellcheck="false" />
+        </div>
         <button class="btn btn-full" id="loginBtn"><span class="icon" aria-hidden="true">login</span>Sign in with Inpriv ID</button>
         <button class="btn btn-tonal btn-full" id="guestBtn" style="margin-top:10px"><span class="icon" aria-hidden="true">bolt</span>Continue as guest</button>
         <p class="login-foot">No account yet? <a href="https://id.inpriv.xyz" target="_blank" rel="noopener noreferrer">Create one at id.inpriv.xyz</a> — it takes a minute.</p>
@@ -532,7 +564,7 @@
             <span class="limit-chip"><span class="icon" aria-hidden="true">schedule</span>Auto-deleted after 7 days</span>
           </div>
         </div>
-        <input type="file" id="guestFileInput" multiple hidden />
+        <input type="file" id="guestFileInput" multiple class="file-input-hidden" accept="*/*" />
         <div id="guestUploadList"></div>
       </div>
       <div class="card" style="margin-top:16px;display:flex;gap:14px;align-items:center">
@@ -543,6 +575,7 @@
         </div>
         <button class="btn btn-tonal" id="guestToLogin">Sign in</button>
       </div>
+      <button class="btn btn-text" id="guestBack" style="margin:4px auto 0;display:flex"><span class="icon" aria-hidden="true">arrow_back</span>Back to sign in</button>
       <div class="card" style="margin-top:16px">
         <h3 style="margin:0 0 10px;font-size:1rem">Manage a guest file</h3>
         <p style="margin:0 0 12px;font-size:.85rem;color:var(--md-muted)">If you saved the manage key of a guest upload, paste it below to delete the file before it expires.</p>
@@ -603,7 +636,7 @@
             <span class="limit-chip"><span class="icon" aria-hidden="true">bolt</span>Unmetered bandwidth</span>
           </div>
         </div>
-        <input type="file" id="fileInput" multiple hidden />
+        <input type="file" id="fileInput" multiple class="file-input-hidden" accept="*/*" />
         <div id="uploadList"></div>
       </div>
 
@@ -755,13 +788,16 @@
     const API = '/api';
     const MAX_FILE = 100 * 1024 * 1024;        // 100 MB (signed-in default)
     const GUEST_MAX_FILE = 50 * 1024 * 1024;   // 50 MB (guest)
-    const CHUNK = 6 * 1024 * 1024;             // 6 MB per chunk
+    // server tells us the real chunk size in /upload/begin (D1 row cap ≈ 2 MB)
+    let CHUNK = 1.5 * 1024 * 1024;             // safe default until begin responds
     const QUOTA = 50 * 1024 * 1024 * 1024;     // 50 GB display
     let token = '';
     let user = null;
     let files = [];
     let limits = { max_file_mb: 100 };
-    try { token = sessionStorage.getItem('host_token') || ''; } catch {}
+    // localStorage (not sessionStorage) — mobile browsers wipe sessionStorage when
+    // the tab is backgrounded or the OS reclaims memory; the session should survive
+    try { token = localStorage.getItem('host_token') || ''; } catch {}
 
     const $ = (id) => document.getElementById(id);
     const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -811,6 +847,7 @@
     // ── login ──
     async function doLogin() {
       const u = $('loginUser').value.trim(), p = $('loginPass').value;
+      const totp = $('loginTotp') ? $('loginTotp').value.trim() : '';
       const err = $('loginError');
       err.classList.remove('show');
       if (!u || !p) { err.textContent = 'Enter your username and password.'; err.classList.add('show'); return; }
@@ -819,12 +856,20 @@
       try {
         const r = await fetch(API + '/auth/login', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user: u, password: p })
+          body: JSON.stringify({ user: u, password: p, totp })
         });
         const d = await r.json().catch(() => ({}));
+        if (d.totp_required) {
+          // account has 2FA — reveal the code field and ask again
+          $('totpField').style.display = 'block';
+          err.textContent = 'Enter the 6-digit code from your authenticator app.';
+          err.classList.add('show');
+          setTimeout(() => $('loginTotp').focus(), 60);
+          return;
+        }
         if (!r.ok) throw new Error(d.error || 'Sign-in failed');
         token = d.token; user = d.user;
-        sessionStorage.setItem('host_token', token);
+        try { localStorage.setItem('host_token', token); } catch {}
         await enterDashboard();
       } catch (e) {
         err.textContent = e.message; err.classList.add('show');
@@ -836,7 +881,9 @@
     function logout(silent) {
       if (token) api('/auth/logout', { method: 'POST' }).catch(() => {});
       token = ''; user = null;
-      sessionStorage.removeItem('host_token');
+      try { localStorage.removeItem('host_token'); } catch {}
+      $('totpField').style.display = 'none';
+      if ($('loginTotp')) $('loginTotp').value = '';
       $('accountChip').style.display = 'none';
       showPage('loginPage');
       if (!silent) toast('Signed out');
@@ -853,6 +900,7 @@
     // ── guest mode ──
     $('guestBtn').addEventListener('click', () => showPage('guestPage'));
     $('guestToLogin').addEventListener('click', () => showPage('loginPage'));
+    if ($('guestBack')) $('guestBack').addEventListener('click', () => showPage('loginPage'));
 
     function guestUploadUI(file) {
       const id = 'g' + Math.random().toString(36).slice(2, 9);
@@ -886,11 +934,12 @@
         const begin = await fetch(API + '/guest/upload/begin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: file.name, size: file.size, mime: file.type || 'application/octet-stream' }) });
         let bd = await begin.json().catch(() => ({}));
         if (!begin.ok) throw new Error(bd.error || 'Upload rejected');
+        const chunkSize = bd.chunk_size || CHUNK;
         if (ui.aborted) { try { await fetch(API + '/guest/upload/' + begin.upload_id + '/abort', { method: 'POST' }); } catch {} return; }
-        const total = Math.max(1, Math.ceil(file.size / CHUNK));
+        const total = Math.max(1, Math.ceil(file.size / chunkSize));
         for (let i = 0; i < total; i++) {
           if (ui.aborted) { try { await fetch(API + '/guest/upload/' + begin.upload_id + '/abort', { method: 'POST' }); } catch {} return; }
-          const blob = file.slice(i * CHUNK, Math.min((i + 1) * CHUNK, file.size));
+          const blob = file.slice(i * chunkSize, Math.min((i + 1) * chunkSize, file.size));
           ui.st.textContent = 'Uploading ' + (i + 1) + ' of ' + total + '…';
           ui.bar.style.width = ((i / total) * 92).toFixed(1) + '%';
           const cr = await fetch(API + '/guest/upload/' + begin.upload_id + '/chunk?seq=' + i, { method: 'PUT', body: blob, headers: { 'Content-Type': 'application/octet-stream' } });
@@ -973,7 +1022,7 @@
       return n.toFixed(n >= 100 ? 0 : 1) + ' ' + u[i];
     }
     function fmtDate(ts) {
-      try { return new Date(ts * 1000).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }); } catch { return '—'; }
+      try { return new Date(Number(ts)).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }); } catch { return '—'; }
     }
     function fileIcon(f) {
       const e = (f.name.split('.').pop() || '').toLowerCase();
@@ -1001,7 +1050,7 @@
 
     $('limitBtn').addEventListener('click', () => {
       $('limitError').style.display = 'none';
-      $('limitModal').classList.add('open');
+      openModal('limitModal');
       setTimeout(() => $('limitContact').focus(), 60);
     });
 
@@ -1025,7 +1074,7 @@
             '<div class="furl">' + esc(url) + '</div>' +
             '<div class="fmeta2"><span>' + fmtSize(f.size) + '</span><span>' + fmtDate(f.created_at) + '</span>' +
               (f.hits ? '<span>' + f.hits + ' views</span>' : '') +
-              (f.expires_at ? '<span style="color:var(--md-tertiary)">expires ' + fmtDate(f.expires_at / 1000) + '</span>' : '') +
+              (f.expires_at ? '<span style="color:var(--md-tertiary)">expires ' + fmtDate(f.expires_at) + '</span>' : '') +
               (f.scan_status === 'blocked' ? '<span style="color:var(--md-error);font-weight:700">scan failed</span>' : '<span style="color:var(--md-success)">scan passed</span>') +
             '</div>' +
           '</div>' +
@@ -1052,17 +1101,17 @@
       const act = btn.dataset.act;
       if (act === 'link') {
         $('linkModalUrl').textContent = 'https://host.inpriv.xyz' + f.url;
-        $('linkModal').classList.add('open');
+        openModal('linkModal');
         $('copyLinkBtn').onclick = async () => {
           try { await navigator.clipboard.writeText('https://host.inpriv.xyz' + f.url); toast('Link copied'); } catch { toast('Copy failed — long-press the link instead', 'err'); }
-          $('linkModal').classList.remove('open');
+          closeModal('linkModal');
         };
-        $('openLinkBtn').onclick = () => { window.open('https://host.inpriv.xyz' + f.url, '_blank', 'noopener'); $('linkModal').classList.remove('open'); };
+        $('openLinkBtn').onclick = () => { window.open('https://host.inpriv.xyz' + f.url, '_blank', 'noopener'); closeModal('linkModal'); };
       } else if (act === 'custom') {
         pendingCustom = f;
         $('customInput').value = f.custom_slug || '';
         $('customError').style.display = 'none';
-        $('customModal').classList.add('open');
+        openModal('customModal');
         setTimeout(() => $('customInput').focus(), 60);
       } else if (act === 'priv') {
         try {
@@ -1073,16 +1122,21 @@
       } else if (act === 'del') {
         pendingDelete = f;
         $('confirmText').textContent = 'Delete "' + f.name + '" permanently? This cannot be undone.';
-        $('confirmModal').classList.add('open');
+        openModal('confirmModal');
       }
     });
 
     // ── modals ──
-    function closeModal(m) { $(m).classList.remove('open'); }
+    function openModal(m) { $(m).classList.add('open'); syncModalScrollLock(); }
+    function closeModal(m) { $(m).classList.remove('open'); syncModalScrollLock(); }
+    function syncModalScrollLock() {
+      const anyOpen = qsa('.modal-overlay.open').length > 0;
+      document.body.classList.toggle('modal-open', anyOpen);
+    }
     const qsa = (sel) => (document.querySelectorAll ? [...document.querySelectorAll(sel)] : []);
     document.querySelectorAll?.('[data-modal-cancel]').forEach(b => b.addEventListener('click', () => closeModal('confirmModal')));
     qsa('[data-modal-cancel2]').forEach(b => b.addEventListener('click', () => { closeModal('customModal'); closeModal('limitModal'); }));
-    qsa('.modal-overlay').forEach(o => o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); }));
+    qsa('.modal-overlay').forEach(o => o.addEventListener('click', e => { if (e.target === o) { o.classList.remove('open'); syncModalScrollLock(); } }));
 
     // custom link modal
     let pendingCustom = null;
@@ -1180,7 +1234,7 @@
       } catch (e) { toast(e.message, 'err'); }
       closeModal('confirmModal'); pendingDelete = null;
     });
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') qsa('.modal-overlay.open').forEach(o => o.classList.remove('open')); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') { qsa('.modal-overlay.open').forEach(o => o.classList.remove('open')); syncModalScrollLock(); } });
 
     // ── upload (chunked) ──
     const dz = $('dropzone');
@@ -1224,10 +1278,11 @@
         const begin = await api('/upload/begin', { method: 'POST', json: { name: file.name, size: file.size, mime: file.type || 'application/octet-stream' } });
         if (aborted) { try { await api('/upload/' + begin.upload_id + '/abort', { method: 'POST' }); } catch {} return; }
         // 2. chunks
-        const total = Math.max(1, Math.ceil(file.size / CHUNK));
+        const chunkSize = begin.chunk_size || CHUNK;
+        const total = Math.max(1, Math.ceil(file.size / chunkSize));
         for (let i = 0; i < total; i++) {
           if (aborted) { try { await api('/upload/' + begin.upload_id + '/abort', { method: 'POST' }); } catch {} return; }
-          const blob = file.slice(i * CHUNK, Math.min((i + 1) * CHUNK, file.size));
+          const blob = file.slice(i * chunkSize, Math.min((i + 1) * chunkSize, file.size));
           st.textContent = 'Uploading ' + (i + 1) + ' of ' + total + '…';
           bar.style.width = ((i / total) * 92).toFixed(1) + '%';
           const d = await api('/upload/' + begin.upload_id + '/chunk?seq=' + i, { method: 'PUT', body: blob, headers: { 'Content-Type': 'application/octet-stream' } });

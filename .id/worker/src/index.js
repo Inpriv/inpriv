@@ -380,6 +380,34 @@ export default {
           { ...cors, "Set-Cookie": sessionCookie(s.token) }
         );
       }
+      // ── service-to-service TOTP verification (sibling Inpriv workers) ──
+      // ── TOTP 2FA ──
+      // Service-to-service verification: sibling Inpriv workers (e.g. Host)
+      // verify a user's TOTP code without ever seeing the secret. Guarded by
+      // a shared SERVICE_KEY secret; rate-limited per username. Never issues
+      // a session — the caller keeps its own auth state.
+      if (path === "/api/totp/verify" && request.method === "POST") {
+        if (!env.SERVICE_KEY || request.headers.get("X-Inpriv-Service") !== env.SERVICE_KEY)
+          return bad("forbidden", 403);
+        const body = await request.json().catch(() => ({}));
+        const uname = String(body.username || "").toLowerCase().split("@")[0];
+        const code = String(body.code || "").trim();
+        if (!/^\d{6}$/.test(code)) return bad("invalid code", 400);
+        if (!uname) return bad("invalid username", 400);
+        if (!(await rateLimit(env.DB, `tverify:${uname}`, 10, 10 * 60_000)))
+          return bad("too many attempts — try again in 10 minutes", 429);
+        const u = await env.DB.prepare(
+          "SELECT id FROM users WHERE username = ? OR email = ?"
+        ).bind(uname, uname + "@inpriv.xyz").first();
+        if (!u) return json({ ok: false }, 200, cors); // anti-enumeration: same shape
+        const trow = await env.DB.prepare(
+          "SELECT secret_enc FROM totp_secrets WHERE user_id = ? AND confirmed = 1"
+        ).bind(u.id).first();
+        const secret = trow ? await openString(env, trow.secret_enc) : null;
+        const okFlag = !!(secret && (await verifyTOTP(code, base32Decode(secret), now())));
+        return json({ ok: okFlag }, 200, cors);
+      }
+
 
       // ═══ SESSION-SCOPED ═══
       const me = await authUser(request, env, true);
@@ -482,7 +510,7 @@ export default {
         return out({ ok: true, user: await publicUser(env, me.uid, true) }, 200, cors);
       }
 
-      // ── TOTP 2FA ──
+
       if (path === "/api/2fa/setup" && request.method === "POST") {
         if (!(await rateLimit(env.DB, `tsetup:${me.uid}`, 5, 3_600_000))) return bad("try again later", 429);
         const secret = base32Encode(crypto.getRandomValues(new Uint8Array(20)));
