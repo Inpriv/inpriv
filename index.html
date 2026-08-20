@@ -528,6 +528,8 @@
     /* ── FEATURED SPOTLIGHT SECTION (TEMP) ─────────────────────── */
     .featured-wrap {
       margin-bottom: 16px;
+      display: grid;
+      gap: 16px;
       opacity: 0; animation: fadeUp 0.7s var(--md-easing-spring) 0.2s both;
     }
 
@@ -1061,6 +1063,43 @@
         </div>
       </div>
     </a>
+
+    <a href="https://host.inpriv.xyz" class="featured-card" target="_blank" rel="noopener noreferrer" id="featured-host-card">
+      <div class="featured-top-bar">
+        <span class="featured-pill">
+          <span class="icon" aria-hidden="true">verified_user</span>
+          <span data-i18n="featured-label">Featured</span>
+        </span>
+        <span class="status-badge live" data-i18n="badge-live">Live</span>
+      </div>
+      <div class="featured-body">
+        <div class="featured-main-info">
+          <div class="featured-icon-box">
+            <span class="icon" aria-hidden="true">cloud_upload</span>
+          </div>
+          <div class="featured-text">
+            <div class="featured-heading-row">
+              <h2 class="featured-title">Inpriv Host</h2>
+              <span class="featured-domain">host.inpriv.xyz</span>
+            </div>
+            <p class="featured-desc" data-i18n="desc-host-featured">
+              Private static hosting with a privacy shield. No account needed — drop a file, get a link. Every upload is scanned for IP loggers and trackers before it goes live.
+            </p>
+            <div class="featured-tags">
+              <span class="feat-tag"><span class="icon" aria-hidden="true">person_off</span> <span data-i18n="tag-noaccount">No Account Needed</span></span>
+              <span class="feat-tag"><span class="icon" aria-hidden="true">shield</span> <span data-i18n="tag-shield">Privacy Shield</span></span>
+              <span class="feat-tag"><span class="icon" aria-hidden="true">link</span> <span data-i18n="tag-instantlink">Instant Links</span></span>
+            </div>
+          </div>
+        </div>
+        <div class="featured-cta-row">
+          <span class="featured-btn">
+            <span data-i18n="btn-open-host">Open Host</span>
+            <span class="icon" aria-hidden="true">arrow_forward</span>
+          </span>
+        </div>
+      </div>
+    </a>
   </section>
 
   <!-- ── CONTROLS: SEARCH & CATEGORY FILTER TABS ─────────────── -->
@@ -1442,6 +1481,11 @@
       'badge-oss': 'Open source',
       'featured-label': 'Suggested',
       'desc-temp-featured': 'Disposable email addresses on inpriv.xyz. Instant random inbox, live incoming feed, auto-refresh, and one-click shred.',
+      'desc-host-featured': 'Private static hosting with a privacy shield. No account needed — drop a file, get a link. Every upload is scanned for IP loggers and trackers before it goes live.',
+      'btn-open-host': 'Open Host',
+      'tag-noaccount': 'No Account Needed',
+      'tag-shield': 'Privacy Shield',
+      'tag-instantlink': 'Instant Links',
       'tag-instant': 'Instant Inbox',
       'tag-live-poll': 'Live Polling',
       'tag-shred': '1-Click Shred',
@@ -1493,6 +1537,11 @@
       'badge-oss': 'Open source',
       'featured-label': 'Proponowane',
       'desc-temp-featured': 'Jednorazowe adresy e-mail na inpriv.xyz. Losowa skrzynka, live polling, odbiór w czasie rzeczywistym, kasowanie jednym kliknięciem.',
+      'desc-host-featured': 'Prywatny hosting plików z tarczą prywatności. Bez konta — upuść plik, dostajesz link. Każdy upload jest skanowany w poszukiwaniu IP loggerów i trackerów, zanim wejdzie na żywo.',
+      'btn-open-host': 'Otwórz Host',
+      'tag-noaccount': 'Bez Konta',
+      'tag-shield': 'Tarcza Prywatności',
+      'tag-instantlink': 'Natychmiastowe Linki',
       'tag-instant': 'Szybka skrzynka',
       'tag-live-poll': 'Odbiór na żywo',
       'tag-shred': 'Szybkie niszczenie',
