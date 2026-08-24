@@ -369,6 +369,20 @@ async function handleInbound(request, env) {
   return json({ ok: true, stored: true });
 }
 
+// Quick Unlock device-key table ships after the initial deploy — create it
+// lazily on first use (no-op once present).
+let _dkReady = false;
+async function ensureDeviceKeys(env) {
+  if (_dkReady) return;
+  await env.DB.batch([
+    env.DB.prepare(
+      "CREATE TABLE IF NOT EXISTS device_keys (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, wrapped_dek TEXT NOT NULL, created_at INTEGER NOT NULL, last_used INTEGER)"
+    ),
+    env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_device_keys_user ON device_keys(user_id)"),
+  ]);
+  _dkReady = true;
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -453,6 +467,59 @@ export default {
           username: local,
           inpriv_id_user: idUser ? { username: idUser.username, email: idUser.email, nick: idUser.nick } : null,
           has_mail_keys: !!(mailUser && mailUser.public_key),
+        }, 200, cors);
+      }
+
+      // ── Quick Sign-In via Inpriv ID (SSO grant) ──────────────────────────
+      // The browser (id.js) mints a one-time grant on id.inpriv.xyz; this
+      // endpoint redeems it server-to-server with the shared SERVICE_KEY and
+      // issues a normal Mail session. No master password crosses the wire —
+      // the client still needs the password (or a quick-unlock device key) to
+      // decrypt the private RSA key, which this endpoint deliberately does
+      // NOT return.
+      if (path === "/api/v1/sso" && request.method === "POST") {
+        if (!(await rateLimit(env.DB, `sso:${ipKey(request)}`, 30, 15 * 60_000))) {
+          return bad("too many sign-in attempts — please wait 15 minutes", 429, cors);
+        }
+        if (!env.SERVICE_KEY) return bad("SSO not configured on this service", 503, cors);
+        const body = await request.json().catch(() => ({}));
+        const grant = String(body.grant || "");
+        const state = String(body.state || "");
+        if (!grant) return bad("grant required", 400, cors);
+
+        // redeem at Inpriv ID (SERVICE_KEY-guarded, single use)
+        const r = await fetch("https://id.inpriv.xyz/api/grant/redeem", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Inpriv-Service": env.SERVICE_KEY },
+          body: JSON.stringify({ grant, service: "mail" }),
+        });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || !d.ok) return bad((d && d.error) || "sign-in grant rejected", 401, cors);
+        if (state && d.state && state !== d.state) return bad("grant state mismatch", 401, cors);
+
+        // TOTP accounts: quick sign-in must not bypass the second factor
+        if (d.totp_enabled) return json({ status: "totp_required", username: d.user.username, nick: d.user.nick }, 200, cors);
+
+        const idUser = d.user;
+        const existing = await env.DB.prepare("SELECT * FROM users WHERE username = ?").bind(idUser.username).first();
+        if (!existing) {
+          // First time on Mail: no RSA keys yet — the client has to run the
+          // one-time key init (which needs the master password once).
+          return json({ status: "needs_init", inpriv_id: true, username: idUser.username, email: idUser.email, nick: idUser.nick, quick_unlock: !!d.quick_unlock }, 200, cors);
+        }
+
+        const token = b64(crypto.getRandomValues(new Uint8Array(32)));
+        await env.DB.prepare(
+          "INSERT INTO sessions (id, user_id, created_at, expires_at, ua) VALUES (?,?,?,?,?)"
+        ).bind(await sha256hex(token), existing.id, now(), now() + SESSION_TTL_MS, ua(request)).run();
+        await env.DB.prepare("UPDATE users SET last_login = ? WHERE id = ?").bind(now(), existing.id).run();
+
+        return json({
+          token,
+          user: publicUser(existing, { inpriv_id_synced: true }),
+          sso: true,
+          quick_unlock: !!d.quick_unlock,
+          locked: true, // mailbox key still needs master password / device key
         }, 200, cors);
       }
 
@@ -696,6 +763,34 @@ export default {
 
       const me = await authUser(request, env);
       if (!me) return bad("unauthorized — session invalid or expired", 401, cors);
+
+      // ── Quick Unlock device keys (opt-in master-password bypass) ─────────
+      // The browser stores a random device key locally; here we keep only the
+      // DEK wrapped under that key. Ciphertext in, ciphertext out.
+      if (path === "/api/v1/device-key/get" && request.method === "GET") {
+        await ensureDeviceKeys(env);
+        const rows = await env.DB.prepare(
+          "SELECT id, wrapped_dek FROM device_keys WHERE user_id = ? ORDER BY created_at DESC LIMIT 1"
+        ).bind(me.id).all();
+        return json({ wrapped_dek: rows.results && rows.results[0] ? rows.results[0].wrapped_dek : null }, 200, cors);
+      }
+      if (path === "/api/v1/device-key/set" && request.method === "POST") {
+        const body = await request.json().catch(() => ({}));
+        const wrapped = typeof body.wrapped_dek === "string" ? body.wrapped_dek : "";
+        if (!wrapped) return bad("wrapped_dek required", 400, cors);
+        if (wrapped.length > 8000) return bad("wrapped key too large", 413, cors);
+        await ensureDeviceKeys(env);
+        await env.DB.batch([
+          env.DB.prepare("DELETE FROM device_keys WHERE user_id = ?").bind(me.id),
+          env.DB.prepare("INSERT INTO device_keys (user_id, wrapped_dek, created_at) VALUES (?,?,?)").bind(me.id, wrapped, now()),
+        ]);
+        return json({ ok: true }, 200, cors);
+      }
+      if (path === "/api/v1/device-key/clear" && request.method === "POST") {
+        await ensureDeviceKeys(env);
+        await env.DB.prepare("DELETE FROM device_keys WHERE user_id = ?").bind(me.id).run();
+        return json({ ok: true }, 200, cors);
+      }
 
       // ── Get Current Profile ───────────────────────────────────────────────
       if (path === "/api/v1/me" && request.method === "GET") {

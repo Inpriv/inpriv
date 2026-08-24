@@ -205,11 +205,37 @@
     }
   }
 
+  // ── Quick Sign-In: mint a one-time grant on id.inpriv.xyz (cookie-authed)
+  //    and hand {grant, state} to the page. The page's own backend redeems it
+  //    server-to-server — the master password is never involved.
+  function sso(cb) {
+    if (!state.user) { cb && cb({ ok: false, error: "signed out" }); return; }
+    var nonce = b64Nonce(16);
+    fetch(ORIGIN + "/api/grant", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ service: service || "web", state: nonce }),
+    })
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status)); })
+      .then(function (d) { cb && cb({ ok: true, grant: d.grant, state: nonce }); })
+      .catch(function (e) { cb && cb({ ok: false, error: String(e && e.message || e) }); });
+  }
+
+  function b64Nonce(n) {
+    var b = new Uint8Array(n);
+    (window.crypto || window.msCrypto).getRandomValues(b);
+    var s = "";
+    for (var i = 0; i < b.length; i++) s += String.fromCharCode(b[i]);
+    return btoa(s).replace(/[+/]/g, "-_").replace(/=+$/, "");
+  }
+
   // ── public API ─────────────────────────────────────────────────────────
   window.InprivID = {
     get user() { return state.user; },
     check: check,
     connect: connect,
+    sso: sso,
     open: function () { location.href = ORIGIN + "/?next=" + encodeURIComponent(location.href); },
   };
 
@@ -220,6 +246,10 @@
       if (u) {
         renderSignedIn(u);
         applyPersonalization(u);
+        // Auto-connect (Google-style): signed in on id.inpriv.xyz and this
+        // service supports accounts → notify the page immediately so it can
+        // run its quick sign-in flow without any click.
+        if (supportsAccounts && !sessionConnected()) connect(null);
       } else {
         renderSignedOut();
       }

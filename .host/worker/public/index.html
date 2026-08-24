@@ -11,7 +11,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com fonts.gstatic.com; script-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.googleapis.com fonts.gstatic.com; img-src 'self' data: blob: https://hush.best; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'; connect-src 'self'; worker-src 'none'; manifest-src 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://id.inpriv.xyz; font-src 'self' https://fonts.googleapis.com fonts.gstatic.com; img-src 'self' data: blob: https://hush.best https://id.inpriv.xyz; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'; connect-src 'self' https://id.inpriv.xyz; worker-src 'none'; manifest-src 'self'">
   <title>Inpriv Host — Private Static Hosting</title>
   <meta name="description" content="Host your own static files and sites with a built-in privacy shield. Every upload is scanned for IP loggers, WebRTC leaks and trackers before it goes live." />
   <link rel="icon" type="image/png" href="https://hush.best/icon.png" />
@@ -495,6 +495,7 @@
       *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
     }
   </style>
+<script src="https://id.inpriv.xyz/id.js" data-service="host" data-accounts defer></script>
 </head>
 <body>
   <!-- ═══════════ APP BAR ═══════════ -->
@@ -532,6 +533,7 @@
           <input id="loginTotp" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="6-digit code" maxlength="6" spellcheck="false" />
         </div>
         <button class="btn btn-full" id="loginBtn"><span class="icon" aria-hidden="true">login</span>Sign in with Inpriv ID</button>
+        <button class="btn btn-tonal btn-full" id="quickSignInBtn" style="display:none;margin-top:10px"><span class="icon" aria-hidden="true">bolt</span><span id="quickSignInLabel">Quick sign-in</span></button>
         <button class="btn btn-tonal btn-full" id="guestBtn" style="margin-top:10px"><span class="icon" aria-hidden="true">bolt</span>Continue as guest</button>
         <p class="login-foot">No account yet? <a href="https://id.inpriv.xyz" target="_blank" rel="noopener noreferrer">Create one at id.inpriv.xyz</a> — it takes a minute.</p>
         <div class="login-hint">
@@ -1360,6 +1362,65 @@
         '<span class="verdict-chip verdict-block">blocked</span></div>' + items;
       $('uploadList').prepend(card);
     }
+    // ── Quick Sign-In via Inpriv ID ──
+    // id.js detects a signed-in browser (cookie on id.inpriv.xyz) and fires
+    // inpriv:connect; we mint a one-time grant and redeem it at /auth/sso.
+    let ssoTried = false;
+    async function quickSignIn(auto) {
+      if (token || !window.InprivID || !window.InprivID.user) return;
+      if (auto && ssoTried) return;
+      ssoTried = true;
+      const u = window.InprivID.user;
+      const btn = $('quickSignInBtn'); const lbl = $('quickSignInLabel');
+      if (btn) { btn.style.display = 'flex'; }
+      if (lbl) lbl.textContent = 'Continue as ' + (u.nick || u.username);
+      if (!auto) return; // button click path handled below; auto path:
+      try {
+        const g = await new Promise((res) => window.InprivID.sso(res));
+        if (!g || !g.ok) return;
+        const r = await fetch(API + '/auth/sso', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ grant: g.grant, state: g.state })
+        });
+        const d = await r.json().catch(() => ({}));
+        if (d.totp_required) { toast('Two-factor required — sign in with your password', 'err'); return; }
+        if (!r.ok || !d.token) return;
+        token = d.token; user = d.user;
+        try { localStorage.setItem('host_token', token); } catch {}
+        toast('Signed in with Inpriv ID as ' + (user.nick || user.username));
+        await enterDashboard();
+      } catch (e) { /* fall back to the manual form */ }
+    }
+    window.addEventListener('inpriv:connect', () => quickSignIn(true));
+    window.addEventListener('inpriv:id', (ev) => {
+      // refresh the button label even when auto-connect already ran
+      if (ev.detail && ev.detail.user && !token) {
+        const btn = $('quickSignInBtn'); const lbl = $('quickSignInLabel');
+        if (btn) btn.style.display = 'flex';
+        if (lbl) lbl.textContent = 'Continue as ' + (ev.detail.user.nick || ev.detail.user.username);
+      }
+    });
+    document.addEventListener('click', async (e) => {
+      if (!e.target.closest || !e.target.closest('#quickSignInBtn')) return;
+      const btn = $('quickSignInBtn');
+      btn.disabled = true;
+      try {
+        const g = await new Promise((res) => window.InprivID.sso(res));
+        if (!g || !g.ok) throw new Error(g && g.error || 'not signed in');
+        const r = await fetch(API + '/auth/sso', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ grant: g.grant, state: g.state })
+        });
+        const d = await r.json().catch(() => ({}));
+        if (d.totp_required) throw new Error('Two-factor required — sign in with your password');
+        if (!r.ok || !d.token) throw new Error(d.error || 'Sign-in failed');
+        token = d.token; user = d.user;
+        try { localStorage.setItem('host_token', token); } catch {}
+        toast('Signed in with Inpriv ID as ' + (user.nick || user.username));
+        await enterDashboard();
+      } catch (err) { toast(err.message, 'err'); }
+      finally { btn.disabled = false; }
+    });
     // ── boot: restore session ──
     (async function boot() {
       if (!token) return;

@@ -95,6 +95,7 @@ export default {
         return json({ ok: true, service: "host", drive, open: true, ts: Date.now() });
       }
       if (path === "/api/auth/login" && request.method === "POST") return await login(request, env, cors);
+      if (path === "/api/auth/sso" && request.method === "POST") return await ssoLogin(request, env, cors);
       if (path === "/api/auth/logout" && request.method === "POST") return json({ ok: true }, 200, cors);
       if (path === "/api/pubkey" && request.method === "GET") return await adminPubKey(request, env, cors);
 
@@ -239,6 +240,39 @@ async function login(request, env, cors) {
   return json({ token, user: pub({ id: idu.id, username: idu.username, nick: idu.nick }) }, 200, cors);
 }
 
+// ── Quick Sign-In via Inpriv ID (SSO grant) ──────────────────────────────
+// id.js mints a one-time grant in the signed-in browser; this function
+// redeems it at id.inpriv.xyz with the shared SERVICE_KEY and mints a
+// host-local session. 2FA accounts are rejected here — a silent cross-
+// site sign-in must never skip the second factor.
+async function ssoLogin(request, env, cors) {
+  const body = await request.json().catch(() => ({}));
+  const grant = String(body.grant || "");
+  const state = String(body.state || "");
+  if (!grant) return bad("Missing sign-in grant", 400);
+  const rkey = "hostsso:" + (request.headers.get("CF-Connecting-IP") || "x").split(".").slice(0, 2).join(".");
+  if (!(await rateLimit(env.DB, rkey, 20, 15 * 60_000)))
+    return bad("Too many attempts — try again in 15 minutes", 429);
+  if (!env.SERVICE_KEY) return bad("SSO not configured", 503);
+
+  const r = await fetch("https://id.inpriv.xyz/api/grant/redeem", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Inpriv-Service": env.SERVICE_KEY },
+    body: JSON.stringify({ grant, service: "host" }),
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok || !d.ok) return bad((d && d.error) || "Sign-in grant rejected", 401);
+  if (state && d.state && state !== d.state) return bad("Grant mismatch", 401);
+  if (d.totp_enabled)
+    return json({ totp_required: true, username: d.user.username }, 200, cors);
+
+  const token = b64(crypto.getRandomValues(new Uint8Array(32)));
+  const sid = await sha256hex(token);
+  await env.DB.prepare(
+    "INSERT INTO sessions (id, user_id, username, nick, created_at, expires_at) VALUES (?,?,?,?,?,?)"
+  ).bind(sid, d.user.id, d.user.username, d.user.nick || d.user.username, Date.now(), Date.now() + SESSION_TTL).run();
+  return json({ token, user: pub({ id: d.user.id, username: d.user.username, nick: d.user.nick }) }, 200, cors);
+}
 // ── per-account limits (storage quota raised via request → saloyek approves;
 //   max_file_bytes kept for future per-file raises, defaults apply otherwise) ──
 async function limitsFor(env, uid) {

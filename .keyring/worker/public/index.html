@@ -11,7 +11,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com fonts.gstatic.com; script-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.googleapis.com fonts.gstatic.com https://fonts.gstatic.com; img-src 'self' data: blob: https://hush.best; media-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'; connect-src 'self'; worker-src 'none'; manifest-src 'self'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://id.inpriv.xyz; font-src 'self' https://fonts.googleapis.com fonts.gstatic.com https://fonts.gstatic.com; img-src 'self' data: blob: https://hush.best; media-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'; connect-src 'self' https://id.inpriv.xyz; worker-src 'none'; manifest-src 'self'">
   <title>Inpriv Keyring — Zero-Knowledge Encrypted Secret Vault</title>
   <meta name="description" content="A client-side encrypted vault for SSH keys, API tokens, passwords and notes. AES-256-GCM with PBKDF2. Your master password never leaves your device and cannot be recovered." />
 
@@ -213,6 +213,7 @@
     @media (max-width: 380px) { .fab-btn span:last-child { display: none; } .fab-btn { padding: 0; } }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; } }
   </style>
+    <script src="https://id.inpriv.xyz/id.js" data-service="keyring" data-accounts defer></script>
 </head>
 <body>
   <div class="bg-grid"></div>
@@ -437,6 +438,98 @@
     // Stored shape: { salt:b64, verifier:{iv,ct} , blob:{iv,ct} , created:iso }
     // verifier encrypts a known constant so we can validate the password without storing it.
 
+    /* ============ Quick Unlock via Inpriv ID (opt-in) ============
+       When the browser is signed in on id.inpriv.xyz and the account has
+       Quick Unlock enabled, the vault key (DEK) is wrapped under a device
+       key and stored in the account's ID vault — ciphertext only, the ID
+       server can never decrypt it. Unlock then needs no master password. */
+    const ID_ORIGIN = 'https://id.inpriv.xyz';
+    const KR_DEVKEY = 'inpriv_kr_devkey';
+    let idUser = null;
+    let _dkCache = null;
+
+    async function krDeviceKey(create) {
+      if (_dkCache) return _dkCache;
+      const raw = localStorage.getItem(KR_DEVKEY);
+      if (raw) {
+        try {
+          _dkCache = await crypto.subtle.importKey('raw', b64ToBytes(raw), { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+          return _dkCache;
+        } catch (e) { localStorage.removeItem(KR_DEVKEY); }
+      }
+      if (!create) return null;
+      const k = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
+      const ex = await crypto.subtle.exportKey('raw', k);
+      localStorage.setItem(KR_DEVKEY, bytesToB64(new Uint8Array(ex)));
+      _dkCache = k;
+      return k;
+    }
+
+    function krClearDeviceKey() { localStorage.removeItem(KR_DEVKEY); _dkCache = null; }
+
+    async function krWrapKey(key, deviceKey) {
+      const raw = await crypto.subtle.exportKey('raw', key);
+      const iv = randomBytes(12);
+      const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, deviceKey, raw);
+      return bytesToB64(iv) + '.' + bytesToB64(new Uint8Array(ct));
+    }
+
+    async function krUnwrapKey(blob, deviceKey) {
+      const parts = String(blob).split('.');
+      if (parts.length !== 2) return null;
+      try {
+        const raw = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64ToBytes(parts[0]) }, deviceKey, b64ToBytes(parts[1]));
+        return await crypto.subtle.importKey('raw', raw, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+      } catch (e) { return null; }
+    }
+
+    async function idFetch(path, opts) {
+      return fetch(ID_ORIGIN + path, Object.assign({ credentials: 'include' }, opts || {}));
+    }
+
+    async function krEnrolQuickUnlock(key) {
+      if (!idUser || !idUser.quick_unlock) return;
+      try {
+        const dk = await krDeviceKey(true);
+        const blob = await krWrapKey(key, dk);
+        await idFetch('/api/quick-unlock/set', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ blob })
+        });
+      } catch (e) { /* best-effort */ }
+    }
+
+    async function krTryQuickUnlock() {
+      if (!idUser || idUser.quick_unlock === false) return false;
+      try {
+        const dk = await krDeviceKey(false);
+        if (!dk) return false;
+        const r = await idFetch('/api/quick-unlock/get');
+        if (!r.ok) return false;
+        const d = await r.json();
+        if (!d || !d.blob) return false;
+        const key = await krUnwrapKey(d.blob, dk);
+        if (!key) return false;
+        // verify the key actually decrypts this browser's vault
+        const store = readStore();
+        if (!store) return false;
+        try {
+          const v = await decryptJSON(store.verifier, key);
+          if (!v || v.v !== VERIFIER_PLAINTEXT) return false;
+        } catch (e) { return false; }
+        session.key = key;
+        try {
+          const data = await decryptJSON(store.blob, key);
+          session.entries = (data && data.entries) ? data.entries : [];
+        } catch (e) { session.entries = []; }
+        session.locked = false;
+        enterVault();
+        showToast('Vault unlocked via Inpriv ID', 'bolt');
+        return true;
+      } catch (e) { return false; }
+    }
+
     const VERIFIER_PLAINTEXT = 'inpriv-keyring-v1-verifier';
     let session = { key: null, entries: [], filter: 'all', query: '', editId: null, locked: true };
 
@@ -577,6 +670,7 @@
           session.key = key;
         }
         session.locked = false;
+        krEnrolQuickUnlock(session.key);
         enterVault();
         showToast(gateMode === 'create' ? 'Vault created' : 'Vault unlocked', 'lock_open');
       } catch (e) {
@@ -814,6 +908,28 @@
     /* ===================== Init ===================== */
     renderGate();
     pwInput.focus();
+
+    // Inpriv ID Quick Unlock: detect a signed-in browser and try the
+    // device key silently. Falls back to the master-password gate.
+    (async function krIdBoot() {
+      const apply = async (u) => {
+        if (!u) return;
+        idUser = u;
+        if (u.quick_unlock === false) {
+          // Quick Unlock disabled on the account — drop the local device key
+          // so nothing quick-unlocks until it is re-enabled and re-enrolled
+          krClearDeviceKey();
+          return;
+        }
+        if (hasVault()) await krTryQuickUnlock();
+      };
+      window.addEventListener('inpriv:id', (ev) => { if (ev.detail && ev.detail.user) apply(ev.detail.user); });
+      window.addEventListener('inpriv:connect', (ev) => { if (ev.detail && ev.detail.user) apply(ev.detail.user); });
+      if (window.InprivID) {
+        if (window.InprivID.user) apply(window.InprivID.user);
+        else if (typeof window.InprivID.check === 'function') window.InprivID.check(apply);
+      }
+    })();
   </script>
 </body>
 </html>

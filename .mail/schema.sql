@@ -49,3 +49,17 @@ CREATE TABLE IF NOT EXISTS rl_counters (
 
 CREATE INDEX IF NOT EXISTS idx_messages_owner ON messages(owner_id, direction, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_sessions_user  ON sessions(user_id);
+
+-- Quick Unlock device keys (master-password bypass, opt-in per account on
+-- id.inpriv.xyz). The browser wraps its local AES DEK under a random device
+-- key (kept in localStorage) and stores only the wrapped DEK here, encrypted
+-- end-to-end; the server cannot decrypt anything. Quick Sign-In sessions
+-- present their session token to read it back.
+CREATE TABLE IF NOT EXISTS device_keys (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  wrapped_dek TEXT NOT NULL,
+  created_at  INTEGER NOT NULL,
+  last_used   INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_device_keys_user ON device_keys(user_id);

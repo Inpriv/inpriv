@@ -1021,6 +1021,19 @@ body {
   transform: translateY(0) scale(1);
 }
 
+.confirm-desc {
+  color: var(--md-on-surface-variant);
+  font-size: 14px;
+  line-height: 1.55;
+  margin: -6px 0 18px;
+}
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
 .modal-head {
   display: flex;
   align-items: center;
@@ -1163,6 +1176,8 @@ const state = {
   searchQuery: '',
   idUser: null,          // Inpriv ID user object (if detected)
   unlocked: false,
+  ssoTried: false,       // auto Quick Sign-In attempted this page load
+  ssoBusy: false,
 };
 
 /* ---------- Helpers ---------- */
@@ -1237,6 +1252,44 @@ function fmtTime(ts) {
   return d.toLocaleDateString([], sameYear ? { month: 'short', day: 'numeric' } : { month: 'short', day: 'numeric', year: '2-digit' });
 }
 
+/* ---------- Confirm Dialog (in-app; native confirm() is blocked in in-app browsers) ---------- */
+function confirmDialog({ title, desc = '', confirmLabel = 'Delete', danger = true }) {
+  return new Promise((resolve) => {
+    const container = $('#modalContainer');
+    if (!container) { resolve(false); return; }
+
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = `
+      <div class="modal-sheet" role="dialog" aria-modal="true">
+        <div class="modal-head">
+          <h2 class="modal-title">${escapeHtml(title)}</h2>
+        </div>
+        ${desc ? `<div class="confirm-desc">${escapeHtml(desc)}</div>` : ''}
+        <div class="modal-actions">
+          <button class="btn btn-outlined" id="cfCancelBtn" type="button">Cancel</button>
+          <button class="btn ${danger ? 'btn-danger' : 'btn-primary'}" id="cfOkBtn" type="button">${escapeHtml(confirmLabel)}</button>
+        </div>
+      </div>
+    `;
+    container.appendChild(overlay);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => overlay.classList.add('open'));
+    });
+
+    const done = (result) => {
+      overlay.classList.remove('open');
+      setTimeout(() => overlay.remove(), 320);
+      resolve(result);
+    };
+    $('#cfOkBtn', overlay).addEventListener('click', () => done(true));
+    $('#cfCancelBtn', overlay).addEventListener('click', () => done(false));
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) done(false);
+    });
+  });
+}
+
 /* ---------- API Call Helper ---------- */
 async function api(path, opts = {}) {
   const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
@@ -1296,6 +1349,49 @@ async function wrapPrivateKey(privKey, aesKey) {
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, aesKey, pkcs8);
   return { wrapped: b64.enc(ct), iv: b64.enc(iv.buffer) };
+}
+
+/* ---------- Quick Unlock device key (opt-in master-password bypass) ----
+   Random AES key in localStorage; the mailbox DEK (the PBKDF2 password
+   key) is wrapped under it and stored server-side as ciphertext. Server
+   never sees either key in the clear. */
+const DEVICE_KEY_NAME = 'inpriv_device_key';
+const DEVICE_PUB_NAME = 'inpriv_device_pub';
+let _deviceKeyCache = null;
+async function getDeviceKey(create) {
+  if (_deviceKeyCache) return _deviceKeyCache;
+  const raw = localStorage.getItem(DEVICE_KEY_NAME);
+  if (raw) {
+    try {
+      _deviceKeyCache = await crypto.subtle.importKey('raw', b64.dec(raw), { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+      return _deviceKeyCache;
+    } catch (e) { localStorage.removeItem(DEVICE_KEY_NAME); localStorage.removeItem(DEVICE_PUB_NAME); }
+  }
+  if (!create) return null;
+  const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
+  const ex = await crypto.subtle.exportKey('raw', key);
+  localStorage.setItem(DEVICE_KEY_NAME, b64.enc(ex));
+  _deviceKeyCache = key;
+  return key;
+}
+function clearDeviceKey() {
+  localStorage.removeItem(DEVICE_KEY_NAME);
+  localStorage.removeItem(DEVICE_PUB_NAME);
+  _deviceKeyCache = null;
+}
+async function wrapRawDek(dekKey, deviceKey) {
+  const raw = await crypto.subtle.exportKey('raw', dekKey);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, deviceKey, raw);
+  return b64.enc(iv) + '.' + b64.enc(ct);
+}
+async function unwrapRawDek(blob, deviceKey) {
+  const [ivB, ctB] = String(blob).split('.');
+  if (!ivB || !ctB) return null;
+  try {
+    const raw = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: new Uint8Array(b64.dec(ivB)) }, deviceKey, b64.dec(ctB));
+    return await crypto.subtle.importKey('raw', raw, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+  } catch (e) { return null; }
 }
 
 async function unwrapPrivateKey(wrappedB64, ivB64, aesKey) {
@@ -1679,6 +1775,15 @@ async function handleLogin(username, password) {
     state.pubKey = await crypto.subtle.importKey('spki', b64.dec(res.user.public_key), { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['encrypt']);
     state.unlocked = true;
 
+    // Quick Unlock enrolment: wrap the freshly derived DEK under this
+    // device's key so future visits skip the master password
+    if (state.idUser && state.idUser.quick_unlock) {
+      try {
+        const dk = await getDeviceKey(true);
+        const wrapped = await wrapRawDek(aesKey, dk);
+        await api('/device-key/set', { method: 'POST', body: JSON.stringify({ wrapped_dek: wrapped }) });
+      } catch (e) { /* best-effort; password login still works */ }
+    }
     toast('Mailbox unlocked', `Signed in as ${res.user.email}`);
     renderDashboard();
   } catch (e) {
@@ -1717,6 +1822,14 @@ async function initializeInprivIdKeys(username, password) {
     state.unlocked = true;
     localStorage.setItem('inpriv_token', res.token);
 
+    // enrol Quick Unlock right away — the DEK is fresh in memory here
+    if (state.idUser && state.idUser.quick_unlock) {
+      try {
+        const dk = await getDeviceKey(true);
+        const wrapped = await wrapRawDek(aesKey, dk);
+        await api('/device-key/set', { method: 'POST', body: JSON.stringify({ wrapped_dek: wrapped }) });
+      } catch (e) {}
+    }
     toast('Mailbox initialized', `Your zero-knowledge keys are active for ${res.user.email}`);
     renderDashboard();
   } catch (e) {
@@ -2066,6 +2179,27 @@ async function openMessageView(id) {
     if (e.target === overlay) close();
   });
 
+  // Delete works even if fetching/decrypting the body fails below.
+  $('#viewDeleteBtn').addEventListener('click', async () => {
+    const ok = await confirmDialog({
+      title: 'Delete this message?',
+      desc: 'This permanently removes the message from your mailbox. This cannot be undone.',
+      confirmLabel: 'Delete'
+    });
+    if (ok) {
+      try {
+        await api('/messages/delete', { method: 'POST', body: JSON.stringify({ id }) });
+        state.messages = state.messages.filter(x => x.id !== id);
+        updateCounts();
+        renderMessageCards();
+        toast('Message deleted', 'Removed from mailbox.');
+        close();
+      } catch (e) {
+        toast('Delete failed', e.message, 'error');
+      }
+    }
+  });
+
   try {
     const msg = await api(`/messages/${id}`);
     $('#viewSubject').textContent = msg.subject || '(No Subject)';
@@ -2084,23 +2218,29 @@ async function openMessageView(id) {
     }
 
     let decryptedText = '';
+    let decryptFailed = false;
     if (!state.privKey) {
-      throw new Error('Encryption key not in browser memory. Please unlock again.');
-    }
-
-    try {
-      decryptedText = await hybridDecrypt(state.privKey, msg);
-    } catch (decErr) {
-      throw new Error('Decryption failed: ' + decErr.message);
+      decryptFailed = true;
+      decryptedText = 'Encryption key not in browser memory. Please unlock again.';
+    } else {
+      try {
+        decryptedText = await hybridDecrypt(state.privKey, msg);
+      } catch (decErr) {
+        decryptFailed = true;
+        decryptedText = 'Decryption failed: ' + decErr.message;
+      }
     }
 
     const bodyEl = $('#viewBody');
     bodyEl.classList.remove('decrypting');
     bodyEl.textContent = decryptedText;
+    if (decryptFailed) {
+      bodyEl.innerHTML = `<span style="color:var(--md-error)">${mkIcon('error')} ${escapeHtml(decryptedText)}</span>`;
+    }
 
     // Mark as read in local list
     const target = state.messages.find(x => x.id === id);
-    if (target) {
+    if (target && !decryptFailed) {
       target.is_read = 1;
       updateCounts();
       renderMessageCards();
@@ -2116,21 +2256,6 @@ async function openMessageView(id) {
       const replyTo = msg.direction === 'inbound' ? (msg.peer_address || msg.peer_label) : msg.peer_address;
       const replySub = (msg.subject && msg.subject.startsWith('Re:')) ? msg.subject : `Re: ${msg.subject || ''}`;
       openComposeModal(replyTo, replySub);
-    });
-
-    $('#viewDeleteBtn').addEventListener('click', async () => {
-      if (confirm('Delete this message permanently?')) {
-        try {
-          await api('/messages/delete', { method: 'POST', body: JSON.stringify({ id: msg.id }) });
-          state.messages = state.messages.filter(x => x.id !== id);
-          updateCounts();
-          renderMessageCards();
-          toast('Message deleted', 'Removed from mailbox.');
-          close();
-        } catch (e) {
-          toast('Delete failed', e.message, 'error');
-        }
-      }
     });
   } catch (err) {
     const bodyEl = $('#viewBody');
@@ -2502,14 +2627,97 @@ async function bootstrap() {
   window.addEventListener('inpriv:connect', (ev) => {
     if (ev.detail && ev.detail.user) {
       handleIdUser(ev.detail.user);
-      const p = $('#authPassword');
-      if (p) {
-        p.focus();
-        p.classList.add('pulse-focus');
-        setTimeout(() => p.classList.remove('pulse-focus'), 800);
-      }
+      maybeAutoSso();
     }
   });
+
+  /* ---------- Quick Sign-In (auto SSO via id.inpriv.xyz) ----------
+     Fires once per page load when Inpriv ID detects a signed-in browser
+     and there is no local mailbox session yet. The service backend
+     redeems the grant server-to-server; the mailbox stays locked until
+     the master password or the Quick Unlock device key decrypts it. */
+  async function maybeAutoSso() {
+    if (state.token || state.ssoTried || state.ssoBusy) return;
+    if (!window.InprivID || !window.InprivID.user || typeof window.InprivID.sso !== 'function') return;
+    state.ssoTried = true;
+    state.ssoBusy = true;
+    try {
+      const g = await new Promise((res) => window.InprivID.sso(res));
+      if (!g || !g.ok) return;
+      const res = await fetch(API + '/sso', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ grant: g.grant, state: g.state })
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        // Quick Unlock disabled server-side mid-session → drop local device key
+        if (res.status === 403) clearDeviceKey();
+        return;
+      }
+      if (d.status === 'needs_init') {
+        // first visit with this Inpriv ID: prefill + ask for the password once
+        toast('Inpriv ID detected', 'Enter your master password to create your mailbox keys');
+        const u = $('#authUsername');
+        if (u) u.value = d.username;
+        const p = $('#authPassword');
+        if (p) { p.focus(); p.classList.add('pulse-focus'); setTimeout(() => p.classList.remove('pulse-focus'), 800); }
+        return;
+      }
+      if (d.status === 'totp_required') {
+        toast('Two-factor required', 'Quick sign-in is disabled for 2FA accounts — sign in with your password.');
+        return;
+      }
+      if (!d.token) return;
+      // session established — mailbox still encrypted; try Quick Unlock
+      state.token = d.token;
+      state.user = d.user;
+      localStorage.setItem('inpriv_token', d.token);
+      await tryQuickUnlock();
+    } catch (e) { /* silent — manual login always available */ }
+    finally { state.ssoBusy = false; }
+  }
+
+  /* Try to decrypt the mailbox with the device key (no master password).
+     Falls back to the unlock screen when unavailable/disabled. */
+  async function tryQuickUnlock() {
+    const allowed = state.idUser && state.idUser.quick_unlock !== false;
+    if (allowed) {
+      try {
+        const dk = await getDeviceKey(false);
+        if (dk) {
+          const kd = await api('/device-key/get', { method: 'GET' });
+          if (kd && kd.wrapped_dek) {
+            const dek = await unwrapRawDek(kd.wrapped_dek, dk);
+            if (dek) {
+              state.privKey = await unwrapPrivateKey(state.user.encrypted_private_key, state.user.priv_iv, dek);
+              state.pubKey = await crypto.subtle.importKey('spki', b64.dec(state.user.public_key), { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['encrypt']);
+              state.unlocked = true;
+              toast('Mailbox unlocked', 'Quick Unlock via Inpriv ID — no password needed.');
+              renderDashboard();
+              return;
+            }
+          }
+        }
+      } catch (e) { /* fall through to password screen */ }
+    }
+    // locked session: show the unlock screen (password still required)
+    toast('Signed in with Inpriv ID', 'Enter your master password to unlock the mailbox.');
+    promptUnlockSession();
+  }
+
+  // session restore: existing token → try device key first, then password
+  if (state.token) {
+    try {
+      const me = await api('/me', { method: 'GET' });
+      state.user = me;
+      await tryQuickUnlock();
+    } catch (e) {
+      state.token = null;
+      localStorage.removeItem('inpriv_token');
+      renderAuth();
+    }
+  }
 
   if (window.InprivID) {
     if (window.InprivID.user) {

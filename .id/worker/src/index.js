@@ -40,6 +40,32 @@ async function publicUser(env, uid, full = false) {
   return out;
 }
 
+// Lazy table creation: the SSO/settings tables ship after the initial
+// deploy, so every endpoint that touches them calls this first. D1 keeps the
+// DDL cached; the "already exists" case is a cheap no-op.
+let tablesReady = false;
+async function ensureTables(env) {
+  if (tablesReady) return;
+  // D1 runs batches inside a transaction; SQLite cannot run some DDL there,
+  // so create the tables one by one (no-op once they exist).
+  for (const ddl of [
+    `CREATE TABLE IF NOT EXISTS service_grants (
+       id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+       service TEXT NOT NULL, state TEXT NOT NULL, created_at INTEGER NOT NULL,
+       expires_at INTEGER NOT NULL, used_at INTEGER)`,
+    `CREATE INDEX IF NOT EXISTS idx_grants_user ON service_grants(user_id, created_at)`,
+    `CREATE TABLE IF NOT EXISTS user_settings (
+       user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+       quick_unlock INTEGER NOT NULL DEFAULT 1, updated_at INTEGER NOT NULL)`,
+    `CREATE TABLE IF NOT EXISTS quick_unlock (
+       user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+       blob TEXT NOT NULL, updated_at INTEGER NOT NULL)`,
+  ]) {
+    await env.DB.prepare(ddl).run();
+  }
+  tablesReady = true;
+}
+
 async function logEvent(db, uid, kind, req) {
   await db
     .prepare("INSERT INTO auth_events (id, user_id, kind, ip_prefix, ula, at) VALUES (?,?,?,?,?,?)")
@@ -381,11 +407,173 @@ export default {
         );
       }
       // ── service-to-service TOTP verification (sibling Inpriv workers) ──
-      // ── TOTP 2FA ──
-      // Service-to-service verification: sibling Inpriv workers (e.g. Host)
       // verify a user's TOTP code without ever seeing the secret. Guarded by
       // a shared SERVICE_KEY secret; rate-limited per username. Never issues
       // a session — the caller keeps its own auth state.
+
+      // ═══ QUICK SIGN-IN (SSO grants) ═══
+      // One-time tickets minted by id.js on a signed-in browser and redeemed
+      // server-to-server by *.inpriv.xyz backends holding the shared
+      // SERVICE_KEY. Never exposes the master password or password verifier.
+
+      // /api/grant — browser (id.js) asks for a ticket for one service.
+      // Cookie/Bearer authenticated. Single use, 120-second lifetime.
+      if (path === "/api/grant" && request.method === "POST") {
+        const gme = await authUser(request, env, true);
+        if (!gme) return bad("unauthorized", 401);
+        const body = await request.json().catch(() => ({}));
+        const service = String(body.service || "").toLowerCase();
+        const state = String(body.state || "").slice(0, 128);
+        if (!/^[a-z0-9-]{1,24}$/.test(service)) return bad("invalid service", 400);
+        if (!(await rateLimit(env.DB, `grant:${gme.uid}`, 30, 60_000)))
+          return bad("too many sign-in requests — slow down", 429);
+        await ensureTables(env);
+        const gid = newToken();
+        await env.DB.prepare(
+          "INSERT INTO service_grants (id, user_id, service, state, created_at, expires_at) VALUES (?,?,?,?,?,?)"
+        ).bind(gid, gme.uid, service, state || "", now(), now() + 120_000).run();
+        const h = { ...cors };
+        if (gme.token) {
+          h["X-Inpriv-Token"] = gme.token;
+          if (gme.via === "cookie") h["Set-Cookie"] = sessionCookie(gme.token);
+        }
+        return json({ grant: gid, state: state || "", expires_in: 120 }, 200, h);
+      }
+
+      // /api/grant/redeem — service backend (SERVICE_KEY) burns the ticket and
+      // receives the identity + quick_unlock flag. TOTP users get sso: false —
+      // the service must fall back to its regular password+2FA flow (a silent
+      // cross-site login would otherwise bypass the second factor entirely).
+      if (path === "/api/grant/redeem" && request.method === "POST") {
+        if (!env.SERVICE_KEY || request.headers.get("X-Inpriv-Service") !== env.SERVICE_KEY)
+          return bad("forbidden", 403);
+        const body = await request.json().catch(() => ({}));
+        const gid = String(body.grant || "");
+        const service = String(body.service || "").toLowerCase();
+        if (!gid || !service) return bad("grant and service required", 400);
+        if (!(await rateLimit(env.DB, `redeem:${ipPrefix(request)}`, 60, 60_000)))
+          return bad("rate limited", 429);
+
+        await ensureTables(env);
+        const g = await env.DB.prepare(
+          "SELECT * FROM service_grants WHERE id = ? AND service = ?"
+        ).bind(gid, service).first();
+        // single-use burn (regardless of what follows, the ticket dies here)
+        if (g) await env.DB.prepare("UPDATE service_grants SET used_at = ? WHERE id = ? AND used_at IS NULL").bind(now(), gid).run();
+        if (!g || g.used_at || g.expires_at < now())
+          return bad("grant expired or already used", 401);
+
+        const u = await env.DB.prepare(
+          "SELECT id, username, email, nick, totp_enabled FROM users WHERE id = ?"
+        ).bind(g.user_id).first();
+        if (!u) return bad("account not found", 404);
+
+        const settings = await env.DB.prepare(
+          "SELECT quick_unlock FROM user_settings WHERE user_id = ?"
+        ).bind(u.id).first();
+        await env.DB.prepare(
+          "INSERT OR REPLACE INTO consents (user_id, service, granted_at, last_used) VALUES (?,?,?,?)"
+        ).bind(u.id, service, now(), now()).run();
+        await logEvent(env.DB, u.id, "sso", request);
+
+        return json({
+          ok: true,
+          user: {
+            id: u.id,
+            username: u.username,
+            email: u.email,
+            nick: u.nick || u.username,
+          },
+          state: g.state || "",
+          quick_unlock: !!(settings && settings.quick_unlock === 1),
+          totp_enabled: !!u.totp_enabled, // service must enforce 2FA fallback
+        }, 200, cors);
+      }
+
+      // ═══ ACCOUNT SETTINGS (quick unlock toggle) ═══
+      if (path === "/api/settings" && request.method === "GET") {
+        const sme = await authUser(request, env, true);
+        if (!sme) return bad("unauthorized", 401);
+        await ensureTables(env);
+        const s = await env.DB.prepare("SELECT quick_unlock FROM user_settings WHERE user_id = ?").bind(sme.uid).first();
+        const h = { ...cors };
+        if (sme.token) {
+          h["X-Inpriv-Token"] = sme.token;
+          if (sme.via === "cookie") h["Set-Cookie"] = sessionCookie(sme.token);
+        }
+        return json({ settings: { quick_unlock: !(s && s.quick_unlock === 0) } }, 200, h);
+      }
+      if (path === "/api/settings" && request.method === "POST") {
+        const sme = await authUser(request, env, true);
+        if (!sme) return bad("unauthorized", 401);
+        const body = await request.json().catch(() => ({}));
+        if (typeof body.quick_unlock !== "boolean") return bad("quick_unlock (boolean) required", 400);
+        await ensureTables(env);
+        await env.DB.prepare(
+          "INSERT INTO user_settings (user_id, quick_unlock, updated_at) VALUES (?,?,?) " +
+          "ON CONFLICT(user_id) DO UPDATE SET quick_unlock = excluded.quick_unlock, updated_at = excluded.updated_at"
+        ).bind(sme.uid, body.quick_unlock ? 1 : 0, now()).run();
+        const h = { ...cors };
+        if (sme.token) {
+          h["X-Inpriv-Token"] = sme.token;
+          if (sme.via === "cookie") h["Set-Cookie"] = sessionCookie(sme.token);
+        }
+        return json({ ok: true, settings: { quick_unlock: body.quick_unlock } }, 200, h);
+      }
+
+      // ═══ QUICK UNLOCK WRAPPED KEYS (master-password bypass storage) ═══
+      // The device key never leaves the browser: the page wraps its local DEK
+      // under the RSA public key of the signed-in user and stores the opaque
+      // blob here. Only an authenticated browser with the matching device key
+      // can decrypt it — the server sees ciphertext either way.
+      if (path === "/api/quick-unlock/get" && request.method === "GET") {
+        const qme = await authUser(request, env, true);
+        if (!qme) return bad("unauthorized", 401);
+        await ensureTables(env);
+        const s = await env.DB.prepare("SELECT quick_unlock FROM user_settings WHERE user_id = ?").bind(qme.uid).first();
+        if (s && s.quick_unlock === 0) return bad("quick unlock disabled on this account", 403);
+        const r = await env.DB.prepare("SELECT blob FROM quick_unlock WHERE user_id = ?").bind(qme.uid).first();
+        const h = { ...cors };
+        if (qme.token) {
+          h["X-Inpriv-Token"] = qme.token;
+          if (qme.via === "cookie") h["Set-Cookie"] = sessionCookie(qme.token);
+        }
+        return json({ blob: r ? r.blob : null }, 200, h);
+      }
+      if (path === "/api/quick-unlock/set" && request.method === "POST") {
+        const qme = await authUser(request, env, true);
+        if (!qme) return bad("unauthorized", 401);
+        const body = await request.json().catch(() => ({}));
+        const blob = typeof body.blob === "string" ? body.blob : "";
+        if (!blob) return bad("blob required", 400);
+        if (blob.length > 12_000) return bad("blob too large", 413);
+        await ensureTables(env);
+        const s = await env.DB.prepare("SELECT quick_unlock FROM user_settings WHERE user_id = ?").bind(qme.uid).first();
+        if (s && s.quick_unlock === 0) return bad("quick unlock disabled on this account", 403);
+        await env.DB.prepare(
+          "INSERT INTO quick_unlock (user_id, blob, updated_at) VALUES (?,?,?) " +
+          "ON CONFLICT(user_id) DO UPDATE SET blob = excluded.blob, updated_at = excluded.updated_at"
+        ).bind(qme.uid, blob, now()).run();
+        const h = { ...cors };
+        if (qme.token) {
+          h["X-Inpriv-Token"] = qme.token;
+          if (qme.via === "cookie") h["Set-Cookie"] = sessionCookie(qme.token);
+        }
+        return json({ ok: true }, 200, h);
+      }
+      if (path === "/api/quick-unlock/clear" && request.method === "POST") {
+        const cme = await authUser(request, env, true);
+        if (!cme) return bad("unauthorized", 401);
+        await ensureTables(env);
+        await env.DB.prepare("DELETE FROM quick_unlock WHERE user_id = ?").bind(cme.uid).run();
+        const h = { ...cors };
+        if (cme.token) {
+          h["X-Inpriv-Token"] = cme.token;
+          if (cme.via === "cookie") h["Set-Cookie"] = sessionCookie(cme.token);
+        }
+        return json({ ok: true }, 200, h);
+      }
+
       if (path === "/api/totp/verify" && request.method === "POST") {
         if (!env.SERVICE_KEY || request.headers.get("X-Inpriv-Service") !== env.SERVICE_KEY)
           return bad("forbidden", 403);
@@ -431,7 +619,15 @@ export default {
 
       if (path === "/api/public/me" && request.method === "GET") {
         if (!me) return out({ user: null }, 200, cors);
-        return out({ user: await publicUser(env, me.uid) }, 200, cors);
+        const pub = await publicUser(env, me.uid);
+        // quick_unlock drives the cross-service master-password bypass;
+        // TOTP users always see false (second factor can never be skipped)
+        try {
+          await ensureTables(env);
+          const st = await env.DB.prepare("SELECT quick_unlock FROM user_settings WHERE user_id = ?").bind(me.uid).first();
+          pub.quick_unlock = pub.totp_enabled ? false : !(st && st.quick_unlock === 0);
+        } catch { pub.quick_unlock = !pub.totp_enabled; }
+        return out({ user: pub }, 200, cors);
       }
 
       if (!me) return bad("unauthorized", 401);

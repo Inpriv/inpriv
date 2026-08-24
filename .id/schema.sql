@@ -103,3 +103,38 @@ CREATE INDEX IF NOT EXISTS idx_sessions_user       ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_events_user         ON auth_events(user_id, at);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username  ON users(username);
 CREATE INDEX IF NOT EXISTS idx_users_recovery_email ON users(recovery_email);
+
+
+-- ── Quick Sign-In (SSO) ─────────────────────────────────────────────────────
+-- One-time tickets that let a signed-in browser mint a session on another
+-- *.inpriv.xyz service without retyping the master password. Minted by id.js
+-- (cookie-authenticated), redeemed server-to-server by the target service
+-- backend with the shared SERVICE_KEY.
+CREATE TABLE IF NOT EXISTS service_grants (
+  id           TEXT PRIMARY KEY,             -- random ticket id
+  user_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  service      TEXT NOT NULL,                -- "mail" | "host" | "keyring" | …
+  state        TEXT NOT NULL,                -- browser nonce, echoed back
+  created_at   INTEGER NOT NULL,
+  expires_at   INTEGER NOT NULL,             -- 120 s single-use window
+  used_at      INTEGER
+);
+
+CREATE INDEX IF NOT EXISTS idx_grants_user ON service_grants(user_id, created_at);
+
+-- ── Account settings (Quick Unlock master-password bypass & future flags) ──
+CREATE TABLE IF NOT EXISTS user_settings (
+  user_id       TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  quick_unlock  INTEGER NOT NULL DEFAULT 1,  -- 0 = always require master password
+  updated_at    INTEGER NOT NULL
+);
+
+-- Encrypted device-key blobs for the master-password bypass. The page wraps
+-- its local DEK under the user's RSA public key; the server only ever stores
+-- the opaque ciphertext (one blob per user, replaced on every device that
+-- re-enrols).
+CREATE TABLE IF NOT EXISTS quick_unlock (
+  user_id    TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  blob       TEXT NOT NULL,
+  updated_at INTEGER NOT NULL
+);

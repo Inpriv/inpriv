@@ -206,7 +206,49 @@ async function enterPanel() {
   renderProfile();
   loadSessions();
   loadEvents();
+  loadSettings();
 }
+
+// Quick Unlock (master-password bypass) — stored server-side per account so
+// it governs every device, not just this browser. Turning it off also wipes
+// the wrapped device keys so nothing can decrypt without the master password.
+let quickUnlock = true;
+async function loadSettings() {
+  try {
+    const out = await api("/api/settings", null, "GET");
+    quickUnlock = !!(out.settings && out.settings.quick_unlock);
+  } catch {
+    quickUnlock = true; // endpoint unavailable → keep the historical default
+  }
+  setSwitch("swQuickUnlock", quickUnlock);
+}
+function bindQuickUnlock() {
+  const el = $("swQuickUnlock");
+  if (!el) return;
+  const flip = async () => {
+    const on = !el.classList.contains("on");
+    setSwitch("swQuickUnlock", on);
+    try {
+      await api("/api/settings", { quick_unlock: on });
+      quickUnlock = on;
+      if (!on) {
+        // remove wrapped device keys on every service + the ID-side blob
+        try { await api("/api/quick-unlock/clear", {}); } catch {}
+        toast("Quick Unlock off — master password required everywhere");
+      } else {
+        toast("Quick Unlock on — sign in once per service to re-enable it");
+      }
+    } catch (ex) {
+      setSwitch("swQuickUnlock", quickUnlock); // revert
+      toast(ex.message, false);
+    }
+  };
+  el.addEventListener("click", flip);
+  el.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); flip(); }
+  });
+}
+bindQuickUnlock();
 
 async function refreshMe() {
   try {

@@ -67,3 +67,17 @@ npx wrangler deploy
 
 Verification mails from `Inpriv <noreply@inpriv.xyz>` via Resend.
 DNS: SPF include resend.com + DKIM in Cloudflare dashboard (Resend domains).
+
+## Quick Sign-In (SSO) + Quick Unlock
+
+One account, every service — Google-style:
+- **Quick Sign-In**: a signed-in browser (cookie on id.inpriv.xyz) can mint a
+  single-use 120-second grant (POST /api/grant from id.js); the target service
+  backend redeems it server-to-server (POST /api/grant/redeem, X-Inpriv-Service:
+  SERVICE_KEY) and issues its own session. 2FA accounts are excluded — the
+  second factor can never be skipped by a cross-site login.
+- **Quick Unlock** (opt-in, off-able in account settings): after one password
+  entry, services store the wrapped data key (DEK) under a random device key
+  in localStorage — Keyring in the ID-side quick_unlock table, Mail in its own
+  device_keys table. End-to-end encrypted; the toggle lives in Settings tab on
+  id.inpriv.xyz and instantly revokes the stored blobs.
