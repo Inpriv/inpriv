@@ -1131,6 +1131,27 @@ body {
 .acc-info-row .label { font-size: 12px; color: var(--md-on-surface-variant); font-weight: 600; }
 .acc-info-row .val { font-size: 13px; font-weight: 700; color: var(--md-on-surface); }
 
+/* M3 switch (Quick Unlock row) — same proportions as the Inpriv ID settings */
+.switch {
+  position: relative; width: 52px; height: 32px; flex-shrink: 0;
+  border-radius: 9999px; border: 2px solid var(--md-outline);
+  background: var(--md-surface-container-highest);
+  cursor: pointer; transition: all 0.3s cubic-bezier(0.2, 1.4, 0, 1);
+}
+.switch::after {
+  content: ""; position: absolute; top: 50%; left: 6px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--md-outline);
+  transform: translateY(-50%);
+  transition: all 0.3s cubic-bezier(0.2, 1.4, 0, 1);
+}
+.switch.on { background: var(--md-primary); border-color: var(--md-primary); }
+.switch.on::after {
+  left: 26px; width: 24px; height: 24px;
+  background: var(--md-on-primary);
+}
+.qu-row-sub { font-size: 12px; color: var(--md-on-surface-variant); margin-top: 3px; max-width: 380px; line-height: 1.45; }
+
 .copy-chip {
   display: inline-flex;
   align-items: center;
@@ -1178,6 +1199,7 @@ const state = {
   unlocked: false,
   ssoTried: false,       // auto Quick Sign-In attempted this page load
   ssoBusy: false,
+  dek: null,             // mailbox DEK kept in memory (Quick Unlock re-enrolment)
 };
 
 /* ---------- Helpers ---------- */
@@ -1771,6 +1793,7 @@ async function handleLogin(username, password) {
 
     // Derive AES key & unwrap private RSA key
     const aesKey = await deriveAesFromPassword(password, res.user.priv_salt, res.user.priv_iter);
+    state.dek = aesKey; // kept for Quick Unlock re-enrolment from settings
     state.privKey = await unwrapPrivateKey(res.user.encrypted_private_key, res.user.priv_iv, aesKey);
     state.pubKey = await crypto.subtle.importKey('spki', b64.dec(res.user.public_key), { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['encrypt']);
     state.unlocked = true;
@@ -1809,6 +1832,7 @@ async function initializeInprivIdKeys(username, password) {
     const aesKey = await deriveAesFromPassword(password, saltB64, PASS_ITERS);
     const pubB64 = await exportPublicKey(kp.publicKey);
     const { wrapped, iv } = await wrapPrivateKey(kp.privateKey, aesKey);
+    state.dek = aesKey; // kept for Quick Unlock re-enrolment from settings
 
     const res = await api('/init-keys', {
       method: 'POST',
@@ -1880,6 +1904,7 @@ async function handleRegister(username, password, confirm) {
     if (status) status.innerHTML = `<span class="spinner"></span> Sealing private key…`;
     const pubB64 = await exportPublicKey(kp.publicKey);
     const { wrapped, iv } = await wrapPrivateKey(kp.privateKey, aesKey);
+    state.dek = aesKey; // kept for Quick Unlock re-enrolment from settings
 
     if (status) status.innerHTML = `<span class="spinner"></span> Registering mailbox…`;
     const res = await api('/register', {
@@ -1918,6 +1943,7 @@ function logout() {
   state.user = null;
   state.privKey = null;
   state.pubKey = null;
+  state.dek = null;
   state.unlocked = false;
   localStorage.removeItem('inpriv_token');
   toast('Signed out', 'Encryption keys wiped from browser memory.');
@@ -2589,6 +2615,14 @@ function renderAccountScreen() {
         </a>
       </div>
 
+      <div class="acc-info-row" style="align-items:flex-start">
+        <div style="flex:1;min-width:0;padding-top:2px">
+          <div class="label">Quick Unlock on this device</div>
+          <div class="qu-row-sub">Skip the master password when returning to this mailbox — the unlock key is wrapped to this device and never leaves it encrypted. Applies to every service signed in with Inpriv ID.</div>
+        </div>
+        <div class="switch${state.user && state.user.quick_unlock !== false ? ' on' : ''}" id="swQuickUnlock" role="switch" aria-checked="${state.user && state.user.quick_unlock !== false}" tabindex="0" style="margin-left:12px;margin-top:4px"></div>
+      </div>
+
       <div class="acc-info-row">
         <div>
           <div class="label">Encryption Standard</div>
@@ -2615,6 +2649,52 @@ function renderAccountScreen() {
     navigator.clipboard.writeText(state.user.email);
     toast('Address copied', state.user.email);
   });
+
+  // Quick Unlock toggle — flips the SAME account setting that lives in
+  // Inpriv ID (user_settings.quick_unlock) through the mail backend, so the
+  // switch on id.inpriv.xyz and this one always agree.
+  const swQU = $('#swQuickUnlock');
+  if (swQU) {
+    const setSw = (on) => {
+      swQU.classList.toggle('on', !!on);
+      swQU.setAttribute('aria-checked', String(!!on));
+    };
+    const flipQU = async () => {
+      const on = !swQU.classList.contains('on');
+      setSw(on);
+      try {
+        await api('/quick-unlock', { method: 'POST', body: JSON.stringify({ enabled: on }) });
+        state.user.quick_unlock = on;
+        if (state.idUser) state.idUser.quick_unlock = on;
+        if (!on) {
+          // forget the local device key — it can no longer unwrap anything
+          clearDeviceKey();
+          toast('Quick Unlock off', 'Master password required on every sign-in.');
+        } else {
+          // re-enrol this device immediately when the DEK is still in memory
+          let enrolled = false;
+          if (state.dek) {
+            try {
+              const dk = await getDeviceKey(true);
+              const wrapped = await wrapRawDek(state.dek, dk);
+              await api('/device-key/set', { method: 'POST', body: JSON.stringify({ wrapped_dek: wrapped }) });
+              enrolled = true;
+            } catch (e) { /* enrolment retried on next password unlock */ }
+          }
+          toast('Quick Unlock on', enrolled
+            ? 'This device will skip the master password.'
+            : 'Enter your master password once to enable it on this device.');
+        }
+      } catch (e) {
+        setSw(!on);
+        toast('Could not save setting', e.message, 'error');
+      }
+    };
+    swQU.addEventListener('click', flipQU);
+    swQU.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flipQU(); }
+    });
+  }
 
   $('#logoutBtn').addEventListener('click', logout);
 }
@@ -2723,6 +2803,7 @@ async function bootstrap() {
           if (kd && kd.wrapped_dek) {
             const dek = await unwrapRawDek(kd.wrapped_dek, dk);
             if (dek) {
+              state.dek = dek; // kept for Quick Unlock re-enrolment from settings
               state.privKey = await unwrapPrivateKey(state.user.encrypted_private_key, state.user.priv_iv, dek);
               state.pubKey = await crypto.subtle.importKey('spki', b64.dec(state.user.public_key), { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['encrypt']);
               state.unlocked = true;

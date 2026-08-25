@@ -819,6 +819,34 @@ export default {
         return json({ ok: true }, 200, cors);
       }
 
+      // ── Quick Unlock account toggle (same setting as id.inpriv.xyz) ───────
+      // Single source of truth stays in Inpriv ID (user_settings.quick_unlock);
+      // this endpoint lets the mailbox flip the SAME account setting without
+      // bouncing the user to ID. Turning it OFF wipes every stored wrapped DEK
+      // in this service AND the ID-side device blob through the shared DB.
+      if (path === "/api/v1/quick-unlock" && request.method === "POST") {
+        const body = await request.json().catch(() => ({}));
+        if (typeof body.enabled !== "boolean") return bad("enabled (boolean) required", 400, cors);
+        if (!env.ID_DB) return bad("inpriv id unavailable", 503, cors);
+        // resolve the Inpriv ID row behind this mailbox (ID stores bare usernames)
+        const uname = String(me.username || "").toLowerCase();
+        const iu = await env.ID_DB.prepare(
+          "SELECT id FROM users WHERE username = ? OR email = ?"
+        ).bind(uname, `${uname}@${DOMAIN}`).first();
+        if (!iu) return bad("no inpriv id account linked to this mailbox", 409, cors);
+        await env.ID_DB.prepare(
+          "INSERT INTO user_settings (user_id, quick_unlock, updated_at) VALUES (?,?,?) " +
+          "ON CONFLICT(user_id) DO UPDATE SET quick_unlock = excluded.quick_unlock, updated_at = excluded.updated_at"
+        ).bind(iu.id, body.enabled ? 1 : 0, now()).run();
+        if (!body.enabled) {
+          // nothing may decrypt without the master password from now on
+          await ensureDeviceKeys(env);
+          await env.DB.prepare("DELETE FROM device_keys WHERE user_id = ?").bind(me.id).run();
+          await env.ID_DB.prepare("DELETE FROM quick_unlock WHERE user_id = ?").bind(iu.id).run();
+        }
+        return json({ ok: true, quick_unlock: body.enabled }, 200, cors);
+      }
+
       // ── Get Current Profile ───────────────────────────────────────────────
       if (path === "/api/v1/me" && request.method === "GET") {
         // include the Quick Unlock policy (mirrors the Inpriv ID account
