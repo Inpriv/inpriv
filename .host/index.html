@@ -11,7 +11,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://id.inpriv.xyz; font-src 'self' https://fonts.googleapis.com fonts.gstatic.com; img-src 'self' data: blob: https://hush.best https://id.inpriv.xyz; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'; connect-src 'self' https://id.inpriv.xyz; worker-src 'none'; manifest-src 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://id.inpriv.xyz; font-src 'self' https://fonts.googleapis.com fonts.gstatic.com; img-src 'self' data: blob: https://hush.best https://id.inpriv.xyz; object-src 'none'; frame-src 'self'; base-uri 'self'; form-action 'self'; connect-src 'self' https://id.inpriv.xyz; worker-src 'none'; manifest-src 'self'">
   <title>Inpriv Host — Private Static Hosting</title>
   <meta name="description" content="Host your own static files and sites with a built-in privacy shield. Every upload is scanned for IP loggers, WebRTC leaks and trackers before it goes live." />
   <link rel="icon" type="image/png" href="https://hush.best/icon.png" />
@@ -394,7 +394,7 @@
     .finding code { font-family: ui-monospace, 'Cascadia Code', monospace; font-size: 0.76rem; background: color-mix(in srgb, var(--md-on-surface) 7%, transparent); padding: 1px 6px; border-radius: 6px; word-break: break-all; }
 
     /* ===== 10. TOASTS ===== */
-    #toasts { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 2147482000; display: flex; flex-direction: column; gap: 8px; width: min(420px, calc(100vw - 32px)); }
+    #toasts { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 2147483200; display: flex; flex-direction: column; gap: 8px; width: min(420px, calc(100vw - 32px)); }
     .toast {
       display: flex; align-items: center; gap: 10px;
       padding: 13px 16px; border-radius: var(--md-sys-shape-corner-md);
@@ -438,8 +438,129 @@
     .btn-danger { background: var(--md-error); color: var(--md-on-error, #fff); }
     @media (min-width: 640px) {
       .modal-overlay { align-items: center; }
-      .modal-sheet { border-radius: var(--md-sys-sys-shape-corner-xl, 28px); border-radius: 28px; margin: 20px; }
+      .modal-sheet { border-radius: var(--md-sys-shape-corner-xl, 28px); border-radius: 28px; margin: 20px; }
     }
+
+    /* ===== 11b. EDITOR (mobile-first) ===== */
+    .editor-create-row { display: flex; align-items: center; justify-content: center; margin-top: 12px; }
+    .btn-create {
+      height: 46px; padding: 0 22px;
+      display: inline-flex; align-items: center; gap: 8px;
+      border-radius: var(--md-sys-shape-corner-full);
+      background: var(--md-secondary-container); color: var(--md-on-secondary-container);
+      font-size: 0.9rem; font-weight: 600;
+      transition: transform 0.15s var(--md-easing-spring), box-shadow 0.2s;
+    }
+    .btn-create:hover { box-shadow: var(--md-shadow); }
+    .btn-create:active { transform: scale(0.97); }
+    .btn-create .icon { font-size: 19px; }
+
+    /* full-screen editor takes over the whole viewport (mobile-first) */
+    .editor-root {
+      position: fixed; inset: 0; z-index: 2147483100;
+      display: flex; flex-direction: column;
+      background: var(--md-surface);
+      opacity: 0; pointer-events: none;
+      transform: translateY(24px);
+      transition: opacity 0.3s var(--md-easing-standard), transform 0.35s var(--md-easing-emphasized);
+    }
+    .editor-root.open { opacity: 1; pointer-events: auto; transform: translateY(0); }
+    .editor-top {
+      display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+      padding: 10px max(12px, env(safe-area-inset-left)) max(10px, env(safe-area-inset-top));
+      padding-top: max(10px, env(safe-area-inset-top));
+      background: var(--md-glass);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border-bottom: 1px solid color-mix(in srgb, var(--md-outline-variant) 45%, transparent);
+    }
+    .editor-top .ed-name {
+      flex: 1; min-width: 0; text-align: center;
+      font-size: 0.92rem; font-weight: 700;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .editor-top .icon-btn { flex-shrink: 0; }
+    .ed-chip {
+      font-size: 0.68rem; font-weight: 700; padding: 3px 10px; border-radius: 9999px;
+      background: var(--md-primary-container); color: var(--md-on-primary-container);
+      letter-spacing: 0.04em; text-transform: uppercase; flex-shrink: 0;
+    }
+    .ed-chip.dirty { background: var(--md-warning-container); color: var(--md-on-warning-container, #7A5900); }
+
+    /* filename input — only in create mode */
+    .editor-name-row {
+      display: flex; gap: 8px; padding: 12px 14px 0; flex-shrink: 0;
+    }
+    .editor-name-row input {
+      flex: 1; height: 50px; font-size: 16px; padding: 0 16px;
+      border-radius: var(--md-sys-shape-corner-md);
+      border: 1px solid var(--md-outline-variant);
+      background: var(--md-surface-container); color: var(--md-on-surface);
+      outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .editor-name-row input:focus { border-color: var(--md-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-primary) 22%, transparent); }
+    .editor-name-row .ext-pill {
+      height: 50px; padding: 0 16px; display: flex; align-items: center;
+      border-radius: var(--md-sys-shape-corner-md);
+      background: var(--md-surface-container-high); color: var(--md-on-surface-variant);
+      font-family: ui-monospace, 'Cascadia Code', monospace; font-size: 0.85rem; font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    /* segmented switch: Code | Preview */
+    .ed-switch {
+      display: flex; margin: 12px 14px 0; flex-shrink: 0;
+      background: var(--md-surface-container-high);
+      border-radius: var(--md-sys-shape-corner-full);
+      padding: 4px;
+    }
+    .ed-switch button {
+      flex: 1; height: 40px; border-radius: var(--md-sys-shape-corner-full);
+      font-size: 0.85rem; font-weight: 600; color: var(--md-on-surface-variant);
+      transition: background-color 0.2s, color 0.2s;
+    }
+    .ed-switch button.on { background: var(--md-primary); color: var(--md-on-primary); }
+
+    .editor-body { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 10px 14px 0; }
+    .editor-code {
+      flex: 1; width: 100%; min-height: 0; resize: none; border: none; outline: none;
+      background: var(--md-surface-container); color: var(--md-on-surface);
+      border-radius: var(--md-sys-shape-corner-md);
+      border: 1px solid color-mix(in srgb, var(--md-outline-variant) 45%, transparent);
+      padding: 14px;
+      font-family: ui-monospace, 'Cascadia Code', 'JetBrains Mono', Consolas, monospace;
+      font-size: 13px; line-height: 1.6;
+      tab-size: 2; white-space: pre; overflow-wrap: normal; overflow: auto;
+      -webkit-text-size-adjust: 100%;
+    }
+    .editor-code:focus { border-color: var(--md-primary); }
+    /* iOS zooms the page when focusing inputs < 16px — keep the editor at 16px on touch */
+    @media (hover: none) and (pointer: coarse) {
+      .editor-code { font-size: 16px; }
+      .editor-name-row input { font-size: 16px; }
+    }
+    .editor-preview {
+      flex: 1; width: 100%; min-height: 0; border: none;
+      background: #fff; border-radius: var(--md-sys-shape-corner-md);
+      border: 1px solid color-mix(in srgb, var(--md-outline-variant) 45%, transparent);
+    }
+    .editor-foot {
+      flex-shrink: 0; display: flex; gap: 10px; align-items: center;
+      padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
+    }
+    .editor-foot .ed-meta { flex: 1; min-width: 0; font-size: 0.74rem; color: var(--md-on-surface-variant); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .editor-foot .btn { height: 46px; padding: 0 22px; flex-shrink: 0; }
+
+    /* desktop ≥900px: side-by-side code + preview */
+    @media (min-width: 900px) {
+      .editor-body { flex-direction: row; gap: 12px; }
+      .ed-switch { display: none; }
+      .editor-preview-wrap { display: flex !important; }
+      .editor-code { flex: 1; }
+      .editor-preview-col { flex: 1; display: flex; flex-direction: column; }
+      .editor-preview-col .editor-preview { flex: 1; }
+    }
+
 
     /* ===== 12. SECURITY PAGE ===== */
     .sec-feature { display: flex; gap: 14px; padding: 14px 0; border-bottom: 1px solid color-mix(in srgb, var(--md-outline-variant) 30%, transparent); }
@@ -632,7 +753,7 @@
         <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="Upload files">
           <div class="dz-icon"><span class="icon" aria-hidden="true">upload_file</span></div>
           <div class="dz-title">Drop files here or <em>browse</em></div>
-          <div class="dz-sub">Every file is scanned for IP loggers, WebRTC leaks and trackers before it goes live. Text files are served with a strict sandbox; images and media pass through directly.</div>
+          <div class="dz-sub">Every file is scanned for IP loggers, WebRTC leaks and trackers before it goes live. HTML pages render as real websites on pages.inpriv.xyz; other files are served directly.</div>
           <div class="upload-limits">
             <span class="limit-chip"><span class="icon" aria-hidden="true">straighten</span><span id="chipLimit">Max 100 MB per file</span></span>
             <span class="limit-chip"><span class="icon" aria-hidden="true">cloud</span><span id="chipQuota">1 GB storage</span></span>
@@ -641,6 +762,9 @@
         </div>
         <input type="file" id="fileInput" multiple class="file-input-hidden" accept="*/*" />
         <div id="uploadList"></div>
+        <div class="editor-create-row">
+          <button class="btn-create" id="createFileBtn"><span class="icon" aria-hidden="true">add_circle</span>Create a file</button>
+        </div>
       </div>
 
       <div class="section-head">
@@ -781,6 +905,35 @@
 
   <!-- ═══════════ TOASTS ═══════════ -->
   <div id="toasts" aria-live="polite"></div>
+
+  <!-- ═══════════ CODE EDITOR (full-screen) ═══════════ -->
+  <div class="editor-root" id="editorRoot" role="dialog" aria-modal="true" aria-label="Code editor">
+    <div class="editor-top">
+      <button class="icon-btn" id="edCloseBtn" aria-label="Close editor" title="Close"><span class="icon" aria-hidden="true">arrow_back</span></button>
+      <span class="ed-name" id="edName">file.html</span>
+      <span class="ed-chip" id="edChip" style="display:none">saved</span>
+      <button class="icon-btn" id="edHelpBtn" aria-label="Editor help" title="Help"><span class="icon" aria-hidden="true">help</span></button>
+    </div>
+    <div class="editor-name-row" id="edNameRow" style="display:none">
+      <input id="edNameInput" type="text" placeholder="filename" spellcheck="false" autocapitalize="none" autocomplete="off" maxlength="60" />
+      <div class="ext-pill" id="edExtPill">.html</div>
+    </div>
+    <div class="ed-switch" id="edSwitch">
+      <button type="button" id="edTabCode" class="on">Code</button>
+      <button type="button" id="edTabPreview">Preview</button>
+    </div>
+    <div class="editor-body">
+      <textarea id="edCode" class="editor-code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" aria-label="Code"></textarea>
+      <div class="editor-preview-col" id="edPreviewCol" style="display:none">
+        <iframe id="edPreview" class="editor-preview" title="Live preview" sandbox="allow-scripts"></iframe>
+      </div>
+    </div>
+    <div class="editor-foot">
+      <div class="ed-meta" id="edMeta">Ready</div>
+      <button class="btn btn-tonal" id="edPreviewBtn"><span class="icon" aria-hidden="true">visibility</span>Preview</button>
+      <button class="btn" id="edSaveBtn"><span class="icon" aria-hidden="true">save</span>Save</button>
+    </div>
+  </div>
 
   <script>
     'use strict';
@@ -1081,6 +1234,10 @@
       setTimeout(() => $('limitContact').focus(), 60);
     });
 
+    // editable text formats (mirror of the worker's SCANNABLE set)
+    const EDITABLE_EXT = new Set(['html', 'htm', 'css', 'js', 'mjs', 'txt', 'md', 'json', 'xml', 'csv', 'svg']);
+    const isEditable = (f) => EDITABLE_EXT.has((f.name.split('.').pop() || '').toLowerCase());
+
     function renderFiles() {
       const q = ($('searchInput').value || '').toLowerCase().trim();
       const list = q ? files.filter(f => f.name.toLowerCase().includes(q)) : files;
@@ -1107,6 +1264,9 @@
           '</div>' +
           '<div class="row-actions">' +
             '<button class="row-btn" data-act="link" title="Show link" aria-label="Show link"><span class="icon" aria-hidden="true">link</span></button>' +
+            (isEditable(f)
+              ? '<button class="row-btn" data-act="edit" title="Edit code" aria-label="Edit code"><span class="icon" aria-hidden="true">code_blocks</span></button>'
+              : '') +
             '<button class="row-btn" data-act="custom" title="Custom link" aria-label="Set custom link"><span class="icon" aria-hidden="true">edit</span></button>' +
             '<button class="row-btn" data-act="priv" title="' + (f.visibility === 'public' ? 'Make private' : 'Make public') + '" aria-label="Toggle visibility"><span class="icon" aria-hidden="true">' + (f.visibility === 'public' ? 'visibility_off' : 'visibility') + '</span></button>' +
             '<button class="row-btn" data-act="del" title="Delete" aria-label="Delete file"><span class="icon" aria-hidden="true">delete</span></button>' +
@@ -1126,6 +1286,10 @@
       const f = files.find(x => x.id === row.dataset.id);
       if (!f) return;
       const act = btn.dataset.act;
+      if (act === 'edit') {
+        openEditor({ file: f });
+        return;
+      }
       if (act === 'link') {
         $('linkModalUrl').textContent = 'https://host.inpriv.xyz' + f.url;
         openModal('linkModal');
@@ -1263,7 +1427,12 @@
       } catch (e) { toast(e.message, 'err'); }
       closeModal('confirmModal'); pendingDelete = null;
     });
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') { qsa('.modal-overlay.open').forEach(o => o.classList.remove('open')); syncModalScrollLock(); } });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        if (edRoot.classList.contains('open')) { closeEditor(false); return; }
+        qsa('.modal-overlay.open').forEach(o => o.classList.remove('open')); syncModalScrollLock();
+      }
+    });
 
     // ── upload (chunked) ──
     const dz = $('dropzone');
@@ -1362,65 +1531,333 @@
         '<span class="verdict-chip verdict-block">blocked</span></div>' + items;
       $('uploadList').prepend(card);
     }
-    // ── Quick Sign-In via Inpriv ID ──
-    // id.js detects a signed-in browser (cookie on id.inpriv.xyz) and fires
-    // inpriv:connect; we mint a one-time grant and redeem it at /auth/sso.
-    let ssoTried = false;
-    async function quickSignIn(auto) {
-      if (token || !window.InprivID || !window.InprivID.user) return;
-      if (auto && ssoTried) return;
-      ssoTried = true;
-      const u = window.InprivID.user;
-      const btn = $('quickSignInBtn'); const lbl = $('quickSignInLabel');
-      if (btn) { btn.style.display = 'flex'; }
-      if (lbl) lbl.textContent = 'Continue as ' + (u.nick || u.username);
-      if (!auto) return; // button click path handled below; auto path:
-      try {
-        const g = await new Promise((res) => window.InprivID.sso(res));
-        if (!g || !g.ok) return;
-        const r = await fetch(API + '/auth/sso', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ grant: g.grant, state: g.state })
-        });
-        const d = await r.json().catch(() => ({}));
-        if (d.totp_required) { toast('Two-factor required — sign in with your password', 'err'); return; }
-        if (!r.ok || !d.token) return;
-        token = d.token; user = d.user;
-        try { localStorage.setItem('host_token', token); } catch {}
-        toast('Signed in with Inpriv ID as ' + (user.nick || user.username));
-        await enterDashboard();
-      } catch (e) { /* fall back to the manual form */ }
-    }
-    window.addEventListener('inpriv:connect', () => quickSignIn(true));
-    window.addEventListener('inpriv:id', (ev) => {
-      // refresh the button label even when auto-connect already ran
-      if (ev.detail && ev.detail.user && !token) {
-        const btn = $('quickSignInBtn'); const lbl = $('quickSignInLabel');
-        if (btn) btn.style.display = 'flex';
-        if (lbl) lbl.textContent = 'Continue as ' + (ev.detail.user.nick || ev.detail.user.username);
-      }
-    });
-    document.addEventListener('click', async (e) => {
-      if (!e.target.closest || !e.target.closest('#quickSignInBtn')) return;
-      const btn = $('quickSignInBtn');
-      btn.disabled = true;
-      try {
-        const g = await new Promise((res) => window.InprivID.sso(res));
-        if (!g || !g.ok) throw new Error(g && g.error || 'not signed in');
-        const r = await fetch(API + '/auth/sso', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ grant: g.grant, state: g.state })
-        });
-        const d = await r.json().catch(() => ({}));
-        if (d.totp_required) throw new Error('Two-factor required — sign in with your password');
-        if (!r.ok || !d.token) throw new Error(d.error || 'Sign-in failed');
-        token = d.token; user = d.user;
-        try { localStorage.setItem('host_token', token); } catch {}
-        toast('Signed in with Inpriv ID as ' + (user.nick || user.username));
-        await enterDashboard();
-      } catch (err) { toast(err.message, 'err'); }
-      finally { btn.disabled = false; }
-    });
+    // ═══ CODE EDITOR — create files & edit published text files ═══
+    // Mobile-first: full-screen takeover, Code|Preview switch on phones,
+    // side-by-side on ≥900px. Draft survives reloads (localStorage) and
+    // unsaved changes are guarded on close.
+    const ED_KEY = 'host_editor_draft';
+    let ed = { file: null, saved: '', mode: 'create', previewOn: false };
+    const edRoot = $('editorRoot'), edCode = $('edCode'), edName = $('edName'), edNameInput = $('edNameInput');
+    const edChip = $('edChip'), edMeta = $('edMeta');
+
+    function edIsPage() {
+      const nm = ed.mode === 'create' ? edNameInput.value : (ed.file?.name || '');
+      const v = nm.trim().toLowerCase();
+      if (!v.includes('.')) return ed.mode === 'create'; // save auto-appends .html
+      const ext = v.split('.').pop();
+      return ext === 'html' || ext === 'htm';
+    }
+    function edDirty() { return edCode.value !== ed.saved; }
+    function edMarkChip(state) {
+      // state: 'dirty' | 'saving' | 'saved' | null
+      edChip.style.display = state ? 'inline-block' : 'none';
+      edChip.className = 'ed-chip' + (state === 'dirty' ? ' dirty' : '');
+      edChip.textContent = state || '';
+    }
+    function edMeta2(txt) { edMeta.textContent = txt; }
+
+    function edRenderPreview() {
+      if (!ed.previewOn || !edIsPage()) return;
+      const doc = '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
+        '<style>html,body{margin:0}</style></head><body>' + edCode.value + '</body></html>';
+      // srcdoc + sandbox (no allow-same-origin → opaque origin, no storage access)
+      $('edPreview').srcdoc = doc;
+    }
+
+    function edUpdateExtPill() {
+      if (ed.mode !== 'create') return;
+      const v = edNameInput.value.trim().toLowerCase();
+      const ext = v.includes('.') ? '.' + v.split('.').pop() : '';
+      $('edExtPill').textContent = ext || '— add .html';
+    }
+
+    async function openEditor(opts) {
+      const file = opts?.file || null;
+      ed = { file, saved: '', mode: file ? 'edit' : 'create', previewOn: false };
+      // restore draft?
+      let draft = null;
+      try { draft = JSON.parse(localStorage.getItem(ED_KEY) || 'null'); } catch {}
+      if (!file && draft && draft.mode === 'create' && draft.content) {
+        const restore = confirm('Restore your unsaved draft "' + draft.name + '"?');
+        if (restore) { edNameInput.value = draft.name || ''; edCode.value = draft.content; }
+        else { try { localStorage.removeItem(ED_KEY); } catch {} }
+      }
+      if (file) {
+        edName.textContent = file.name;
+        $('edNameRow').style.display = 'none';
+        $('edSwitch').style.display = 'flex';
+        edMeta2('Loading file…');
+        try {
+          const res = await fetch(API + '/files/' + encodeURIComponent(file.id) + '/content', { headers: { Authorization: 'Bearer ' + token } });
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const blob = await res.blob();
+          const text = await blob.text();
+          edCode.value = text;
+          ed.saved = text;
+          edMarkChip(null);
+          edMeta2(file.name + ' — loaded');
+        } catch (e) {
+          edMeta2('Could not load the file — ' + e.message);
+          toast('Failed to load file content', 'err');
+        }
+      } else {
+        edName.textContent = 'New file';
+        $('edNameRow').style.display = 'flex';
+        if (!edCode.value) edCode.value = '';
+        edMarkChip(null);
+        edMeta2('Create a file — pick a name with an extension (.html, .css, .txt…)');
+        setTimeout(() => edNameInput.focus(), 250);
+      }
+      edUpdateExtPill();
+      edSetMode('code');
+      edRoot.classList.add('open');
+      document.body.classList.add('modal-open');
+      edCode.scrollTop = 0;
+    }
+
+    function closeEditor(force) {
+      if (!force && edDirty() && !confirm('Discard unsaved changes?')) return;
+      try { localStorage.removeItem(ED_KEY); } catch {}
+      edRoot.classList.remove('open');
+      document.body.classList.remove('modal-open');
+      edCode.value = '';
+      ed.saved = '';
+      ed.previewOn = false;
+      $('edPreview').srcdoc = '';
+    }
+
+    function edSetMode(m) {
+      // m: 'code' | 'preview'
+      const wide = matchMedia('(min-width: 900px)').matches;
+      const showPrev = m === 'preview' || wide;
+      ed.previewOn = m === 'preview';
+      $('edTabCode').classList.toggle('on', m === 'code');
+      $('edTabPreview').classList.toggle('on', m === 'preview');
+      if (showPrev && !edIsPage()) {
+        // non-HTML text: nothing to render — stay in code
+        showPrev = false;
+        ed.previewOn = false;
+        $('edTabCode').classList.add('on');
+        $('edTabPreview').classList.remove('on');
+      }
+      $('edPreviewCol').style.display = showPrev ? 'flex' : 'none';
+      $('edCode').style.display = showPrev && !wide ? 'none' : 'block';
+      if (showPrev) edRenderPreview();
+    }
+
+    // desktop: always show preview pane once opened
+    matchMedia('(min-width: 900px)').addEventListener('change', (e) => {
+      if (e.matches && edRoot.classList.contains('open')) edSetMode(ed.previewOn ? 'preview' : 'code');
+    });
+
+    edCode.addEventListener('input', () => {
+      edMarkChip(edDirty() ? 'dirty' : null);
+      // draft autosave — create mode only, throttled
+      if (ed.mode === 'create') {
+        clearTimeout(edCode._t);
+        edCode._t = setTimeout(() => {
+          try { localStorage.setItem(ED_KEY, JSON.stringify({ mode: 'create', name: edNameInput.value, content: edCode.value })); } catch {}
+        }, 600);
+      }
+    });
+    edNameInput.addEventListener('input', edUpdateExtPill);
+    $('edTabCode').addEventListener('click', () => edSetMode('code'));
+    $('edTabPreview').addEventListener('click', () => edSetMode('preview'));
+    $('edPreviewBtn').addEventListener('click', () => edSetMode(ed.previewOn ? 'code' : 'preview'));
+    $('edCloseBtn').addEventListener('click', () => closeEditor(false));
+    $('edHelpBtn').addEventListener('click', () => {
+      alert('Editor tips\n\n' +
+        '• Files are created private — flip visibility with the eye icon in the list.\n' +
+        '• Save re-runs the privacy scan; blocked content is not published.\n' +
+        '• HTML pages render live at pages.inpriv.xyz — link stays host.inpriv.xyz/f/… and redirects.\n' +
+        '• Allowed external scripts: jsdelivr, cdnjs, unpkg, jQuery, esm.sh, Skypack.\n' +
+        '• Preview note: inline code and Google Fonts render in preview; CDN scripts and remote images render only on the published page (the dashboard CSP is stricter on purpose).\n' +
+        '• Editor limit: 1.5 MB per file.');
+    });
+
+    async function edSave() {
+      const btn = $('edSaveBtn');
+      btn.disabled = true;
+      edMarkChip('saving');
+      try {
+        if (ed.mode === 'create') {
+          let name = edNameInput.value.trim();
+          if (!name) throw new Error('Enter a file name first');
+          if (!name.includes('.')) name += '.html';
+          edMeta2('Saving…');
+          const d = await api('/files', { method: 'POST', json: { name, content: edCode.value } });
+          if (d.blocked) {
+            edMarkChip(null);
+            edMeta2('Blocked by privacy shield — fix and retry');
+            toast('Blocked — ' + d.scan.summary, 'err');
+            renderFindings(d.scan, name);
+            return;
+          }
+          try { localStorage.removeItem(ED_KEY); } catch {}
+          ed.saved = edCode.value;
+          ed.mode = 'edit';
+          ed.file = { id: d.id, name, slug: d.slug, url: d.url, visibility: 'private' };
+          edName.textContent = name;
+          $('edNameRow').style.display = 'none';
+          $('edSwitch').style.display = 'flex';
+          edMarkChip('saved');
+          edMeta2('Created — private. Publish with the eye icon.');
+          toast('File created — set it public from the list');
+          await refreshFiles();
+        } else {
+          if (!edDirty()) { edMarkChip(null); edMeta2('No changes'); btn.disabled = false; return; }
+          edMeta2('Saving…');
+          const d = await api('/files/' + encodeURIComponent(ed.file.id) + '/content', { method: 'PUT', json: { content: edCode.value } });
+          if (d.blocked) {
+            edMarkChip(null);
+            edMeta2('Blocked by privacy shield — fix and retry');
+            toast('Blocked — ' + d.scan.summary, 'err');
+            renderFindings(d.scan, ed.file.name);
+            return;
+          }
+          ed.saved = edCode.value;
+          ed.file.size = d.size;
+          edMarkChip('saved');
+          edMeta2('Saved — scan passed');
+          toast('Saved');
+          await refreshFiles();
+        }
+      } catch (e) {
+        edMarkChip(null);
+        edMeta2('Save failed — ' + e.message);
+        toast(e.message, 'err');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+    $('edSaveBtn').addEventListener('click', edSave);
+    edCode.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); edSave(); }
+    });
+    $('createFileBtn').addEventListener('click', () => {
+      edCode.value = '';
+      edNameInput.value = '';
+      openEditor({ file: null });
+    });
+
+    // ── Quick Sign-In via Inpriv ID ──
+
+    // id.js detects a signed-in browser (cookie on id.inpriv.xyz) and fires
+
+    // inpriv:connect; we mint a one-time grant and redeem it at /auth/sso.
+
+    let ssoTried = false;
+
+    async function quickSignIn(auto) {
+
+      if (token || !window.InprivID || !window.InprivID.user) return;
+
+      if (auto && ssoTried) return;
+
+      ssoTried = true;
+
+      const u = window.InprivID.user;
+
+      const btn = $('quickSignInBtn'); const lbl = $('quickSignInLabel');
+
+      if (btn) { btn.style.display = 'flex'; }
+
+      if (lbl) lbl.textContent = 'Continue as ' + (u.nick || u.username);
+
+      if (!auto) return; // button click path handled below; auto path:
+
+      try {
+
+        const g = await new Promise((res) => window.InprivID.sso(res));
+
+        if (!g || !g.ok) return;
+
+        const r = await fetch(API + '/auth/sso', {
+
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+
+          body: JSON.stringify({ grant: g.grant, state: g.state })
+
+        });
+
+        const d = await r.json().catch(() => ({}));
+
+        if (d.totp_required) { toast('Two-factor required — sign in with your password', 'err'); return; }
+
+        if (!r.ok || !d.token) return;
+
+        token = d.token; user = d.user;
+
+        try { localStorage.setItem('host_token', token); } catch {}
+
+        toast('Signed in with Inpriv ID as ' + (user.nick || user.username));
+
+        await enterDashboard();
+
+      } catch (e) { /* fall back to the manual form */ }
+
+    }
+
+    window.addEventListener('inpriv:connect', () => quickSignIn(true));
+
+    window.addEventListener('inpriv:id', (ev) => {
+
+      // refresh the button label even when auto-connect already ran
+
+      if (ev.detail && ev.detail.user && !token) {
+
+        const btn = $('quickSignInBtn'); const lbl = $('quickSignInLabel');
+
+        if (btn) btn.style.display = 'flex';
+
+        if (lbl) lbl.textContent = 'Continue as ' + (ev.detail.user.nick || ev.detail.user.username);
+
+      }
+
+    });
+
+    document.addEventListener('click', async (e) => {
+
+      if (!e.target.closest || !e.target.closest('#quickSignInBtn')) return;
+
+      const btn = $('quickSignInBtn');
+
+      btn.disabled = true;
+
+      try {
+
+        const g = await new Promise((res) => window.InprivID.sso(res));
+
+        if (!g || !g.ok) throw new Error(g && g.error || 'not signed in');
+
+        const r = await fetch(API + '/auth/sso', {
+
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+
+          body: JSON.stringify({ grant: g.grant, state: g.state })
+
+        });
+
+        const d = await r.json().catch(() => ({}));
+
+        if (d.totp_required) throw new Error('Two-factor required — sign in with your password');
+
+        if (!r.ok || !d.token) throw new Error(d.error || 'Sign-in failed');
+
+        token = d.token; user = d.user;
+
+        try { localStorage.setItem('host_token', token); } catch {}
+
+        toast('Signed in with Inpriv ID as ' + (user.nick || user.username));
+
+        await enterDashboard();
+
+      } catch (err) { toast(err.message, 'err'); }
+
+      finally { btn.disabled = false; }
+
+    });
+
     // ── boot: restore session ──
     (async function boot() {
       if (!token) return;

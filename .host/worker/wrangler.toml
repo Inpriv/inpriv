@@ -6,7 +6,11 @@ workers_dev = true
 # Custom domain — Inpriv Host on host.inpriv.xyz
 # (routes MUST stay above the first [table] — see cloudflare-workers skill)
 routes = [
-  { pattern = "host.inpriv.xyz", custom_domain = true }
+  { pattern = "host.inpriv.xyz", custom_domain = true },
+  # sandbox origin for published HTML pages (public files only, never the
+  # dashboard/API — isolates user pages from dashboard sessions, like
+  # github.com vs *.github.io)
+  { pattern = "pages.inpriv.xyz", custom_domain = true },
 ]
 
 # Service database (files, chunks, sessions, rate-limit counters)

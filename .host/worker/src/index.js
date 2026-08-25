@@ -37,7 +37,7 @@ const CUSTOM_RE = /^[a-z0-9][a-z0-9-]{2,38}[a-z0-9]$/;
 const CUSTOM_RESERVED = new Set([
   "www", "api", "admin", "login", "logout", "files", "file", "upload", "settings",
   "security", "about", "help", "support", "mail", "id", "app", "dashboard", "f", "s",
-  "inpriv", "host", "static", "assets", "cdn", "js", "css", "img", "images",
+  "inpriv", "host", "pages", "static", "assets", "cdn", "js", "css", "img", "images",
 ]);
 
 const MIME = {
@@ -54,10 +54,29 @@ const MIME = {
   zip: "application/zip", rar: "application/vnd.rar", "7z": "application/x-7z-compressed",
   tar: "application/x-tar", gz: "application/gzip",
 };
-// active content → forced download (never rendered inline from /f/)
-const FORCE_DOWNLOAD = new Set(["html", "htm", "css", "js", "mjs", "svg", "xml", "pdf"]);
+// active content → forced download (never rendered inline from the app origin)
+// (html/htm render live on the sandbox origin — see PAGES_HOST below)
+const FORCE_DOWNLOAD = new Set(["css", "js", "mjs", "svg", "xml", "pdf"]);
 // text-like formats → full source scan + strict sandbox CSP
 const SCANNABLE = new Set(["html", "htm", "css", "js", "mjs", "txt", "md", "json", "xml", "csv", "svg"]);
+// user HTML pages render on a separate sandbox origin that shares NOTHING with
+// the dashboard (no cookies, no localStorage, no API reach) — the same
+// isolation model as github.com vs *.github.io. A guest-uploaded page can
+// never touch a signed-in visitor's session because it is a different origin.
+const PAGES_HOST = "pages.inpriv.xyz";
+// extensions editable through the built-in editor (PUT …/content)
+const EDITABLE = SCANNABLE;
+const EDIT_MAX_BYTES = 1.5 * 1024 * 1024;   // editor round-trips one JSON body
+// script/style origins a published page may load from (mirrors scanText SCRIPT_OK)
+const CDN_ORIGINS = "https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://code.jquery.com https://esm.sh https://cdn.skypack.dev";
+const HTML_PAGE_CSP =
+  "default-src 'none'; " +
+  "script-src 'unsafe-inline' " + CDN_ORIGINS + "; " +
+  "style-src 'unsafe-inline' data: blob: https://fonts.googleapis.com " + CDN_ORIGINS + "; " +
+  "font-src data: blob: https://fonts.gstatic.com " + CDN_ORIGINS + "; " +
+  "img-src data: blob:; media-src data: blob:; frame-src 'self'; " +
+  "connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; " +
+  "frame-ancestors 'none'; worker-src 'none'; manifest-src 'none'; upgrade-insecure-requests";
 
 // ── router ───────────────────────────────────────────────────────────────────
 export default {
@@ -78,9 +97,15 @@ export default {
     }
 
     try {
+      // pages.inpriv.xyz — sandbox origin for user HTML: public files ONLY.
+      // The dashboard, its API and assets are never served from this host.
+      const onPages = url.hostname === PAGES_HOST;
+      if (onPages && !(path.startsWith("/f/") || path.startsWith("/s/")) && path !== "/api/health")
+        return notFoundPage();
+
       // public file serving  https://host.inpriv.xyz/f/<slug> or /s/<custom>
       if ((request.method === "GET" || request.method === "HEAD") && (path.startsWith("/f/") || path.startsWith("/s/"))) {
-        return await servePublic(request, env, ctx, path);
+        return await servePublic(request, env, ctx, path, onPages);
       }
 
       // dashboard assets (single-file tool)
@@ -108,6 +133,8 @@ export default {
         });
       if (path === "/api/files" && request.method === "GET")
         return authed(request, env, cors, (me) => listFiles(me, env, cors));
+      if (path === "/api/files" && request.method === "POST")
+        return authed(request, env, cors, (me) => createFile(request, me, env, cors));
       if (path === "/api/upload/begin" && request.method === "POST")
         return authed(request, env, cors, (me) => beginUpload(request, me, env, cors));
 
@@ -136,6 +163,8 @@ export default {
       m = path.match(/^\/api\/files\/([a-zA-Z0-9-]+)\/content$/);
       if (m && request.method === "GET")
         return authed(request, env, cors, (me) => servePrivate(m[1], me, env, cors));
+      if (m && request.method === "PUT")
+        return authed(request, env, cors, (me) => updateFileContent(m[1], request, me, env, cors));
       m = path.match(/^\/api\/files\/([a-zA-Z0-9-]+)$/);
       if (m && request.method === "DELETE")
         return authed(request, env, cors, (me) => deleteFile(m[1], me, env, cors));
@@ -240,39 +269,72 @@ async function login(request, env, cors) {
   return json({ token, user: pub({ id: idu.id, username: idu.username, nick: idu.nick }) }, 200, cors);
 }
 
-// ── Quick Sign-In via Inpriv ID (SSO grant) ──────────────────────────────
-// id.js mints a one-time grant in the signed-in browser; this function
-// redeems it at id.inpriv.xyz with the shared SERVICE_KEY and mints a
-// host-local session. 2FA accounts are rejected here — a silent cross-
-// site sign-in must never skip the second factor.
-async function ssoLogin(request, env, cors) {
-  const body = await request.json().catch(() => ({}));
-  const grant = String(body.grant || "");
-  const state = String(body.state || "");
-  if (!grant) return bad("Missing sign-in grant", 400);
-  const rkey = "hostsso:" + (request.headers.get("CF-Connecting-IP") || "x").split(".").slice(0, 2).join(".");
-  if (!(await rateLimit(env.DB, rkey, 20, 15 * 60_000)))
-    return bad("Too many attempts — try again in 15 minutes", 429);
-  if (!env.SERVICE_KEY) return bad("SSO not configured", 503);
-
-  const r = await fetch("https://id.inpriv.xyz/api/grant/redeem", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-Inpriv-Service": env.SERVICE_KEY },
-    body: JSON.stringify({ grant, service: "host" }),
-  });
-  const d = await r.json().catch(() => ({}));
-  if (!r.ok || !d.ok) return bad((d && d.error) || "Sign-in grant rejected", 401);
-  if (state && d.state && state !== d.state) return bad("Grant mismatch", 401);
-  if (d.totp_enabled)
-    return json({ totp_required: true, username: d.user.username }, 200, cors);
-
-  const token = b64(crypto.getRandomValues(new Uint8Array(32)));
-  const sid = await sha256hex(token);
-  await env.DB.prepare(
-    "INSERT INTO sessions (id, user_id, username, nick, created_at, expires_at) VALUES (?,?,?,?,?,?)"
-  ).bind(sid, d.user.id, d.user.username, d.user.nick || d.user.username, Date.now(), Date.now() + SESSION_TTL).run();
-  return json({ token, user: pub({ id: d.user.id, username: d.user.username, nick: d.user.nick }) }, 200, cors);
-}
+// ── Quick Sign-In via Inpriv ID (SSO grant) ──────────────────────────────
+
+// id.js mints a one-time grant in the signed-in browser; this function
+
+// redeems it at id.inpriv.xyz with the shared SERVICE_KEY and mints a
+
+// host-local session. 2FA accounts are rejected here — a silent cross-
+
+// site sign-in must never skip the second factor.
+
+async function ssoLogin(request, env, cors) {
+
+  const body = await request.json().catch(() => ({}));
+
+  const grant = String(body.grant || "");
+
+  const state = String(body.state || "");
+
+  if (!grant) return bad("Missing sign-in grant", 400);
+
+  const rkey = "hostsso:" + (request.headers.get("CF-Connecting-IP") || "x").split(".").slice(0, 2).join(".");
+
+  if (!(await rateLimit(env.DB, rkey, 20, 15 * 60_000)))
+
+    return bad("Too many attempts — try again in 15 minutes", 429);
+
+  if (!env.SERVICE_KEY) return bad("SSO not configured", 503);
+
+
+
+  const r = await fetch("https://id.inpriv.xyz/api/grant/redeem", {
+
+    method: "POST",
+
+    headers: { "Content-Type": "application/json", "X-Inpriv-Service": env.SERVICE_KEY },
+
+    body: JSON.stringify({ grant, service: "host" }),
+
+  });
+
+  const d = await r.json().catch(() => ({}));
+
+  if (!r.ok || !d.ok) return bad((d && d.error) || "Sign-in grant rejected", 401);
+
+  if (state && d.state && state !== d.state) return bad("Grant mismatch", 401);
+
+  if (d.totp_enabled)
+
+    return json({ totp_required: true, username: d.user.username }, 200, cors);
+
+
+
+  const token = b64(crypto.getRandomValues(new Uint8Array(32)));
+
+  const sid = await sha256hex(token);
+
+  await env.DB.prepare(
+
+    "INSERT INTO sessions (id, user_id, username, nick, created_at, expires_at) VALUES (?,?,?,?,?,?)"
+
+  ).bind(sid, d.user.id, d.user.username, d.user.nick || d.user.username, Date.now(), Date.now() + SESSION_TTL).run();
+
+  return json({ token, user: pub({ id: d.user.id, username: d.user.username, nick: d.user.nick }) }, 200, cors);
+
+}
+
 // ── per-account limits (storage quota raised via request → saloyek approves;
 //   max_file_bytes kept for future per-file raises, defaults apply otherwise) ──
 async function limitsFor(env, uid) {
@@ -645,8 +707,85 @@ async function deleteFile(fid, me, env, cors) {
   return json({ ok: true }, 200, cors);
 }
 
+// ── built-in editor: create a text file from scratch ─────────────────────────
+// Body: { name, content } → published through the same privacy scan + Drive
+// pipeline as a normal upload. One file per request (editor is single-file).
+async function createFile(request, me, env, cors) {
+  const body = await request.json().catch(() => ({}));
+  const name = sanitizeName(String(body.name || ""));
+  let content = String(body.content ?? "");
+  if (!name) return bad("Invalid file name", 400);
+  const ext = (name.split(".").pop() || "").toLowerCase();
+  if (!ext || !EDITABLE.has(ext)) return bad("Editable types: " + [...EDITABLE].join(", "), 400);
+  const bytes = new TextEncoder().encode(content);
+  if (bytes.length === 0) return bad("Empty files are not supported", 400);
+  if (bytes.length > EDIT_MAX_BYTES) return bad(`Editor limit is ${Math.round(EDIT_MAX_BYTES / 1048576)} MB — upload larger files directly`, 413);
+
+  const limits = await limitsFor(env, me.uid);
+  const { n, used } = await env.DB.prepare(
+    "SELECT COUNT(*) AS n, COALESCE(SUM(size),0) AS used FROM files WHERE user_id = ?"
+  ).bind(me.uid).first();
+  if (n >= MAX_FILES) return bad("File limit reached (5000)", 400);
+  if (used + bytes.length > limits.quota_bytes)
+    return bad("Storage limit reached — request a higher limit or delete some files", 413);
+
+  // privacy shield BEFORE anything is published
+  const scan = scanText(content.slice(0, TEXT_SCAN_LIMIT * 2), name);
+  if (scan.status === "blocked") return json({ ok: false, blocked: true, scan }, 200, cors);
+
+  const id = uuid();
+  const slug = await newSlug(env);
+  const mime = MIME[ext] || "text/plain; charset=utf-8";
+  const token = await getAccessToken(env);
+  const driveId = await driveUpload(token, env, { id, mime }, [bytes]);
+  await env.DB.prepare(
+    "INSERT INTO files (id, user_id, name, slug, size, mime, visibility, scan_status, scan_summary, drive_file_id, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)"
+  ).bind(id, me.uid, name, slug, bytes.length, mime, "private", "published", scan.summary, driveId, Date.now()).run();
+  return json({ ok: true, blocked: false, scan, id, slug, url: "/f/" + slug }, 200, cors);
+}
+
+// ── built-in editor: save changes to an existing text file ───────────────────
+// Replaces the Drive copy atomically (upload new → swap id → delete old) and
+// re-runs the privacy scan. Blocked edits leave the published file untouched.
+async function updateFileContent(fid, request, me, env, cors) {
+  const f = await env.DB.prepare("SELECT * FROM files WHERE id = ? AND user_id = ?").bind(fid, me.uid).first();
+  if (!f || !f.drive_file_id) return bad("File not found", 404);
+  const ext = (f.name.split(".").pop() || "").toLowerCase();
+  if (!EDITABLE.has(ext)) return bad("This file type cannot be edited in the browser", 400);
+
+  const body = await request.json().catch(() => ({}));
+  const content = String(body.content ?? "");
+  const bytes = new TextEncoder().encode(content);
+  if (bytes.length === 0) return bad("Empty files are not supported", 400);
+
+  const limits = await limitsFor(env, me.uid);
+  if (bytes.length > Math.min(EDIT_MAX_BYTES, limits.max_file_bytes))
+    return bad(`Editor limit is ${Math.round(Math.min(EDIT_MAX_BYTES, limits.max_file_bytes) / 1048576)} MB — upload larger files directly`, 413);
+  // quota delta: only the growth counts against the account
+  if (bytes.length > f.size) {
+    const { used } = await env.DB.prepare("SELECT COALESCE(SUM(size),0) AS used FROM files WHERE user_id = ?").bind(me.uid).first();
+    if (used + (bytes.length - f.size) > limits.quota_bytes)
+      return bad("Storage limit reached — delete some files first", 413);
+  }
+
+  // privacy shield BEFORE the published copy is replaced
+  const scan = scanText(content.slice(0, TEXT_SCAN_LIMIT * 2), f.name);
+  if (scan.status === "blocked") return json({ ok: false, blocked: true, scan }, 200, cors);
+
+  const token = await getAccessToken(env);
+  const newDriveId = await driveUpload(token, env, { id: f.id, mime: f.mime }, [bytes]);
+  // swap pointer first, then delete the superseded Drive copy
+  await env.DB.prepare(
+    "UPDATE files SET size = ?, scan_status = 'published', scan_summary = ?, drive_file_id = ? WHERE id = ?"
+  ).bind(bytes.length, scan.summary, newDriveId, fid).run();
+  if (f.drive_file_id !== newDriveId) {
+    try { await driveDelete(token, f.drive_file_id); } catch { /* pointer already swapped */ }
+  }
+  return json({ ok: true, blocked: false, scan, size: bytes.length }, 200, cors);
+}
+
 // ── serving ──────────────────────────────────────────────────────────────────
-async function servePublic(request, env, ctx, path) {
+async function servePublic(request, env, ctx, path, onPages = false) {
   const seg = path.split("/")[2] || "";
   const isCustom = path.startsWith("/s/");
   const slug = seg.toLowerCase();
@@ -656,13 +795,35 @@ async function servePublic(request, env, ctx, path) {
     "SELECT id, name, size, mime, visibility, scan_status, drive_file_id, expires_at FROM files WHERE " +
     (isCustom ? "custom_slug = ?" : "slug = ?")
   ).bind(slug).first();
-  if (!f || !f.drive_file_id || f.scan_status !== "published" || f.visibility !== "public") return notFoundPage();
+  if (!f || !f.drive_file_id || f.scan_status !== "published") return notFoundPage();
+  if (f.visibility !== "public") {
+    // private HTML still renders for its owner on the sandbox host? No —
+    // pages.inpriv.xyz serves PUBLIC files only; everything else 404s.
+    return notFoundPage();
+  }
   if (f.expires_at && f.expires_at < Date.now()) return gonePage(); // guest file past its 7-day TTL
+
+  const ext = (f.name.split(".").pop() || "").toLowerCase();
+  const isPage = ext === "html" || ext === "htm";
+
+  // On the dashboard origin, HTML/HTM lives on the sandbox origin instead —
+  // an uploaded page can never script the dashboard or read its session.
+  // 302 (not 301) so a later switch keeps control in the worker.
+  if (isPage && !onPages) {
+    return new Response(null, {
+      status: 302,
+      headers: {
+        "location": "https://" + PAGES_HOST + path,
+        "cache-control": "public, max-age=60",
+        "x-content-type-options": "nosniff",
+      },
+    });
+  }
 
   const upstream = await driveDownload(await getAccessToken(env), f.drive_file_id);
   if (!upstream.ok || !upstream.body) return notFoundPage();
 
-  const headers = serveHeaders(f);
+  const headers = serveHeaders(f, isPage);
   if (request.method === "HEAD") return new Response(null, { status: 200, headers });
   ctx.waitUntil(env.DB.prepare("UPDATE files SET hits = hits + 1 WHERE id = ?").bind(f.id).run().catch(() => {}));
   return new Response(upstream.body, { status: 200, headers });
@@ -694,7 +855,7 @@ async function servePrivate(fid, me, env, cors) {
   return new Response(upstream.body, { status: 200, headers });
 }
 
-function serveHeaders(f) {
+function serveHeaders(f, isPage = false) {
   const ext = (f.name.split(".").pop() || "").toLowerCase();
   const download = FORCE_DOWNLOAD.has(ext);
   const isText = SCANNABLE.has(ext);
@@ -707,7 +868,9 @@ function serveHeaders(f) {
     "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()",
     "cross-origin-resource-policy": "cross-site",
     "timing-allow-origin": "none",
-    "content-security-policy": isText
+    "content-security-policy": isPage
+      ? HTML_PAGE_CSP
+      : isText
       ? "default-src 'none'; style-src 'unsafe-inline' data:; img-src data:; media-src data: blob:; font-src data:; script-src 'none'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'"
       : "default-src 'none'; img-src 'self' data:; media-src 'self' data: blob:; style-src 'unsafe-inline'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
   };

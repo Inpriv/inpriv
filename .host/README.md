@@ -8,8 +8,15 @@ published. Files that fail the scan are quarantined and never served.
 - URL: <https://host.inpriv.xyz>
 - **Guest mode**: no account needed — 50 MB per file, random links, auto-deleted after 7 days
 - **Inpriv ID** (`id.inpriv.xyz`): 100 MB per file, permanent links, custom URLs
-  (`host.inpriv.xyz/s/your-name`), file manager — and a "request higher limit" flow
+  (`host.inpriv.xyz/s/your-name`), file manager, **built-in code editor** (create
+  `.html`/`.css`/`.js`/`.md`/… from scratch, edit published text files, live preview
+  on mobile & desktop) — and a "request higher limit" flow
   (encrypted end-to-end, delivered to the operator's Inpriv Mail inbox)
+- **Live HTML pages**: `.html`/`.htm` uploads render as real websites on the
+  sandbox origin `pages.inpriv.xyz` (link `host.inpriv.xyz/f/…` redirects there —
+  same model as github.com vs `*.github.io`, so a user page can never touch the
+  dashboard's session). All other active content (CSS/JS/SVG/PDF) is still
+  download-only; images and media play inline.
 - Storage: Google Drive (user OAuth) · 1 GB per account by default (raisable on request;
   approvals are capped at 50 GB per account) · 2 GB/week rolling for guests
 - License: MIT — deploy your own instance (see *Deploy* below)
@@ -69,10 +76,15 @@ npx wrangler d1 execute inpriv-host --remote --command \
 | Visitor fingerprinting        | sandbox CSP (`default-src 'none'`), `no-referrer`, no plugins/USB/payment         |
 | Owner privacy                 | no IPs / user agents stored — rate limiting uses hashed prefixes in short buckets |
 
-Active content (HTML/CSS/JS/SVG/XML/PDF) is **always served as a download** with
-`Content-Disposition: attachment` — it never executes in the context of the site,
-so a served page cannot phone home even if something slipped through the scan.
-Images and media play inline.
+Active content served by the app origin (CSS/JS/SVG/XML/PDF) is **always served
+as a download** with `Content-Disposition: attachment` — it never executes in the
+context of the site. The one exception is HTML: `.html`/`.htm` files render live
+on `pages.inpriv.xyz`, a dedicated sandbox origin that serves **public files
+only** and never hosts the dashboard or its API. The page CSP allows inline
+scripts plus a small allowlist of CDNs, and blocks all network egress
+(`connect-src 'none'`), so even a page that slipped past the scan cannot phone
+home. The strict `script-src 'none'` text-sandbox CSP still applies to
+non-HTML text formats. Images and media play inline.
 
 ## Security model
 
