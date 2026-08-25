@@ -69,7 +69,7 @@ npx wrangler d1 execute inpriv-host --remote --command \
 | IP loggers / grabbers         | 60+ known grabber domains hard-blocked at upload (iplogger, grabify, yip.su, ...) |
 | WebRTC IP leak                | any `RTCPeerConnection` / ICE / STUN usage blocks the file                        |
 | Pixel & image beacons         | remote `<img>`, `new Image().src=…` blocked                                      |
-| Trackers & external scripts   | only known CDNs allowed (jsdelivr, cdnjs, unpkg, jQuery, Google Fonts, esm.sh)    |
+| Trackers & external scripts   | only known CDNs allowed (jsdelivr, cdnjs, unpkg, jQuery, Google Fonts, Tailwind, esm.sh, Skypack) |
 | Covert redirects              | meta-refresh / JS redirect / `<noscript>` redirect to external URLs blocked       |
 | CSS exfiltration              | `@import` / `url()` to remote origins blocked                                    |
 | Obfuscation                   | `eval`, `new Function`, `document.write(atob(…))` blocked                        |

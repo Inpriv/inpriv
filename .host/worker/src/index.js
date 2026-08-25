@@ -67,13 +67,23 @@ const PAGES_HOST = "pages.inpriv.xyz";
 // extensions editable through the built-in editor (PUT …/content)
 const EDITABLE = SCANNABLE;
 const EDIT_MAX_BYTES = 1.5 * 1024 * 1024;   // editor round-trips one JSON body
-// script/style origins a published page may load from (mirrors scanText SCRIPT_OK)
-const CDN_ORIGINS = "https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://code.jquery.com https://esm.sh https://cdn.skypack.dev";
+// Trusted origins a published page may load scripts/styles/fonts from.
+// SINGLE SOURCE OF TRUTH: both the privacy scanner (SCRIPT_OK/FONT_OK below)
+// and the page CSP derive from this list — they can never drift apart again.
+const CDN_ALLOW = [
+  "cdn.jsdelivr.net", "cdnjs.cloudflare.com", "unpkg.com", "code.jquery.com",
+  "fonts.googleapis.com", "fonts.gstatic.com", "esm.sh", "cdn.skypack.dev",
+  "cdn.tailwindcss.com",
+];
+// note the optional terminator: script tags often cite the bare origin
+// (<script src="https://cdn.tailwindcss.com"> — no trailing slash)
+const SCRIPT_OK = new RegExp("^https://(" + CDN_ALLOW.map((h) => h.replace(/\./g, "\\.")).join("|") + ")([/?#]|$)");
+const CDN_ORIGINS = CDN_ALLOW.map((h) => "https://" + h).join(" ");
 const HTML_PAGE_CSP =
   "default-src 'none'; " +
   "script-src 'unsafe-inline' " + CDN_ORIGINS + "; " +
-  "style-src 'unsafe-inline' data: blob: https://fonts.googleapis.com " + CDN_ORIGINS + "; " +
-  "font-src data: blob: https://fonts.gstatic.com " + CDN_ORIGINS + "; " +
+  "style-src 'unsafe-inline' data: blob: " + CDN_ORIGINS + "; " +
+  "font-src data: blob: " + CDN_ORIGINS + "; " +
   "img-src data: blob:; media-src data: blob:; frame-src 'self'; " +
   "connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; " +
   "frame-ancestors 'none'; worker-src 'none'; manifest-src 'none'; upgrade-insecure-requests";
@@ -948,12 +958,11 @@ function scanText(text, fname) {
   }
 
   // 4 · unapproved external scripts (hard block, known CDNs allowed)
-  const SCRIPT_OK = /^https:\/\/(cdn\.jsdelivr\.net|cdnjs\.cloudflare\.com|unpkg\.com|code\.jquery\.com|fonts\.googleapis\.com|fonts\.gstatic\.com|esm\.sh|cdn\.skypack\.dev)\//;
   for (const m of text.matchAll(/<script[^>]+src\s*=\s*["']([^"']+)["']/gi)) {
     const s = m[1];
     if (!SCRIPT_OK.test(s)) {
       add("block", "ext_script", "External script not allowed",
-        "Scripts from unapproved origins can exfiltrate visitor data. Allowed CDNs: jsdelivr, cdnjs, unpkg, jQuery, Google Fonts, esm.sh, Skypack.",
+        "Scripts from unapproved origins can exfiltrate visitor data. Allowed CDNs: jsdelivr, cdnjs, unpkg, jQuery, Google Fonts, Tailwind, esm.sh, Skypack.",
         s);
     }
   }
@@ -997,16 +1006,25 @@ function scanText(text, fname) {
       "Preloaded remote resources leak visitor IPs before the page even renders.");
   }
 
-  // 7 · CSS exfiltration channels (hard block)
+  // 7 · CSS exfiltration channels (hard block — approved CDNs allowed; Google
+  // Fonts CSS is a static stylesheet, no different from a <link> to it)
   if (/@import\s+(?:url\s*\()?\s*["']?https?:\/\//i.test(text)) {
-    const m = text.match(/@import\s+(?:url\s*\()?\s*["']?([^"')\s]+)/i);
-    add("block", "css_import", "CSS @import from external origin",
-      "External CSS imports leak the visitor's IP and reading time.", m?.[1]);
+    const bad = [...text.matchAll(/@import\s+(?:url\s*\()?\s*["']?(https?:\/\/[^"')\s]+)/gi)]
+      .map((m) => m[1]).filter((u) => !SCRIPT_OK.test(u));
+    if (bad.length) {
+      add("block", "css_import", "CSS @import from unapproved origin",
+        "External CSS imports leak the visitor's IP and reading time. Approved: jsdelivr, cdnjs, unpkg, jQuery, Google Fonts, Tailwind, esm.sh, Skypack.",
+        bad[0]);
+    }
   }
-  for (const m of text.matchAll(/url\s*\(\s*["']?(https?:\/\/[^)"'\s]+)/gi)) {
-    add("block", "css_url", "CSS references external resource",
-      "Remote images/fonts inside CSS phone home on every page view.", m[1]);
-    break;
+  {
+    const bad = [...text.matchAll(/url\s*\(\s*["']?(https?:\/\/[^)"'\s]+)/gi)]
+      .map((m) => m[1]).filter((u) => !SCRIPT_OK.test(u));
+    if (bad.length) {
+      add("block", "css_url", "CSS references an unapproved remote resource",
+        "Remote images/fonts inside CSS phone home on every page view. Approved CDNs are allowed; other origins are blocked.",
+        bad[0]);
+    }
   }
 
   // 8 · sensitive APIs & obfuscation (hard block)
