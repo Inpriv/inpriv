@@ -1357,8 +1357,11 @@ async function deriveAesFromPassword(password, saltB64, iterations = PASS_ITERS)
       256
     );
     material = new Uint8Array(bits);
-  }
-  return crypto.subtle.importKey('raw', bits, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+    }
+    // extractable: true is REQUIRED — the Quick Unlock enrolment wraps
+    // (exports) this key under the device key. The key lives only in
+    // memory and is wiped on sign-out, same as the RSA private key.
+    return crypto.subtle.importKey('raw', bits, { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
 }
 
 async function exportPublicKey(pubKey) {
@@ -1412,7 +1415,8 @@ async function unwrapRawDek(blob, deviceKey) {
   if (!ivB || !ctB) return null;
   try {
     const raw = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: new Uint8Array(b64.dec(ivB)) }, deviceKey, b64.dec(ctB));
-    return await crypto.subtle.importKey('raw', raw, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+    // extractable so the Account-settings toggle can re-wrap this DEK
+    return await crypto.subtle.importKey('raw', raw, { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
   } catch (e) { return null; }
 }
 
