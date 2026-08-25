@@ -369,6 +369,26 @@ async function handleInbound(request, env) {
   return json({ ok: true, stored: true });
 }
 
+// ── Quick Unlock policy (mirrors the Inpriv ID account setting) ──────────
+// The master-password bypass is governed by quick_unlock in the ID's
+// user_settings table. Mail reads it through the shared ID database so the
+// toggle on id.inpriv.xyz takes effect here immediately — no re-deploy and
+// no cross-service propagation delay. Absent row = enabled (default).
+async function quickUnlockPolicy(env, username) {
+  try {
+    if (!env.ID_DB || !username) return true;
+    const row = await env.ID_DB.prepare(
+      `SELECT us.quick_unlock AS qu FROM users u
+       LEFT JOIN user_settings us ON us.user_id = u.id
+       WHERE u.username = ?`
+    ).bind(String(username).toLowerCase()).first();
+    if (!row) return true; // not an Inpriv ID account (local password only)
+    return row.qu !== 0;
+  } catch {
+    return true; // DB hiccup → keep the historical default
+  }
+}
+
 // Quick Unlock device-key table ships after the initial deploy — create it
 // lazily on first use (no-op once present).
 let _dkReady = false;
@@ -769,12 +789,19 @@ export default {
       // DEK wrapped under that key. Ciphertext in, ciphertext out.
       if (path === "/api/v1/device-key/get" && request.method === "GET") {
         await ensureDeviceKeys(env);
+        // respect the Inpriv ID account setting — a disabled Quick Unlock
+        // must never hand out the stored wrapped key
+        if (!(await quickUnlockPolicy(env, me.username)))
+          return bad("quick unlock disabled on this account", 403, cors);
         const rows = await env.DB.prepare(
           "SELECT id, wrapped_dek FROM device_keys WHERE user_id = ? ORDER BY created_at DESC LIMIT 1"
         ).bind(me.id).all();
         return json({ wrapped_dek: rows.results && rows.results[0] ? rows.results[0].wrapped_dek : null }, 200, cors);
       }
       if (path === "/api/v1/device-key/set" && request.method === "POST") {
+        // same policy as get: don't accept new wrapped keys while disabled
+        if (!(await quickUnlockPolicy(env, me.username)))
+          return bad("quick unlock disabled on this account", 403, cors);
         const body = await request.json().catch(() => ({}));
         const wrapped = typeof body.wrapped_dek === "string" ? body.wrapped_dek : "";
         if (!wrapped) return bad("wrapped_dek required", 400, cors);
@@ -794,7 +821,11 @@ export default {
 
       // ── Get Current Profile ───────────────────────────────────────────────
       if (path === "/api/v1/me" && request.method === "GET") {
-        return json(publicUser(me), 200, cors);
+        // include the Quick Unlock policy (mirrors the Inpriv ID account
+        // setting) so the client can attempt the device-key path without
+        // waiting for the SSO widget
+        const qu = await quickUnlockPolicy(env, me.username);
+        return json(publicUser(me, { quick_unlock: qu }), 200, cors);
       }
 
       // ── Logout ────────────────────────────────────────────────────────────

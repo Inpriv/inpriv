@@ -13,6 +13,13 @@ import {
 
 const newToken = () => b64(crypto.getRandomValues(new Uint8Array(32)));
 
+// Services that redeem Quick Sign-In grants (data-service ids). Shown in the
+// Privacy tab under "Connected services" with their consent state.
+const SERVICE_META = {
+  mail: { name: "Inpriv Mail", icon: "mark_email_unread", url: "https://mail.inpriv.xyz" },
+  host: { name: "Inpriv Host", icon: "cloud_upload", url: "https://host.inpriv.xyz" },
+};
+
 async function publicUser(env, uid, full = false) {
   const u = await env.DB.prepare(
     "SELECT id, username, email, recovery_email, nick, email_verified, recovery_email_verified, totp_enabled, created_at, last_login FROM users WHERE id = ?"
@@ -60,6 +67,10 @@ async function ensureTables(env) {
     `CREATE TABLE IF NOT EXISTS quick_unlock (
        user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
        blob TEXT NOT NULL, updated_at INTEGER NOT NULL)`,
+    `CREATE TABLE IF NOT EXISTS consents (
+       user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+       service TEXT NOT NULL, granted_at INTEGER NOT NULL, last_used INTEGER,
+       PRIMARY KEY (user_id, service))`,
   ]) {
     await env.DB.prepare(ddl).run();
   }
@@ -519,6 +530,35 @@ export default {
           if (sme.via === "cookie") h["Set-Cookie"] = sessionCookie(sme.token);
         }
         return json({ ok: true, settings: { quick_unlock: body.quick_unlock } }, 200, h);
+      }
+
+      // ═══ CONNECTED SERVICES (Quick Sign-In) ═══
+      // Every service that redeems SSO grants, with this account's consent
+      // state from the consents table (written on each grant redemption).
+      if (path === "/api/services" && request.method === "GET") {
+        const svcMe = await authUser(request, env, true);
+        if (!svcMe) return bad("unauthorized", 401);
+        await ensureTables(env);
+        const rows = await env.DB.prepare(
+          "SELECT service, granted_at, last_used FROM consents WHERE user_id = ?"
+        ).bind(svcMe.uid).all();
+        const bySrv = new Map(rows.results.map((r) => [r.service, r]));
+        const services = Object.entries(SERVICE_META).map(([id, meta]) => {
+          const c = bySrv.get(id);
+          return {
+            id,
+            ...meta,
+            connected: !!c,
+            granted_at: c ? c.granted_at : null,
+            last_used: c ? (c.last_used || c.granted_at) : null,
+          };
+        });
+        const sh = { ...cors };
+        if (svcMe.token) {
+          sh["X-Inpriv-Token"] = svcMe.token;
+          if (svcMe.via === "cookie") sh["Set-Cookie"] = sessionCookie(svcMe.token);
+        }
+        return json({ services }, 200, sh);
       }
 
       // ═══ QUICK UNLOCK WRAPPED KEYS (master-password bypass storage) ═══

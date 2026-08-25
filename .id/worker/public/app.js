@@ -207,6 +207,7 @@ async function enterPanel() {
   loadSessions();
   loadEvents();
   loadSettings();
+  loadServices();
 }
 
 // Quick Unlock (master-password bypass) — stored server-side per account so
@@ -573,27 +574,50 @@ $("deleteConfirmBtn").addEventListener("click", async () => {
   }
 });
 
-// ── connected services (static list) ─────────────────────────────────────────
-const SERVICES = [
-  { id: "mail", name: "Inpriv Mail", icon: "mark_email_unread", url: "https://mail.inpriv.xyz" },
-  { id: "temp", name: "Temp Mail", icon: "bolt", url: "https://temp.inpriv.xyz" },
-  { id: "keyring", name: "Keyring", icon: "vpn_key", url: "https://keyring.inpriv.xyz" },
-];
-function renderServices() {
+// ── connected services (Quick Sign-In via Inpriv ID) ────────────────────────
+// The list comes from the backend (/api/services): every service that redeems
+// Quick Sign-In grants, with this account's consent state. Unconnected
+// services still show up (with a "Connect" link) so users can discover them.
+async function loadServices() {
   const box = $("servicesList");
   if (!box) return;
+  box.innerHTML = '<p class="empty">Loading…</p>';
+  let services = null;
+  try {
+    const out = await api("/api/services", null, "GET");
+    services = out.services || [];
+  } catch {
+    services = null;
+  }
+  if (!services) {
+    box.innerHTML = '<p class="empty">Could not load services</p>';
+    return;
+  }
   box.innerHTML = "";
-  SERVICES.forEach((s) => {
-    const row = document.createElement("div");
-    row.className = "row";
-    row.innerHTML = `
-      <div style="display:flex;align-items:center;gap:10px">
-        <span class="ms" style="color:var(--md-primary)">${s.icon}</span>
-        <div><div class="row-label">${s.name}</div></div>
-      </div>
-      <a class="mini-btn" href="${s.url}" target="_blank" rel="noopener">Open</a>`;
-    box.appendChild(row);
-  });
+  if (!services.length) {
+    box.innerHTML = '<p class="empty">No services support Quick Sign-In yet</p>';
+    return;
+  }
+  services
+    .slice()
+    .sort((a, b) => (b.connected - a.connected) || a.name.localeCompare(b.name))
+    .forEach((s) => {
+      const row = document.createElement("div");
+      row.className = "row";
+      const badge = s.connected
+        ? `<span class="sess-meta" style="margin-left:2px">Quick Sign-In · last used ${timeAgo(s.last_used)}</span>`
+        : "";
+      row.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="ms" style="color:var(--md-primary)">${s.icon}</span>
+          <div>
+            <div class="row-label">${esc(s.name)}</div>
+            ${badge}
+          </div>
+        </div>
+        <a class="mini-btn" href="${esc(s.url)}" target="_blank" rel="noopener">${s.connected ? "Open" : "Connect"}</a>`;
+      box.appendChild(row);
+    });
 }
 
 function esc(s) {
@@ -602,7 +626,6 @@ function esc(s) {
 
 // ── boot ─────────────────────────────────────────────────────────────────────
 (async function boot() {
-  renderServices();
   const params = new URLSearchParams(location.search);
   if (params.get("login") === "1" || params.get("signin") === "1") {
     switchAuth("login");
