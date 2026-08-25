@@ -1416,6 +1416,26 @@ async function unwrapRawDek(blob, deviceKey) {
   } catch (e) { return null; }
 }
 
+/* Enrol this device for Quick Unlock: wrap the mailbox DEK under the local
+   device key and store the ciphertext server-side. Called after EVERY
+   password unlock (login, session unlock, init, registration) so a missing
+   or stale wrap never makes the user type the master password twice.
+   Honours the Inpriv ID account setting (widget flag, else /me fallback). */
+async function enrolQuickUnlock(dek) {
+  if (!dek) return false;
+  let qu = state.idUser
+    ? state.idUser.quick_unlock
+    : (state.user && typeof state.user.quick_unlock !== 'undefined') ? state.user.quick_unlock : undefined;
+  if (qu === undefined) {
+    try { qu = (await api('/me', { method: 'GET' })).quick_unlock !== false; } catch (e) {}
+  }
+  if (!qu) return false;
+  const dk = await getDeviceKey(true);
+  const wrapped = await wrapRawDek(dek, dk);
+  await api('/device-key/set', { method: 'POST', body: JSON.stringify({ wrapped_dek: wrapped }) });
+  return true;
+}
+
 async function unwrapPrivateKey(wrappedB64, ivB64, aesKey) {
   const pkcs8 = await crypto.subtle.decrypt(
     { name: 'AES-GCM', iv: new Uint8Array(b64.dec(ivB64)) },
@@ -1799,22 +1819,9 @@ async function handleLogin(username, password) {
     state.unlocked = true;
 
     // Quick Unlock enrolment: wrap the freshly derived DEK under this
-    // device's key so future visits skip the master password. The account
-    // setting lives in Inpriv ID — when the widget hasn't reported it yet,
-    // ask the mail backend (it mirrors the same setting).
-    try {
-      let qu = state.idUser
-        ? state.idUser.quick_unlock
-        : (state.user && typeof state.user.quick_unlock !== 'undefined') ? state.user.quick_unlock : undefined;
-      if (qu === undefined) {
-        try { qu = (await api('/me', { method: 'GET' })).quick_unlock !== false; } catch (e) {}
-      }
-      if (qu) {
-        const dk = await getDeviceKey(true);
-        const wrapped = await wrapRawDek(aesKey, dk);
-        await api('/device-key/set', { method: 'POST', body: JSON.stringify({ wrapped_dek: wrapped }) });
-      }
-    } catch (e) { /* best-effort; password login still works */ }
+    // device's key so future visits skip the master password (the account
+    // setting is checked inside the helper).
+    try { await enrolQuickUnlock(aesKey); } catch (e) { /* best-effort; password login still works */ }
     toast('Mailbox unlocked', `Signed in as ${res.user.email}`);
     renderDashboard();
   } catch (e) {
@@ -1855,20 +1862,7 @@ async function initializeInprivIdKeys(username, password) {
     localStorage.setItem('inpriv_token', res.token);
 
     // enrol Quick Unlock right away — the DEK is fresh in memory here.
-    // Same policy lookup as the login path (widget flag, else backend).
-    try {
-      let qu = state.idUser
-        ? state.idUser.quick_unlock
-        : (state.user && typeof state.user.quick_unlock !== 'undefined') ? state.user.quick_unlock : undefined;
-      if (qu === undefined) {
-        try { qu = (await api('/me', { method: 'GET' })).quick_unlock !== false; } catch (e) {}
-      }
-      if (qu) {
-        const dk = await getDeviceKey(true);
-        const wrapped = await wrapRawDek(aesKey, dk);
-        await api('/device-key/set', { method: 'POST', body: JSON.stringify({ wrapped_dek: wrapped }) });
-      }
-    } catch (e) {}
+    try { await enrolQuickUnlock(aesKey); } catch (e) {}
     toast('Mailbox initialized', `Your zero-knowledge keys are active for ${res.user.email}`);
     renderDashboard();
   } catch (e) {
@@ -2912,9 +2906,14 @@ function promptUnlockSession() {
 
     try {
       const aesKey = await deriveAesFromPassword(pw, state.user.priv_salt, state.user.priv_iter);
+      state.dek = aesKey; // kept for Quick Unlock re-enrolment from settings
       state.privKey = await unwrapPrivateKey(state.user.encrypted_private_key, state.user.priv_iv, aesKey);
       state.pubKey = await crypto.subtle.importKey('spki', b64.dec(state.user.public_key), { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['encrypt']);
       state.unlocked = true;
+
+      // the wrapped DEK was missing/stale — enrol this device NOW so the
+      // next visit skips the master password entirely
+      try { await enrolQuickUnlock(aesKey); } catch (e) {}
 
       toast('Unlocked', 'Private key decrypted in memory.');
       renderDashboard();
