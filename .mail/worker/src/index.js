@@ -389,6 +389,31 @@ async function quickUnlockPolicy(env, username) {
   }
 }
 
+// ── Inpriv ID consent sync ────────────────────────────────────────────────
+// The ID panel's "Connected services" card reads the consents table on the
+// ID database, which the SSO grant redeem fills for Quick Sign-In only.
+// Password logins and restored sessions never pass through redeem, so a
+// fully linked mailbox would still show "Connect" forever. Every successful
+// authentication path mirrors the consent into the ID database (best-effort:
+// standalone mailbox accounts simply match no ID user and are skipped).
+async function syncIdConsent(env, username, force = false) {
+  try {
+    if (!env.ID_DB || !username) return;
+    const iu = await env.ID_DB.prepare("SELECT id FROM users WHERE username = ?")
+      .bind(String(username).toLowerCase()).first();
+    if (!iu) return;
+    const ts = Date.now();
+    const row = await env.ID_DB.prepare(
+      "SELECT last_used FROM consents WHERE user_id = ? AND service = ?"
+    ).bind(iu.id, "mail").first();
+    if (row && !force && row.last_used && ts - row.last_used < 3_600_000) return; // ≤1 write/h
+    await env.ID_DB.prepare(
+      "INSERT INTO consents (user_id, service, granted_at, last_used) VALUES (?,?,?,?) " +
+      "ON CONFLICT(user_id, service) DO UPDATE SET last_used = excluded.last_used"
+    ).bind(iu.id, "mail", ts, ts).run();
+  } catch { /* best-effort — never block a login on this */ }
+}
+
 // Quick Unlock device-key table ships after the initial deploy — create it
 // lazily on first use (no-op once present).
 let _dkReady = false;
@@ -568,6 +593,7 @@ export default {
               "INSERT INTO sessions (id, user_id, created_at, expires_at, ua) VALUES (?,?,?,?,?)"
             ).bind(await sha256hex(token), user.id, now(), now() + SESSION_TTL_MS, ua(request)).run();
             await env.DB.prepare("UPDATE users SET last_login = ? WHERE id = ?").bind(now(), user.id).run();
+            ctx.waitUntil(syncIdConsent(env, user.username, true));
             return json({ token, user: publicUser(user, { inpriv_id_synced: true }) }, 200, cors);
           }
           return bad("invalid credentials", 401, cors);
@@ -656,6 +682,7 @@ export default {
         ).bind(await sha256hex(token), uid, now(), now() + SESSION_TTL_MS, ua(request)).run();
 
         const user = await env.DB.prepare("SELECT * FROM users WHERE id = ?").bind(uid).first();
+        ctx.waitUntil(syncIdConsent(env, idUser.username, true));
         return json({ token, user: publicUser(user, { inpriv_id_synced: true }) }, 200, cors);
       }
 
@@ -853,6 +880,10 @@ export default {
         // setting) so the client can attempt the device-key path without
         // waiting for the SSO widget
         const qu = await quickUnlockPolicy(env, me.username);
+        // Throttled consent mirror: browsers restoring a local session never
+        // pass through grant/redeem, so this keeps the ID panel's
+        // "Connected services" card truthful (≤1 write/hour per account).
+        ctx.waitUntil(syncIdConsent(env, me.username, false));
         return json(publicUser(me, { quick_unlock: qu }), 200, cors);
       }
 

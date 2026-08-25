@@ -129,7 +129,7 @@ export default {
         try { await getAccessToken(env); drive = env.DRIVE_OAUTH ? "oauth" : "sa"; } catch (e) { drive = String(e.message || e).split(":")[0]; }
         return json({ ok: true, service: "host", drive, open: true, ts: Date.now() });
       }
-      if (path === "/api/auth/login" && request.method === "POST") return await login(request, env, cors);
+      if (path === "/api/auth/login" && request.method === "POST") return await login(request, env, cors, ctx);
       if (path === "/api/auth/sso" && request.method === "POST") return await ssoLogin(request, env, cors);
       if (path === "/api/auth/logout" && request.method === "POST") return json({ ok: true }, 200, cors);
       if (path === "/api/pubkey" && request.method === "GET") return await adminPubKey(request, env, cors);
@@ -224,7 +224,27 @@ async function authed(request, env, cors, handler) {
 }
 const pub = (u) => ({ id: u.id, username: u.username, nick: u.nick || u.username });
 
-async function login(request, env, cors) {
+// ── Inpriv ID consent mirror ──────────────────────────────────────────────
+// The ID panel's "Connected services" card reads the consents table on the
+// ID database. Password logins bypass the SSO grant redeem (the only place
+// that writes consents), so mirror the consent here too — throttled to one
+// write per hour per account. Best-effort: never blocks the login.
+async function syncIdConsent(env, uid, username) {
+  try {
+    if (!env.ID_DB || !uid || !username) return;
+    const ts = Date.now();
+    const row = await env.ID_DB.prepare(
+      "SELECT last_used FROM consents WHERE user_id = ? AND service = ?"
+    ).bind(uid, "host").first();
+    if (row && row.last_used && ts - row.last_used < 3_600_000) return; // ≤1 write/h
+    await env.ID_DB.prepare(
+      "INSERT INTO consents (user_id, service, granted_at, last_used) VALUES (?,?,?,?) " +
+      "ON CONFLICT(user_id, service) DO UPDATE SET last_used = excluded.last_used"
+    ).bind(uid, "host", ts, ts).run();
+  } catch { /* best-effort */ }
+}
+
+async function login(request, env, cors, ctx) {
   const body = await request.json().catch(() => ({}));
   const input = String(body.user || "").trim().toLowerCase();
   const password = String(body.password || "");
@@ -276,6 +296,10 @@ async function login(request, env, cors) {
   await env.DB.prepare(
     "INSERT INTO sessions (id, user_id, username, nick, created_at, expires_at) VALUES (?,?,?,?,?,?)"
   ).bind(sid, idu.id, idu.username, idu.nick || idu.username, Date.now(), Date.now() + SESSION_TTL).run();
+  // Mirror the consent into the ID database — password logins bypass grant
+  // redeem, so without this the ID panel would show "Connect" for an account
+  // that signs in daily.
+  ctx.waitUntil(syncIdConsent(env, idu.id, idu.username));
   return json({ token, user: pub({ id: idu.id, username: idu.username, nick: idu.nick }) }, 200, cors);
 }
 
