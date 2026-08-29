@@ -240,29 +240,87 @@
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
     }
-  </style>
+  
+</style>
+
+<style data-inpriv-header>
+/* ── open top header (censor-style, unified Inpriv chrome) ───────────────── */
+.top-header {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 22px;
+}
+.top-header .brand { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.top-header .brand-title {
+  font-size: 26px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.1;
+}
+.top-header .brand-title .accent { color: var(--md-primary); }
+.top-header .brand-tagline {
+  font-size: 12px; color: var(--md-on-surface-variant);
+  font-weight: 500; letter-spacing: 0.4px; text-transform: uppercase;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.top-header .icon-btn {
+  width: 42px; height: 42px; border-radius: 9999px;
+  border: 1px solid var(--md-glass-border, color-mix(in srgb, var(--md-outline-variant) 50%, transparent));
+  background: var(--md-glass, color-mix(in srgb, var(--md-surface-container) 75%, transparent));
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  color: var(--md-on-surface);
+  display: grid; place-items: center; cursor: pointer;
+  padding: 0; font: inherit; text-decoration: none;
+  transition: transform 0.3s var(--aurex-ease, cubic-bezier(0.2, 1.4, 0, 1)), border-color 0.2s ease;
+}
+.top-header .icon-btn:hover { transform: translateY(-1px); border-color: var(--md-primary); }
+.top-header .icon-btn:active { transform: scale(0.94); }
+.privacy-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border-radius: 9999px;
+  border: 1px solid var(--md-glass-border, color-mix(in srgb, var(--md-outline-variant) 50%, transparent));
+  background: var(--md-glass, color-mix(in srgb, var(--md-surface-container) 75%, transparent));
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  font-size: 12px; font-weight: 600; color: var(--md-on-surface-variant);
+  white-space: nowrap;
+}
+.privacy-pill .material-symbols-rounded,
+.privacy-pill .ms,
+.privacy-pill .icon { font-size: 16px; color: var(--md-primary); }
+.privacy-pill svg { color: var(--md-primary); }
+
+/* icon ligature safety inside header chrome */
+.top-header .icon-btn span,
+.privacy-pill span {
+  -webkit-font-feature-settings: 'liga';
+  font-feature-settings: 'liga';
+  line-height: 1;
+  user-select: none;
+}
+</style>
 </head>
 <body>
   <div class="bg-grid"></div>
   <div class="bg-blob"></div>
 
   <div class="app-wrapper">
-    <header class="app-bar">
-      <div class="brand">
-        <a href="https://inpriv.xyz" class="brand-icon" aria-label="Inpriv Homepage">
-          <span class="material-symbols-rounded">my_location</span>
-        </a>
-        <div class="brand-text">
-          <span class="brand-h1">Inpriv<span>.</span> <span class="open-source-badge">IP Info</span></span>
-          <span class="brand-tagline">Browser Exposure Diagnostic</span>
-        </div>
+<!-- ── HEADER ─────────────────────────────────────────────────────── -->
+  <header class="top-header">
+    <div class="brand">
+      <div>
+        <div class="brand-title">ipinfo<span class="accent">.</span></div>
+        <div class="brand-tagline">Aurex Labs</div>
       </div>
-      <div class="app-bar-actions">
-        <button class="icon-btn" id="themeToggleBtn" aria-label="Toggle Dark/Light Theme" type="button">
+    </div>
+    <div class="header-actions">
+      <div class="privacy-pill">
+        <span class="material-symbols-rounded">verified_user</span>
+        <span>Privacy-First</span>
+      </div>
+      <button class="icon-btn" id="themeToggleBtn" aria-label="Toggle Dark/Light Theme" type="button">
           <span class="material-symbols-rounded" id="themeIcon">light_mode</span>
         </button>
-      </div>
-    </header>
+    </div>
+  </header>
 
     <section class="hero">
       <h2 class="hero-h2">What your browser <span class="accent">reveals</span></h2>
