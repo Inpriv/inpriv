@@ -876,6 +876,18 @@
       background: var(--md-surface-container-highest); color: var(--md-on-surface-variant);
     }
 
+    .status-badge.paused {
+      background: var(--md-tertiary-container); color: var(--md-on-tertiary-container);
+    }
+
+    a.service-paused {
+      opacity: 0.55;
+    }
+
+    a.service-paused .arrow-icon {
+      display: none;
+    }
+
     .arrow-icon {
       font-size: 18px; color: var(--md-on-surface-variant); opacity: 0.5;
       transition: all 0.25s var(--md-easing-standard); flex-shrink: 0;
@@ -1043,7 +1055,7 @@
           <span class="icon" aria-hidden="true">auto_awesome</span>
           <span data-i18n="featured-label">Featured</span>
         </span>
-        <span class="status-badge live" data-i18n="badge-live">Live</span>
+        <span class="status-badge live" data-service="temp" data-i18n="badge-live">Live</span>
       </div>
       <div class="featured-body">
         <div class="featured-main-info">
@@ -1080,7 +1092,7 @@
           <span class="icon" aria-hidden="true">verified_user</span>
           <span data-i18n="featured-label">Featured</span>
         </span>
-        <span class="status-badge live" data-i18n="badge-live">Live</span>
+        <span class="status-badge live" data-service="host" data-i18n="badge-live">Live</span>
       </div>
       <div class="featured-body">
         <div class="featured-main-info">
@@ -1153,7 +1165,7 @@
         <h2 class="service-name">Mail</h2>
         <p class="service-desc" data-i18n="desc-mail">Zero-knowledge encrypted email. RSA-2048 + AES-GCM, synced with Inpriv ID.</p>
       </div>
-      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="status-badge live" data-service="mail" data-i18n="badge-live">Live</span>
       <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
     </a>
 
@@ -1173,7 +1185,7 @@
         <h2 class="service-name">Wipe</h2>
         <p class="service-desc" data-i18n="desc-wipe">Inspect every EXIF, GPS and XMP tag your photo leaks — then wipe it all locally.</p>
       </div>
-      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="status-badge live" data-service="wipe" data-i18n="badge-live">Live</span>
       <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
     </a>
 
@@ -1183,7 +1195,7 @@
         <h2 class="service-name">Compress</h2>
         <p class="service-desc" data-i18n="desc-compress">Client-side image compression. No upload needed.</p>
       </div>
-      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="status-badge live" data-service="compress" data-i18n="badge-live">Live</span>
       <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
     </a>
 
@@ -1193,7 +1205,7 @@
         <h2 class="service-name">Stego</h2>
         <p class="service-desc" data-i18n="desc-stego">Hide encrypted messages inside PNG images. Invisible, in-browser.</p>
       </div>
-      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="status-badge live" data-service="stego" data-i18n="badge-live">Live</span>
       <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
     </a>
 
@@ -1203,7 +1215,7 @@
         <h2 class="service-name">Burn</h2>
         <p class="service-desc" data-i18n="desc-burn">Ephemeral encrypted notes. Read once, then destroyed.</p>
       </div>
-      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="status-badge live" data-service="burn" data-i18n="badge-live">Live</span>
       <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
     </a>
 
@@ -1213,7 +1225,7 @@
         <h2 class="service-name">TOTP</h2>
         <p class="service-desc" data-i18n="desc-totp">Time-based one-time password generator (RFC 6238). 2FA codes, client-side.</p>
       </div>
-      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="status-badge live" data-service="totp" data-i18n="badge-live">Live</span>
       <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
     </a>
 
@@ -1223,7 +1235,7 @@
         <h2 class="service-name">Keyring</h2>
         <p class="service-desc" data-i18n="desc-keyring">Zero-knowledge encrypted vault for keys &amp; tokens.</p>
       </div>
-      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="status-badge live" data-service="keyring" data-i18n="badge-live">Live</span>
       <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
     </a>
 
@@ -1233,7 +1245,7 @@
         <h2 class="service-name">QR</h2>
         <p class="service-desc" data-i18n="desc-qr">Generate &amp; read QR codes. Camera or image, fully offline.</p>
       </div>
-      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="status-badge live" data-service="qr" data-i18n="badge-live">Live</span>
       <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
     </a>
 
@@ -1243,7 +1255,7 @@
         <h2 class="service-name">Trace</h2>
         <p class="service-desc" data-i18n="desc-trace">One scan: IP &amp; ISP intel, DNS leak test and WebRTC leak check.</p>
       </div>
-      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="status-badge live" data-service="trace" data-i18n="badge-live">Live</span>
       <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
     </a>
 
@@ -1253,7 +1265,7 @@
         <h2 class="service-name">Brute</h2>
         <p class="service-desc" data-i18n="desc-brute">Hash brute force matcher — MD5, SHA-1, SHA-256, SHA-384, SHA-512.</p>
       </div>
-      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="status-badge live" data-service="brute" data-i18n="badge-live">Live</span>
       <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
     </a>
 
@@ -1263,7 +1275,7 @@
         <h2 class="service-name">Hash</h2>
         <p class="service-desc" data-i18n="desc-hash">SHA &amp; MD5 checksums for any text or file, in-browser.</p>
       </div>
-      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="status-badge live" data-service="hash" data-i18n="badge-live">Live</span>
       <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
     </a>
 
@@ -1273,7 +1285,7 @@
         <h2 class="service-name">Pay</h2>
         <p class="service-desc" data-i18n="desc-pay">Crypto payment bridge for accepting payments.</p>
       </div>
-      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="status-badge live" data-service="pay" data-i18n="badge-live">Live</span>
       <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
     </a>
 
@@ -1283,7 +1295,7 @@
         <h2 class="service-name">Host</h2>
         <p class="service-desc" data-i18n="desc-host">Private static hosting with a built-in privacy shield. Uploads are scanned for IP loggers before going live.</p>
       </div>
-      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="status-badge live" data-service="host" data-i18n="badge-live">Live</span>
       <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
     </a>
 
@@ -1293,7 +1305,7 @@
         <h2 class="service-name">Censor</h2>
         <p class="service-desc" data-i18n="desc-censor">Blur or pixelate sensitive content on screenshots — faces, cards, IPs, tokens. Auto-detect, in-browser.</p>
       </div>
-      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="status-badge live" data-service="censor" data-i18n="badge-live">Live</span>
       <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
     </a>
 
@@ -1494,6 +1506,8 @@
       'copyright': 'Copyright 2026, Inpriv',
       'by': 'by',
       'badge-live': 'Live',
+      'badge-paused': 'Wstrzymany',
+      'badge-paused': 'Paused',
       'badge-soon': 'Soon',
       'badge-zk': 'Zero-knowledge',
       'badge-noup': 'No uploads',
@@ -1631,6 +1645,34 @@
     const cur = document.documentElement.lang === 'pl' ? 'en' : 'pl';
     applyLang(cur);
   });
+</script>
+<script>
+  // ── Live status badges (admin kill-switch) ──────────────────
+  // Reads public maintenance state from admin.inpriv.xyz; any locked
+  // service gets its badge flipped from "Live" to "Paused" and the
+  // card is dimmed. Fails silently — unreachable panel keeps "Live".
+  (function () {
+    var els = document.querySelectorAll('.status-badge.live[data-service]');
+    if (!els.length) return;
+    var label = document.documentElement.lang === 'pl' ? 'Wstrzymany' : 'Paused';
+    fetch('https://admin.inpriv.xyz/public/state')
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (st) {
+        if (!st) return;
+        els.forEach(function (b) {
+          var id = b.getAttribute('data-service');
+          var svc = (st.services || {})[id] || {};
+          if (!((st.global && st.global.locked) || svc.locked)) return;
+          var card = b.closest('a');
+          if (card) card.classList.add('service-paused');
+          b.classList.remove('live');
+          b.classList.add('paused');
+          b.removeAttribute('data-i18n');
+          b.textContent = label;
+        });
+      })
+      .catch(function () {});
+  })();
 </script>
 <!-- Inpriv ID One Tap: avatar chip / sign-in prompt (privacy-first) -->
 <script src="https://id.inpriv.xyz/id.js" data-service="landing" defer></script>

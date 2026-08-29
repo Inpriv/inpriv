@@ -17,6 +17,7 @@
 const SERVICES = [
   "landing",
   "temp",
+  "mail",
   "burn",
   "qr",
   "stego",
@@ -35,6 +36,7 @@ const SERVICES = [
 const SERVICES_META = {
   landing:  { name: "Landing (inpriv.xyz)", url: "https://inpriv.xyz", icon: "home" },
   temp:     { name: "Temp Mail", url: "https://temp.inpriv.xyz", icon: "mark_email_unread" },
+  mail:     { name: "Mail", url: "https://mail.inpriv.xyz", icon: "mail_lock" },
   burn:     { name: "Burn Messages", url: "https://burn.inpriv.xyz", icon: "local_fire_department" },
   qr:       { name: "Private QR", url: "https://qr.inpriv.xyz", icon: "qr_code_2" },
   stego:    { name: "Steganography", url: "https://stego.inpriv.xyz", icon: "visibility_off" },
