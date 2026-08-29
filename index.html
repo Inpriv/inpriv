@@ -58,211 +58,221 @@
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 
   <!-- Structured Data (JSON-LD) for SEO Rich Snippets -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@graph": [
-      {
-        "@type": "WebSite",
-        "@id": "https://inpriv.xyz/#website",
-        "url": "https://inpriv.xyz/",
-        "name": "Inpriv",
-        "description": "Privacy-first tools. Zero-knowledge. Client-side only.",
-        "publisher": {
-          "@type": "Organization",
-          "name": "Aurex Labs",
-          "url": "https://inpriv.xyz"
-        }
-      },
-      {
-        "@type": "ItemList",
-        "name": "Inpriv Privacy Tools Suite",
-        "itemListElement": [
-          {
-            "@type": "ListItem",
-            "position": 1,
-            "item": {
-              "@type": "SoftwareApplication",
-              "name": "Temp",
-              "description": "Disposable email addresses on inpriv.xyz. Random inbox, live polling, one-click shred.",
-              "url": "https://temp.inpriv.xyz",
-              "applicationCategory": "SecurityApplication",
-              "operatingSystem": "All"
-            }
-          },
-          {
-            "@type": "ListItem",
-            "position": 2,
-            "item": {
-              "@type": "SoftwareApplication",
-              "name": "Mail",
-              "description": "Zero-knowledge end-to-end encrypted email. RSA-2048 + AES-GCM, synchronized with Inpriv ID.",
-              "url": "https://mail.inpriv.xyz",
-              "applicationCategory": "SecurityApplication",
-              "operatingSystem": "All"
-            }
-          },
-          {
-            "@type": "ListItem",
-            "position": 3,
-            "item": {
-              "@type": "SoftwareApplication",
-              "name": "Hush",
-              "description": "End-to-end encrypted chat. No logs, no servers.",
-              "url": "https://hush.best",
-              "applicationCategory": "SecurityApplication",
-              "operatingSystem": "All"
-            }
-          },
-          {
-            "@type": "ListItem",
-            "position": 4,
-            "item": {
-              "@type": "SoftwareApplication",
-              "name": "Wipe",
-              "description": "Zero-knowledge metadata sanitizer for images.",
-              "url": "https://wipe.inpriv.xyz",
-              "applicationCategory": "SecurityApplication",
-              "operatingSystem": "All"
-            }
-          },
-          {
-            "@type": "ListItem",
-            "position": 5,
-            "item": {
-              "@type": "SoftwareApplication",
-              "name": "Compress",
-              "description": "Client-side image compression. No server uploads.",
-              "url": "https://compress.inpriv.xyz",
-              "applicationCategory": "UtilitiesApplication",
-              "operatingSystem": "All"
-            }
-          },
-          {
-            "@type": "ListItem",
-            "position": 6,
-            "item": {
-              "@type": "SoftwareApplication",
-              "name": "Stego",
-              "description": "Hide AES-256 encrypted messages inside PNG images. LSB steganography, fully client-side.",
-              "url": "https://stego.inpriv.xyz",
-              "applicationCategory": "SecurityApplication",
-              "operatingSystem": "All"
-            }
-          },
-          {
-            "@type": "ListItem",
-            "position": 7,
-            "item": {
-              "@type": "SoftwareApplication",
-              "name": "Burn",
-              "description": "Ephemeral encrypted notes. Read once, then destroyed. Zero-knowledge.",
-              "url": "https://burn.inpriv.xyz",
-              "applicationCategory": "SecurityApplication",
-              "operatingSystem": "All"
-            }
-          },
-          {
-            "@type": "ListItem",
-            "position": 8,
-            "item": {
-              "@type": "SoftwareApplication",
-              "name": "TOTP",
-              "description": "Time-based one-time password generator (RFC 6238). Authenticator, client-side.",
-              "url": "https://totp.inpriv.xyz",
-              "applicationCategory": "SecurityApplication",
-              "operatingSystem": "All"
-            }
-          },
-          {
-            "@type": "ListItem",
-            "position": 9,
-            "item": {
-              "@type": "SoftwareApplication",
-              "name": "Keyring",
-              "description": "Zero-knowledge encrypted vault for SSH keys, tokens and passwords.",
-              "url": "https://keyring.inpriv.xyz",
-              "applicationCategory": "SecurityApplication",
-              "operatingSystem": "All"
-            }
-          },
-          {
-            "@type": "ListItem",
-            "position": 10,
-            "item": {
-              "@type": "SoftwareApplication",
-              "name": "QR",
-              "description": "Generate and read QR codes entirely in your browser.",
-              "url": "https://qr.inpriv.xyz",
-              "applicationCategory": "UtilitiesApplication",
-              "operatingSystem": "All"
-            }
-          },
-          {
-            "@type": "ListItem",
-            "position": 11,
-            "item": {
-              "@type": "SoftwareApplication",
-              "name": "Trace",
-              "description": "One scan: IP and ISP intel, DNS leak test and WebRTC leak check.",
-              "url": "https://trace.inpriv.xyz",
-              "applicationCategory": "SecurityApplication",
-              "operatingSystem": "All"
-            }
-          },
-          {
-            "@type": "ListItem",
-            "position": 12,
-            "item": {
-              "@type": "SoftwareApplication",
-              "name": "Brute",
-              "description": "Client-side hash brute force matcher. MD5, SHA-1, SHA-256, SHA-384, SHA-512.",
-              "url": "https://brute.inpriv.xyz",
-              "applicationCategory": "SecurityApplication",
-              "operatingSystem": "All"
-            }
-          },
-          {
-            "@type": "ListItem",
-            "position": 13,
-            "item": {
-              "@type": "SoftwareApplication",
-              "name": "Hash",
-              "description": "Client-side SHA and MD5 checksum generator for text and files.",
-              "url": "https://hash.inpriv.xyz",
-              "applicationCategory": "SecurityApplication",
-              "operatingSystem": "All"
-            }
-          },
-          {
-            "@type": "ListItem",
-            "position": 14,
-            "item": {
-              "@type": "SoftwareApplication",
-              "name": "Pay",
-              "description": "Crypto payment bridge for accepting payments.",
-              "url": "https://pay.inpriv.xyz",
-              "applicationCategory": "FinanceApplication",
-              "operatingSystem": "All"
-            }
-          },
-          {
-            "@type": "ListItem",
-            "position": 15,
-            "item": {
-              "@type": "SoftwareApplication",
-              "name": "Host",
-              "description": "Private static hosting with a built-in privacy shield. Uploads are scanned for IP loggers, WebRTC leaks and trackers before going live.",
-              "url": "https://host.inpriv.xyz",
-              "applicationCategory": "SecurityApplication",
-              "operatingSystem": "All"
-            }
-          }
-        ]
+  <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://inpriv.xyz/#website",
+      "url": "https://inpriv.xyz/",
+      "name": "Inpriv",
+      "description": "Privacy-first tools. Zero-knowledge. Client-side only.",
+      "publisher": {
+        "@type": "Organization",
+        "name": "Aurex Labs",
+        "url": "https://inpriv.xyz"
       }
-    ]
-  }
-  </script>
+    },
+    {
+      "@type": "ItemList",
+      "name": "Inpriv Privacy Tools Suite",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "item": {
+            "@type": "SoftwareApplication",
+            "name": "Temp",
+            "description": "Disposable email addresses on inpriv.xyz. Random inbox, live polling, one-click shred.",
+            "url": "https://temp.inpriv.xyz",
+            "applicationCategory": "SecurityApplication",
+            "operatingSystem": "All"
+          }
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "item": {
+            "@type": "SoftwareApplication",
+            "name": "Mail",
+            "description": "Zero-knowledge end-to-end encrypted email. RSA-2048 + AES-GCM, synchronized with Inpriv ID.",
+            "url": "https://mail.inpriv.xyz",
+            "applicationCategory": "SecurityApplication",
+            "operatingSystem": "All"
+          }
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "item": {
+            "@type": "SoftwareApplication",
+            "name": "Hush",
+            "description": "End-to-end encrypted chat. No logs, no servers.",
+            "url": "https://hush.best",
+            "applicationCategory": "SecurityApplication",
+            "operatingSystem": "All"
+          }
+        },
+        {
+          "@type": "ListItem",
+          "position": 4,
+          "item": {
+            "@type": "SoftwareApplication",
+            "name": "Wipe",
+            "description": "Zero-knowledge metadata sanitizer for images.",
+            "url": "https://wipe.inpriv.xyz",
+            "applicationCategory": "SecurityApplication",
+            "operatingSystem": "All"
+          }
+        },
+        {
+          "@type": "ListItem",
+          "position": 5,
+          "item": {
+            "@type": "SoftwareApplication",
+            "name": "Compress",
+            "description": "Client-side image compression. No server uploads.",
+            "url": "https://compress.inpriv.xyz",
+            "applicationCategory": "UtilitiesApplication",
+            "operatingSystem": "All"
+          }
+        },
+        {
+          "@type": "ListItem",
+          "position": 6,
+          "item": {
+            "@type": "SoftwareApplication",
+            "name": "Stego",
+            "description": "Hide AES-256 encrypted messages inside PNG images. LSB steganography, fully client-side.",
+            "url": "https://stego.inpriv.xyz",
+            "applicationCategory": "SecurityApplication",
+            "operatingSystem": "All"
+          }
+        },
+        {
+          "@type": "ListItem",
+          "position": 7,
+          "item": {
+            "@type": "SoftwareApplication",
+            "name": "Burn",
+            "description": "Ephemeral encrypted notes. Read once, then destroyed. Zero-knowledge.",
+            "url": "https://burn.inpriv.xyz",
+            "applicationCategory": "SecurityApplication",
+            "operatingSystem": "All"
+          }
+        },
+        {
+          "@type": "ListItem",
+          "position": 8,
+          "item": {
+            "@type": "SoftwareApplication",
+            "name": "TOTP",
+            "description": "Time-based one-time password generator (RFC 6238). Authenticator, client-side.",
+            "url": "https://totp.inpriv.xyz",
+            "applicationCategory": "SecurityApplication",
+            "operatingSystem": "All"
+          }
+        },
+        {
+          "@type": "ListItem",
+          "position": 9,
+          "item": {
+            "@type": "SoftwareApplication",
+            "name": "Keyring",
+            "description": "Zero-knowledge encrypted vault for SSH keys, tokens and passwords.",
+            "url": "https://keyring.inpriv.xyz",
+            "applicationCategory": "SecurityApplication",
+            "operatingSystem": "All"
+          }
+        },
+        {
+          "@type": "ListItem",
+          "position": 10,
+          "item": {
+            "@type": "SoftwareApplication",
+            "name": "QR",
+            "description": "Generate and read QR codes entirely in your browser.",
+            "url": "https://qr.inpriv.xyz",
+            "applicationCategory": "UtilitiesApplication",
+            "operatingSystem": "All"
+          }
+        },
+        {
+          "@type": "ListItem",
+          "position": 11,
+          "item": {
+            "@type": "SoftwareApplication",
+            "name": "Trace",
+            "description": "One scan: IP and ISP intel, DNS leak test and WebRTC leak check.",
+            "url": "https://trace.inpriv.xyz",
+            "applicationCategory": "SecurityApplication",
+            "operatingSystem": "All"
+          }
+        },
+        {
+          "@type": "ListItem",
+          "position": 12,
+          "item": {
+            "@type": "SoftwareApplication",
+            "name": "Brute",
+            "description": "Client-side hash brute force matcher. MD5, SHA-1, SHA-256, SHA-384, SHA-512.",
+            "url": "https://brute.inpriv.xyz",
+            "applicationCategory": "SecurityApplication",
+            "operatingSystem": "All"
+          }
+        },
+        {
+          "@type": "ListItem",
+          "position": 13,
+          "item": {
+            "@type": "SoftwareApplication",
+            "name": "Hash",
+            "description": "Client-side SHA and MD5 checksum generator for text and files.",
+            "url": "https://hash.inpriv.xyz",
+            "applicationCategory": "SecurityApplication",
+            "operatingSystem": "All"
+          }
+        },
+        {
+          "@type": "ListItem",
+          "position": 14,
+          "item": {
+            "@type": "SoftwareApplication",
+            "name": "Pay",
+            "description": "Crypto payment bridge for accepting payments.",
+            "url": "https://pay.inpriv.xyz",
+            "applicationCategory": "FinanceApplication",
+            "operatingSystem": "All"
+          }
+        },
+        {
+          "@type": "ListItem",
+          "position": 15,
+          "item": {
+            "@type": "SoftwareApplication",
+            "name": "Host",
+            "description": "Private static hosting with a built-in privacy shield. Uploads are scanned for IP loggers, WebRTC leaks and trackers before going live.",
+            "url": "https://host.inpriv.xyz",
+            "applicationCategory": "SecurityApplication",
+            "operatingSystem": "All"
+          }
+        },
+        {
+          "@type": "ListItem",
+          "position": 16,
+          "item": {
+            "@type": "SoftwareApplication",
+            "name": "Censor",
+            "description": "Blur, pixelate or black out faces, card numbers, IPs and tokens on screenshots. On-device auto-detect, fully client-side.",
+            "url": "https://censor.inpriv.xyz",
+            "applicationCategory": "SecurityApplication",
+            "operatingSystem": "All"
+          }
+        }
+      ]
+    }
+  ]
+}</script>
 
   <style>
     :root {
@@ -1126,7 +1136,7 @@
     <div class="search-wrap">
       <div class="search-box">
         <span class="icon search-icon" aria-hidden="true">search</span>
-        <input type="text" id="tool-search" class="search-input" placeholder="Search 16+ tools..." aria-label="Search tools" data-i18n-ph="search-placeholder" autocomplete="off" />
+        <input type="text" id="tool-search" class="search-input" placeholder="Search 17+ tools..." aria-label="Search tools" data-i18n-ph="search-placeholder" autocomplete="off" />
         <button type="button" id="search-clear" class="search-clear" aria-label="Clear search" style="display:none;">
           <span class="icon" aria-hidden="true">close</span>
         </button>
@@ -1277,13 +1287,23 @@
       <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
     </a>
 
+    <a href="https://censor.inpriv.xyz" class="service-card" data-category="security utils" style="animation-delay: 0.71s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">privacy_tip</span></div>
+      <div class="service-info">
+        <h2 class="service-name">Censor</h2>
+        <p class="service-desc" data-i18n="desc-censor">Blur or pixelate sensitive content on screenshots — faces, cards, IPs, tokens. Auto-detect, in-browser.</p>
+      </div>
+      <span class="status-badge live" data-i18n="badge-live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
     <!-- Divider -->
-    <div class="section-divider" style="animation-delay: 0.71s;">
+    <div class="section-divider" style="animation-delay: 0.75s;">
       <span data-i18n="section-upcoming">Coming Soon</span>
     </div>
 
     <!-- Upcoming Services -->
-    <div class="service-card coming-soon" data-category="utils comms" style="animation-delay: 0.75s;">
+    <div class="service-card coming-soon" data-category="utils comms" style="animation-delay: 0.79s;">
       <div class="service-icon-box"><span class="icon" aria-hidden="true">account_balance_wallet</span></div>
       <div class="service-info">
         <h2 class="service-name">Zero</h2>
@@ -1292,7 +1312,7 @@
       <span class="status-badge soon" data-i18n="badge-soon">Soon</span>
     </div>
 
-    <div class="service-card coming-soon" data-category="security utils" style="animation-delay: 0.79s;">
+    <div class="service-card coming-soon" data-category="security utils" style="animation-delay: 0.83s;">
       <div class="service-icon-box"><span class="icon" aria-hidden="true">manage_search</span></div>
       <div class="service-info">
         <h2 class="service-name">OSINT</h2>
@@ -1301,7 +1321,7 @@
       <span class="status-badge soon" data-i18n="badge-soon">Soon</span>
     </div>
 
-    <div class="service-card coming-soon" data-category="security" style="animation-delay: 0.83s;" id="pass">
+    <div class="service-card coming-soon" data-category="security" style="animation-delay: 0.87s;" id="pass">
       <div class="service-icon-box"><span class="icon" aria-hidden="true">password</span></div>
       <div class="service-info">
         <h2 class="service-name">Pass</h2>
@@ -1310,7 +1330,7 @@
       <span class="status-badge soon" data-i18n="badge-soon">Soon</span>
     </div>
 
-    <div class="service-card coming-soon" data-category="utils" style="animation-delay: 0.87s;" id="base64">
+    <div class="service-card coming-soon" data-category="utils" style="animation-delay: 0.91s;" id="base64">
       <div class="service-icon-box"><span class="icon" aria-hidden="true">code</span></div>
       <div class="service-info">
         <h2 class="service-name">Base64</h2>
@@ -1319,7 +1339,7 @@
       <span class="status-badge soon" data-i18n="badge-soon">Soon</span>
     </div>
 
-    <div class="service-card placeholder" style="animation-delay: 0.91s;">
+    <div class="service-card placeholder" style="animation-delay: 0.95s;">
       <div class="service-icon-box"><span class="icon" aria-hidden="true">add</span></div>
       <div class="service-info">
         <h2 class="service-name" style="color:var(--md-on-surface-variant)" data-i18n="more-soon-title">More Soon</h2>
@@ -1515,6 +1535,7 @@
       'desc-totp': 'Time-based one-time password generator (RFC 6238). 2FA codes, client-side.',
       'desc-burn': 'Ephemeral encrypted notes. Read once, then destroyed.',
       'desc-stego': 'Hide encrypted messages inside PNG images. Invisible, in-browser.',
+      'desc-censor': 'Blur or pixelate sensitive content on screenshots — faces, cards, IPs, tokens. Auto-detect, in-browser.',
       'desc-temp': 'Disposable email addresses on inpriv.xyz. Random inbox, live polling, one-click shred.',
       'desc-mail': 'Zero-knowledge encrypted email. RSA-2048 + AES-GCM, synced with Inpriv ID.',
       'desc-zero': 'Private crypto wallet. Self-custodial.',
@@ -1571,6 +1592,7 @@
       'desc-totp': 'Generator haseł jednorazowych TOTP (RFC 6238). Kody 2FA, client-side.',
       'desc-burn': 'Szyfrowane notatki efemeryczne. Przeczytane raz — zniszczone.',
       'desc-stego': 'Ukryj zaszyfrowane wiadomości w zdjęciach PNG. Niewidoczne, w przeglądarce.',
+      'desc-censor': 'Zamaż lub spikseluj wrażliwe dane na zrzutach ekranu — twarze, karty, IP, tokeny. Autodetekcja, w przeglądarce.',
       'desc-temp': 'Jednorazowe adresy e-mail na inpriv.xyz. Losowa skrzynka, live polling, kasowanie jednym kliknięciem.',
       'desc-mail': 'Szyfrowana poczta zero-knowledge. RSA-2048 + AES-GCM, zsynchronizowana z Inpriv ID.',
       'desc-zero': 'Prywatny portfel krypto. Self-custodial.',

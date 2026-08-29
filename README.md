@@ -12,7 +12,7 @@ No trackers. No remote logs. No compromises — everything runs in your browser.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Website](https://img.shields.io/badge/website-inpriv.xyz-466E47)](https://inpriv.xyz)
-[![Tools](https://img.shields.io/badge/tools-15%20live%20%2B%206%20in%20dev-ABD37A)](https://inpriv.xyz)
+[![Tools](https://img.shields.io/badge/tools-16%20live%20%2B%206%20in%20dev-ABD37A)](https://inpriv.xyz)
 [![Zero-Knowledge](https://img.shields.io/badge/zero--knowledge-%E2%9C%93-C7EFA0)]()
 [![By Aurex Labs](https://img.shields.io/badge/by-Aurex%20Labs-9C4231)]()
 
@@ -46,6 +46,7 @@ Inpriv is an ecosystem of **zero-knowledge, fully client-side web utilities** �
 - **Burn** — [burn.inpriv.xyz](https://burn.inpriv.xyz) — ephemeral encrypted notes, read-once
 - **Stego** — [stego.inpriv.xyz](https://stego.inpriv.xyz) — hide AES-256 encrypted messages inside PNG images
 - **Temp** — [temp.inpriv.xyz](https://temp.inpriv.xyz) — disposable email addresses, live inbox, one-click shred
+- **Censor** — [censor.inpriv.xyz](https://censor.inpriv.xyz) — blur/pixelate faces, cards, IPs & tokens on screenshots (on-device auto-detect)
 
 ## <img src="assets/icons/clock.svg" width="18" height="18" align="center" alt=""> In Development
 
@@ -107,6 +108,7 @@ inpriv/
 ├── index.html          # Suite landing page (inpriv.xyz)
 ├── LICENSE             # MIT
 ├── .hush/              # E2E chat — web app + signaling server
+├── .censor/            # Screenshot redactor (blur/pixelate + face/OCR auto-detect)
 ├── .wipe/              # Metadata sanitizer
 ├── .compress/          # Image compression
 ├── .trace/             # IP + DNS + WebRTC leak test (one scan)
@@ -138,7 +140,7 @@ inpriv/
 
 ## <img src="assets/icons/map.svg" width="18" height="18" align="center" alt=""> Roadmap
 
-- [x] 15 core tools live on production
+- [x] 16 core tools live on production
 - [ ] PWA + offline support
 - [ ] Zero wallet — security audit before release
 - [ ] Mail — encrypted disposable email

@@ -1,0 +1,1684 @@
+<!DOCTYPE html>
+<!--
+  Inpriv Censor — Screenshot Redactor
+  Copyright (c) 2026 Aurex Labs — MIT License
+
+  Blur / pixelate / black out sensitive content on screenshots (faces, card
+  numbers, IPs, tokens, passwords) before sharing. Manual studio + optional
+  auto-detect (face detection via @vladmandic/human, OCR via tesseract.js).
+  100% client-side — nothing ever leaves the device.
+-->
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com fonts.gstatic.com; font-src 'self' https://fonts.googleapis.com fonts.gstatic.com; img-src 'self' data: blob: https://hush.best; media-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://tessdata.projectnaptha.com; connect-src 'self' https://cdn.jsdelivr.net https://tessdata.projectnaptha.com; worker-src 'self' blob:; manifest-src 'self'">
+<meta name="theme-color" content="#13140E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="description" content="censor — Aurex Labs zero-knowledge screenshot redactor. Blur, pixelate or black out faces, card numbers, IPs and tokens before sharing. 100% client-side.">
+<title>censor — Screenshot Redactor | Aurex Labs</title>
+<link rel="icon" href="https://hush.best/icon.png">
+<link rel="apple-touch-icon" href="https://hush.best/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:ital,opsz,wght@0,8..144,300..800;1,8..144,300..800&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+
+<style>
+/* ==========================================================================
+   AUREX LABS DESIGN SYSTEM — MATERIAL DESIGN 3 (EARTHY FOREST)
+   ========================================================================== */
+
+:root, [data-theme="dark"] {
+  --md-primary: #ABD37A;
+  --md-on-primary: #173800;
+  --md-primary-container: #2E4F2F;
+  --md-on-primary-container: #C7EFA0;
+
+  --md-secondary: #BCCBAF;
+  --md-on-secondary: #27341F;
+  --md-secondary-container: #3D4B34;
+  --md-on-secondary-container: #D8E7CB;
+
+  --md-tertiary: #FFB4A5;
+  --md-on-tertiary: #5E1709;
+  --md-tertiary-container: #7E2D1E;
+  --md-on-tertiary-container: #FFDAD3;
+
+  --md-error: #FFB4AB;
+  --md-on-error: #690005;
+  --md-error-container: #93000A;
+  --md-on-error-container: #FFDAD3;
+
+  --md-surface: #13140E;
+  --md-on-surface: #E3E2D3;
+  --md-on-surface-variant: #C3C8B6;
+  --md-surface-dim: #1A1C17;
+
+  --md-surface-container-lowest: #0D0F09;
+  --md-surface-container-low: #1A1C17;
+  --md-surface-container: #1F211B;
+  --md-surface-container-high: #292B25;
+  --md-surface-container-highest: #34362F;
+
+  --md-outline: #8D9282;
+  --md-outline-variant: #43463C;
+
+  --md-scrim: rgba(0, 0, 0, 0.65);
+  --md-shadow: 0 6px 28px rgba(0, 0, 0, 0.45);
+  --md-glass: rgba(19, 20, 14, 0.72);
+  --md-glass-border: rgba(171, 211, 122, 0.14);
+
+  --aurex-ease: cubic-bezier(0.2, 1.4, 0, 1);
+}
+
+[data-theme="light"] {
+  --md-primary: #466E47;
+  --md-on-primary: #FFFFFF;
+  --md-primary-container: #C7EFA0;
+  --md-on-primary-container: #10240F;
+
+  --md-secondary: #57634C;
+  --md-on-secondary: #FFFFFF;
+  --md-secondary-container: #DBE8CB;
+  --md-on-secondary-container: #151E10;
+
+  --md-tertiary: #8C4F3F;
+  --md-on-tertiary: #FFFFFF;
+  --md-tertiary-container: #FFDAD3;
+  --md-on-tertiary-container: #2A1509;
+
+  --md-error: #BA1A1A;
+  --md-on-error: #FFFFFF;
+  --md-error-container: #FFDAD6;
+  --md-on-error-container: #410002;
+
+  --md-surface: #FAF9F0;
+  --md-on-surface: #1A1C16;
+  --md-on-surface-variant: #43483C;
+  --md-surface-dim: #DAD9CD;
+
+  --md-surface-container-lowest: #FFFFFF;
+  --md-surface-container-low: #F5F3E7;
+  --md-surface-container: #EFEEDF;
+  --md-surface-container-high: #E9E8DA;
+  --md-surface-container-highest: #E3E2D4;
+
+  --md-outline: #74796D;
+  --md-outline-variant: #C3C8B6;
+
+  --md-scrim: rgba(0, 0, 0, 0.4);
+  --md-shadow: 0 6px 24px rgba(26, 28, 22, 0.16);
+  --md-glass: rgba(250, 249, 240, 0.78);
+  --md-glass-border: rgba(70, 110, 71, 0.18);
+}
+
+/* ── reset & base ─────────────────────────────────────────────────────────── */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  font-family: 'Roboto Flex', system-ui, -apple-system, sans-serif;
+  background: var(--md-surface);
+  color: var(--md-on-surface);
+  min-height: 100vh;
+  min-height: 100dvh;
+  transition: background 0.35s ease, color 0.35s ease;
+  overflow-x: hidden;
+}
+
+::selection { background: var(--md-primary); color: var(--md-on-primary); }
+
+/* ── background decor ─────────────────────────────────────────────────────── */
+.bg-dot-grid {
+  position: fixed; inset: 0; z-index: -2; pointer-events: none;
+  background-image: radial-gradient(var(--md-outline-variant) 1px, transparent 1px);
+  background-size: 26px 26px;
+  opacity: 0.25;
+}
+.bg-blur-blob {
+  position: fixed; z-index: -1; pointer-events: none;
+  width: 46vmax; height: 46vmax; top: -18vmax; right: -14vmax;
+  background: radial-gradient(circle at center, rgba(171, 211, 122, 0.16) 0%, transparent 65%);
+  filter: blur(60px);
+}
+[data-theme="light"] .bg-blur-blob {
+  background: radial-gradient(circle at center, rgba(70, 110, 71, 0.13) 0%, transparent 65%);
+}
+
+.material-symbols-rounded, .ms, .icon {
+  font-family: 'Material Symbols Rounded';
+  font-weight: normal; font-style: normal;
+  font-size: 22px; line-height: 1;
+  display: inline-block; white-space: nowrap;
+  letter-spacing: normal; text-transform: none;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+/* ── app shell ────────────────────────────────────────────────────────────── */
+.app-shell {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 20px 16px 110px;
+}
+
+.top-header {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 22px;
+}
+.brand { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.brand-title {
+  font-size: 26px; font-weight: 700; letter-spacing: -0.5px;
+  line-height: 1.1;
+}
+.brand-title .accent { color: var(--md-primary); }
+.brand-tagline {
+  font-size: 12px; color: var(--md-on-surface-variant);
+  font-weight: 500; letter-spacing: 0.4px; text-transform: uppercase;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.header-actions { display: flex; align-items: center; gap: 8px; }
+
+.icon-btn {
+  width: 42px; height: 42px; border-radius: 9999px;
+  border: 1px solid var(--md-glass-border);
+  background: var(--md-glass);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  color: var(--md-on-surface);
+  display: grid; place-items: center; cursor: pointer;
+  transition: transform 0.3s var(--aurex-ease), border-color 0.2s ease;
+}
+.icon-btn:hover { transform: translateY(-1px); border-color: var(--md-primary); }
+.icon-btn:active { transform: scale(0.94); }
+
+.privacy-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border-radius: 9999px;
+  border: 1px solid var(--md-glass-border);
+  background: var(--md-glass);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  font-size: 12px; font-weight: 600; color: var(--md-on-surface-variant);
+}
+.privacy-pill .material-symbols-rounded { font-size: 16px; color: var(--md-primary); }
+
+/* ── hero ─────────────────────────────────────────────────────────────────── */
+.hero-block { margin-bottom: 22px; }
+.hero-title { font-size: 32px; font-weight: 750; letter-spacing: -1px; line-height: 1.1; }
+.hero-title .accent { color: var(--md-primary); }
+.hero-subtitle {
+  margin-top: 8px; font-size: 14.5px; line-height: 1.55;
+  color: var(--md-on-surface-variant); max-width: 54ch;
+}
+
+/* ── dropzone ─────────────────────────────────────────────────────────────── */
+.dropzone {
+  border: 2px dashed var(--md-outline-variant);
+  border-radius: 28px;
+  padding: 44px 24px;
+  text-align: center; cursor: pointer;
+  background: var(--md-surface-container-low);
+  transition: border-color 0.25s ease, background 0.25s ease, transform 0.3s var(--aurex-ease);
+}
+.dropzone:hover, .dropzone.dragover {
+  border-color: var(--md-primary);
+  background: var(--md-surface-container);
+}
+.dropzone.dragover { transform: scale(1.01); }
+.dropzone-icon-wrap {
+  width: 68px; height: 68px; margin: 0 auto 16px;
+  border-radius: 24px;
+  background: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+  display: grid; place-items: center;
+}
+.dropzone-icon-wrap .material-symbols-rounded { font-size: 32px; }
+.dropzone-title { font-size: 17px; font-weight: 650; }
+.dropzone-subtitle {
+  margin: 8px auto 0; max-width: 46ch;
+  font-size: 13px; line-height: 1.5; color: var(--md-on-surface-variant);
+}
+.dropzone-hint {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 14px; padding: 5px 12px; border-radius: 9999px;
+  background: var(--md-primary-container); color: var(--md-on-primary-container);
+  font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase;
+}
+.dropzone-hint .material-symbols-rounded { font-size: 14px; }
+
+/* ── cards ────────────────────────────────────────────────────────────────── */
+.card {
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--md-glass-border);
+  border-radius: 24px;
+  padding: 18px;
+}
+.card + .card { margin-top: 14px; }
+
+.section-label {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.8px;
+  text-transform: uppercase; color: var(--md-on-surface-variant);
+  margin-bottom: 12px;
+}
+.section-label .material-symbols-rounded { font-size: 17px; color: var(--md-primary); }
+
+/* ── file queue cards (upload view) ──────────────────────────────────────── */
+.file-card {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--md-glass-border);
+  border-radius: 20px; padding: 12px 14px;
+  animation: cardIn 0.45s var(--aurex-ease) both;
+}
+.file-card + .file-card { margin-top: 10px; }
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.file-thumb {
+  width: 54px; height: 54px; border-radius: 14px;
+  object-fit: cover; flex-shrink: 0;
+  border: 1px solid var(--md-outline-variant);
+  background: var(--md-surface-container);
+}
+.file-meta { flex: 1; min-width: 0; }
+.file-name {
+  font-size: 14px; font-weight: 650;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.file-sub { font-size: 12px; color: var(--md-on-surface-variant); margin-top: 3px; }
+
+/* ── chips / badges ───────────────────────────────────────────────────────── */
+.chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 11px; border-radius: 9999px;
+  background: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
+  font-size: 11.5px; font-weight: 650;
+}
+.chip .material-symbols-rounded { font-size: 14px; }
+.chip.warn { background: var(--md-tertiary-container); color: var(--md-on-tertiary-container); }
+.chip.ok { background: var(--md-primary-container); color: var(--md-on-primary-container); }
+.chip.err { background: var(--md-error-container); color: var(--md-on-error-container); }
+
+/* ── buttons ──────────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 12px 22px; border-radius: 9999px;
+  border: none; cursor: pointer;
+  font-family: inherit; font-size: 14px; font-weight: 650;
+  transition: transform 0.3s var(--aurex-ease), box-shadow 0.25s ease, opacity 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn:active { transform: scale(0.96); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn .material-symbols-rounded { font-size: 19px; }
+
+.btn-primary {
+  background: var(--md-primary); color: var(--md-on-primary);
+  box-shadow: 0 4px 16px rgba(171, 211, 122, 0.25);
+}
+[data-theme="light"] .btn-primary { box-shadow: 0 4px 16px rgba(70, 110, 71, 0.25); }
+.btn-primary:hover:not(:disabled) { box-shadow: 0 6px 22px rgba(171, 211, 122, 0.4); }
+
+.btn-tonal {
+  background: var(--md-secondary-container); color: var(--md-on-secondary-container);
+}
+.btn-danger-tonal {
+  background: var(--md-error-container); color: var(--md-on-error-container);
+}
+.btn-outline {
+  background: transparent; color: var(--md-on-surface);
+  border: 1px solid var(--md-outline-variant);
+}
+.btn-sm { padding: 8px 15px; font-size: 12.5px; }
+.btn-sm .material-symbols-rounded { font-size: 16px; }
+
+/* ── segmented control (censor mode) ─────────────────────────────────────── */
+.segmented {
+  display: flex; gap: 6px; padding: 5px;
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-glass-border);
+  border-radius: 9999px;
+}
+.seg-btn {
+  flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 9px 10px; border-radius: 9999px; border: none; cursor: pointer;
+  background: transparent; color: var(--md-on-surface-variant);
+  font-family: inherit; font-size: 12.5px; font-weight: 650;
+  transition: background 0.25s ease, color 0.25s ease, transform 0.3s var(--aurex-ease);
+}
+.seg-btn .material-symbols-rounded { font-size: 17px; }
+.seg-btn.active {
+  background: var(--md-primary); color: var(--md-on-primary);
+}
+.seg-btn:not(.active):hover { background: var(--md-surface-container-high); }
+
+/* ── sliders ──────────────────────────────────────────────────────────────── */
+.slider-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 6px 0;
+}
+.slider-row label {
+  font-size: 12.5px; font-weight: 600; color: var(--md-on-surface-variant);
+  width: 92px; flex-shrink: 0;
+}
+input[type="range"] {
+  flex: 1; height: 4px; appearance: none; -webkit-appearance: none;
+  background: var(--md-outline-variant); border-radius: 2px; outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 18px; height: 18px; border-radius: 9999px;
+  background: var(--md-primary); cursor: pointer;
+  border: 3px solid var(--md-surface);
+  box-shadow: 0 1px 6px rgba(0,0,0,0.3);
+  transition: transform 0.3s var(--aurex-ease);
+}
+input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+input[type="range"]::-moz-range-thumb {
+  width: 16px; height: 16px; border-radius: 9999px;
+  background: var(--md-primary); cursor: pointer;
+  border: 3px solid var(--md-surface);
+}
+.slider-val {
+  font-size: 12px; font-weight: 700; color: var(--md-primary);
+  width: 34px; text-align: right; font-variant-numeric: tabular-nums;
+}
+
+/* ── switch ───────────────────────────────────────────────────────────────── */
+.switch-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 14px; padding: 9px 0;
+}
+.switch-row .switch-label { font-size: 13.5px; font-weight: 600; }
+.switch-row .switch-sub {
+  font-size: 11.5px; color: var(--md-on-surface-variant); margin-top: 2px;
+}
+.switch {
+  position: relative; width: 52px; height: 32px; flex-shrink: 0;
+  border-radius: 9999px; border: 2px solid var(--md-outline);
+  background: var(--md-surface-container-highest);
+  cursor: pointer; transition: background 0.25s ease, border-color 0.25s ease;
+}
+.switch::after {
+  content: ''; position: absolute; top: 50%; left: 4px;
+  width: 16px; height: 16px; border-radius: 9999px;
+  background: var(--md-on-surface-variant);
+  transform: translateY(-50%);
+  transition: left 0.3s var(--aurex-ease), width 0.3s var(--aurex-ease), background 0.25s ease;
+}
+.switch[aria-checked="true"] {
+  background: var(--md-primary); border-color: var(--md-primary);
+}
+.switch[aria-checked="true"]::after {
+  left: 28px; width: 20px; height: 20px;
+  background: var(--md-on-primary);
+}
+
+/* ── bottom action bar (studio) ───────────────────────────────────────────── */
+.action-bar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+  display: flex; gap: 10px; justify-content: center; align-items: center;
+  padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
+  background: var(--md-glass);
+  backdrop-filter: blur(26px) saturate(180%);
+  -webkit-backdrop-filter: blur(26px) saturate(180%);
+  border-top: 1px solid var(--md-glass-border);
+}
+.action-bar .btn { flex: 1; max-width: 210px; }
+
+/* ── studio canvas area ───────────────────────────────────────────────────── */
+.canvas-wrap {
+  position: relative;
+  border-radius: 24px;
+  overflow: hidden;
+  background:
+    repeating-conic-gradient(var(--md-surface-container) 0% 25%, var(--md-surface-container-high) 0% 50%)
+    50% / 22px 22px;
+  border: 1px solid var(--md-glass-border);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  line-height: 0;
+}
+.canvas-wrap canvas { width: 100%; height: auto; display: block; cursor: crosshair; }
+.canvas-wrap canvas.region-mode { cursor: cell; }
+
+.canvas-toolbar {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-top: 12px;
+}
+.canvas-toolbar .spacer { flex: 1; }
+
+.det-count {
+  font-size: 12px; font-weight: 650; color: var(--md-on-surface-variant);
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.det-count .material-symbols-rounded { font-size: 16px; color: var(--md-primary); }
+
+/* ── region list ──────────────────────────────────────────────────────────── */
+.region-list { display: flex; flex-direction: column; gap: 8px; }
+.region-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px;
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-glass-border);
+  border-radius: 16px;
+  animation: cardIn 0.35s var(--aurex-ease) both;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.region-item:hover { border-color: var(--md-primary); }
+.region-item.selected { border-color: var(--md-primary); background: var(--md-surface-container-high); }
+.region-item .material-symbols-rounded.mode-ic { font-size: 19px; color: var(--md-primary); }
+.region-item .material-symbols-rounded.del-ic {
+  font-size: 19px; color: var(--md-on-surface-variant); cursor: pointer;
+  padding: 5px; border-radius: 9999px; transition: color 0.2s ease, background 0.2s ease;
+}
+.region-item .material-symbols-rounded.del-ic:hover {
+  color: var(--md-error); background: var(--md-error-container);
+}
+.region-label { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; }
+.region-sub {
+  font-size: 11px; color: var(--md-on-surface-variant); margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── mode cards (upload view) ─────────────────────────────────────────────── */
+.mode-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 18px; }
+@media (min-width: 700px) { .mode-grid { grid-template-columns: repeat(3, 1fr); } }
+.mode-card {
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--md-glass-border);
+  border-radius: 24px; padding: 18px;
+  cursor: pointer;
+  transition: border-color 0.25s ease, transform 0.3s var(--aurex-ease);
+}
+.mode-card:hover { border-color: var(--md-primary); transform: translateY(-2px); }
+.mode-icon {
+  width: 44px; height: 44px; border-radius: 14px;
+  background: var(--md-primary-container); color: var(--md-on-primary-container);
+  display: grid; place-items: center; margin-bottom: 12px;
+}
+.mode-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 5px; }
+.mode-card p { font-size: 12.5px; line-height: 1.5; color: var(--md-on-surface-variant); }
+
+/* ── batch view ───────────────────────────────────────────────────────────── */
+.batch-item {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--md-glass-border);
+  border-radius: 20px; padding: 12px 14px;
+}
+.batch-item + .batch-item { margin-top: 10px; }
+.batch-item .file-thumb { width: 46px; height: 46px; }
+.progress-track {
+  height: 5px; border-radius: 3px; overflow: hidden;
+  background: var(--md-surface-container-highest); margin-top: 7px;
+}
+.progress-fill {
+  height: 100%; width: 0%;
+  background: var(--md-primary); border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+/* ── auto-detect results panel ────────────────────────────────────────────── */
+.detect-panel {
+  border: 1px solid var(--md-glass-border);
+  border-radius: 20px; padding: 14px;
+  background: var(--md-surface-container-low);
+}
+.detect-status {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 13px; font-weight: 600;
+}
+.detect-status .material-symbols-rounded { font-size: 20px; color: var(--md-primary); }
+.detect-hint { font-size: 12px; color: var(--md-on-surface-variant); margin-top: 4px; line-height: 1.5; }
+
+/* ── overlay (processing) ─────────────────────────────────────────────────── */
+.processing-overlay {
+  position: fixed; inset: 0; z-index: 90;
+  background: var(--md-scrim);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: grid; place-items: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+.processing-overlay.show { opacity: 1; pointer-events: auto; }
+.processing-box { text-align: center; padding: 0 30px; }
+.spinner {
+  width: 46px; height: 46px; margin: 0 auto 16px;
+  border-radius: 9999px;
+  border: 3px solid var(--md-outline-variant);
+  border-top-color: var(--md-primary);
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.processing-text { color: var(--md-on-surface); font-size: 14px; font-weight: 600; }
+.processing-sub { color: var(--md-on-surface-variant); font-size: 12px; margin-top: 6px; }
+
+/* ── toasts ───────────────────────────────────────────────────────────────── */
+.toast-container {
+  position: fixed; bottom: calc(88px + env(safe-area-inset-bottom));
+  left: 50%; transform: translateX(-50%);
+  z-index: 95; display: flex; flex-direction: column; gap: 8px;
+  width: min(92vw, 420px); pointer-events: none;
+}
+.toast {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px; border-radius: 9999px;
+  background: var(--md-glass);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--md-glass-border);
+  box-shadow: var(--md-shadow);
+  font-size: 13px; font-weight: 600;
+  animation: toastIn 0.45s var(--aurex-ease) both;
+}
+.toast .material-symbols-rounded { font-size: 19px; color: var(--md-primary); }
+.toast.err .material-symbols-rounded { color: var(--md-error); }
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.toast.out { transition: opacity 0.3s ease, transform 0.3s ease; opacity: 0; transform: translateY(8px); }
+
+/* ── responsive ───────────────────────────────────────────────────────────── */
+@media (min-width: 900px) {
+  .app-shell { max-width: 760px; padding-bottom: 130px; }
+  .hero-title { font-size: 38px; }
+}
+@media (max-width: 480px) {
+  .hero-title { font-size: 27px; }
+  .brand-tagline { display: none; }
+  .action-bar .btn { max-width: none; }
+}
+</style>
+</head>
+
+<body>
+<div class="bg-dot-grid"></div>
+<div class="bg-blur-blob"></div>
+
+<div class="app-shell">
+
+  <!-- ── HEADER ─────────────────────────────────────────────────────────── -->
+  <header class="top-header">
+    <div class="brand">
+      <button class="icon-btn" id="backBtn" onclick="navigateTo('upload')" hidden aria-label="Back to upload">
+        <span class="material-symbols-rounded">arrow_back</span>
+      </button>
+      <div>
+        <div class="brand-title">censor<span class="accent">.</span></div>
+        <div class="brand-tagline">Aurex Labs</div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <div class="privacy-pill">
+        <span class="material-symbols-rounded">verified_user</span>
+        <span>100% Local</span>
+      </div>
+      <button class="icon-btn" onclick="toggleTheme()" aria-label="Toggle theme">
+        <span class="material-symbols-rounded" id="themeIcon">light_mode</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ── UPLOAD VIEW ────────────────────────────────────────────────────── -->
+  <section class="view" id="view-upload">
+    <div class="hero-block">
+      <h1 class="hero-title">Redact it before you <span class="accent">share it.</span></h1>
+      <p class="hero-subtitle">Blur, pixelate or black out faces, card numbers, IPs, tokens and anything else on a screenshot — right in your browser. Nothing is uploaded, ever.</p>
+    </div>
+
+    <div class="dropzone" id="dropzone" onclick="document.getElementById('fileInput').click()">
+      <input type="file" id="fileInput" multiple accept="image/*" style="display:none"
+             onchange="handleFiles(this.files); this.value=''">
+      <div class="dropzone-icon-wrap">
+        <span class="material-symbols-rounded">screenshot_monitor</span>
+      </div>
+      <div class="dropzone-title">Drop a screenshot or tap to upload</div>
+      <div class="dropzone-subtitle">Draw redaction boxes manually, or let auto-detect find faces and sensitive text for you. Export as PNG — processed entirely on this device.</div>
+      <div class="dropzone-hint">
+        <span class="material-symbols-rounded">lock</span>
+        <span>Zero-Knowledge · Local-Only</span>
+      </div>
+    </div>
+
+    <div id="uploadList" style="margin-top: 18px;"></div>
+
+    <div class="card" id="quickActions" style="margin-top: 18px;" hidden>
+      <div class="section-label">
+        <span class="material-symbols-rounded">bolt</span>
+        <span>Quick Actions</span>
+      </div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="btn btn-tonal btn-sm" onclick="openFirstInStudio()">
+          <span class="material-symbols-rounded">edit</span>
+          <span>Open in Studio</span>
+        </button>
+        <button class="btn btn-tonal btn-sm" onclick="navigateTo('batch')">
+          <span class="material-symbols-rounded">layers</span>
+          <span>Batch Auto-Redact</span>
+        </button>
+        <button class="btn btn-danger-tonal btn-sm" onclick="clearAll()">
+          <span class="material-symbols-rounded">delete</span>
+          <span>Clear All</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="mode-grid">
+      <div class="mode-card" onclick="focusDropzone()">
+        <div class="mode-icon"><span class="material-symbols-rounded">edit_square</span></div>
+        <h3>Manual Studio</h3>
+        <p>Draw boxes over anything sensitive. Pick blur, pixelate or solid black — with live strength control.</p>
+      </div>
+      <div class="mode-card" onclick="focusDropzone()">
+        <div class="mode-icon"><span class="material-symbols-rounded">person_search</span></div>
+        <h3>Face Auto-Detect</h3>
+        <p>On-device neural network finds every face in the shot and redacts them in one click.</p>
+      </div>
+      <div class="mode-card" onclick="focusDropzone()">
+        <div class="mode-icon"><span class="material-symbols-rounded">document_scanner</span></div>
+        <h3>Text Auto-Detect</h3>
+        <p>On-device OCR reads the screenshot and highlights card numbers, IPs, keys, emails and passwords.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── STUDIO VIEW ────────────────────────────────────────────────────── -->
+  <section class="view" id="view-studio" hidden>
+    <div class="hero-block" style="margin-bottom: 16px;">
+      <h2 class="hero-title" style="font-size: 24px;">Redaction <span class="accent">Studio.</span></h2>
+      <p class="hero-subtitle" id="studioFileLabel">Drag on the image to draw a redaction box.</p>
+    </div>
+
+    <div class="card" style="margin-bottom: 14px;">
+      <div class="section-label">
+        <span class="material-symbols-rounded">brush</span>
+        <span>Redaction Mode</span>
+      </div>
+      <div class="segmented" role="tablist">
+        <button class="seg-btn active" data-mode="blur" onclick="setToolMode('blur')">
+          <span class="material-symbols-rounded">blur_on</span>
+          <span>Blur</span>
+        </button>
+        <button class="seg-btn" data-mode="pixelate" onclick="setToolMode('pixelate')">
+          <span class="material-symbols-rounded">grid_on</span>
+          <span>Pixelate</span>
+        </button>
+        <button class="seg-btn" data-mode="solid" onclick="setToolMode('solid')">
+          <span class="material-symbols-rounded">block</span>
+          <span>Black Out</span>
+        </button>
+      </div>
+      <div class="slider-row" id="strengthRow">
+        <label for="strengthSlider">Strength</label>
+        <input type="range" id="strengthSlider" min="1" max="10" value="5" oninput="onStrengthInput(this.value)">
+        <span class="slider-val" id="strengthVal">5</span>
+      </div>
+    </div>
+
+    <div class="canvas-wrap" id="canvasWrap">
+      <canvas id="studioCanvas" width="10" height="10"></canvas>
+    </div>
+
+    <div class="canvas-toolbar">
+      <span class="det-count" id="regionCount">
+        <span class="material-symbols-rounded">format_shapes</span>
+        <span>0 regions</span>
+      </span>
+      <span class="spacer"></span>
+      <button class="btn btn-tonal btn-sm" onclick="autoDetectFaces()">
+        <span class="material-symbols-rounded">person_search</span>
+        <span>Detect Faces</span>
+      </button>
+      <button class="btn btn-tonal btn-sm" onclick="autoDetectText()">
+        <span class="material-symbols-rounded">document_scanner</span>
+        <span>Detect Text</span>
+      </button>
+      <button class="btn btn-danger-tonal btn-sm" onclick="clearRegions()">
+        <span class="material-symbols-rounded">mop</span>
+        <span>Clear</span>
+      </button>
+    </div>
+
+    <div class="card" style="margin-top: 14px;" id="regionsCard" hidden>
+      <div class="section-label">
+        <span class="material-symbols-rounded">format_shapes</span>
+        <span>Redaction Regions</span>
+      </div>
+      <div class="region-list" id="regionList"></div>
+    </div>
+  </section>
+
+  <!-- ── BATCH VIEW ─────────────────────────────────────────────────────── -->
+  <section class="view" id="view-batch" hidden>
+    <div class="hero-block" style="margin-bottom: 16px;">
+      <h2 class="hero-title" style="font-size: 24px;">Batch <span class="accent">Auto-Redact.</span></h2>
+      <p class="hero-subtitle">Apply auto-detection to every loaded file and export all of them redacted — hands-free.</p>
+    </div>
+
+    <div class="card" style="margin-bottom: 14px;">
+      <div class="switch-row">
+        <div>
+          <div class="switch-label">Redact faces</div>
+          <div class="switch-sub">On-device face detection (loads once, then offline)</div>
+        </div>
+        <div class="switch" role="switch" aria-checked="true" tabindex="0" onclick="toggleSwitch(this, 'batchFaces')" onkeydown="if(event.key===' '||event.key==='Enter'){event.preventDefault();toggleSwitch(this,'batchFaces')}"></div>
+      </div>
+      <div class="switch-row">
+        <div>
+          <div class="switch-label">Redact sensitive text</div>
+          <div class="switch-sub">Card numbers, IPs, emails, keys, tokens (on-device OCR)</div>
+        </div>
+        <div class="switch" role="switch" aria-checked="true" tabindex="0" onclick="toggleSwitch(this, 'batchText')" onkeydown="if(event.key===' '||event.key==='Enter'){event.preventDefault();toggleSwitch(this,'batchText')}"></div>
+      </div>
+      <div style="margin-top: 12px; display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="btn btn-primary" id="batchRunBtn" onclick="runBatch()" disabled>
+          <span class="material-symbols-rounded">bolt</span>
+          <span>Run on All Files</span>
+        </button>
+      </div>
+    </div>
+
+    <div id="batchList"></div>
+  </section>
+
+  <footer style="margin-top: 34px; text-align: center; font-size: 11.5px; color: var(--md-on-surface-variant);">
+    Aurex Labs &copy; 2026 &bull; Earthy Forest Design System
+  </footer>
+</div>
+
+<!-- ── STUDIO ACTION BAR ────────────────────────────────────────────────── -->
+<div class="action-bar" id="actionBar" hidden>
+  <button class="btn btn-outline" onclick="navigateTo('upload')">
+    <span class="material-symbols-rounded">close</span>
+    <span>Cancel</span>
+  </button>
+  <button class="btn btn-primary" onclick="exportStudio()">
+    <span class="material-symbols-rounded">download</span>
+    <span>Export PNG</span>
+  </button>
+</div>
+
+<!-- ── PROCESSING OVERLAY ───────────────────────────────────────────────── -->
+<div class="processing-overlay" id="processingOverlay">
+  <div class="processing-box">
+    <div class="spinner"></div>
+    <div class="processing-text" id="processingText">Working…</div>
+    <div class="processing-sub" id="processingSub">Everything runs on this device.</div>
+  </div>
+</div>
+
+<!-- ── TOASTS ───────────────────────────────────────────────────────────── -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+/* ==========================================================================
+   INPRIV CENSOR — APPLICATION LOGIC (100% client-side)
+   ========================================================================== */
+
+// ── state ────────────────────────────────────────────────────────────────────
+const state = {
+  view: 'upload',
+  files: [],            // { id, name, blobUrl, bitmap, w, h }
+  currentId: null,      // file open in studio
+  regions: [],          // { id, x, y, w, h, mode, strength, label, source }
+  toolMode: 'blur',     // blur | pixelate | solid
+  strength: 5,
+  selectedRegion: null,
+  drag: null,           // active draw gesture
+  batchFaces: true,
+  batchText: true,
+  seq: 0,
+};
+
+// ── tiny utils ───────────────────────────────────────────────────────────────
+const $ = (id) => document.getElementById(id);
+const fmtKB = (n) => n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
+
+function toast(msg, isErr) {
+  const t = document.createElement('div');
+  t.className = 'toast' + (isErr ? ' err' : '');
+  t.innerHTML = '<span class="material-symbols-rounded">' + (isErr ? 'error' : 'check_circle') + '</span><span></span>';
+  t.lastElementChild.textContent = msg;
+  $('toastContainer').appendChild(t);
+  setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 350); }, 2600);
+}
+
+function showOverlay(text, sub) {
+  $('processingText').textContent = text || 'Working…';
+  $('processingSub').textContent = sub || 'Everything runs on this device.';
+  $('processingOverlay').classList.add('show');
+}
+function hideOverlay() { $('processingOverlay').classList.remove('show'); }
+
+// ── theme ────────────────────────────────────────────────────────────────────
+function toggleTheme() {
+  const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  try { localStorage.setItem('aurex_theme', next); } catch (e) {}
+  $('themeIcon').textContent = next === 'dark' ? 'light_mode' : 'dark_mode';
+}
+(function initTheme() {
+  let saved = 'dark';
+  try { saved = localStorage.getItem('aurex_theme') || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'); } catch (e) {}
+  document.documentElement.setAttribute('data-theme', saved);
+  $('themeIcon').textContent = saved === 'dark' ? 'light_mode' : 'dark_mode';
+})();
+
+// ── navigation ───────────────────────────────────────────────────────────────
+function navigateTo(view) {
+  state.view = view;
+  for (const v of ['upload', 'studio', 'batch']) {
+    $('view-' + v).hidden = (v !== view);
+  }
+  $('backBtn').hidden = (view === 'upload');
+  $('actionBar').hidden = (view !== 'studio');
+  $('dropzone').style.display = ''; // defensive reset
+  if (view !== 'studio') { state.selectedRegion = null; renderRegionList(); }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function focusDropzone() { navigateTo('upload'); $('dropzone').scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+
+// ── file intake ──────────────────────────────────────────────────────────────
+async function handleFiles(fileList) {
+  const files = Array.from(fileList || []);
+  if (!files.length) return;
+  let added = 0;
+  for (const f of files) {
+    if (!f.type.startsWith('image/')) { toast('Not an image: ' + f.name, true); continue; }
+    try {
+      const bitmap = await decodeImage(f);
+      state.files.push({
+        id: 'f' + (++state.seq),
+        name: f.name,
+        size: f.size,
+        blobUrl: URL.createObjectURL(f),
+        bitmap, w: bitmap.width, h: bitmap.height,
+      });
+      added++;
+    } catch (e) {
+      toast('Could not read ' + f.name, true);
+    }
+  }
+  if (added) {
+    renderUploadList();
+    renderBatchList();
+    toast(added + (added === 1 ? ' file loaded' : ' files loaded'));
+  }
+}
+
+async function decodeImage(file) {
+  try {
+    return await createImageBitmap(file, { imageOrientation: 'from-image' });
+  } catch (e) {
+    return await createImageBitmap(file);
+  }
+}
+
+function renderUploadList() {
+  const wrap = $('uploadList');
+  wrap.innerHTML = '';
+  $('quickActions').hidden = state.files.length === 0;
+  for (const f of state.files) {
+    const card = document.createElement('div');
+    card.className = 'file-card';
+    card.innerHTML =
+      '<img class="file-thumb" alt="">' +
+      '<div class="file-meta"><div class="file-name"></div><div class="file-sub"></div></div>' +
+      '<button class="btn btn-tonal btn-sm" data-open="1"><span class="material-symbols-rounded">edit</span><span>Redact</span></button>' +
+      '<button class="icon-btn" data-del="1" aria-label="Remove" style="width:36px;height:36px;"><span class="material-symbols-rounded" style="font-size:18px;">close</span></button>';
+    card.querySelector('img').src = f.blobUrl;
+    card.querySelector('.file-name').textContent = f.name;
+    card.querySelector('.file-sub').textContent = f.w + ' × ' + f.h + ' · ' + fmtKB(f.size);
+    card.querySelector('[data-open]').onclick = () => openInStudio(f.id);
+    card.querySelector('[data-del]').onclick = () => removeFile(f.id);
+    wrap.appendChild(card);
+  }
+  updateBatchButton();
+}
+
+function removeFile(id) {
+  const i = state.files.findIndex((f) => f.id === id);
+  if (i >= 0) {
+    try { URL.revokeObjectURL(state.files[i].blobUrl); } catch (e) {}
+    state.files.splice(i, 1);
+  }
+  if (state.currentId === id) { state.currentId = null; state.regions = []; navigateTo('upload'); }
+  renderUploadList();
+  renderBatchList();
+}
+
+function clearAll() {
+  for (const f of state.files) { try { URL.revokeObjectURL(f.blobUrl); } catch (e) {} }
+  state.files = [];
+  state.currentId = null;
+  state.regions = [];
+  renderUploadList();
+  renderBatchList();
+  toast('Cleared');
+}
+
+function getFile(id) { return state.files.find((f) => f.id === id) || null; }
+
+// ── studio ───────────────────────────────────────────────────────────────────
+function openInStudio(id) {
+  const f = getFile(id);
+  if (!f) return;
+  state.currentId = id;
+  state.regions = [];
+  state.selectedRegion = null;
+  $('studioFileLabel').textContent = 'Drag on the image to draw a redaction box. ' + f.name;
+  const canvas = $('studioCanvas');
+  canvas.width = f.w;
+  canvas.height = f.h;
+  navigateTo('studio');
+  renderStudio();
+  renderRegionList();
+}
+function openFirstInStudio() {
+  if (state.files.length) openInStudio(state.files[0].id);
+  else toast('Load a screenshot first', true);
+}
+
+function setToolMode(mode) {
+  state.toolMode = mode;
+  document.querySelectorAll('.seg-btn').forEach((b) => b.classList.toggle('active', b.dataset.mode === mode));
+  $('strengthRow').style.display = mode === 'solid' ? 'none' : 'flex';
+  const sel = state.regions.find((r) => r.id === state.selectedRegion);
+  if (sel) { sel.mode = mode; sel.strength = state.strength; renderStudio(); renderRegionList(); }
+}
+
+function onStrengthInput(v) {
+  state.strength = parseInt(v, 10);
+  $('strengthVal').textContent = v;
+  const sel = state.regions.find((r) => r.id === state.selectedRegion);
+  if (sel && sel.mode !== 'solid') { sel.strength = state.strength; renderStudio(); }
+}
+
+// apply one region onto a 2d context (source pixels come from `src` canvas)
+function compositeRegion(ctx, src, r) {
+  const x = Math.max(0, Math.floor(r.x));
+  const y = Math.max(0, Math.floor(r.y));
+  const w = Math.min(src.width - x, Math.ceil(r.w));
+  const h = Math.min(src.height - y, Math.ceil(r.h));
+  if (w <= 0 || h <= 0) return;
+
+  if (r.mode === 'solid') {
+    ctx.save();
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(x, y, w, h);
+    ctx.restore();
+    return;
+  }
+
+  if (r.mode === 'blur') {
+    // blur radius scales with region size & strength — heavier regions blur more
+    const radius = Math.max(2, Math.round((Math.min(w, h) / 12) * (0.4 + r.strength * 0.14)));
+    const m = radius * 2.5;
+    const tmp = document.createElement('canvas');
+    tmp.width = Math.max(1, Math.round(w + m * 2));
+    tmp.height = Math.max(1, Math.round(h + m * 2));
+    const tctx = tmp.getContext('2d');
+    tctx.drawImage(src, x - m, y - m, w + m * 2, h + m * 2, 0, 0, tmp.width, tmp.height);
+    ctx.save();
+    ctx.filter = 'blur(' + radius + 'px)';
+    ctx.drawImage(tmp, x - m, y - m, tmp.width, tmp.height);
+    ctx.restore();
+    return;
+  }
+
+  // pixelate
+  const block = Math.max(2, Math.round((Math.min(w, h) / 14) * (0.5 + r.strength * 0.16)));
+  const small = document.createElement('canvas');
+  small.width = Math.max(1, Math.round(w / block));
+  small.height = Math.max(1, Math.round(h / block));
+  const sctx = small.getContext('2d');
+  sctx.imageSmoothingEnabled = true;
+  sctx.drawImage(src, x, y, w, h, 0, 0, small.width, small.height);
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(small, x, y, w, h);
+  ctx.restore();
+}
+
+// render the studio canvas. overlay=true draws dashed outlines (screen only).
+function renderStudio(overlay) {
+  const f = getFile(state.currentId);
+  if (!f) return;
+  const canvas = $('studioCanvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(f.bitmap, 0, 0);
+
+  // base composite of all regions — build on a clean copy so overlapping
+  // regions never sample already-censored pixels
+  const base = document.createElement('canvas');
+  base.width = canvas.width; base.height = canvas.height;
+  const bctx = base.getContext('2d');
+  bctx.drawImage(f.bitmap, 0, 0);
+  for (const r of state.regions) compositeRegion(bctx, base, r);
+
+  ctx.drawImage(base, 0, 0);
+
+  if (overlay !== false) {
+    // selection outlines (never exported)
+    for (const r of state.regions) {
+      const sel = r.id === state.selectedRegion;
+      ctx.save();
+      ctx.lineWidth = sel ? 3 : 2;
+      ctx.strokeStyle = sel ? '#ABD37A' : 'rgba(171, 211, 122, 0.55)';
+      if (!sel) ctx.setLineDash([8, 6]);
+      ctx.strokeRect(r.x + 1, r.y + 1, r.w - 2, r.h - 2);
+      ctx.restore();
+    }
+    // live drag preview
+    if (state.drag && state.drag.w && state.drag.h) {
+      ctx.save();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#C7EFA0';
+      ctx.setLineDash([6, 4]);
+      ctx.strokeRect(state.drag.x, state.drag.y, state.drag.w, state.drag.h);
+      ctx.restore();
+    }
+  }
+}
+
+// pointer interactions on the canvas
+function canvasPos(e) {
+  const canvas = $('studioCanvas');
+  const rect = canvas.getBoundingClientRect();
+  const sx = canvas.width / rect.width;
+  const sy = canvas.height / rect.height;
+  const p = e.touches ? e.touches[0] : e;
+  return {
+    x: Math.min(canvas.width, Math.max(0, (p.clientX - rect.left) * sx)),
+    y: Math.min(canvas.height, Math.max(0, (p.clientY - rect.top) * sy)),
+  };
+}
+
+function initCanvasEvents() {
+  const canvas = $('studioCanvas');
+  const down = (e) => {
+    if (state.view !== 'studio') return;
+    e.preventDefault();
+    const p = canvasPos(e);
+    state.drag = { x0: p.x, y0: p.y, x: p.x, y: p.y, w: 0, h: 0 };
+  };
+  const move = (e) => {
+    if (!state.drag) return;
+    e.preventDefault();
+    const p = canvasPos(e);
+    state.drag.x = Math.min(state.drag.x0, p.x);
+    state.drag.y = Math.min(state.drag.y0, p.y);
+    state.drag.w = Math.abs(p.x - state.drag.x0);
+    state.drag.h = Math.abs(p.y - state.drag.y0);
+    renderStudio();
+  };
+  const up = (e) => {
+    if (!state.drag) return;
+    const d = state.drag;
+    state.drag = null;
+    if (d.w < 8 || d.h < 8) { renderStudio(); return; } // ignore accidental taps
+    const id = 'r' + (++state.seq);
+    state.regions.push({
+      id,
+      x: Math.round(d.x), y: Math.round(d.y),
+      w: Math.round(d.w), h: Math.round(d.h),
+      mode: state.toolMode, strength: state.strength,
+      label: 'Manual region', source: 'manual',
+    });
+    state.selectedRegion = id;
+    renderStudio();
+    renderRegionList();
+  };
+  canvas.addEventListener('mousedown', down);
+  window.addEventListener('mousemove', move);
+  window.addEventListener('mouseup', up);
+  canvas.addEventListener('touchstart', down, { passive: false });
+  canvas.addEventListener('touchmove', move, { passive: false });
+  canvas.addEventListener('touchend', up);
+}
+
+function clearRegions() {
+  if (!state.regions.length) return;
+  state.regions = [];
+  state.selectedRegion = null;
+  renderStudio();
+  renderRegionList();
+  toast('All regions removed');
+}
+
+function deleteRegion(id) {
+  state.regions = state.regions.filter((r) => r.id !== id);
+  if (state.selectedRegion === id) state.selectedRegion = null;
+  renderStudio();
+  renderRegionList();
+}
+
+function selectRegion(id) {
+  state.selectedRegion = (state.selectedRegion === id) ? null : id;
+  const r = state.regions.find((x) => x.id === id);
+  if (r && state.selectedRegion) {
+    // sync tool controls to the selected region
+    state.toolMode = r.mode;
+    state.strength = r.strength;
+    document.querySelectorAll('.seg-btn').forEach((b) => b.classList.toggle('active', b.dataset.mode === r.mode));
+    $('strengthSlider').value = r.strength;
+    $('strengthVal').textContent = r.strength;
+    $('strengthRow').style.display = r.mode === 'solid' ? 'none' : 'flex';
+  }
+  renderStudio();
+  renderRegionList();
+}
+
+const MODE_ICONS = { blur: 'blur_on', pixelate: 'grid_on', solid: 'block' };
+const MODE_NAMES = { blur: 'Blur', pixelate: 'Pixelate', solid: 'Black out' };
+
+function renderRegionList() {
+  const list = $('regionList');
+  const card = $('regionsCard');
+  const count = $('regionCount');
+  card.hidden = state.regions.length === 0;
+  count.lastElementChild.textContent = state.regions.length + (state.regions.length === 1 ? ' region' : ' regions');
+  list.innerHTML = '';
+  for (const r of state.regions) {
+    const item = document.createElement('div');
+    item.className = 'region-item' + (r.id === state.selectedRegion ? ' selected' : '');
+    item.setAttribute('role', 'button');
+    item.setAttribute('tabindex', '0');
+    item.innerHTML =
+      '<span class="material-symbols-rounded mode-ic">' + MODE_ICONS[r.mode] + '</span>' +
+      '<div class="region-label"><span class="rl"></span><div class="region-sub"></div></div>' +
+      '<span class="material-symbols-rounded del-ic" role="button" aria-label="Delete region">close</span>';
+    item.querySelector('.rl').textContent = r.label;
+    item.querySelector('.region-sub').textContent =
+      MODE_NAMES[r.mode] + (r.mode !== 'solid' ? ' · strength ' + r.strength : '') + ' · ' + Math.round(r.w) + '×' + Math.round(r.h);
+    item.onclick = (e) => {
+      if (e.target.classList.contains('del-ic')) { deleteRegion(r.id); return; }
+      selectRegion(r.id);
+    };
+    item.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectRegion(r.id); } };
+    list.appendChild(item);
+  }
+}
+
+// ── export ───────────────────────────────────────────────────────────────────
+function canvasToBlob(canvas) {
+  return new Promise((res, rej) => {
+    canvas.toBlob((b) => b ? res(b) : rej(new Error('export failed')), 'image/png');
+  });
+}
+function downloadBlob(blob, name) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+function redactedName(name) {
+  const dot = name.lastIndexOf('.');
+  const base = dot > 0 ? name.slice(0, dot) : name;
+  return base + '-redacted.png';
+}
+
+async function exportStudio() {
+  const f = getFile(state.currentId);
+  if (!f) return;
+  if (!state.regions.length) { toast('Draw at least one redaction box first', true); return; }
+  try {
+    showOverlay('Exporting PNG…');
+    const out = document.createElement('canvas');
+    out.width = f.w; out.height = f.h;
+    const ctx = out.getContext('2d');
+    ctx.drawImage(f.bitmap, 0, 0);
+    const base = document.createElement('canvas');
+    base.width = f.w; base.height = f.h;
+    const bctx = base.getContext('2d');
+    bctx.drawImage(f.bitmap, 0, 0);
+    for (const r of state.regions) compositeRegion(bctx, base, r);
+    ctx.drawImage(base, 0, 0);
+    const blob = await canvasToBlob(out);
+    downloadBlob(blob, redactedName(f.name));
+    toast('Exported — metadata-free PNG');
+  } catch (e) {
+    toast('Export failed', true);
+  } finally {
+    hideOverlay();
+  }
+}
+</script>
+
+<script>
+/* ==========================================================================
+   AUTO-DETECT ENGINES (loaded lazily from CDN, then cached)
+   - Faces:  @vladmandic/human (BlazeFace, WebGL, on-device)
+   - Text:   tesseract.js OCR + sensitive-data regexes
+   ========================================================================== */
+
+let humanDetector = null;   // cached human instance
+let humanLoading = null;    // in-flight load promise
+let ocrWorker = null;       // cached tesseract worker
+
+async function loadFaceDetector() {
+  if (humanDetector) return humanDetector;
+  if (humanLoading) return humanLoading;
+  humanLoading = (async () => {
+    const mod = await import('https://cdn.jsdelivr.net/npm/@vladmandic/human@3.3.4/dist/human.esm.min.js');
+    const human = new mod.Human({
+      modelBasePath: 'https://cdn.jsdelivr.net/npm/@vladmandic/human@3.3.4/models/',
+      debug: false,
+      face: {
+        enabled: true,
+        detector: { enabled: true, maxDetected: 40, minConfidence: 0.35, return: true },
+        mesh: { enabled: false }, iris: { enabled: false },
+        description: { enabled: false }, emotion: { enabled: false },
+      },
+      body: { enabled: false }, hand: { enabled: false },
+      gesture: { enabled: false }, object: { enabled: false },
+    });
+    await human.load();
+    humanDetector = human;
+    return human;
+  })();
+  try {
+    return await humanLoading;
+  } finally {
+    humanLoading = null;
+  }
+}
+
+async function getOcrWorker() {
+  if (ocrWorker) return ocrWorker;
+  ocrWorker = await Tesseract.createWorker('eng', 1, {
+    workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js',
+    corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1',
+    langPath: 'https://tessdata.projectnaptha.com/4.0.0',
+    logger: () => {},
+  });
+  return ocrWorker;
+}
+
+// draw a file to a fresh canvas (detector input must be a clean raster)
+function fileToCanvas(f) {
+  const c = document.createElement('canvas');
+  c.width = f.w; c.height = f.h;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(f.bitmap, 0, 0);
+  return c;
+}
+
+function padBox(x, y, w, h, W, H, pad) {
+  const px = w * pad, py = h * pad;
+  return {
+    x: Math.max(0, Math.round(x - px)),
+    y: Math.max(0, Math.round(y - py)),
+    w: Math.round(w + px * 2) > W ? W : Math.round(w + px * 2),
+    h: Math.round(h + py * 2) > H ? H : Math.round(h + py * 2),
+  };
+}
+
+function addRegion(box, label, source) {
+  const f = getFile(state.currentId);
+  const W = f ? f.w : 10000, H = f ? f.h : 10000;
+  const id = 'r' + (++state.seq);
+  state.regions.push({
+    id,
+    x: Math.max(0, Math.round(box.x)),
+    y: Math.max(0, Math.round(box.y)),
+    w: Math.min(W, Math.round(box.w)),
+    h: Math.min(H, Math.round(box.h)),
+    mode: state.toolMode, strength: state.strength,
+    label, source,
+  });
+  return id;
+}
+
+// ── face detection ───────────────────────────────────────────────────────────
+async function detectFacesOn(f) {
+  const human = await loadFaceDetector();
+  const canvas = fileToCanvas(f);
+  const res = await human.detect(canvas);
+  const out = [];
+  for (const face of res.face || []) {
+    const b = face.box || face.detection?.box;
+    if (!b || typeof b[0] !== 'number') continue;
+    if ((face.confidence ?? face.detection?.confidence ?? 1) < 0.35) continue;
+    out.push(padBox(b[0], b[1], b[2], b[3], f.w, f.h, 0.14));
+  }
+  return out;
+}
+
+async function autoDetectFaces() {
+  const f = getFile(state.currentId);
+  if (!f) return;
+  let faces;
+  try {
+    showOverlay('Loading face engine…', 'First run downloads the model once (~1 MB).');
+    await loadFaceDetector();
+    $('processingText').textContent = 'Scanning for faces…';
+    faces = await detectFacesOn(f);
+  } catch (e) {
+    hideOverlay();
+    toast('Face engine failed to load (offline?)', true);
+    return;
+  }
+  hideOverlay();
+  for (const b of faces) addRegion(b, 'Face', 'auto');
+  renderStudio();
+  renderRegionList();
+  toast(faces.length ? faces.length + (faces.length === 1 ? ' face found' : ' faces found') : 'No faces found', !faces.length);
+}
+
+// ── text detection (OCR + regex) ─────────────────────────────────────────────
+const SENSITIVE_PATTERNS = [
+  { re: /\b(?:\d{4}[ -]){3}\d{4}\b/g, label: 'Card number' },                     // grouped card
+  { re: /\b\d{13,19}\b/g, label: 'Card number' },                                 // raw card run
+  { re: /\b(?:\d{1,3}\.){3}\d{1,3}\b/g, label: 'IP address' },                 // IPv4
+  { re: /\b[\w.+-]+@[\w-]+(?:\.[\w-]+)+\b/g, label: 'Email address' },         // email
+  { re: /\b(?:sk|pk|rk|api|ghp|gho|ghu|xox[bparsa]|AKIA|AIza|ya29)[\w.-]{8,}\b/gi, label: 'API key / token' },
+  { re: /\b[A-Za-z0-9+/_-]{32,}\b/g, label: 'Secret string' },                 // long opaque blobs
+];
+
+function lineRegexRegions(lineText, words, W, H) {
+  const hits = [];
+  for (const p of SENSITIVE_PATTERNS) {
+    p.re.lastIndex = 0;
+    let m;
+    while ((m = p.re.exec(lineText)) !== null) {
+      const start = m.index, end = m.index + m[0].length;
+      // map char range back onto word bounding boxes
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity, any = false;
+      for (const w of words) {
+        if (w.end <= start || w.start >= end) continue;
+        any = true;
+        x0 = Math.min(x0, w.bbox.x0); y0 = Math.min(y0, w.bbox.y0);
+        x1 = Math.max(x1, w.bbox.x1); y1 = Math.max(y1, w.bbox.y1);
+      }
+      if (any) hits.push({ ...padBox(x0, y0, x1 - x0, y1 - y0, W, H, 0.25), label: p.label });
+      if (p.re.lastIndex === m.index) p.re.lastIndex++;
+    }
+  }
+  return hits;
+}
+
+// password/secret keyword lines: "Password: hunter2" → redact the value
+const KEYWORD_RE = /\b(password|passwd|passphrase|secret|token|api[_ -]?key|access[_ -]?key|private[_ -]?key)\b\s*[:=\-]\s*\S+/gi;
+
+function keywordRegions(lineText, words, W, H) {
+  const hits = [];
+  KEYWORD_RE.lastIndex = 0;
+  let m;
+  while ((m = KEYWORD_RE.exec(lineText)) !== null) {
+    // redact from just after the separator to the end of the value
+    const sepMatch = /[:=\-]/.exec(m[0]);
+    if (!sepMatch) continue;
+    const valueStart = m.index + m[0].indexOf(sepMatch[0]) + 1;
+    const end = m.index + m[0].length;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity, any = false;
+    for (const w of words) {
+      if (w.end <= valueStart || w.start >= end) continue;
+      any = true;
+      x0 = Math.min(x0, w.bbox.x0); y0 = Math.min(y0, w.bbox.y0);
+      x1 = Math.max(x1, w.bbox.x1); y1 = Math.max(y1, w.bbox.y1);
+    }
+    if (any) hits.push({ ...padBox(x0, y0, x1 - x0, y1 - y0, W, H, 0.25), label: 'Password / secret' });
+  }
+  return hits;
+}
+
+async function detectTextOn(f) {
+  const worker = await getOcrWorker();
+  const canvas = fileToCanvas(f);
+  const { data } = await worker.recognize(canvas);
+  const words = (data.words || [])
+    .filter((w) => w.text && w.text.trim() && w.bbox)
+    .map((w) => ({ text: w.text, bbox: w.bbox, start: 0, end: 0 }));
+
+  // group words into visual lines (y-center proximity), keep x-sorted
+  const lines = [];
+  const sorted = [...words].sort((a, b) => (a.bbox.y0 + a.bbox.y1) / 2 - (b.bbox.y0 + b.bbox.y1) / 2);
+  for (const w of sorted) {
+    const cy = (w.bbox.y0 + w.bbox.y1) / 2;
+    const line = lines.find((l) => Math.abs(l.cy - cy) < Math.max(8, (w.bbox.y1 - w.bbox.y0) * 0.6));
+    if (line) { line.words.push(w); line.cy = (line.cy + cy) / 2; }
+    else lines.push({ cy, words: [w] });
+  }
+
+  const hits = [];
+  for (const line of lines) {
+    line.words.sort((a, b) => a.bbox.x0 - b.bbox.x0);
+    let text = '', cursor = 0;
+    for (const w of line.words) {
+      if (cursor > 0) { text += ' '; cursor++; }
+      w.start = cursor;
+      text += w.text;
+      cursor += w.text.length;
+      w.end = cursor;
+    }
+    line.text = text;
+    if (text.trim().length < 3) continue;
+    hits.push(...lineRegexRegions(text, line.words, f.w, f.h));
+    hits.push(...keywordRegions(text, line.words, f.w, f.h));
+  }
+
+  // dedupe near-identical boxes
+  const dedup = [];
+  for (const h of hits) {
+    const dup = dedup.find((d) =>
+      Math.abs(d.x - h.x) < 12 && Math.abs(d.y - h.y) < 12 &&
+      Math.abs(d.w - h.w) < 16 && Math.abs(d.h - h.h) < 16);
+    if (!dup) dedup.push(h);
+  }
+  return dedup;
+}
+
+async function autoDetectText() {
+  const f = getFile(state.currentId);
+  if (!f) return;
+  let hits;
+  try {
+    showOverlay('Loading OCR engine…', 'First run downloads the model once (~4 MB).');
+    await getOcrWorker();
+    $('processingText').textContent = 'Reading text…';
+    hits = await detectTextOn(f);
+  } catch (e) {
+    hideOverlay();
+    toast('OCR engine failed to load (offline?)', true);
+    return;
+  }
+  hideOverlay();
+  for (const h of hits) addRegion(h, h.label, 'auto');
+  renderStudio();
+  renderRegionList();
+  toast(hits.length ? hits.length + ' sensitive item' + (hits.length === 1 ? '' : 's') + ' found' : 'No sensitive text found', !hits.length);
+}
+
+/* ==========================================================================
+   BATCH AUTO-REDACT
+   ========================================================================== */
+
+state.batch = {}; // fileId → { status, faces, texts, blob, name }
+
+function toggleSwitch(el, key) {
+  const next = el.getAttribute('aria-checked') !== 'true';
+  el.setAttribute('aria-checked', String(next));
+  state[key] = next;
+}
+
+function updateBatchButton() {
+  const btn = $('batchRunBtn');
+  if (btn) btn.disabled = state.files.length === 0;
+}
+
+function renderBatchList() {
+  const wrap = $('batchList');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  updateBatchButton();
+  if (!state.files.length) {
+    wrap.innerHTML = '<div class="detect-hint" style="text-align:center; padding: 22px 10px;">No files loaded yet — add screenshots on the Upload tab.</div>';
+    return;
+  }
+  for (const f of state.files) {
+    const b = state.batch[f.id] || { status: 'pending', faces: 0, texts: 0, blob: null };
+    const item = document.createElement('div');
+    item.className = 'batch-item';
+    item.innerHTML =
+      '<img class="file-thumb" alt="">' +
+      '<div class="file-meta">' +
+      '<div class="file-name"></div>' +
+      '<div class="file-sub" style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;"></div>' +
+      '</div>' +
+      '<button class="btn btn-tonal btn-sm" data-save hidden><span class="material-symbols-rounded">download</span><span>Save</span></button>';
+    item.querySelector('img').src = f.blobUrl;
+    item.querySelector('.file-name').textContent = f.name;
+    const sub = item.querySelector('.file-sub');
+    if (b.status === 'pending') sub.innerHTML = '<span class="chip">Waiting</span>';
+    else if (b.status === 'running') sub.innerHTML = '<span class="chip warn">Processing…</span>';
+    else if (b.status === 'error') sub.innerHTML = '<span class="chip err">Failed</span>';
+    else {
+      sub.innerHTML =
+        (b.faces ? '<span class="chip ok">' + b.faces + ' face' + (b.faces === 1 ? '' : 's') + '</span>' : '') +
+        (b.texts ? '<span class="chip ok">' + b.texts + ' secret' + (b.texts === 1 ? '' : 's') + '</span>' : '') +
+        (!b.faces && !b.texts ? '<span class="chip">Nothing found — file unchanged</span>' : '');
+    }
+    const saveBtn = item.querySelector('[data-save]');
+    if (b.status === 'done' && b.blob) {
+      saveBtn.hidden = false;
+      saveBtn.onclick = () => downloadBlob(b.blob, redactedName(f.name));
+    }
+    wrap.appendChild(item);
+  }
+}
+
+// shared: build a fully redacted canvas for a file + list of plain regions
+async function buildRedacted(f, regions) {
+  const base = document.createElement('canvas');
+  base.width = f.w; base.height = f.h;
+  const bctx = base.getContext('2d');
+  bctx.drawImage(f.bitmap, 0, 0);
+  for (const r of regions) compositeRegion(bctx, base, r);
+  const blob = await canvasToBlob(base);
+  return { blob, canvas: base };
+}
+
+async function compositeFile(f, facesOn, textOn) {
+  const regions = [];
+  if (facesOn) {
+    try {
+      const boxes = await detectFacesOn(f);
+      for (const b of boxes) regions.push({ ...b, mode: 'pixelate', strength: 6, label: 'Face', source: 'auto' });
+    } catch (e) { /* engine unavailable — skip */ }
+  }
+  let textHits = 0;
+  if (textOn) {
+    try {
+      const hits = await detectTextOn(f);
+      for (const h of hits) {
+        regions.push({
+          x: Math.max(0, Math.round(h.x)), y: Math.max(0, Math.round(h.y)),
+          w: Math.round(h.w), h: Math.round(h.h),
+          mode: 'solid', strength: 0, label: h.label, source: 'auto',
+        });
+        textHits++;
+      }
+    } catch (e) { /* engine unavailable — skip */ }
+  }
+
+  const { blob } = await buildRedacted(f, regions);
+  return { blob, faces: regions.filter((r) => r.label === 'Face').length, texts: textHits };
+}
+
+async function runBatch() {
+  if (!state.files.length) return;
+  const facesOn = state.batchFaces, textOn = state.batchText;
+  if (!facesOn && !textOn) { toast('Enable at least one detector', true); return; }
+
+  const btn = $('batchRunBtn');
+  btn.disabled = true;
+  try {
+    showOverlay('Preparing engines…');
+    if (facesOn) await loadFaceDetector();
+    if (textOn) await getOcrWorker();
+
+    for (const f of state.files) {
+      state.batch[f.id] = { status: 'running', faces: 0, texts: 0, blob: null };
+      renderBatchList();
+      $('processingText').textContent = 'Redacting ' + f.name + '…';
+      try {
+        const r = await compositeFile(f, facesOn, textOn);
+        state.batch[f.id] = { status: 'done', ...r };
+      } catch (e) {
+        state.batch[f.id] = { status: 'error', faces: 0, texts: 0, blob: null };
+      }
+      renderBatchList();
+    }
+
+    // auto-download all redacted outputs (sequential, browsers dislike bursts)
+    let saved = 0;
+    for (const f of state.files) {
+      const b = state.batch[f.id];
+      if (b.status === 'done' && b.blob) {
+        downloadBlob(b.blob, redactedName(f.name));
+        saved++;
+        await new Promise((r) => setTimeout(r, 350));
+      }
+    }
+    toast(saved ? saved + ' file' + (saved === 1 ? '' : 's') + ' redacted & saved' : 'Nothing to redact', !saved);
+  } finally {
+    hideOverlay();
+    updateBatchButton();
+  }
+}
+
+/* ==========================================================================
+   WIRING & INIT
+   ========================================================================== */
+
+function initDropzone() {
+  const dz = $('dropzone');
+  const input = $('fileInput');
+  dz.addEventListener('click', (e) => { if (e.target === dz) input.click(); });
+  dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.classList.add('dragover'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+  dz.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dz.classList.remove('dragover');
+    if (e.dataTransfer && e.dataTransfer.files) handleFiles(e.dataTransfer.files);
+  });
+  // paste screenshots straight from the clipboard
+  window.addEventListener('paste', (e) => {
+    const items = e.clipboardData && e.clipboardData.files;
+    if (items && items.length) {
+      const imgs = Array.from(items).filter((f) => f.type.startsWith('image/'));
+      if (imgs.length) { e.preventDefault(); handleFiles(imgs); }
+    }
+  });
+}
+
+(function init() {
+  initDropzone();
+  initCanvasEvents();
+  renderUploadList();
+  renderBatchList();
+})();
+</script>
+</body>
+</html>

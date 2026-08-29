@@ -28,6 +28,7 @@ const SERVICES = [
   "pay",
   "totp",
   "wipe",
+  "censor",
   "account",
   "host",
 ];
@@ -45,6 +46,7 @@ const SERVICES_META = {
   pay:      { name: "Crypto Pay", url: "https://pay.inpriv.xyz", icon: "payments" },
   totp:      { name: "TOTP / 2FA", url: "https://totp.inpriv.xyz", icon: "pin" },
   wipe:     { name: "Metadata Wipe", url: "https://wipe.inpriv.xyz", icon: "auto_fix_high" },
+  censor:   { name: "Censor (screenshot redactor)", url: "https://censor.inpriv.xyz", icon: "privacy_tip" },
   account:  { name: "Inpriv ID (accounts)", url: "https://id.inpriv.xyz", icon: "badge" },
   host:     { name: "Host (static files)", url: "https://host.inpriv.xyz", icon: "cloud_upload" },
 };
