@@ -12,9 +12,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com fonts.gstatic.com; font-src 'self' https://fonts.googleapis.com fonts.gstatic.com; img-src 'self' data: blob: https://hush.best; media-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://tessdata.projectnaptha.com; connect-src 'self' https://cdn.jsdelivr.net https://tessdata.projectnaptha.com; worker-src 'self' blob:; manifest-src 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com fonts.gstatic.com; font-src 'self' https://fonts.googleapis.com fonts.gstatic.com; img-src 'self' data: blob: https://hush.best; media-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net https://tessdata.projectnaptha.com; connect-src 'self' https://cdn.jsdelivr.net https://tessdata.projectnaptha.com; worker-src 'self' blob:; manifest-src 'self'">
 <meta name="theme-color" content="#13140E">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="description" content="censor — Aurex Labs zero-knowledge screenshot redactor. Blur, pixelate or black out faces, card numbers, IPs and tokens before sharing. 100% client-side.">
 <title>censor — Screenshot Redactor | Aurex Labs</title>
@@ -641,7 +642,7 @@ input[type="range"]::-moz-range-thumb {
       <p class="hero-subtitle">Blur, pixelate or black out faces, card numbers, IPs, tokens and anything else on a screenshot — right in your browser. Nothing is uploaded, ever.</p>
     </div>
 
-    <div class="dropzone" id="dropzone" onclick="document.getElementById('fileInput').click()">
+    <div class="dropzone" id="dropzone">
       <input type="file" id="fileInput" multiple accept="image/*" style="display:none"
              onchange="handleFiles(this.files); this.value=''">
       <div class="dropzone-icon-wrap">
@@ -1304,8 +1305,22 @@ async function loadFaceDetector() {
   }
 }
 
+function loadScriptOnce(url) {
+  if (loadScriptOnce.done === undefined) loadScriptOnce.done = {};
+  if (loadScriptOnce.done[url]) return loadScriptOnce.done[url];
+  loadScriptOnce.done[url] = new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = url; s.async = true;
+    s.onload = () => res();
+    s.onerror = () => { delete loadScriptOnce.done[url]; rej(new Error('failed to load ' + url)); };
+    document.head.appendChild(s);
+  });
+  return loadScriptOnce.done[url];
+}
+
 async function getOcrWorker() {
   if (ocrWorker) return ocrWorker;
+  await loadScriptOnce('https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js');
   ocrWorker = await Tesseract.createWorker('eng', 1, {
     workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js',
     corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1',
@@ -1655,7 +1670,7 @@ async function runBatch() {
 function initDropzone() {
   const dz = $('dropzone');
   const input = $('fileInput');
-  dz.addEventListener('click', (e) => { if (e.target === dz) input.click(); });
+  dz.addEventListener('click', () => input.click());
   dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.classList.add('dragover'); });
   dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
   dz.addEventListener('drop', (e) => {
