@@ -882,6 +882,8 @@
 
     a.service-paused {
       opacity: 0.55;
+      pointer-events: none;
+      cursor: default;
     }
 
     a.service-paused .arrow-icon {
@@ -1664,7 +1666,11 @@
           var svc = (st.services || {})[id] || {};
           if (!((st.global && st.global.locked) || svc.locked)) return;
           var card = b.closest('a');
-          if (card) card.classList.add('service-paused');
+          if (card) {
+            card.classList.add('service-paused');
+            card.removeAttribute('href');
+            card.setAttribute('aria-disabled', 'true');
+          }
           b.classList.remove('live');
           b.classList.add('paused');
           b.removeAttribute('data-i18n');

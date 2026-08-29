@@ -2,6 +2,7 @@
 // Drop-in kill-switch for every Inpriv service. Each worker fetches
 // /public/state from admin.inpriv.xyz (edge cache ~2 s) and, when its service
 // id (or the global switch) is locked, serves a 503 maintenance page.
+// The maintenance page auto-retries every 5 s and reloads when unlocked.
 // /api/health always passes so monitoring keeps working.
 //
 // Usage in a worker:
@@ -54,35 +55,89 @@ export function maintenancePage(serviceName, message) {
   const msg = message
     ? `<p class="msg">${escapeHtml(message)}</p>`
     : "";
+  const svc = escapeHtml(serviceName);
   return new Response(
     `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${escapeHtml(serviceName)} — under maintenance</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>${svc} — temporarily unavailable</title>
 <style>
 :root{color-scheme:dark}
 *{margin:0;padding:0;box-sizing:border-box}
-body{min-height:100vh;display:grid;place-items:center;font:16px/1.6 system-ui,-apple-system,sans-serif;
-     background:radial-gradient(ellipse 80% 50% at 50% -10%,#1e2416,transparent),#13140e;color:#e3e2d3;padding:20px}
-.box{max-width:480px;padding:48px 36px;text-align:center;background:rgba(26,28,23,0.85);backdrop-filter:blur(24px);border:1px solid rgba(141,146,131,0.25);border-radius:28px;box-shadow:0 16px 48px -8px rgba(0,0,0,0.6)}
-.icon{width:64px;height:64px;border-radius:20px;background:#2E4F2F;color:#C7EFA0;display:grid;place-items:center;margin:0 auto 20px;box-shadow:0 8px 24px rgba(0,0,0,0.35)}
-.icon svg{width:30px;height:30px;stroke:#C7EFA0}
-h1{font-size:1.45rem;font-weight:700;letter-spacing:-0.01em;margin-bottom:10px;color:#e3e2d3}
+body{min-height:100vh;display:grid;place-items:center;
+     font:16px/1.6 'Roboto Flex',system-ui,-apple-system,sans-serif;
+     background:radial-gradient(ellipse 80% 50% at 50% -10%,#1e2416,transparent),#13140e;
+     color:#e3e2d3;padding:20px;-webkit-font-smoothing:antialiased}
+.box{max-width:460px;width:100%;padding:52px 40px;text-align:center;
+     background:rgba(26,28,23,0.85);backdrop-filter:blur(28px) saturate(180%);-webkit-backdrop-filter:blur(28px) saturate(180%);
+     border:1px solid rgba(141,146,131,0.25);border-radius:28px;
+     box-shadow:0 16px 48px -8px rgba(0,0,0,0.6);
+     animation:rise .5s cubic-bezier(0.2,1.4,0,1) both}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.box{animation:none}}
+.icon{width:68px;height:68px;border-radius:20px;background:#2E4F2F;color:#C7EFA0;
+      display:grid;place-items:center;margin:0 auto 22px;box-shadow:0 8px 24px rgba(0,0,0,0.35)}
+.icon svg{width:32px;height:32px;stroke:#C7EFA0}
+h1{font-size:1.4rem;font-weight:700;letter-spacing:-0.01em;margin-bottom:10px;color:#e3e2d3}
 p{color:#c7c6b8;font-size:.92rem;line-height:1.55}
-.msg{margin-top:16px;padding:12px 18px;border-radius:14px;background:#1E2416;border:1px solid #3D4B34;color:#ABD37A;font-weight:500;display:inline-block;word-break:break-word}
-a{color:#abd37a;text-decoration:none;font-size:.85rem;font-weight:500;transition:opacity .2s}
-a:hover{opacity:.8;text-decoration:underline}
-</style></head><body><div class="box">
-<div class="icon">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-  </svg>
+.msg{margin:18px auto 0;padding:12px 18px;border-radius:14px;background:#1E2416;
+     border:1px solid #3D4B34;color:#ABD37A;font-weight:500;display:inline-block;word-break:break-word;max-width:100%}
+.status{display:inline-flex;align-items:center;gap:8px;margin-top:20px;padding:6px 14px;
+        border-radius:9999px;background:#34362F;color:#dde0d0;font-size:.8rem;font-weight:600;letter-spacing:.03em}
+.dot{width:8px;height:8px;border-radius:50%;background:#E8C77A;box-shadow:0 0 8px rgba(232,199,122,.5);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.btn{display:inline-flex;align-items:center;gap:8px;margin-top:28px;padding:12px 26px;
+     border-radius:9999px;background:#ABD37A;color:#173800;font-weight:700;font-size:.92rem;
+     text-decoration:none;transition:transform .2s cubic-bezier(0.2,1.4,0,1),box-shadow .2s;
+     box-shadow:0 6px 20px -4px rgba(171,211,122,0.45)}
+.btn:hover{transform:translateY(-2px);box-shadow:0 10px 26px -4px rgba(171,211,122,0.55)}
+.btn:active{transform:translateY(0)}
+.btn svg{width:17px;height:17px;stroke:#173800}
+.home{display:inline-block;margin-top:16px;color:#8d9283;text-decoration:none;font-size:.85rem;transition:color .2s}
+.home:hover{color:#c7efa0}
+</style></head><body>
+<div class="box">
+  <div class="icon">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <path d="M12 6v6l4 2"></path>
+    </svg>
+  </div>
+  <h1>${svc} is taking a short break</h1>
+  <p>This service is paused for maintenance.<br>Everything is safe — it will be back shortly.</p>
+  ${msg}
+  <div class="status"><span class="dot"></span>Paused — checking availability…</div>
+  <br>
+  <a class="btn" href="#" onclick="location.reload();return false">
+    Try again
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 12a9 9 0 1 1-2.64-6.36"></path><path d="M21 3v6h-6"></path>
+    </svg>
+  </a>
+  <br>
+  <a class="home" href="https://inpriv.xyz">Browse other Inpriv tools</a>
 </div>
-<h1>${escapeHtml(serviceName)} is temporarily unavailable</h1>
-<p>This service has been locked by the administrator.<br>Your data is safe — check back later.</p>
-${msg}
-<p style="margin-top:24px;font-size:.85rem"><a href="https://inpriv.xyz">&larr; back to inpriv.xyz</a></p>
-</div></body></html>`,
+<script>
+  // Auto-retry: when the service is unlocked, return to it automatically.
+  (function () {
+    var tries = 0;
+    var statusEl = document.querySelector('.status');
+    setInterval(function () {
+      tries++;
+      fetch(location.href, { method: 'HEAD', cache: 'no-store' })
+        .then(function (r) {
+          if (r.ok) {
+            statusEl.innerHTML = 'Back online — loading…';
+            setTimeout(function () { location.reload(); }, 600);
+          } else if (statusEl && tries % 5 === 0) {
+            statusEl.innerHTML = 'Still paused — will keep checking';
+          }
+        })
+        .catch(function () {});
+    }, 5000);
+  })();
+</script>
+</body></html>`,
     {
       status: 503,
       headers: {
