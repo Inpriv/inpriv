@@ -84,8 +84,6 @@ p{color:#c7c6b8;font-size:.92rem;line-height:1.55}
      border:1px solid #3D4B34;color:#ABD37A;font-weight:500;display:inline-block;word-break:break-word;max-width:100%}
 .status{display:inline-flex;align-items:center;gap:8px;margin-top:20px;padding:6px 14px;
         border-radius:9999px;background:#34362F;color:#dde0d0;font-size:.8rem;font-weight:600;letter-spacing:.03em}
-.dot{width:8px;height:8px;border-radius:50%;background:#E8C77A;box-shadow:0 0 8px rgba(232,199,122,.5);animation:pulse 2s ease-in-out infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
 .btn{display:inline-flex;align-items:center;gap:8px;margin-top:28px;padding:12px 26px;
      border-radius:9999px;background:#ABD37A;color:#173800;font-weight:700;font-size:.92rem;
      text-decoration:none;transition:transform .2s cubic-bezier(0.2,1.4,0,1),box-shadow .2s;
@@ -106,7 +104,7 @@ p{color:#c7c6b8;font-size:.92rem;line-height:1.55}
   <h1>${svc} is taking a short break</h1>
   <p>This service is paused for maintenance.<br>Everything is safe — it will be back shortly.</p>
   ${msg}
-  <div class="status"><span class="dot"></span>Paused — checking availability…</div>
+  <div class="status">Paused — checking availability…</div>
   <br>
   <a class="btn" href="#" onclick="location.reload();return false">
     Try again
