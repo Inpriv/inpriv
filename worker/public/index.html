@@ -474,7 +474,7 @@
     .bar-actions { display: flex; align-items: center; gap: 2px; }
 
     .icon-btn {
-      width: 38px; height: 38px; border-radius: 50%; border: none;
+      width: 40px; height: 40px; border-radius: 50%; border: none;
       background: transparent; color: var(--md-on-surface-variant);
       display: flex; align-items: center; justify-content: center;
       cursor: pointer; position: relative; overflow: hidden;
@@ -631,7 +631,7 @@
       padding: 2px 7px; border-radius: 6px;
       background: var(--md-surface-container-highest);
       color: var(--md-on-surface-variant);
-      font-family: monospace;
+      font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
     }
 
     .featured-desc {
@@ -709,7 +709,7 @@
     }
 
     .search-box {
-      width: 100%; height: 42px;
+      width: 100%; height: 46px;
       display: flex; align-items: center; gap: 10px;
       padding: 0 12px 0 14px;
       background: var(--md-surface-container-low);
@@ -741,7 +741,7 @@
     .search-clear {
       background: none; border: none; color: var(--md-on-surface-variant);
       cursor: pointer; display: flex; align-items: center; justify-content: center;
-      width: 24px; height: 24px; border-radius: 50%;
+      width: 32px; height: 32px; border-radius: 50%;
       padding: 0; opacity: 0.7;
     }
 
@@ -761,7 +761,7 @@
 
     .filter-chip {
       display: inline-flex; align-items: center; gap: 5px;
-      height: 34px; padding: 0 12px;
+      height: 38px; padding: 0 14px;
       border-radius: 9999px;
       border: 1px solid color-mix(in srgb, var(--md-outline-variant) 60%, transparent);
       background: var(--md-surface-container-low);
@@ -970,6 +970,17 @@
     }
 
     /* ── TABLET & DESKTOP (>= 640px) ─────────────────────────── */
+    /* ── REDUCED MOTION (a11y) ─────────────────────────────── */
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .blur-blob { animation: none !important; }
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
     @media(min-width: 640px) {
       .container { max-width: 780px; padding-top: 18px; }
       .app-bar { height: 50px; margin-bottom: 20px; }
@@ -1145,37 +1156,37 @@
       </div>
     </a>
 
-    <a href="https://host.inpriv.xyz" class="featured-card" target="_blank" rel="noopener noreferrer" id="featured-host-card">
+    <a href="https://mail.inpriv.xyz" class="featured-card" target="_blank" rel="noopener noreferrer" id="featured-mail-card">
       <div class="featured-top-bar">
         <span class="featured-pill">
           <span class="icon" aria-hidden="true">verified_user</span>
-          <span data-i18n="featured-label">Featured</span>
+          <span data-i18n="featured-label">Suggested</span>
         </span>
-        <span class="status-badge live" data-service="host" data-i18n="badge-live">Live</span>
+        <span class="status-badge live" data-service="mail" data-i18n="badge-live">Live</span>
       </div>
       <div class="featured-body">
         <div class="featured-main-info">
           <div class="featured-icon-box">
-            <span class="icon" aria-hidden="true">cloud_upload</span>
+            <span class="icon" aria-hidden="true">mail_lock</span>
           </div>
           <div class="featured-text">
             <div class="featured-heading-row">
-              <h2 class="featured-title">Inpriv Host</h2>
-              <span class="featured-domain">host.inpriv.xyz</span>
+              <h2 class="featured-title">Inpriv Mail</h2>
+              <span class="featured-domain">mail.inpriv.xyz</span>
             </div>
-            <p class="featured-desc" data-i18n="desc-host-featured">
-              Private static hosting with a privacy shield. No account needed — drop a file, get a link. Every upload is scanned for IP loggers and trackers before it goes live.
+            <p class="featured-desc" data-i18n="desc-mail-featured">
+              Zero-knowledge encrypted email. End-to-end RSA-2048 + AES-GCM, synced with your Inpriv ID. Only you hold the keys.
             </p>
             <div class="featured-tags">
-              <span class="feat-tag"><span class="icon" aria-hidden="true">person_off</span> <span data-i18n="tag-noaccount">No Account Needed</span></span>
-              <span class="feat-tag"><span class="icon" aria-hidden="true">shield</span> <span data-i18n="tag-shield">Privacy Shield</span></span>
-              <span class="feat-tag"><span class="icon" aria-hidden="true">link</span> <span data-i18n="tag-instantlink">Instant Links</span></span>
+              <span class="feat-tag"><span class="icon" aria-hidden="true">lock</span> <span data-i18n="tag-e2e">End-to-End Encrypted</span></span>
+              <span class="feat-tag"><span class="icon" aria-hidden="true">sync</span> <span data-i18n="tag-idsync">Inpriv ID Sync</span></span>
+              <span class="feat-tag"><span class="icon" aria-hidden="true">shield</span> <span data-i18n="tag-zkmail">Zero-Knowledge</span></span>
             </div>
           </div>
         </div>
         <div class="featured-cta-row">
           <span class="featured-btn">
-            <span data-i18n="btn-open-host">Open Host</span>
+            <span data-i18n="btn-open-mail">Open Mail</span>
             <span class="icon" aria-hidden="true">arrow_forward</span>
           </span>
         </div>
@@ -1218,13 +1229,13 @@
   <!-- ── MAIN TOOLS GRID ──────────────────────────────────────── -->
   <main class="grid" id="grid">
     <!-- Live Services -->
-    <a href="https://mail.inpriv.xyz" class="service-card" data-category="comms security" style="animation-delay: 0.15s;" target="_blank" rel="noopener noreferrer">
-      <div class="service-icon-box"><span class="icon" aria-hidden="true">mail_lock</span></div>
+    <a href="https://host.inpriv.xyz" class="service-card" data-category="utils security" style="animation-delay: 0.15s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">cloud_upload</span></div>
       <div class="service-info">
-        <h2 class="service-name">Mail</h2>
-        <p class="service-desc" data-i18n="desc-mail">Zero-knowledge encrypted email. RSA-2048 + AES-GCM, synced with Inpriv ID.</p>
+        <h2 class="service-name">Host</h2>
+        <p class="service-desc" data-i18n="desc-host">Private static hosting with a built-in privacy shield. Uploads are scanned for IP loggers before going live.</p>
       </div>
-      <span class="status-badge live" data-service="mail" data-i18n="badge-live">Live</span>
+      <span class="status-badge live" data-service="host" data-i18n="badge-live">Live</span>
       <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
     </a>
 
@@ -1348,15 +1359,6 @@
       <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
     </a>
 
-    <a href="https://host.inpriv.xyz" class="service-card" data-category="utils security" style="animation-delay: 0.67s;" target="_blank" rel="noopener noreferrer">
-      <div class="service-icon-box"><span class="icon" aria-hidden="true">cloud_upload</span></div>
-      <div class="service-info">
-        <h2 class="service-name">Host</h2>
-        <p class="service-desc" data-i18n="desc-host">Private static hosting with a built-in privacy shield. Uploads are scanned for IP loggers before going live.</p>
-      </div>
-      <span class="status-badge live" data-service="host" data-i18n="badge-live">Live</span>
-      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
-    </a>
 
     <a href="https://censor.inpriv.xyz" class="service-card" data-category="security utils" style="animation-delay: 0.71s;" target="_blank" rel="noopener noreferrer">
       <div class="service-icon-box"><span class="icon" aria-hidden="true">privacy_tip</span></div>
@@ -1565,7 +1567,6 @@
       'copyright': 'Copyright 2026, Inpriv',
       'by': 'by',
       'badge-live': 'Live',
-      'badge-paused': 'Wstrzymany',
       'badge-paused': 'Paused',
       'badge-soon': 'Soon',
       'badge-zk': 'Zero-knowledge',
@@ -1574,11 +1575,11 @@
       'badge-oss': 'Open source',
       'featured-label': 'Suggested',
       'desc-temp-featured': 'Disposable email addresses on inpriv.xyz. Instant random inbox, live incoming feed, auto-refresh, and one-click shred.',
-      'desc-host-featured': 'Private static hosting with a privacy shield. No account needed — drop a file, get a link. Every upload is scanned for IP loggers and trackers before it goes live.',
-      'btn-open-host': 'Open Host',
-      'tag-noaccount': 'No Account Needed',
-      'tag-shield': 'Privacy Shield',
-      'tag-instantlink': 'Instant Links',
+      'desc-mail-featured': 'Zero-knowledge encrypted email. End-to-end RSA-2048 + AES-GCM, synced with your Inpriv ID. Only you hold the keys.',
+      'btn-open-mail': 'Open Mail',
+      'tag-e2e': 'End-to-End Encrypted',
+      'tag-idsync': 'Inpriv ID Sync',
+      'tag-zkmail': 'Zero-Knowledge',
       'tag-instant': 'Instant Inbox',
       'tag-live-poll': 'Live Polling',
       'tag-shred': '1-Click Shred',
@@ -1587,7 +1588,7 @@
       'filter-comms': 'Mail & Chat',
       'filter-security': 'Security',
       'filter-utils': 'Utilities',
-      'search-placeholder': 'Search 16+ tools...',
+      'search-placeholder': 'Search 17+ tools...',
       'section-upcoming': 'Coming Soon',
       'more-soon-title': 'More Soon',
       'desc-more-soon': 'New utilities currently in active development.',
@@ -1610,7 +1611,6 @@
       'desc-stego': 'Hide encrypted messages inside PNG images. Invisible, in-browser.',
       'desc-censor': 'Blur or pixelate sensitive content on screenshots — faces, cards, IPs, tokens. Auto-detect, in-browser.',
       'desc-temp': 'Disposable email addresses on inpriv.xyz. Random inbox, live polling, one-click shred.',
-      'desc-mail': 'Zero-knowledge encrypted email. RSA-2048 + AES-GCM, synced with Inpriv ID.',
       'desc-zero': 'Private crypto wallet. Self-custodial.',
       'desc-osint': 'AI-powered open-source intelligence on anything.',
       'desc-pass': 'Offline cryptographic password generator.',
@@ -1631,11 +1631,11 @@
       'badge-oss': 'Open source',
       'featured-label': 'Proponowane',
       'desc-temp-featured': 'Jednorazowe adresy e-mail na inpriv.xyz. Losowa skrzynka, live polling, odbiór w czasie rzeczywistym, kasowanie jednym kliknięciem.',
-      'desc-host-featured': 'Prywatny hosting plików z tarczą prywatności. Bez konta — upuść plik, dostajesz link. Każdy upload jest skanowany w poszukiwaniu IP loggerów i trackerów, zanim wejdzie na żywo.',
-      'btn-open-host': 'Otwórz Host',
-      'tag-noaccount': 'Bez Konta',
-      'tag-shield': 'Tarcza Prywatności',
-      'tag-instantlink': 'Natychmiastowe Linki',
+      'desc-mail-featured': 'Szyfrowana poczta zero-knowledge. End-to-end RSA-2048 + AES-GCM, synchronizacja z Inpriv ID. Klucze ma tylko Ty.',
+      'btn-open-mail': 'Otwórz Mail',
+      'tag-e2e': 'Szyfrowanie E2E',
+      'tag-idsync': 'Sync z Inpriv ID',
+      'tag-zkmail': 'Zero-Knowledge',
       'tag-instant': 'Szybka skrzynka',
       'tag-live-poll': 'Odbiór na żywo',
       'tag-shred': 'Szybkie niszczenie',
@@ -1667,7 +1667,6 @@
       'desc-stego': 'Ukryj zaszyfrowane wiadomości w zdjęciach PNG. Niewidoczne, w przeglądarce.',
       'desc-censor': 'Zamaż lub spikseluj wrażliwe dane na zrzutach ekranu — twarze, karty, IP, tokeny. Autodetekcja, w przeglądarce.',
       'desc-temp': 'Jednorazowe adresy e-mail na inpriv.xyz. Losowa skrzynka, live polling, kasowanie jednym kliknięciem.',
-      'desc-mail': 'Szyfrowana poczta zero-knowledge. RSA-2048 + AES-GCM, zsynchronizowana z Inpriv ID.',
       'desc-zero': 'Prywatny portfel krypto. Self-custodial.',
       'desc-osint': 'Open-source intelligence wspomagane AI — na wszystko.',
       'desc-pass': 'Offline kryptograficzny generator haseł.',

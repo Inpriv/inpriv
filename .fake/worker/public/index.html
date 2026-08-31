@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<!--
+  Inpriv Fake — disposable identities (fake.inpriv.xyz)
+  Copyright (c) 2026 Aurex Labs — MIT License
+
+  Requires a signed-in Inpriv ID account. Generates time-limited fake
+  identities: consistent nick / first / last name, a strong password and a
+  real @inpriv.xyz mailbox (zero-knowledge, hosted by Inpriv Mail). The
+  mailbox hard-dies when the chosen lifetime ends or on manual burn.
+-->
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Inpriv Fake — Disposable Identities</title>
+<meta name="description" content="Generate time-limited fake identities with a real @inpriv.xyz mailbox. Requires an Inpriv ID account.">
+<meta name="theme-color" content="#13140E" media="(prefers-color-scheme: dark)">
+<link rel="icon" type="image/png" href="https://inpriv.xyz/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:ital,opsz,wght@0,8..144,300..800;1,8..144,300..800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<style>
+:root {
+  --md-primary: #ABD37A;
+  --md-on-primary: #173800;
+  --md-primary-container: #2E4F2F;
+  --md-on-primary-container: #C7EFA0;
+  --md-secondary: #BCCBAF;
+  --md-on-secondary: #27341F;
+  --md-secondary-container: #3D4B34;
+  --md-on-secondary-container: #D8E7CB;
+  --md-tertiary: #FFB4A5;
+  --md-on-tertiary: #5E1709;
+  --md-tertiary-container: #7E2D1E;
+  --md-on-tertiary-container: #FFDAD3;
+  --md-error: #FFB4AB;
+  --md-surface: #13140E;
+  --md-on-surface: #E3E2D3;
+  --md-on-surface-var: #C3C8B6;
+  --md-surface-container-lowest: #0D0F09;
+  --md-surface-container-low: #1A1C17;
+  --md-surface-container: #1F211B;
+  --md-surface-container-high: #292B25;
+  --md-surface-container-highest: #34362F;
+  --md-outline: #8D9283;
+  --md-outline-var: #43483D;
+  --md-inverse-surface: #E3E2D3;
+  --md-inverse-on-surface: #2F312C;
+  --md-inverse-primary: #466E47;
+  --md-shadow: rgba(0,0,0,0.4);
+  --md-shadow-strong: rgba(0,0,0,0.65);
+  --md-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --md-ease-spring: cubic-bezier(0.2, 1.4, 0, 1);
+  --md-ease-spring-soft: cubic-bezier(0.34, 1.3, 0.64, 1);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Roboto Flex', system-ui, -apple-system, sans-serif;
+  font-optical-sizing: auto;
+  background:
+    radial-gradient(ellipse 80% 60% at 85% 0%, color-mix(in srgb, var(--md-primary-container) 55%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 0% 100%, color-mix(in srgb, var(--md-tertiary-container) 45%, transparent) 0%, transparent 70%),
+    var(--md-surface);
+  background-attachment: fixed;
+  color: var(--md-on-surface);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.5s var(--md-ease-standard);
+}
+.bg-dots {
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image: radial-gradient(circle at 1px 1px, var(--md-outline-var) 1px, transparent 0);
+  background-size: 28px 28px;
+  opacity: 0.18;
+  -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+  mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+}
+.material-symbols-rounded { font-variation-settings: 'wght' 500, 'GRAD' 0, 'opsz' 24; }
+
+/* ── app bar ─────────────────────────────────────────────── */
+.appbar {
+  position: sticky; top: 12px; z-index: 50;
+  margin: 12px; padding: 6px 6px 6px 14px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--md-surface-container) 80%, transparent);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid color-mix(in srgb, var(--md-outline-var) 50%, transparent);
+  box-shadow: 0 4px 20px -4px var(--md-shadow);
+  animation: barIn 0.7s var(--md-ease-spring) both;
+}
+@keyframes barIn { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--md-on-surface); min-width: 0; }
+.brand-icon {
+  width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+  background: var(--md-primary-container); color: var(--md-on-primary-container);
+  display: grid; place-items: center;
+}
+.brand-icon .material-symbols-rounded { font-size: 19px; }
+.brand-name { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; }
+.brand-name b { color: var(--md-primary); font-weight: 700; }
+.appbar-actions { display: flex; align-items: center; gap: 4px; }
+.icon-btn {
+  width: 40px; height: 40px; border-radius: 50%; border: none; background: transparent;
+  color: var(--md-on-surface); cursor: pointer; position: relative; overflow: hidden;
+  display: grid; place-items: center; text-decoration: none;
+  transition: transform 0.15s var(--md-ease-spring);
+}
+.icon-btn:hover::before { content: ""; position: absolute; inset: 0; border-radius: 50%; background: currentColor; opacity: 0.08; }
+.icon-btn:active { transform: scale(0.92); }
+.icon-btn .material-symbols-rounded { font-size: 22px; }
+
+/* ── layout ──────────────────────────────────────────────── */
+main { position: relative; z-index: 1; max-width: 720px; margin: 0 auto; padding: 24px 16px 140px; }
+@media (min-width: 600px) { main { padding: 32px 24px 160px; } }
+
+.hero { text-align: center; margin: 18px 0 26px; animation: fadeUp 0.8s var(--md-ease-spring) both; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+.hero h1 { font-size: clamp(30px, 8vw, 44px); font-weight: 800; letter-spacing: -0.025em; line-height: 1.05; }
+.hero h1 .accent { font-style: italic; font-weight: 300; color: var(--md-primary); }
+.hero p { margin-top: 10px; color: var(--md-on-surface-var); font-size: 15px; line-height: 1.5; }
+.hero .badge-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 16px; }
+.badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: 9999px;
+  background: color-mix(in srgb, var(--md-surface-container-high) 80%, transparent);
+  border: 1px solid var(--md-outline-var);
+  font-size: 12px; font-weight: 600; color: var(--md-on-surface-var);
+}
+.badge .material-symbols-rounded { font-size: 15px; color: var(--md-primary); }
+
+.card {
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--md-outline-var);
+  border-radius: 24px;
+  padding: 20px;
+  animation: fadeUp 0.8s var(--md-ease-spring) both;
+}
+@media (min-width: 600px) { .card { border-radius: 28px; padding: 26px; } }
+.card + .card { margin-top: 18px; }
+.card h2 { font-size: 18px; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 4px; }
+.card .sub { color: var(--md-on-surface-var); font-size: 13.5px; line-height: 1.5; margin-bottom: 18px; }
+.label { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--md-on-surface-var); margin-bottom: 8px; display: block; }
+
+/* ── gate (signed-out) ───────────────────────────────────── */
+.gate-box { text-align: center; padding: 40px 22px; }
+.gate-box .big-icon {
+  width: 76px; height: 76px; border-radius: 22px; margin: 0 auto 18px;
+  background: var(--md-primary-container); color: var(--md-on-primary-container);
+  display: grid; place-items: center;
+  animation: pulse 2.8s var(--md-ease-standard) infinite;
+}
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--md-primary) 30%, transparent); }
+  50% { box-shadow: 0 0 0 16px color-mix(in srgb, var(--md-primary) 0%, transparent); }
+}
+.gate-box .big-icon .material-symbols-rounded { font-size: 38px; }
+.gate-box h2 { font-size: 22px; margin-bottom: 8px; }
+.gate-box p { color: var(--md-on-surface-var); font-size: 14px; line-height: 1.55; max-width: 380px; margin: 0 auto 22px; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; height: 52px; padding: 0 26px;
+  border: none; border-radius: 9999px; cursor: pointer;
+  background: var(--md-primary); color: var(--md-on-primary);
+  font: 600 15px 'Roboto Flex', system-ui, sans-serif; letter-spacing: 0.02em;
+  text-decoration: none; position: relative; overflow: hidden;
+  box-shadow: 0 6px 20px -4px var(--md-shadow);
+  transition: transform 0.2s var(--md-ease-spring), box-shadow 0.2s var(--md-ease-standard);
+}
+.btn:hover { transform: translateY(-2px); box-shadow: 0 10px 26px -4px var(--md-shadow-strong); }
+.btn:active { transform: scale(0.96); }
+.btn:disabled { opacity: 0.5; pointer-events: none; }
+.btn .material-symbols-rounded { font-size: 19px; }
+.btn.ghost {
+  background: transparent; color: var(--md-primary);
+  border: 1px solid var(--md-outline); box-shadow: none;
+}
+.btn.ghost:hover { border-color: var(--md-primary); }
+.btn.small { width: auto; height: 42px; font-size: 13.5px; padding: 0 20px; }
+.field { margin-bottom: 14px; text-align: left; }
+.field input {
+  width: 100%; height: 52px; padding: 0 18px;
+  border-radius: 16px; border: 1px solid var(--md-outline-var);
+  background: var(--md-surface-container); color: var(--md-on-surface);
+  font: 400 15px 'Roboto Flex', system-ui, sans-serif;
+  outline: none; transition: border-color 0.2s var(--md-ease-standard);
+}
+.field input:focus { border-color: var(--md-primary); }
+.err { color: var(--md-error); font-size: 13px; margin-top: 8px; min-height: 18px; text-align: center; }
+
+/* ── lifetime picker ─────────────────────────────────────── */
+.ttl-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+@media (min-width: 480px) { .ttl-grid { grid-template-columns: repeat(5, 1fr); } }
+.ttl {
+  border: 1.5px solid var(--md-outline-var); border-radius: 18px;
+  background: var(--md-surface-container); color: var(--md-on-surface);
+  padding: 14px 6px; cursor: pointer; text-align: center;
+  transition: all 0.4s var(--md-ease-spring-soft);
+}
+.ttl:hover { border-color: var(--md-outline); transform: translateY(-2px); }
+.ttl:active { transform: scale(0.96); }
+.ttl.selected {
+  border-color: var(--md-primary); background: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+}
+.ttl .ttl-val { font-size: 18px; font-weight: 800; display: block; }
+.ttl .ttl-unit { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.75; }
+
+/* ── identity result ─────────────────────────────────────── */
+.id-head { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+.id-avatar {
+  width: 52px; height: 52px; border-radius: 50%; flex-shrink: 0;
+  background: var(--md-primary-container); color: var(--md-on-primary-container);
+  display: grid; place-items: center; font: 800 18px 'Roboto Flex', sans-serif;
+}
+.id-head .who { min-width: 0; }
+.id-head .who h3 { font-size: 19px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.id-head .who p { font-size: 12.5px; color: var(--md-on-surface-var); }
+.cred { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+.cred-row {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--md-surface-container); border: 1px solid var(--md-outline-var);
+  border-radius: 14px; padding: 11px 8px 11px 14px; min-width: 0;
+}
+.cred-row .c-info { min-width: 0; flex: 1; }
+.cred-row .c-label { font-size: 9.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--md-on-surface-var); }
+.cred-row .c-val { font-size: 14px; font-weight: 600; word-break: break-all; line-height: 1.35; }
+.copy-btn {
+  flex-shrink: 0; border: none; background: transparent; color: var(--md-primary);
+  cursor: pointer; width: 40px; height: 40px; border-radius: 50%;
+  display: grid; place-items: center; transition: transform 0.15s var(--md-ease-spring);
+}
+.copy-btn:hover { background: color-mix(in srgb, var(--md-primary) 12%, transparent); }
+.copy-btn:active { transform: scale(0.9); }
+.eye-btn { color: var(--md-secondary); }
+.pass-hidden { letter-spacing: 0.25em; }
+.countdown { text-align: center; margin: 4px 0 16px; }
+.countdown .cd-val { font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--md-primary); }
+.countdown .cd-lbl { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--md-on-surface-var); }
+.row-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+.row-btns .btn { flex: 1; min-width: 140px; width: auto; }
+.btn.danger { background: var(--md-tertiary-container); color: var(--md-on-tertiary-container); }
+
+/* ── list ────────────────────────────────────────────────── */
+.id-list { display: flex; flex-direction: column; gap: 10px; }
+.id-item {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--md-surface-container); border: 1px solid var(--md-outline-var);
+  border-radius: 18px; padding: 12px 14px; cursor: pointer;
+  transition: all 0.4s var(--md-ease-spring-soft);
+}
+.id-item:hover { border-color: var(--md-primary); transform: translateY(-2px); }
+.id-item .i-av { width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; background: var(--md-secondary-container); color: var(--md-on-secondary-container); display: grid; place-items: center; font: 800 14px 'Roboto Flex', sans-serif; }
+.id-item .i-info { flex: 1; min-width: 0; }
+.id-item .i-nick { font-size: 14.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.id-item .i-addr { font-size: 12px; color: var(--md-on-surface-var); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chip { flex-shrink: 0; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 5px 10px; border-radius: 9999px; }
+.chip.active { background: var(--md-primary-container); color: var(--md-on-primary-container); }
+.chip.expired { background: var(--md-surface-container-highest); color: var(--md-on-surface-var); }
+.chip.burned { background: var(--md-tertiary-container); color: var(--md-on-tertiary-container); }
+.empty { text-align: center; color: var(--md-on-surface-var); font-size: 13.5px; padding: 22px 10px; }
+
+/* ── reveal dialog ───────────────────────────────────────── */
+dialog {
+  border: none; padding: 0; border-radius: 24px; max-width: 480px; width: calc(100% - 32px);
+  background: var(--md-surface-container-low); color: var(--md-on-surface);
+}
+dialog::backdrop { background: rgba(0,0,0,0.55); backdrop-filter: blur(6px); }
+.dlg-pad { padding: 24px; }
+.dlg-pad h3 { font-size: 18px; margin-bottom: 14px; }
+
+/* ── snackbar ────────────────────────────────────────────── */
+.snack {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(20px + env(safe-area-inset-bottom)); z-index: 100;
+  display: flex; align-items: center; gap: 10px;
+  background: var(--md-inverse-surface); color: var(--md-inverse-on-surface);
+  padding: 12px 18px; border-radius: 12px; max-width: calc(100vw - 32px);
+  box-shadow: 0 8px 24px var(--md-shadow-strong);
+  font-size: 14px; opacity: 0; pointer-events: none;
+  transition: all 0.4s var(--md-ease-spring);
+}
+.snack.show { opacity: 1; transform: translateX(-50%) translateY(-6px); }
+.snack.error { background: var(--md-tertiary-container); color: var(--md-on-tertiary-container); }
+.snack .material-symbols-rounded { font-size: 20px; color: var(--md-inverse-primary); }
+.snack.error .material-symbols-rounded { color: var(--md-on-tertiary-container); }
+
+.footer { text-align: center; margin-top: 34px; color: var(--md-outline); font-size: 12px; }
+.footer a { color: var(--md-outline); }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+.hidden { display: none !important; }
+.spin { display: inline-block; width: 16px; height: 16px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: -3px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="bg-dots" aria-hidden="true"></div>
+
+<header class="appbar">
+  <a class="brand" href="https://inpriv.xyz" title="Inpriv — Privacy-First Tools">
+    <span class="brand-icon"><span class="material-symbols-rounded">theater_comedy</span></span>
+    <span class="brand-name">Inpriv <b>Fake</b></span>
+  </a>
+  <div class="appbar-actions">
+    <a class="icon-btn" href="https://mail.inpriv.xyz" target="_blank" rel="noopener" title="Open Mailbox" id="mailLink" aria-label="Open mailbox">
+      <span class="material-symbols-rounded">mail</span>
+    </a>
+    <button class="icon-btn hidden" id="logoutBtn" title="Sign out" aria-label="Sign out">
+      <span class="material-symbols-rounded">logout</span>
+    </button>
+  </div>
+</header>
+
+<main>
+  <section class="hero" id="hero">
+    <h1><span data-fake-hero>Fake identity,</span> <br><span class="accent">on your term.</span></h1>
+    <p>Generate a time-limited identity with a consistent name, strong password and a real
+       <strong>@inpriv.xyz</strong> mailbox. When time runs out — or you burn it — everything is gone for good.</p>
+    <div class="badge-row">
+      <span class="badge"><span class="material-symbols-rounded">timer</span>1 h – 30 days</span>
+      <span class="badge"><span class="material-symbols-rounded">mark_email_read</span>Real inbox</span>
+      <span class="badge"><span class="material-symbols-rounded">local_fire_department</span>One-click burn</span>
+    </div>
+  </section>
+
+  <!-- signed out -->
+  <section class="card gate-box" id="gateView">
+    <div class="big-icon"><span class="material-symbols-rounded">lock</span></div>
+    <h2>Members only</h2>
+    <p>Fake identities are available to Inpriv ID account holders.
+       Sign in with Quick Sign-In — or with your password below.</p>
+    <button class="btn" id="ssoBtn" style="max-width:340px">
+      <span class="material-symbols-rounded">bolt</span> Continue as Inpriv ID
+    </button>
+    <div style="margin:18px 0 14px;display:flex;align-items:center;gap:12px;color:var(--md-outline);font-size:12px">
+      <span style="flex:1;height:1px;background:var(--md-outline-var)"></span>or<span style="flex:1;height:1px;background:var(--md-outline-var)"></span>
+    </div>
+    <form id="loginForm" style="max-width:340px;margin:0 auto" autocomplete="off">
+      <div class="field"><input id="loginUser" type="text" placeholder="you@inpriv.xyz" autocomplete="username"></div>
+      <div class="field"><input id="loginPass" type="password" placeholder="Password" autocomplete="current-password"></div>
+      <div class="field hidden" id="totpField"><input id="loginTotp" type="text" inputmode="numeric" maxlength="6" placeholder="6-digit code"></div>
+      <button class="btn ghost" type="submit" id="loginBtn"><span class="material-symbols-rounded">login</span> Sign in with password</button>
+      <div class="err" id="loginErr"></div>
+    </form>
+    <p style="margin-top:16px;font-size:12.5px;color:var(--md-outline)">
+      No account? <a href="https://id.inpriv.xyz" style="color:var(--md-primary)">Create an Inpriv ID</a>
+    </p>
+  </section>
+
+  <!-- signed in -->
+  <div id="appView" class="hidden">
+    <section class="card" id="createQuery">
+      <h2>New identity</h2>
+      <p class="sub">Pick how long it should live. The mailbox and its address stop existing the moment it expires.</p>
+      <span class="label">Lifetime</span>
+      <div class="ttl-grid" role="radiogroup" aria-label="Identity lifetime">
+        <button class="ttl" data-min="60"    role="radio" aria-checked="false"><span class="ttl-val">1</span><span class="ttl-unit">hour</span></button>
+        <button class="ttl" data-min="360"   role="radio" aria-checked="false"><span class="ttl-val">6</span><span class="ttl-unit">hours</span></button>
+        <button class="ttl selected" data-min="1440" role="radio" aria-checked="true"><span class="ttl-val">24</span><span class="ttl-unit">hours</span></button>
+        <button class="ttl" data-min="10080" role="radio" aria-checked="false"><span class="ttl-val">7</span><span class="ttl-unit">days</span></button>
+        <button class="ttl" data-min="43200" role="radio" aria-checked="false"><span class="ttl-val">30</span><span class="ttl-unit">days</span></button>
+      </div>
+      <div style="margin-top:20px">
+        <button class="btn" id="createBtn">
+          <span class="material-symbols-rounded">auto_awesome</span> Generate identity
+        </button>
+        <div class="err" id="createErr"></div>
+      </div>
+    </section>
+
+    <section class="card hidden" id="resultCard">
+      <div class="id-head">
+        <div class="id-avatar" id="resAvatar">?</div>
+        <div class="who">
+          <h3 id="resNick">—</h3>
+          <p id="resName">—</p>
+        </div>
+      </div>
+      <div class="cred">
+        <div class="cred-row">
+          <div class="c-info"><div class="c-label">Mailbox</div><div class="c-val" id="resAddr">—</div></div>
+          <button class="copy-btn" data-copy="resAddr" title="Copy address" aria-label="Copy address"><span class="material-symbols-rounded">content_copy</span></button>
+        </div>
+        <div class="cred-row">
+          <div class="c-info"><div class="c-label">Password</div><div class="c-val" id="resPass">—</div></div>
+          <button class="copy-btn eye-btn" id="revealBtn" title="Show / hide password" aria-label="Show or hide password"><span class="material-symbols-rounded">visibility</span></button>
+          <button class="copy-btn" data-copy="resPass" title="Copy password" aria-label="Copy password"><span class="material-symbols-rounded">content_copy</span></button>
+        </div>
+      </div>
+      <div class="countdown">
+        <div class="cd-val" id="cdVal">—</div>
+        <div class="cd-lbl">remaining</div>
+      </div>
+      <div class="row-btns">
+        <a class="btn" id="openMailBtn" href="https://mail.inpriv.xyz" target="_blank" rel="noopener">
+          <span class="material-symbols-rounded">mark_email_unread</span> Open mailbox
+        </a>
+        <button class="btn danger" id="burnBtn">
+          <span class="material-symbols-rounded">local_fire_department</span> Burn now
+        </button>
+      </div>
+      <div class="err" id="resErr"></div>
+    </section>
+
+    <section class="card">
+      <h2>Your identities</h2>
+      <p class="sub" id="listSub">Tap one to reveal its credentials while it is still alive.</p>
+      <div class="id-list" id="idList"><div class="empty">Loading…</div></div>
+    </section>
+  </div>
+
+  <p class="footer">
+    Part of <a href="https://inpriv.xyz">Inpriv</a> · privacy-first tools ·
+    use responsibly and in line with local law.
+  </p>
+</main>
+
+<!-- reveal dialog -->
+<dialog id="revealDlg">
+  <div class="dlg-pad">
+    <h3 id="dlgNick">Identity</h3>
+    <div class="cred">
+      <div class="cred-row">
+        <div class="c-info"><div class="c-label">Mailbox</div><div class="c-val" id="dlgAddr">—</div></div>
+        <button class="copy-btn" data-copy="dlgAddr" title="Copy address" aria-label="Copy address"><span class="material-symbols-rounded">content_copy</span></button>
+      </div>
+      <div class="cred-row">
+        <div class="c-info"><div class="c-label">Password</div><div class="c-val" id="dlgPass">—</div></div>
+        <button class="copy-btn" data-copy="dlgPass" title="Copy password" aria-label="Copy password"><span class="material-symbols-rounded">content_copy</span></button>
+      </div>
+    </div>
+    <div class="row-btns">
+      <a class="btn small" id="dlgMail" href="https://mail.inpriv.xyz" target="_blank" rel="noopener"><span class="material-symbols-rounded">mail</span> Mailbox</a>
+      <button class="btn small danger" id="dlgBurn"><span class="material-symbols-rounded">local_fire_department</span> Burn</button>
+      <button class="btn small ghost" id="dlgClose">Close</button>
+    </div>
+    <div class="err" id="dlgErr"></div>
+  </div>
+</dialog>
+
+<div class="snack" id="snack" role="status" aria-live="polite"></div>
+
+<!-- Inpriv ID One Tap widget -->
+<script src="https://id.inpriv.xyz/id.js" data-service="fake" defer></script>
+
+<script>
+(() => {
+"use strict";
+const $ = (s) => document.querySelector(s);
+const API = "";
+let token = sessionStorage.getItem("fake_token") || localStorage.getItem("fake_token") || null;
+let me = null;
+let current = null;          // freshly created identity {id, password, expires_at, ...}
+let currentTimer = null;
+let ttlMinutes = 1440;
+
+/* ── helpers ─────────────────────────────────────────── */
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+const initials = (n) => String(n || "?").trim().split(/[\s._-]+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join("") || "?";
+
+function snack(msg, isErr) {
+  const el = $("#snack");
+  el.className = "snack show" + (isErr ? " error" : "");
+  el.innerHTML = `<span class="material-symbols-rounded">${isErr ? "error" : "check_circle"}</span><span>${esc(msg)}</span>`;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove("show"), 3200);
+}
+
+async function api(path, opts = {}) {
+  const headers = { "Content-Type": "application/json" };
+  if (token) headers.Authorization = "Bearer " + token;
+  const r = await fetch(API + path, { ...opts, headers, credentials: "include" });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || ("HTTP " + r.status));
+  return d;
+}
+
+function saveToken(t, remember) {
+  token = t;
+  try {
+    sessionStorage.setItem("fake_token", t);
+    if (remember) localStorage.setItem("fake_token", t);
+  } catch {}
+}
+function dropToken() {
+  token = null;
+  try { sessionStorage.removeItem("fake_token"); localStorage.removeItem("fake_token"); } catch {}
+}
+
+/* ── zero-knowledge key enrollment (same shape as Mail registration) ── */
+const b64e = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf)));
+const PASS_ITERS = 300000, PBKDF2_CAP = 100000;
+
+async function generateKeyPair() {
+  return crypto.subtle.generateKey(
+    { name: "RSA-OAEP", modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" },
+    true, ["encrypt", "decrypt"]);
+}
+async function deriveAes(password, saltB64, iterations = PASS_ITERS) {
+  const rounds = Math.max(1, Math.ceil(iterations / PBKDF2_CAP));
+  let material = new TextEncoder().encode(password), bits;
+  for (let r = 0; r < rounds; r++) {
+    const key = await crypto.subtle.importKey("raw", material, "PBKDF2", false, ["deriveBits"]);
+    bits = await crypto.subtle.deriveBits(
+      { name: "PBKDF2", hash: "SHA-256", salt: new Uint8Array(atob(saltB64).split("").map(c => c.charCodeAt(0))), iterations: Math.min(iterations - r * PBKDF2_CAP, PBKDF2_CAP) },
+      key, 256);
+    material = new Uint8Array(bits);
+  }
+  return crypto.subtle.importKey("raw", bits, { name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
+}
+async function buildClientEnvelope(password) {
+  const kp = await generateKeyPair();
+  const saltB64 = b64e(crypto.getRandomValues(new Uint8Array(16)).buffer);
+  const aes = await deriveAes(password, saltB64, PASS_ITERS);
+  const spki = await crypto.subtle.exportKey("spki", kp.publicKey);
+  const pkcs8 = await crypto.subtle.exportKey("pkcs8", kp.privateKey);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const wrapped = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, aes, pkcs8);
+  return {
+    public_key: b64e(spki),
+    encrypted_private_key: b64e(wrapped),
+    priv_iv: b64e(iv.buffer),
+    priv_salt: saltB64,
+    priv_iter: PASS_ITERS,
+  };
+}
+
+/* ── signed-out gate ─────────────────────────────────── */
+$("#ssoBtn").addEventListener("click", () => {
+  if (window.InprivID && typeof window.InprivID.sso === "function") {
+    const b = $("#ssoBtn"); b.disabled = true;
+    window.InprivID.sso(async (res) => {
+      b.disabled = false;
+      if (!res.ok) { $("#loginErr").textContent = "Quick sign-in failed — use the password form."; return; }
+      try {
+        const d = await api("/api/sso", { method: "POST", body: JSON.stringify({ grant: res.grant, state: res.state }) });
+        if (d.totp_required) { $("#totpField").classList.remove("hidden"); $("#loginErr").textContent = "Enter your 6-digit code with your password."; return; }
+        saveToken(d.token, false);
+        enterApp(d.user);
+      } catch (e) { $("#loginErr").textContent = e.message; }
+    });
+  } else {
+    location.href = "https://id.inpriv.xyz/?login=1&next=" + encodeURIComponent(location.href);
+  }
+});
+
+$("#loginForm").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const btn = $("#loginBtn"), err = $("#loginErr");
+  err.textContent = ""; btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Signing in…';
+  try {
+    const d = await api("/api/login", { method: "POST", body: JSON.stringify({
+      user: $("#loginUser").value.trim(), password: $("#loginPass").value, totp: $("#loginTotp").value.trim(),
+    })});
+    if (d.totp_required) { $("#totpField").classList.remove("hidden"); err.textContent = "Enter your 6-digit code."; return; }
+    saveToken(d.token, true);
+    enterApp(d.user);
+  } catch (e) { err.textContent = e.message; }
+  finally { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-rounded">login</span> Sign in with password'; }
+});
+
+/* ── signed-in app ───────────────────────────────────── */
+async function enterApp(user) {
+  me = user;
+  $("#gateView").classList.add("hidden");
+  $("#appView").classList.remove("hidden");
+  $("#logoutBtn").classList.remove("hidden");
+  $("#hero").querySelector("h1").innerHTML = `Hello, <span class="accent">${esc(me.nick || me.username)}</span>.`;
+  await refreshList();
+}
+
+$("#logoutBtn").addEventListener("click", async () => {
+  try { await api("/api/logout", { method: "POST" }); } catch {}
+  dropToken();
+  location.reload();
+});
+
+document.querySelectorAll(".ttl").forEach((b) => {
+  b.addEventListener("click", () => {
+    document.querySelectorAll(".ttl").forEach((x) => { x.classList.remove("selected"); x.setAttribute("aria-checked", "false"); });
+    b.classList.add("selected"); b.setAttribute("aria-checked", "true");
+    ttlMinutes = Number(b.dataset.min);
+  });
+});
+
+$("#createBtn").addEventListener("click", async () => {
+  const btn = $("#createBtn"), err = $("#createErr");
+  err.textContent = ""; btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span> Forging identity…';
+  try {
+    // Pre-generate a strong password here so the client can build the
+    // zero-knowledge envelope before the server creates the mailbox.
+    const A = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    const b = crypto.getRandomValues(new Uint8Array(16));
+    let s = ""; for (let i = 0; i < 16; i++) s += A[b[i] % A.length];
+    const password = s.slice(0,4) + "-" + s.slice(4,8) + "-" + s.slice(8,12) + "-" + s.slice(12,16);
+
+    const client = await buildClientEnvelope(password);
+    const d = await api("/api/identities", { method: "POST", body: JSON.stringify({ ttl_minutes: ttlMinutes, client }) });
+    current = d.identity;
+    showResult(current);
+    snack("Identity created — it dies automatically at 0:00");
+    refreshList();
+  } catch (e) { err.textContent = e.message; }
+  finally { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-rounded">auto_awesome</span> Generate identity'; }
+});
+
+function fmtCountdown(ms) {
+  if (ms <= 0) return "0:00";
+  const s = Math.floor(ms / 1000);
+  const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  if (d > 0) return `${d}d ${h}h ${m}m`;
+  if (h > 0) return `${h}h ${m}m ${String(sec).padStart(2,"0")}s`;
+  return `${m}m ${String(sec).padStart(2,"0")}s`;
+}
+function startCountdown(expiresAt) {
+  clearInterval(currentTimer);
+  const tick = () => {
+    const left = expiresAt - Date.now();
+    $("#cdVal").textContent = fmtCountdown(left);
+    if (left <= 0) { clearInterval(currentTimer); onCurrentDied(); }
+  };
+  tick();
+  currentTimer = setInterval(tick, 1000);
+}
+async function onCurrentDied() {
+  $("#cdVal").textContent = "0:00";
+  snack("Identity expired — mailbox deleted");
+  current = null;
+  setTimeout(() => { $("#resultCard").classList.add("hidden"); refreshList(); }, 2500);
+}
+
+function showResult(idn) {
+  $("#resultCard").classList.remove("hidden");
+  $("#resAvatar").textContent = initials(idn.nick);
+  $("#resNick").textContent = idn.nick;
+  $("#resName").textContent = idn.first_name + " " + idn.last_name + " · lives " +
+    (idn.ttl_minutes >= 1440 ? (idn.ttl_minutes / 1440) + " day(s)" : (idn.ttl_minutes / 60) + " hour(s)");
+  $("#resAddr").textContent = idn.address;
+  const passEl = $("#resPass");
+  passEl.textContent = "••••-••••-••••-••••";
+  passEl.classList.add("pass-hidden");
+  passEl.dataset.real = idn.password;
+  $("#revealBtn").dataset.shown = "0";
+  startCountdown(idn.expires_at);
+  $("#resultCard").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+$("#revealBtn").addEventListener("click", () => {
+  const passEl = $("#resPass"), btn = $("#revealBtn");
+  const shown = btn.dataset.shown === "1";
+  if (shown) { passEl.textContent = "••••-••••-••••-••••"; passEl.classList.add("pass-hidden"); btn.dataset.shown = "0"; btn.querySelector(".material-symbols-rounded").textContent = "visibility"; }
+  else { passEl.textContent = passEl.dataset.real; passEl.classList.remove("pass-hidden"); btn.dataset.shown = "1"; btn.querySelector(".material-symbols-rounded").textContent = "visibility_off"; }
+});
+
+/* copy buttons */
+document.addEventListener("click", (ev) => {
+  const b = ev.target.closest("[data-copy]");
+  if (!b) return;
+  const el = document.getElementById(b.dataset.copy);
+  const text = el ? (el.dataset.real && el.classList.contains("pass-hidden") ? el.dataset.real : el.textContent) : "";
+  if (!text) return;
+  (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(
+    () => snack("Copied"),
+    () => {
+      const ta = document.createElement("textarea");
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy"); snack("Copied"); } catch {}
+      ta.remove();
+    });
+});
+
+/* list */
+let listCache = [];
+async function refreshList() {
+  const list = $("#idList");
+  try {
+    const d = await api("/api/identities");
+    listCache = d.identities || [];
+    renderList();
+  } catch (e) {
+    if (String(e.message).includes("401") || /unauthorized/i.test(e.message)) { dropToken(); location.reload(); return; }
+    list.innerHTML = `<div class="empty">${esc(e.message)}</div>`;
+  }
+}
+function renderList() {
+  const list = $("#idList");
+  if (!listCache.length) { list.innerHTML = '<div class="empty">Nothing yet — forge your first identity above.</div>'; return; }
+  list.innerHTML = "";
+  for (const idn of listCache) {
+    const item = document.createElement("div");
+    item.className = "id-item";
+    const alive = idn.status === "active";
+    item.innerHTML =
+      `<div class="i-av">${esc(initials(idn.nick))}</div>` +
+      `<div class="i-info"><div class="i-nick">${esc(idn.nick)}</div><div class="i-addr">${esc(idn.address)}</div></div>` +
+      `<span class="chip ${esc(idn.status)}">${idn.status === "active" ? fmtCountdown(idn.expires_at - Date.now()) : esc(idn.status)}</span>`;
+    if (alive) item.addEventListener("click", () => openReveal(idn));
+    list.appendChild(item);
+  }
+}
+
+/* reveal dialog */
+let dlgId = null;
+async function openReveal(idn) {
+  dlgId = idn;
+  $("#dlgNick").textContent = idn.nick + " · " + idn.first_name + " " + idn.last_name;
+  $("#dlgAddr").textContent = idn.address;
+  $("#dlgPass").textContent = "…";
+  $("#dlgErr").textContent = "";
+  $("#revealDlg").showModal();
+  try {
+    const d = await api(`/api/identities/${idn.id}/password`);
+    $("#dlgPass").textContent = d.password;
+  } catch (e) { $("#dlgErr").textContent = e.message; }
+}
+$("#dlgClose").addEventListener("click", () => $("#revealDlg").close());
+$("#dlgBurn").addEventListener("click", async () => {
+  if (!dlgId) return;
+  $("#dlgBurn").disabled = true;
+  try {
+    await api(`/api/identities/${dlgId.id}/burn`, { method: "POST" });
+    $("#revealDlg").close();
+    snack("Identity burned — mailbox deleted");
+    refreshList();
+  } catch (e) { $("#dlgErr").textContent = e.message; }
+  finally { $("#dlgBurn").disabled = false; }
+});
+
+$("#burnBtn").addEventListener("click", async () => {
+  if (!current) return;
+  const btn = $("#burnBtn");
+  btn.disabled = true;
+  try {
+    await api(`/api/identities/${current.id}/burn`, { method: "POST" });
+    clearInterval(currentTimer);
+    current = null;
+    $("#resultCard").classList.add("hidden");
+    snack("Identity burned — mailbox deleted");
+    refreshList();
+  } catch (e) { $("#resErr").textContent = e.message; }
+  finally { btn.disabled = false; }
+});
+
+/* boot: trust id.js session if present (matches the widget's cookie check) */
+async function boot() {
+  try {
+    if (window.InprivID && typeof window.InprivID.check === "function") {
+      await new Promise((res) => window.InprivID.check(() => res()));
+    }
+    if (token) {
+      try {
+        const d = await api("/api/me");
+        enterApp(d.user);
+        return;
+      } catch { dropToken(); }
+    }
+    // No local session but the browser holds an Inpriv ID cookie → auto SSO.
+    if (window.InprivID && window.InprivID.user && typeof window.InprivID.sso === "function") {
+      window.InprivID.sso(async (res) => {
+        if (!res.ok) return;
+        try {
+          const d = await api("/api/sso", { method: "POST", body: JSON.stringify({ grant: res.grant, state: res.state }) });
+          if (d.token) { saveToken(d.token, false); enterApp(d.user); }
+        } catch {}
+      });
+    }
+  } catch {}
+}
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
+else boot();
+
+/* keep the list chips fresh */
+setInterval(() => { if (me && !document.hidden) renderList(); }, 30000);
+})();
+</script>
+</body>
+</html>

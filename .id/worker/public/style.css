@@ -442,15 +442,32 @@ main {
 
 .mini-btn {
   border: 1px solid var(--md-outline-variant);
-  background: none; color: var(--md-on-surface);
-  border-radius: 9999px; padding: 7px 14px;
+  background: var(--md-surface-container-lowest);
+  color: var(--md-on-surface);
+  border-radius: 9999px; padding: 8px 16px;
   font: 600 12px 'Roboto Flex', sans-serif; cursor: pointer;
   transition: all 0.2s var(--md-easing-standard);
+  display: inline-flex; align-items: center; justify-content: center;
+  text-decoration: none;
 }
-.mini-btn:hover { border-color: var(--md-primary); color: var(--md-primary); }
+.mini-btn:hover { 
+  border-color: var(--md-primary); 
+  color: var(--md-primary); 
+  background: color-mix(in srgb, var(--md-primary) 8%, transparent);
+}
+.mini-btn.active {
+  background: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+  border-color: var(--md-primary);
+}
+.mini-btn.active:hover {
+  background: color-mix(in srgb, var(--md-primary-container) 80%, transparent);
+  color: var(--md-on-primary-container);
+  border-color: var(--md-primary);
+}
 .mini-btn:active { transform: scale(0.95); }
 .mini-btn.danger { color: var(--md-error); border-color: color-mix(in srgb, var(--md-error) 40%, transparent); }
-.mini-btn.danger:hover { border-color: var(--md-error); }
+.mini-btn.danger:hover { border-color: var(--md-error); background: color-mix(in srgb, var(--md-error) 8%, transparent); }
 
 /* qr + codes */
 .qr-box {

@@ -1,0 +1,58 @@
+name = "inpriv-fake"
+main = "src/index.js"
+compatibility_date = "2025-08-01"
+workers_dev = true
+
+# Custom domain — disposable identities on fake.inpriv.xyz
+# (routes MUST stay above the first [table] — see cloudflare-workers skill)
+routes = [
+  { pattern = "fake.inpriv.xyz", custom_domain = true }
+]
+
+# Every-15-minutes sweep: hard-delete mailboxes whose lifetime ended and
+# tombstones older than 48 h, plus stale sessions and rate-limit counters.
+[triggers]
+crons = ["*/15 * * * *"]
+
+# Service database (identities, sessions, rate-limit counters)
+[[d1_databases]]
+binding = "DB"
+database_name = "inpriv-fake"
+database_id = "f1b11dc3-8255-4cc7-9ed8-f3b5c1913b8f"
+
+# Cross-read: resolve + verify Inpriv ID accounts (password fallback login)
+[[d1_databases]]
+binding = "ID_DB"
+database_name = "inpriv-id"
+database_id = "1cd1ca2e-51fd-40d9-94d8-aa75f989291b"
+
+# Cross-write: identities live as real mailboxes inside Inpriv Mail's users
+# table (same zero-knowledge enrollment as mail.inpriv.xyz registration), so
+# the existing Resend inbound webhook delivers to them with zero changes.
+# Expiry cron deletes the mailbox row (and its messages) when life ends.
+[[d1_databases]]
+binding = "MAIL_DB"
+database_name = "inpriv-mail"
+database_id = "d5c75cf0-46ba-4721-99fc-da18d2ccbabe"
+
+# Static frontend served from ./public (the single-file Fake Identity app)
+# run_worker_first: the worker MUST run on every request so the kill-switch
+# can replace the page with a maintenance screen
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = true
+
+# Admin kill-switch state (shared namespace with admin.inpriv.xyz)
+[[kv_namespaces]]
+binding = "MAINTENANCE"
+id = "37e2feceae474e21a0b9664c9bdfdea3"
+
+[vars]
+DOMAIN = "inpriv.xyz"
+
+# Secrets (set via `npx wrangler secret put <NAME>`):
+#   SERVICE_KEY   — shared Inpriv service secret; must match the value on
+#                   id.inpriv.xyz (grant redeem + TOTP verification)
+#   FAKE_ENC_KEY  — 32 bytes (openssl rand -base64 32) — seals the generated
+#                   mailbox password at rest so the owner can re-reveal it

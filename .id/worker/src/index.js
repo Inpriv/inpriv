@@ -18,6 +18,7 @@ const newToken = () => b64(crypto.getRandomValues(new Uint8Array(32)));
 const SERVICE_META = {
   mail: { name: "Inpriv Mail", icon: "mark_email_unread", url: "https://mail.inpriv.xyz" },
   host: { name: "Inpriv Host", icon: "cloud_upload", url: "https://host.inpriv.xyz" },
+  fake: { name: "Inpriv Fake", icon: "theater_comedy", url: "https://fake.inpriv.xyz" },
 };
 
 async function publicUser(env, uid, full = false) {

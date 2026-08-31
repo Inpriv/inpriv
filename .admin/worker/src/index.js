@@ -32,6 +32,7 @@ const SERVICES = [
   "censor",
   "account",
   "host",
+  "fake",
 ];
 const SERVICES_META = {
   landing:  { name: "Landing (inpriv.xyz)", url: "https://inpriv.xyz", icon: "home" },
@@ -51,6 +52,7 @@ const SERVICES_META = {
   censor:   { name: "Censor (screenshot redactor)", url: "https://censor.inpriv.xyz", icon: "privacy_tip" },
   account:  { name: "Inpriv ID (accounts)", url: "https://id.inpriv.xyz", icon: "badge" },
   host:     { name: "Host (static files)", url: "https://host.inpriv.xyz", icon: "cloud_upload" },
+  fake:     { name: "Fake (disposable identities)", url: "https://fake.inpriv.xyz", icon: "theater_comedy" },
 };
 const SESSION_TTL = 7 * 24 * 3600; // seconds
 const COOKIE = "inpriv_admin";
