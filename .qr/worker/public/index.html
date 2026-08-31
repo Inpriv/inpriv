@@ -303,6 +303,45 @@
         </button>
     </div>
   </header>
+<style data-inpriv-mobile-header>
+/* ── mobile floating glass app-bar (fake.inpriv.xyz style) — <600px only ── */
+@media (max-width: 599.98px) {
+  .top-header {
+    position: sticky; top: 12px; z-index: 50;
+    max-width: none; width: auto; margin: 12px 12px 22px; padding: 6px 6px 6px 14px;
+    gap: 8px; align-items: center;
+    border-radius: 9999px;
+    background: color-mix(in srgb, var(--md-surface-container, #1F211B) 80%, transparent);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid color-mix(in srgb, var(--md-outline-variant, #43483D) 50%, transparent);
+    box-shadow: 0 4px 20px -4px rgba(0,0,0,.4);
+    animation: thBarIn .7s cubic-bezier(.2,1.4,0,1) both;
+  }
+  @keyframes thBarIn { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
+  .top-header .brand { align-items: center; gap: 10px; }
+  .top-header .brand-title { font-size: 17px; white-space: nowrap; }
+  .top-header .brand-tagline { display: none; }
+  
+  .top-header .brand-icon:empty {
+    width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+    background: var(--md-primary-container, #2E4F2F); color: var(--md-on-primary-container, #C7EFA0);
+    display: grid; place-items: center;
+  }
+  .top-header .brand-icon:empty::before { content: 'theater_comedy'; font-family: 'Material Symbols Rounded'; font-size: 19px; }
+  .top-header .header-actions { gap: 2px; flex-wrap: nowrap; }
+  .top-header .icon-btn { width: 40px; height: 40px; flex-shrink: 0; }
+  
+  .top-header .privacy-pill { padding: 0; border: none; background: transparent; box-shadow: none; min-width: 40px; height: 40px; justify-content: center; border-radius: 50%; flex-shrink: 0; }
+  .top-header .privacy-pill > span:not(.material-symbols-rounded):not(.ms):not(.icon) { display: none; }
+  .top-header .privacy-pill .material-symbols-rounded,
+  .top-header .privacy-pill .ms,
+  .top-header .privacy-pill .icon { font-size: 21px; }
+  
+  
+}
+</style>
+
 
     <section class="hero">
       <h2 class="hero-h2">QR <span class="accent">codes</span></h2>
