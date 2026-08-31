@@ -35,6 +35,7 @@ SERVICES = {
     "trace":    ("selfcenter", "",     "travel_explore", ["#exportBtn"]),
     "compress": ("selfcenter", "keep", "compress",      []),
     "pay":      ("selfcenter", "keep", "payments",      []),
+    "id":       ("selfcenter", "",     "badge",         []),
 }
 
 BASE = r"C:/Users/mckkw/Desktop/Private/.projects/inpriv"
