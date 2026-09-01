@@ -1,0 +1,20 @@
+name = "inpriv-status"
+main = "src/index.js"
+compatibility_date = "2025-08-01"
+workers_dev = true
+
+routes = [
+  { pattern = "status.inpriv.xyz", custom_domain = true }
+]
+
+# Static frontend served from ./public
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = true
+
+# KV namespace for uptime history (7 daily buckets per service).
+# Create your own: npx wrangler kv namespace create STATUS_KV
+[[kv_namespaces]]
+binding = "STATUS_KV"
+id = "31e75a350c3a4b988432706159bd1719"
