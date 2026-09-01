@@ -268,6 +268,18 @@
             "applicationCategory": "SecurityApplication",
             "operatingSystem": "All"
           }
+        },
+        {
+          "@type": "ListItem",
+          "position": 17,
+          "item": {
+            "@type": "SoftwareApplication",
+            "name": "Share",
+            "description": "Direct device-to-device file transfer over an end-to-end encrypted P2P tunnel. No uploads, no size limits.",
+            "url": "https://share.inpriv.xyz",
+            "applicationCategory": "SecurityApplication",
+            "operatingSystem": "All"
+          }
         }
       ]
     }
@@ -1322,7 +1334,7 @@
       <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
     </a>
 
-    <a href="https://totp.inpriv.xyz" class="service-card" data-category="security" style="animation-delay: 0.39s;" target="_blank" rel="noopener noreferrer">
+    <a href="https://totp.inpriv.xyz" class="service-card" data-category="security" style="animation-delay: 0.37s;" target="_blank" rel="noopener noreferrer">
       <div class="service-icon-box"><span class="icon" aria-hidden="true">timer</span></div>
       <div class="service-info">
         <h2 class="service-name">TOTP</h2>
@@ -1332,7 +1344,7 @@
       <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
     </a>
 
-    <a href="https://fake.inpriv.xyz" class="service-card" data-category="comms security" style="animation-delay: 0.37s;" target="_blank" rel="noopener noreferrer">
+    <a href="https://fake.inpriv.xyz" class="service-card" data-category="comms security" style="animation-delay: 0.39s;" target="_blank" rel="noopener noreferrer">
       <div class="service-icon-box"><span class="icon" aria-hidden="true">theater_comedy</span></div>
       <div class="service-info">
         <h2 class="service-name">Fake</h2>
@@ -1413,13 +1425,23 @@
       <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
     </a>
 
-    <!-- Divider -->
-    <div class="section-divider" style="animation-delay: 0.75s;">
+    <a href="https://share.inpriv.xyz" class="service-card" data-category="security utils" style="animation-delay: 0.75s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">swap_horiz</span></div>
+      <div class="service-info">
+        <h2 class="service-name">Share</h2>
+        <p class="service-desc" data-i18n="desc-share">Direct device-to-device file transfer over an encrypted P2P tunnel. No uploads, no size limits.</p>
+      </div>
+      <span class="status-badge live" data-service="share" data-i18n="badge-live">Live</span>
+      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
+    </a>
+
+<!-- Divider -->
+    <div class="section-divider" style="animation-delay: 0.79s;">
       <span data-i18n="section-upcoming">Coming Soon</span>
     </div>
 
     <!-- Upcoming Services -->
-    <div class="service-card coming-soon" data-category="utils comms" style="animation-delay: 0.79s;">
+    <div class="service-card coming-soon" data-category="utils comms" style="animation-delay: 0.83s;">
       <div class="service-icon-box"><span class="icon" aria-hidden="true">account_balance_wallet</span></div>
       <div class="service-info">
         <h2 class="service-name">Zero</h2>
@@ -1428,7 +1450,7 @@
       <span class="status-badge soon" data-i18n="badge-soon">Soon</span>
     </div>
 
-    <div class="service-card coming-soon" data-category="security utils" style="animation-delay: 0.83s;">
+    <div class="service-card coming-soon" data-category="security utils" style="animation-delay: 0.87s;">
       <div class="service-icon-box"><span class="icon" aria-hidden="true">manage_search</span></div>
       <div class="service-info">
         <h2 class="service-name">OSINT</h2>
@@ -1437,7 +1459,7 @@
       <span class="status-badge soon" data-i18n="badge-soon">Soon</span>
     </div>
 
-    <div class="service-card coming-soon" data-category="security" style="animation-delay: 0.87s;" id="pass">
+    <div class="service-card coming-soon" data-category="security" style="animation-delay: 0.91s;" id="pass">
       <div class="service-icon-box"><span class="icon" aria-hidden="true">password</span></div>
       <div class="service-info">
         <h2 class="service-name">Pass</h2>
@@ -1446,7 +1468,7 @@
       <span class="status-badge soon" data-i18n="badge-soon">Soon</span>
     </div>
 
-    <div class="service-card coming-soon" data-category="utils" style="animation-delay: 0.91s;" id="base64">
+    <div class="service-card coming-soon" data-category="utils" style="animation-delay: 0.95s;" id="base64">
       <div class="service-icon-box"><span class="icon" aria-hidden="true">code</span></div>
       <div class="service-info">
         <h2 class="service-name">Base64</h2>
@@ -1455,7 +1477,7 @@
       <span class="status-badge soon" data-i18n="badge-soon">Soon</span>
     </div>
 
-    <div class="service-card placeholder" style="animation-delay: 0.95s;">
+    <div class="service-card placeholder" style="animation-delay: 0.99s;">
       <div class="service-icon-box"><span class="icon" aria-hidden="true">add</span></div>
       <div class="service-info">
         <h2 class="service-name" style="color:var(--md-on-surface-variant)" data-i18n="more-soon-title">More Soon</h2>
@@ -1653,6 +1675,7 @@
       'desc-burn': 'Ephemeral encrypted notes. Read once, then destroyed.',
       'desc-stego': 'Hide encrypted messages inside PNG images. Invisible, in-browser.',
       'desc-censor': 'Blur or pixelate sensitive content on screenshots — faces, cards, IPs, tokens. Auto-detect, in-browser.',
+      'desc-share': 'Direct device-to-device file transfer over an encrypted P2P tunnel. No uploads, no size limits.',
       'desc-fake': 'Time-limited fake identities with a real @inpriv.xyz mailbox. Inpriv ID required.',
       'desc-temp': 'Disposable email addresses on inpriv.xyz. Random inbox, live polling, one-click shred.',
       'desc-zero': 'Private crypto wallet. Self-custodial.',
@@ -1710,6 +1733,7 @@
       'desc-burn': 'Szyfrowane notatki efemeryczne. Przeczytane raz — zniszczone.',
       'desc-stego': 'Ukryj zaszyfrowane wiadomości w zdjęciach PNG. Niewidoczne, w przeglądarce.',
       'desc-censor': 'Zamaż lub spikseluj wrażliwe dane na zrzutach ekranu — twarze, karty, IP, tokeny. Autodetekcja, w przeglądarce.',
+      'desc-share': 'Bezpośredni transfer plików między urządzeniami przez szyfrowany tunel P2P. Bez uploadu, bez limitów rozmiaru.',
       'desc-fake': 'Czasowe fałszywe tożsamości z prawdziwą skrzynką @inpriv.xyz. Wymagane Inpriv ID.',
       'desc-temp': 'Jednorazowe adresy e-mail na inpriv.xyz. Losowa skrzynka, live polling, kasowanie jednym kliknięciem.',
       'desc-zero': 'Prywatny portfel krypto. Self-custodial.',
