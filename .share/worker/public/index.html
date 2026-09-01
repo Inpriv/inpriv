@@ -507,6 +507,120 @@ footer a { color: var(--md-primary); text-decoration: none; font-weight: 600; }
 @media (prefers-reduced-motion: reduce) {
   [data-theme="glass"] .card::before, .glass-aurora::before, .glass-aurora::after { animation: none; }
 }
+/* ════════════════════════════════════════════════════════════
+   NIGHT GLASS — dark sibling of Liquid Glass. Smoked glass
+   panels, glowing aurora on near-black, mint accent.
+   ════════════════════════════════════════════════════════════ */
+[data-theme="nightglass"] {
+  --md-primary: #8FE6AC;
+  --md-on-primary: #062A14;
+  --md-primary-container: rgba(46, 90, 62, 0.55);
+  --md-on-primary-container: #C9F5D6;
+  --md-secondary-container: rgba(255, 255, 255, 0.10);
+  --md-on-secondary-container: #DCE8DF;
+  --md-tertiary: #FFB4A5;
+  --md-tertiary-container: rgba(140, 60, 45, 0.45);
+  --md-on-tertiary-container: #FFDBD1;
+  --md-surface: #0B0F0D;
+  --md-surface-container-lowest: rgba(12, 16, 14, 0.55);
+  --md-surface-container-low: rgba(18, 24, 21, 0.42);
+  --md-surface-container: rgba(22, 30, 26, 0.40);
+  --md-surface-container-high: rgba(30, 40, 35, 0.55);
+  --md-surface-container-highest: rgba(40, 52, 46, 0.62);
+  --md-on-surface: #E4EEE7;
+  --md-on-surface-variant: rgba(214, 228, 217, 0.75);
+  --md-outline: rgba(220, 235, 224, 0.28);
+  --md-outline-variant: rgba(255, 255, 255, 0.16);
+  --md-error: #FFB4AB;
+  --md-error-container: rgba(120, 30, 34, 0.5);
+  --md-shadow: rgba(0, 0, 0, 0.6);
+  --header-glass: rgba(14, 19, 16, 0.52);
+  color-scheme: dark;
+}
+[data-theme="nightglass"] body { background: var(--md-surface); }
+[data-theme="nightglass"] .glass-aurora { display: block; }
+[data-theme="nightglass"] .bg-dots, [data-theme="nightglass"] .bg-blob { display: none; }
+[data-theme="nightglass"] .glass-aurora::before {
+  background: radial-gradient(circle at 30% 30%, #1E8A52, transparent 62%);
+  opacity: 0.5;
+}
+[data-theme="nightglass"] .glass-aurora::after {
+  background: radial-gradient(circle at 65% 60%, #3D5BD9 0%, #7A4FD0 48%, transparent 70%);
+  opacity: 0.45;
+}
+[data-theme="nightglass"] .top-header {
+  background: var(--header-glass);
+  backdrop-filter: blur(26px) saturate(160%);
+  -webkit-backdrop-filter: blur(26px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 9999px;
+  padding: 10px 12px 10px 10px;
+  margin-top: 12px;
+  box-shadow: 0 10px 34px -12px var(--md-shadow), inset 0 1px 0 rgba(255,255,255,0.14);
+}
+[data-theme="nightglass"] .brand-mark {
+  background: linear-gradient(145deg, rgba(143, 230, 172, 0.9), rgba(30, 138, 82, 0.9));
+  color: #062A14;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 6px 18px -6px rgba(30, 138, 82, 0.6);
+}
+[data-theme="nightglass"] .card {
+  background: linear-gradient(160deg, rgba(36, 46, 40, 0.55), rgba(16, 22, 19, 0.45));
+  backdrop-filter: blur(30px) saturate(150%);
+  -webkit-backdrop-filter: blur(30px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 18px 50px -18px var(--md-shadow), inset 0 1px 0 rgba(255,255,255,0.16);
+  position: relative;
+  overflow: hidden;
+}
+[data-theme="nightglass"] .card::before {
+  content: ""; position: absolute; top: -60%; left: -30%; width: 55%; height: 220%;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,0.14), transparent);
+  transform: rotate(12deg);
+  animation: sheen 7s var(--ease-standard) infinite;
+  pointer-events: none;
+}
+[data-theme="nightglass"] .btn {
+  background: linear-gradient(160deg, rgba(60, 190, 116, 0.95), rgba(24, 110, 66, 0.95));
+  box-shadow: 0 10px 28px -8px rgba(20, 120, 70, 0.55), inset 0 1px 0 rgba(255,255,255,0.35);
+}
+[data-theme="nightglass"] .btn-secondary, [data-theme="nightglass"] .btn-danger {
+  background: rgba(255, 255, 255, 0.10);
+  color: var(--md-on-surface);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.14);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+}
+[data-theme="nightglass"] .seg { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); backdrop-filter: blur(20px) saturate(140%); -webkit-backdrop-filter: blur(20px) saturate(140%); }
+[data-theme="nightglass"] .seg button[aria-pressed="true"] {
+  background: linear-gradient(160deg, rgba(60,190,116,0.95), rgba(24,110,66,0.95));
+  color: #062A14;
+  box-shadow: 0 6px 18px -6px rgba(20,120,70,0.6), inset 0 1px 0 rgba(255,255,255,0.35);
+}
+[data-theme="nightglass"] .dropzone {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.22);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+[data-theme="nightglass"] .dropzone:hover, [data-theme="nightglass"] .dropzone.drag { background: rgba(255,255,255,0.12); }
+[data-theme="nightglass"] .file-chip, [data-theme="nightglass"] .step, [data-theme="nightglass"] .incoming, [data-theme="nightglass"] .link-row, [data-theme="nightglass"] .banner, [data-theme="nightglass"] .scanner {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.14);
+  backdrop-filter: blur(16px) saturate(130%);
+  -webkit-backdrop-filter: blur(16px) saturate(130%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
+}
+[data-theme="nightglass"] .input { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+[data-theme="nightglass"] .step.done { background: rgba(60, 190, 116, 0.16); border-color: rgba(143, 230, 172, 0.35); }
+[data-theme="nightglass"] .priv { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.13); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+[data-theme="nightglass"] .toast { background: rgba(24, 30, 26, 0.75); backdrop-filter: blur(24px) saturate(150%); -webkit-backdrop-filter: blur(24px) saturate(150%); }
+[data-theme="nightglass"] .banner-err { color: #FFDAD6; }
+[data-theme="nightglass"] .qr-wrap img { background: #FFFFFF; padding: 10px; border-radius: 22px; }
+[data-theme="nightglass"] footer a { color: var(--md-primary); }
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="nightglass"] .card::before { animation: none; }
+}
 
 </style>
 </head>
@@ -697,13 +811,13 @@ async function sha256Hex(str) {
 
 /* ── theme ────────────────────────────────────────────────── */
 const THEME_KEY = "share_theme";
-const THEME_CYCLE = ["dark", "light", "glass"];
-const THEME_ICON = { dark: "light_mode", light: "auto_awesome", glass: "dark_mode" };
+const THEME_CYCLE = ["dark", "light", "glass", "nightglass"];
+const THEME_ICON = { dark: "light_mode", light: "auto_awesome", glass: "nights_stay", nightglass: "dark_mode" };
 function applyTheme(t) {
   document.documentElement.dataset.theme = t;
   const metaDark = document.querySelector('meta[media="(prefers-color-scheme: dark)"]');
   const metaLight = document.querySelector('meta[media="(prefers-color-scheme: light)"]');
-  const browserBar = t === "dark" ? "#13140E" : t === "glass" ? "#EDF3F2" : "#FAF9F0";
+  const browserBar = { dark: "#13140E", light: "#FAF9F0", glass: "#EDF3F2", nightglass: "#0B0F0D" }[t] || "#13140E";
   if (metaDark) metaDark.content = browserBar;
   if (metaLight) metaLight.content = browserBar;
   try { localStorage.setItem(THEME_KEY, t); } catch {}
