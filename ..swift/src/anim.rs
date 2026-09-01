@@ -1,6 +1,6 @@
 //! Easing curves and animation helpers.
 //!
-//! Implements the Aurex Labs M3 "Earthy Forest" motion spec (see aurexlabs.md
+//! Implements the Inpriv Labs M3 "Earthy Forest" motion spec (see inpriv-labs.md
 //! §7). All curves are physics-flavoured: no linear transitions.
 
 /// Standard M3 easing: `cubic-bezier(0.2, 0.0, 0.0, 1.0)`.

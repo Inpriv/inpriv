@@ -2,7 +2,7 @@
 
 > Enterprise WebRTC Interface Exposure Audit & Threat Intelligence Shield
 
-Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Aurex Labs](https://aurexlabs.xyz).
+Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Inpriv Labs](https://inpriv.xyz).
 
 ## What it does
 
@@ -47,7 +47,7 @@ Or just open `index.html` directly in a browser — no build step required.
 ## Tech
 
 - Vanilla HTML/CSS/JS
-- Material Design 3 (Aurex Labs Design System)
+- Material Design 3 (Inpriv Labs Design System)
 - WebRTC API (`RTCPeerConnection`, ICE candidates, SDP parsing)
 - `navigator.mediaDevices.enumerateDevices()` for device audit
 - Roboto Flex + Material Symbols Rounded (Google Fonts)

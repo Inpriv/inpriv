@@ -1,6 +1,6 @@
 /* =====================================================================
    export.js — SVG / PNG (high-res) / PDF export + clipboard helpers
-   Copyright (c) 2026 Aurex Labs — MIT License
+   Copyright (c) 2026 Inpriv Labs — MIT License
    Pure client-side. PDFs are assembled by hand and embed a JPEG raster.
    ===================================================================== */
 (function (global) {

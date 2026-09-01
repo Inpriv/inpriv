@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Inject fake.inpriv.xyz-style mobile app-bar into every Inpriv service header.
 
-Fake's header (the one the user likes on mobile):
+Fake's header style (the suite standard on mobile):
   - sticky, floating glass pill (inset 12px, 9999px radius, blur+saturate)
   - brand icon in a rounded container + "name<accent>.</accent>" nowrap
   - actions: icon buttons become 44px circles, privacy pills compact to icon

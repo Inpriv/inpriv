@@ -2,7 +2,7 @@
 
 > Privacy-focused hexagonal code generator — turn any text into a one-of-a-kind honeycomb pattern.
 
-Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Aurex Labs](https://aurexlabs.xyz).
+Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Inpriv Labs](https://inpriv.xyz).
 
 ## What it does
 
@@ -59,4 +59,4 @@ python -m http.server 8080
 - Web Crypto API (`crypto.subtle`) for encrypted notes
 - Deterministic PRNG (xmur3 → sfc32)
 - SVG-based rendering (no canvas for the art itself)
-- Material Design 3 (Aurex Labs Design System — Earthy Forest)
+- Material Design 3 (Inpriv Labs Design System — Earthy Forest)

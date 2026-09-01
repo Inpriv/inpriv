@@ -23,7 +23,7 @@ const sendRes = await fetch("https://api.resend.com/emails", {
     from: "Inpriv Test <test@inpriv.xyz>",
     to: [mb.address],
     subject,
-    text: "Cialo testowej wiadomosci — real delivery marker RX-42.",
+    text: "Test message body — real delivery marker RX-42.",
   }),
 });
 const sendJson = await sendRes.json().catch(() => ({}));

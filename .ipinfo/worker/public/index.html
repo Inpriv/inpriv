@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   Inpriv IP Info — What Your Browser Reveals
-  Copyright (c) 2026 Aurex Labs — MIT License
+  Copyright (c) 2026 Inpriv Labs — MIT License
 
   Shows your public IP/ISP/geo (via a public lookup) plus a full client-side
   device fingerprint (canvas, WebGL, audio, navigator surface). Zero-knowledge;
@@ -26,7 +26,7 @@
 
   <style>
     /* ==========================================================================
-       1. COLOR PALETTE & DESIGN TOKENS (Aurex Labs M3 Earthy Forest)
+       1. COLOR PALETTE & DESIGN TOKENS (Inpriv Labs M3 Earthy Forest)
        ========================================================================== */
     :root {
       --md-easing-standard: cubic-bezier(0.2, 0.0, 0.0, 1.0);
@@ -269,7 +269,7 @@
   color: var(--md-on-surface);
   display: grid; place-items: center; cursor: pointer;
   padding: 0; font: inherit; text-decoration: none;
-  transition: transform 0.3s var(--aurex-ease, cubic-bezier(0.2, 1.4, 0, 1)), border-color 0.2s ease;
+  transition: transform 0.3s var(--inpriv-ease, cubic-bezier(0.2, 1.4, 0, 1)), border-color 0.2s ease;
 }
 .top-header .icon-btn:hover { transform: translateY(-1px); border-color: var(--md-primary); }
 .top-header .icon-btn:active { transform: scale(0.94); }
@@ -308,7 +308,7 @@
     <div class="brand">
       <div>
         <div class="brand-title">ipinfo<span class="accent">.</span></div>
-        <div class="brand-tagline">Aurex Labs</div>
+        <div class="brand-tagline">Inpriv Labs</div>
       </div>
     </div>
     <div class="header-actions">
@@ -405,8 +405,8 @@
     const themeToggleBtn = document.getElementById('themeToggleBtn');
     const themeIcon = document.getElementById('themeIcon');
     const htmlElem = document.documentElement;
-    function setTheme(theme) { htmlElem.setAttribute('data-theme', theme); localStorage.setItem('aurex_theme', theme); themeIcon.textContent = theme === 'dark' ? 'light_mode' : 'dark_mode'; }
-    const savedTheme = localStorage.getItem('aurex_theme') || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    function setTheme(theme) { htmlElem.setAttribute('data-theme', theme); localStorage.setItem('inpriv_theme', theme); themeIcon.textContent = theme === 'dark' ? 'light_mode' : 'dark_mode'; }
+    const savedTheme = localStorage.getItem('inpriv_theme') || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
     setTheme(savedTheme);
     themeToggleBtn.addEventListener('click', () => setTheme(htmlElem.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
 

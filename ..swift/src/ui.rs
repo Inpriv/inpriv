@@ -61,7 +61,7 @@ fn paint_row_tint(painter: &egui::Painter, hits: &[SearchHitRef], line: usize, t
     }
 }
 
-// --- Theme: Aurex Labs M3 "Earthy Forest" (dark). See aurexlabs.md. ---
+// --- Theme: Inpriv Labs M3 "Earthy Forest" (dark). See inpriv-labs.md. ---
 // Surface scale — near-black with a warm undertone.
 pub const BG: Color32 = Color32::from_rgb(0x13, 0x14, 0x0e); // M3 Surface
 pub const BG_DEEP: Color32 = Color32::from_rgb(0x0d, 0x0f, 0x09); // Surface Container Lowest

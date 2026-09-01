@@ -2,7 +2,7 @@
 
 > Ultra-fast, minimal text editor/viewer for massive files. Built in Rust.
 
-Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Aurex Labs](https://aurexlabs.xyz).
+Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Inpriv Labs](https://inpriv.xyz).
 
 ## What it does
 

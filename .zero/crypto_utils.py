@@ -1,6 +1,6 @@
 """
 crypto_utils.py — Cryptographic and Solana blockchain operations for Zero Wallet.
-Copyright (c) 2026 Aurex Labs — MIT License
+Copyright (c) 2026 Inpriv Labs — MIT License
 
 Provides key generation (Ed25519 via BIP39), wallet encryption (AES-256-GCM + Argon2id),
 and Solana RPC interactions (balance, send, transaction history).

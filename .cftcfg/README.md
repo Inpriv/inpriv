@@ -2,7 +2,7 @@
 
 > Cloudflare Tunnel (`cloudflared`) configuration manager — TUI, GUI, and CLI.
 
-Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Aurex Labs](https://aurexlabs.xyz).
+Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Inpriv Labs](https://inpriv.xyz).
 
 ## What it does
 

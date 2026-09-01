@@ -1,5 +1,5 @@
 // esbuild.config.mjs — bundles the browser client into static/app.js
-// Copyright (c) 2026 Aurex Labs — MIT License
+// Copyright (c) 2026 Inpriv Labs — MIT License
 //
 // Usage:  node esbuild.config.mjs         (one-shot build)
 //         node esbuild.config.mjs --watch (rebuild on change)

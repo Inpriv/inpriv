@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   Inpriv WebRTC Audit — Interface Exposure & Leak Shield
-  Copyright (c) 2026 Aurex Labs — MIT License
+  Copyright (c) 2026 Inpriv Labs — MIT License
 
   Enumerates local ICE candidates exposed by RTCPeerConnection and flags real
   local/private IPs. Pure client-side — opens a transient peer and reads only
@@ -13,7 +13,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com fonts.gstatic.com; script-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.googleapis.com fonts.gstatic.com https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'; connect-src 'self'; worker-src 'none'; manifest-src 'self'">
   <meta name="description" content="Enterprise WebRTC Interface Exposure Audit & Threat Intelligence Shield" />
-  <title>Aurex Labs — WebRTC Security Audit & Leak Shield</title>
+  <title>Inpriv Labs — WebRTC Security Audit & Leak Shield</title>
   
   <!-- Typography: Roboto Flex & Material Symbols Rounded -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -23,7 +23,7 @@
 
   <style>
     /* ==========================================================================
-       1. COLOR PALETTE & DESIGN TOKENS (Aurex Labs M3 Earthy Forest)
+       1. COLOR PALETTE & DESIGN TOKENS (Inpriv Labs M3 Earthy Forest)
        ========================================================================== */
     :root {
       --md-easing-standard: cubic-bezier(0.2, 0.0, 0.0, 1.0);
@@ -926,7 +926,7 @@
   color: var(--md-on-surface);
   display: grid; place-items: center; cursor: pointer;
   padding: 0; font: inherit; text-decoration: none;
-  transition: transform 0.3s var(--aurex-ease, cubic-bezier(0.2, 1.4, 0, 1)), border-color 0.2s ease;
+  transition: transform 0.3s var(--inpriv-ease, cubic-bezier(0.2, 1.4, 0, 1)), border-color 0.2s ease;
 }
 .top-header .icon-btn:hover { transform: translateY(-1px); border-color: var(--md-primary); }
 .top-header .icon-btn:active { transform: scale(0.94); }
@@ -968,7 +968,7 @@
     <div class="brand">
       <div>
         <div class="brand-title">webrtc<span class="accent">.</span></div>
-        <div class="brand-tagline">Aurex Labs</div>
+        <div class="brand-tagline">Inpriv Labs</div>
       </div>
     </div>
     <div class="header-actions">
@@ -1140,7 +1140,7 @@
 
     <!-- Enterprise Footer -->
     <footer class="app-footer">
-      <div>Aurex Labs WebRTC Shield • Open Source Security Audit Suite</div>
+      <div>Inpriv Labs WebRTC Shield • Open Source Security Audit Suite</div>
       <div class="footer-links">
         <span class="disabled-link" title="GitHub Repository Coming Soon">
           GitHub Repository (Soon)
@@ -1182,11 +1182,11 @@
 
     function setTheme(theme) {
       htmlElem.setAttribute('data-theme', theme);
-      localStorage.setItem('aurex_theme', theme);
+      localStorage.setItem('inpriv_theme', theme);
       themeIcon.textContent = theme === 'dark' ? 'light_mode' : 'dark_mode';
     }
 
-    const savedTheme = localStorage.getItem('aurex_theme') || 
+    const savedTheme = localStorage.getItem('inpriv_theme') || 
       (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
     setTheme(savedTheme);
 
@@ -1418,7 +1418,7 @@
           const pc = new RTCPeerConnection({ iceServers: [server] });
           peerConnections.push(pc);
 
-          pc.createDataChannel('aurex-probe');
+          pc.createDataChannel('inpriv-probe');
 
           pc.onicecandidate = (e) => {
             if (e.candidate) parseCandidate(e.candidate.candidate, server.name);
@@ -1651,7 +1651,7 @@
 
     function exportAuditReport() {
       const report = {
-        app: "Aurex Labs WebRTC Shield",
+        app: "Inpriv Labs WebRTC Shield",
         version: "3.2.0-enterprise",
         timestamp: new Date().toISOString(),
         httpGateway: httpBaselineData || "Unknown",

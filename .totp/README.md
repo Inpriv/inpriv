@@ -2,7 +2,7 @@
 
 > RFC 6238 time-based one-time password (2FA) authenticator — fully client-side, zero-knowledge.
 
-Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Aurex Labs](https://aurexlabs.xyz).
+Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Inpriv Labs](https://inpriv.xyz).
 
 ## What it does
 
@@ -59,4 +59,4 @@ python -m http.server 8080
 - Web Crypto API (`crypto.subtle`) for HMAC-SHA1 and AES-GCM
 - Base32 codec (pure JS)
 - `qrcode-generator` library (CDN) for QR rendering
-- Material Design 3 (Aurex Labs Design System — Earthy Forest)
+- Material Design 3 (Inpriv Labs Design System — Earthy Forest)

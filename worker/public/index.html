@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   Inpriv — Privacy-First Tools
-  Copyright (c) 2026 Aurex Labs — MIT License
+  Copyright (c) 2026 Inpriv Labs — MIT License
 
   Suite landing page. Curates a set of zero-knowledge, fully client-side
   web utilities (encrypted chat, metadata wipe, WebRTC audit, hashing, QR,
@@ -17,7 +17,7 @@
   <meta name="title" content="Inpriv — Privacy-First Tools | Zero-Knowledge & Client-Side">
   <meta name="description" content="A suite of zero-knowledge, client-side web utilities engineered for total digital privacy. Disposable temporary email, encrypted chat, EXIF wipe, WebRTC leak test, TOTP authenticator, ephemeral encrypted notes, hash brute force, image compression, and more.">
   <meta name="keywords" content="privacy tools, zero knowledge, disposable email, temp mail, hush chat, metadata sanitizer, image compression, webrtc leak test, totp authenticator, 2fa, burn ephemeral notes, open source privacy">
-  <meta name="author" content="Aurex Labs">
+  <meta name="author" content="Inpriv Labs">
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
   <link rel="canonical" href="https://inpriv.xyz/">
 
@@ -69,7 +69,7 @@
       "description": "Privacy-first tools. Zero-knowledge. Client-side only.",
       "publisher": {
         "@type": "Organization",
-        "name": "Aurex Labs",
+        "name": "Inpriv Labs",
         "url": "https://inpriv.xyz"
       }
     },
@@ -1070,7 +1070,7 @@
   color: var(--md-on-surface);
   display: grid; place-items: center; cursor: pointer;
   padding: 0; font: inherit; text-decoration: none;
-  transition: transform 0.3s var(--aurex-ease, cubic-bezier(0.2, 1.4, 0, 1)), border-color 0.2s ease;
+  transition: transform 0.3s var(--inpriv-ease, cubic-bezier(0.2, 1.4, 0, 1)), border-color 0.2s ease;
 }
 .top-header .icon-btn:hover { transform: translateY(-1px); border-color: var(--md-primary); }
 .top-header .icon-btn:active { transform: scale(0.94); }
@@ -1142,7 +1142,7 @@
     <div class="brand">
       <span class="brand-icon" aria-hidden="true"><span class="icon">shield</span></span><div>
         <div class="brand-title">Inpriv<span class="accent">.</span></div>
-        <div class="brand-tagline">Aurex Labs</div>
+        <div class="brand-tagline">Inpriv Labs</div>
       </div>
     </div>
     <div class="header-actions">
@@ -1517,7 +1517,7 @@
 
   <footer>
     <div class="copyright" data-i18n="copyright">Copyright 2026, Inpriv</div>
-    <div class="byline"><span data-i18n="by">by</span> <span>Aurex Labs</span></div>
+    <div class="byline"><span data-i18n="by">by</span> <span>Inpriv Labs</span></div>
   </footer>
 </div>
 
@@ -1528,11 +1528,11 @@
 
   function setTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('aurex_theme', theme);
+    localStorage.setItem('inpriv_theme', theme);
     themeIcon.textContent = theme === 'dark' ? 'light_mode' : 'dark_mode';
   }
 
-  const savedTheme = localStorage.getItem('aurex_theme') || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  const savedTheme = localStorage.getItem('inpriv_theme') || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
   setTheme(savedTheme);
 
   themeToggleBtn.addEventListener('click', () => {

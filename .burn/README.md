@@ -2,7 +2,7 @@
 
 > Zero-knowledge ephemeral encrypted notes — read once, then gone forever.
 
-Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Aurex Labs](https://aurexlabs.xyz).
+Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Inpriv Labs](https://inpriv.xyz).
 
 ## What it does
 
@@ -126,4 +126,4 @@ by the Worker on the custom domain.
 - Cloudflare KV (ephemeral key-value storage with TTL)
 - Frontend: vanilla HTML/CSS/JS with WebCrypto API
 - Wrangler CLI for deployment
-- Material Design 3, Earthy Forest (Aurex Labs Design System)
+- Material Design 3, Earthy Forest (Inpriv Labs Design System)

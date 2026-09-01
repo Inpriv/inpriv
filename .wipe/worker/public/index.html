@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   Inpriv Wipe — Metadata Inspector & Sanitizer
-  Copyright (c) 2026 Aurex Labs — MIT License
+  Copyright (c) 2026 Inpriv Labs — MIT License
 
   Inspects EXIF/XMP/IPTC/ICC/GPS metadata, then strips or rewrites it using
   piexifjs (MIT, CDN) + canvas rasterization. 100% client-side; no data leaves
@@ -15,8 +15,8 @@
 <meta name="theme-color" content="#13140E">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="description" content="wipe — Aurex Labs zero-knowledge metadata inspector and sanitizer. See every EXIF, GPS, XMP tag before you wipe it. 100% client-side. No data leaves your device.">
-<title>wipe — Metadata Inspector &amp; Sanitizer | Aurex Labs</title>
+<meta name="description" content="wipe — Inpriv Labs zero-knowledge metadata inspector and sanitizer. See every EXIF, GPS, XMP tag before you wipe it. 100% client-side. No data leaves your device.">
+<title>wipe — Metadata Inspector &amp; Sanitizer | Inpriv Labs</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:ital,opsz,wght@0,8..144,300..800;1,8..144,300..800&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
@@ -24,7 +24,7 @@
 
 <style>
 /* ==========================================================================
-   AUREX LABS DESIGN SYSTEM — MATERIAL DESIGN 3 (EARTHY FOREST)
+   INPRIV LABS DESIGN SYSTEM — MATERIAL DESIGN 3 (EARTHY FOREST)
    ========================================================================== */
 
 :root, [data-theme="dark"] {
@@ -685,7 +685,7 @@ p.hero-subtitle { font-size: 14px; color: var(--md-on-surface-variant); margin-b
       <span class="material-symbols-rounded">arrow_back</span>
     </button>
     <div class="brand-title">wipe<span class="accent">.</span></div>
-    <span class="brand-tagline">Aurex Labs</span>
+    <span class="brand-tagline">Inpriv Labs</span>
   </div>
   <div style="display: flex; align-items: center; gap: 6px;">
     <div class="privacy-guard" id="privacyGuard" onclick="togglePrivacyGuard()">
@@ -702,7 +702,7 @@ p.hero-subtitle { font-size: 14px; color: var(--md-on-surface-variant); margin-b
 <aside class="sidebar" id="sidebar">
   <div class="logo-wrap">
     <div class="brand-title" style="font-size: 22px;">wipe<span class="accent">.</span></div>
-    <span class="brand-tagline">Aurex Labs Design System</span>
+    <span class="brand-tagline">Inpriv Labs Design System</span>
   </div>
 
   <nav class="nav-section">
@@ -827,7 +827,7 @@ p.hero-subtitle { font-size: 14px; color: var(--md-on-surface-variant); margin-b
     </section>
 
     <footer class="app-footer">
-      Aurex Labs &copy; 2026 &bull; Earthy Forest Design System
+      Inpriv Labs &copy; 2026 &bull; Earthy Forest Design System
     </footer>
   </main>
 </div>
@@ -923,12 +923,12 @@ function toggleTheme() {
   const next = current === 'dark' ? 'light' : 'dark';
   html.setAttribute('data-theme', next);
   applyThemeIcons(next);
-  try { localStorage.setItem('aurex_theme', next); } catch (e) {}
+  try { localStorage.setItem('inpriv_theme', next); } catch (e) {}
   showToast(`Switched to ${next} mode`, 'success');
 }
 (function initTheme() {
   try {
-    const saved = localStorage.getItem('aurex_theme');
+    const saved = localStorage.getItem('inpriv_theme');
     if (saved === 'light' || saved === 'dark') {
       document.documentElement.setAttribute('data-theme', saved);
       applyThemeIcons(saved);
@@ -1466,7 +1466,7 @@ function renderArchitectView() {
       <div class="architect-form">
         <div class="input-group"><label class="input-label">Camera Make</label><input type="text" class="input-field" placeholder="e.g. Canon" value="${escapeHtml(s.make)}" onchange="updateArchitectSetting('make',this.value)"></div>
         <div class="input-group"><label class="input-label">Camera Model</label><input type="text" class="input-field" placeholder="e.g. EOS R5" value="${escapeHtml(s.model)}" onchange="updateArchitectSetting('model',this.value)"></div>
-        <div class="input-group"><label class="input-label">Software</label><input type="text" class="input-field" placeholder="e.g. Aurex Studio" value="${escapeHtml(s.software)}" onchange="updateArchitectSetting('software',this.value)"></div>
+        <div class="input-group"><label class="input-label">Software</label><input type="text" class="input-field" placeholder="e.g. Inpriv Studio" value="${escapeHtml(s.software)}" onchange="updateArchitectSetting('software',this.value)"></div>
         <div class="input-group"><label class="input-label">Copyright</label><input type="text" class="input-field" placeholder="Copyright 2026" value="${escapeHtml(s.copyright)}" onchange="updateArchitectSetting('copyright',this.value)"></div>
       </div>
     </div>

@@ -2,7 +2,7 @@
 
 > AI-powered open-source intelligence search and report generator.
 
-Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Aurex Labs](https://aurexlabs.xyz).
+Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Inpriv Labs](https://inpriv.xyz).
 
 ## What it does
 
@@ -112,4 +112,4 @@ python main.py
 - `httpx` for async HTTP, `ddgs` for DuckDuckGo search
 - OpenRouter for LLM inference (model-agnostic)
 - Frontend: HTML + Tailwind (CDN) + marked.js (CDN)
-- Material Design 3 (Aurex Labs Design System)
+- Material Design 3 (Inpriv Labs Design System)

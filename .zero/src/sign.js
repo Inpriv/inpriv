@@ -1,5 +1,5 @@
 // src/sign.js — Solana transaction building & signing, fully in-browser.
-// Copyright (c) 2026 Aurex Labs — MIT License
+// Copyright (c) 2026 Inpriv Labs — MIT License
 //
 // The server never sees the private key; it only relays the final signed bytes.
 

@@ -8,7 +8,7 @@ Inpriv is a privacy-first project — we take security reports seriously.
 
 Instead, please report privately:
 
-1. **Email:** security@aurexlabs.xyz
+1. **Email:** security@inpriv.xyz
 2. **Subject:** `[SECURITY] Inpriv — <brief description>`
 3. Include: description, steps to reproduce, impact assessment, and suggested fix (if any).
 
@@ -62,4 +62,4 @@ We credit security researchers who report valid vulnerabilities (unless they pre
 
 ---
 
-*Built with paranoia. © 2026 Aurex Labs.*
+*Built with paranoia. © 2026 Inpriv Labs.*

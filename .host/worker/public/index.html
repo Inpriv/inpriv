@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   Inpriv Host — private static file hosting with a built-in privacy shield
-  Copyright (c) 2026 Aurex Labs — MIT License
+  Copyright (c) 2026 Inpriv Labs — MIT License
 
   Host your own sites, pages and files on host.inpriv.xyz. Every upload is
   scanned server-side for IP loggers, WebRTC leaks, trackers and beacons
@@ -24,7 +24,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap">
 
   <style>
-    /* ===== 1. DESIGN TOKENS (Aurex Labs M3 Earthy Forest) ===== */
+    /* ===== 1. DESIGN TOKENS (Inpriv Labs M3 Earthy Forest) ===== */
     :root {
       --md-easing-standard: cubic-bezier(0.2, 0.0, 0.0, 1.0);
       --md-easing-emphasized: cubic-bezier(0.3, 0.0, 0.0, 1.0);
@@ -642,7 +642,7 @@
   color: var(--md-on-surface);
   display: grid; place-items: center; cursor: pointer;
   padding: 0; font: inherit; text-decoration: none;
-  transition: transform 0.3s var(--aurex-ease, cubic-bezier(0.2, 1.4, 0, 1)), border-color 0.2s ease;
+  transition: transform 0.3s var(--inpriv-ease, cubic-bezier(0.2, 1.4, 0, 1)), border-color 0.2s ease;
 }
 .top-header .icon-btn:hover { transform: translateY(-1px); border-color: var(--md-primary); }
 .top-header .icon-btn:active { transform: scale(0.94); }
@@ -691,7 +691,7 @@
     <div class="brand">
       <div>
         <div class="brand-title">host<span class="accent">.</span></div>
-        <div class="brand-tagline">Aurex Labs</div>
+        <div class="brand-tagline">Inpriv Labs</div>
       </div>
     </div>
     <div class="header-actions">
@@ -708,6 +708,7 @@
       </button>
     </div>
   </header>
+
 <style data-inpriv-mobile-header>
 /* ── mobile floating glass app-bar (fake.inpriv.xyz style) — <600px only ── */
 @media (max-width: 599.98px) {
@@ -746,7 +747,6 @@
   
 }
 </style>
-
 
   <main>
     <!-- ═══════════ LOGIN ═══════════ -->
@@ -1103,10 +1103,10 @@
       document.documentElement.setAttribute('data-theme', t);
       const ic = themeBtn.querySelector ? themeBtn.querySelector('.icon') : null;
       if (ic) ic.textContent = t === 'dark' ? 'light_mode' : 'dark_mode';
-      try { localStorage.setItem('aurex_theme', t); } catch {}
+      try { localStorage.setItem('inpriv_theme', t); } catch {}
     }
     let savedTheme = 'dark';
-    try { savedTheme = localStorage.getItem('aurex_theme') || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'); } catch {}
+    try { savedTheme = localStorage.getItem('inpriv_theme') || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'); } catch {}
     applyTheme(savedTheme);
     themeBtn.addEventListener('click', () => applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
 
@@ -1674,9 +1674,7 @@
     function edRenderPreview() {
       if (!ed.previewOn || !edIsPage()) return;
       const doc = '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
-        '<style>html,body{margin:0}
-</style>
-</head><body>' + edCode.value + '</body></html>';
+        '<style>html,body{margin:0}</style></head><body>' + edCode.value + '</body></html>';
       // srcdoc + sandbox (no allow-same-origin → opaque origin, no storage access)
       $('edPreview').srcdoc = doc;
     }

@@ -1,6 +1,6 @@
 /* =====================================================================
    theme.js — light/dark theme manager
-   Copyright (c) 2026 Aurex Labs — MIT License
+   Copyright (c) 2026 Inpriv Labs — MIT License
    Default: dark (privacy-first). Honors saved preference, then system.
    ===================================================================== */
 (function (global) {

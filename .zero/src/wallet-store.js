@@ -1,5 +1,5 @@
 // src/wallet-store.js — encrypted-wallet persistence in IndexedDB.
-// Copyright (c) 2026 Aurex Labs — MIT License
+// Copyright (c) 2026 Inpriv Labs — MIT License
 //
 // Stores only ENCRYPTED envelopes (produced by crypto.encryptWallet). The
 // plaintext private key / mnemonic are NEVER persisted — they live only in

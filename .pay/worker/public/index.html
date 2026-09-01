@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   Inpriv Pay — Non-Custodial Cryptocurrency Payment Gateway
-  Copyright (c) 2026 Aurex Labs — MIT License
+  Copyright (c) 2026 Inpriv Labs — MIT License
 
   URL-driven checkout for BTC, XMR and SOL. Keys never touch a server — all
   signing and address derivation happen client-side. No custodian, no trust.
@@ -13,15 +13,15 @@
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com fonts.gstatic.com; script-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.googleapis.com fonts.gstatic.com https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'; connect-src 'self'; worker-src 'none'; manifest-src 'self'">
 <meta name="theme-color" content="#13140E">
 <meta name="description" content="Inpriv Pay — A non-custodial cryptocurrency payment gateway for Bitcoin, Monero, and Solana. Zero private key exposure. Fully client-side.">
-<meta name="author" content="Aurex Labs">
+<meta name="author" content="Inpriv Labs">
 <meta property="og:title" content="Inpriv Pay — Non-Custodial Crypto Gateway">
 <meta property="og:description" content="Request and receive BTC, XMR, and SOL payments with zero private key exposure. Fully client-side and URL-driven.">
 <meta property="og:type" content="website">
-<meta property="og:image" content="https://aurexlabs.com/og-image.png">
+<meta property="og:image" content="https://hush.best/icon.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Inpriv Pay">
 <meta name="twitter:description" content="Non-custodial crypto payment gateway. Zero trust required.">
-<title>Inpriv Pay — by Aurex Labs</title>
+<title>Inpriv Pay — by Inpriv Labs</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300;8..144,400;8..144,500;8..144,600;8..144,700;8..144,800&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0;24,500,0,200;24,600,0,200;48,400,0,0&display=swap" rel="stylesheet">
@@ -30,7 +30,7 @@ body { padding-top: 0; }
 
 /*
   Inpriv Pay — Non-Custodial Cryptocurrency Payment Gateway
-  Copyright (c) 2026 Aurex Labs
+  Copyright (c) 2026 Inpriv Labs
   Licensed under the MIT License
   https://opensource.org/licenses/MIT
 */
@@ -343,7 +343,7 @@ textarea.input-field { height: auto; min-height: 100px; padding: 16px; resize: v
   color: var(--md-on-surface);
   display: grid; place-items: center; cursor: pointer;
   padding: 0; font: inherit; text-decoration: none;
-  transition: transform 0.3s var(--aurex-ease, cubic-bezier(0.2, 1.4, 0, 1)), border-color 0.2s ease;
+  transition: transform 0.3s var(--inpriv-ease, cubic-bezier(0.2, 1.4, 0, 1)), border-color 0.2s ease;
 }
 .top-header .icon-btn:hover { transform: translateY(-1px); border-color: var(--md-primary); }
 .top-header .icon-btn:active { transform: scale(0.94); }
@@ -396,7 +396,7 @@ textarea.input-field { height: auto; min-height: 100px; padding: 16px; resize: v
     <div class="brand">
       <div>
         <div class="brand-title">pay<span class="accent">.</span></div>
-        <div class="brand-tagline">Aurex Labs</div>
+        <div class="brand-tagline">Inpriv Labs</div>
       </div>
     </div>
     <div class="header-actions">
@@ -404,7 +404,7 @@ textarea.input-field { height: auto; min-height: 100px; padding: 16px; resize: v
         <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5l-8-3z" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
         <span>Non-Custodial</span>
       </div>
-      <a class="icon-btn" href="https://github.com/aurexlabs/inpriv-pay" target="_blank" rel="noopener" aria-label="GitHub" title="View on GitHub">
+      <a class="icon-btn" href="https://github.com/inprivlabs/inpriv-pay" target="_blank" rel="noopener" aria-label="GitHub" title="View on GitHub">
         <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 .5A11.5 11.5 0 0 0 .5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56v-2.17c-3.2.7-3.87-1.36-3.87-1.36-.52-1.33-1.28-1.68-1.28-1.68-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.03 1.76 2.69 1.25 3.35.96.1-.75.4-1.25.72-1.54-2.55-.29-5.23-1.28-5.23-5.68 0-1.26.45-2.28 1.18-3.09-.12-.29-.51-1.45.11-3.03 0 0 .96-.31 3.16 1.18a10.9 10.9 0 0 1 5.76 0c2.19-1.49 3.15-1.18 3.15-1.18.63 1.58.24 2.74.12 3.03.74.81 1.18 1.83 1.18 3.09 0 4.42-2.69 5.39-5.25 5.67.41.36.77 1.05.77 2.13v3.16c0 .31.21.68.8.56A11.5 11.5 0 0 0 23.5 12 11.5 11.5 0 0 0 12 .5z"/></svg>
       </a>
         <button class="icon-btn" id="themeToggle" aria-label="Toggle theme">
@@ -412,6 +412,7 @@ textarea.input-field { height: auto; min-height: 100px; padding: 16px; resize: v
       </button>
     </div>
   </header>
+
 <style data-inpriv-mobile-header>
 /* ── mobile floating glass app-bar (fake.inpriv.xyz style) — <600px only ── */
 @media (max-width: 599.98px) {
@@ -449,7 +450,6 @@ textarea.input-field { height: auto; min-height: 100px; padding: 16px; resize: v
   
 }
 </style>
-
 
 <div class="content-layer">
 
@@ -524,9 +524,9 @@ textarea.input-field { height: auto; min-height: 100px; padding: 16px; resize: v
 <div class="footer" id="homeFooter">
   <div class="footer-brand">Inpriv Pay</div>
   <div class="footer-copy">
-    Copyright &copy; 2026 Aurex Labs. Licensed under MIT.
+    Copyright &copy; 2026 Inpriv Labs. Licensed under MIT.
     <br>
-    <a href="https://github.com/aurexlabs/inpriv-pay" target="_blank" rel="noopener">GitHub</a> &middot;
+    <a href="https://github.com/inprivlabs/inpriv-pay" target="_blank" rel="noopener">GitHub</a> &middot;
     <a href="#" id="licenseLink">License</a>
   </div>
 </div>
@@ -614,7 +614,7 @@ textarea.input-field { height: auto; min-height: 100px; padding: 16px; resize: v
 <script>
 /*
   Inpriv Pay — Non-Custodial Cryptocurrency Payment Gateway
-  Copyright (c) 2026 Aurex Labs
+  Copyright (c) 2026 Inpriv Labs
   Licensed under the MIT License
   https://opensource.org/licenses/MIT
 
@@ -868,11 +868,11 @@ function buildURI(coin, addr, amount, title, desc) {
 const themeToggle = document.getElementById('themeToggle');
 function setTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
-  localStorage.setItem('aurex-theme', theme);
+  localStorage.setItem('inpriv-theme', theme);
   themeToggle.textContent = theme === 'dark' ? 'light_mode' : 'dark_mode';
 }
 function initTheme() {
-  const saved = localStorage.getItem('aurex-theme');
+  const saved = localStorage.getItem('inpriv-theme');
   if (saved) { setTheme(saved); return; }
   setTheme(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
 }
@@ -1294,7 +1294,7 @@ document.getElementById('pasteLinkBtn').addEventListener('click', async function
 /* ---------- License Modal ---------- */
 document.getElementById('licenseLink').addEventListener('click', function(e) {
   e.preventDefault();
-  const licenseText = 'MIT License\n\nCopyright (c) 2026 Aurex Labs\n\nPermission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.';
+  const licenseText = 'MIT License\n\nCopyright (c) 2026 Inpriv Labs\n\nPermission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.';
   showToast('License copied to clipboard');
   copyText(licenseText);
 });

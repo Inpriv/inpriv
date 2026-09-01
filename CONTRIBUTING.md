@@ -17,7 +17,7 @@ These principles define what Inpriv IS. Violating them means the PR will be reje
 
 ## Design System
 
-All UI follows the **Aurex Labs Design System** — Material Design 3, "Earthy Forest" aesthetic. See the style guide for tokens, typography, motion, and component specs.
+All UI follows the **Inpriv Labs Design System** — Material Design 3, "Earthy Forest" aesthetic.
 
 **Key tokens:**
 
@@ -126,4 +126,4 @@ By contributing, you agree your contributions are licensed under the MIT License
 
 ---
 
-*Questions? Open an issue or reach the team at hello@aurexlabs.xyz.*
+*Questions? Open an issue or reach the team at hello@inpriv.xyz.*

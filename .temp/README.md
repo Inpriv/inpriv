@@ -2,7 +2,7 @@
 
 > Random `@inpriv.xyz` addresses that live for 24 hours. No signup, no logs.
 
-Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Aurex Labs](https://aurexlabs.xyz).
+Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Inpriv Labs](https://inpriv.xyz).
 
 **Live:** <https://temp.inpriv.xyz>
 

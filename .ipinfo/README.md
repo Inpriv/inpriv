@@ -2,7 +2,7 @@
 
 > See exactly what your browser reveals — public IP, ISP, geolocation, and a full client-side device fingerprint.
 
-Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Aurex Labs](https://aurexlabs.xyz).
+Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Inpriv Labs](https://inpriv.xyz).
 
 ## What it does
 
@@ -52,4 +52,4 @@ python -m http.server 8080
 - Vanilla HTML/CSS/JS (single `index.html`, no build step)
 - `fetch` API for IP lookups, `navigator`/`screen` APIs for fingerprint
 - WebGL `WEBGL_debug_renderer_info` extension
-- Material Design 3 (Aurex Labs Design System — Earthy Forest)
+- Material Design 3 (Inpriv Labs Design System — Earthy Forest)

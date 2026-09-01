@@ -1,6 +1,6 @@
 """
 wallet.py — Zero Wallet server (v2).
-Copyright (c) 2026 Aurex Labs — MIT License
+Copyright (c) 2026 Inpriv Labs — MIT License
 
 This server is a THIN, TRUSTLESS relay. It performs NO cryptography and holds
 NO keys, NO passwords, NO seeds, and NO session state. It exists only to:

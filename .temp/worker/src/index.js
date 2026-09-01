@@ -29,7 +29,7 @@ const RESERVED = new Set([
 // (≥4 chars) block ANY continuation; short ones (hi, mx, pop, www, ftp,
 // vpn, dev, mod, me) only block separator/digit continuations.
 const RESERVED_PREFIXES = [
-  "abuse", "account", "admin", "administrator", "alert", "api", "aurex",
+  "abuse", "account", "admin", "administrator", "alert", "api",
   "auth", "backup", "billing", "bot", "burn", "cert", "cluster", "contact",
   "demo", "dev", "dns", "do-not-reply", "donotreply", "everyone", "example",
   "feedback", "ftp", "gateway", "guest", "hello", "help", "hi", "hostmaster",

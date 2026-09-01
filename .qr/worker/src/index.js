@@ -1,6 +1,6 @@
 // Inpriv QR API — Free, no-auth QR code generation API
 // GET /api/qr?data=<text>&format=svg|png&ec=L|M|Q|H&size=256&margin=4&fg=000000&bg=ffffff
-// Copyright (c) 2026 Aurex Labs — MIT License
+// Copyright (c) 2026 Inpriv Labs — MIT License
 
 import { maintenanceGate, maintenancePage } from "../../../common/gate.js";
 

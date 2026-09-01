@@ -1,8 +1,8 @@
 # Inpriv Compress — Image Compressor
 
-> A modern, privacy-first, client-side image compressor by Aurex Labs.
+> A modern, privacy-first, client-side image compressor by Inpriv Labs.
 
-Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Aurex Labs](https://aurexlabs.xyz).
+Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Inpriv Labs](https://inpriv.xyz).
 
 ## What it does
 
@@ -45,7 +45,7 @@ Or just open `index.html` directly in a browser — no build step required.
 ## Tech
 
 - Vanilla HTML/CSS/JS
-- Material Design 3 (Aurex Labs Design System)
+- Material Design 3 (Inpriv Labs Design System)
 - Canvas API (`toBlob`) for encoding
 - Inline SVG icon system (no icon font dependency)
 - Roboto Flex (Google Fonts)

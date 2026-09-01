@@ -2,7 +2,7 @@
 
 > Generate QR codes from text, URLs, WiFi or contacts, or read QR codes from your camera or an image — all in your browser. Zero-knowledge, fully client-side.
 
-Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Aurex Labs](https://aurexlabs.xyz).
+Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Inpriv Labs](https://inpriv.xyz).
 
 ## What it does
 
@@ -51,7 +51,7 @@ Or just open `index.html` directly in a browser — no build step required.
 ## Tech
 
 - Vanilla HTML/CSS/JS
-- Material Design 3 (Aurex Labs Design System)
+- Material Design 3 (Inpriv Labs Design System)
 - Bundled QR encoder (Reed-Solomon / GF(256), adapted MIT)
 - jsQR decoder (CDN, MIT) for image/camera decoding
 - Canvas API for rendering and frame capture

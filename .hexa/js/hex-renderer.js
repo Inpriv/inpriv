@@ -1,6 +1,6 @@
 /* =====================================================================
    hex-renderer.js — Inpriv Hexa art engine
-   Copyright (c) 2026 Aurex Labs — MIT License
+   Copyright (c) 2026 Inpriv Labs — MIT License
    Pure hexagon design. Your text is hashed into a deterministic seed,
    which paints a symmetric honeycomb pattern inside a single big hexagon.
    No square grid, no finder blocks, no QR pixels — just hexagons.

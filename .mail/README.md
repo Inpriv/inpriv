@@ -2,7 +2,7 @@
 
 > Mobile-first, zero-knowledge encrypted email with hybrid RSA-2048 + AES-GCM encryption, fully integrated with Inpriv ID.
 
-Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Aurex Labs](https://aurexlabs.xyz).
+Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Inpriv Labs](https://inpriv.xyz).
 
 ## What it does
 

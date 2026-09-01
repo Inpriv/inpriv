@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   Inpriv Censor — Screenshot Redactor
-  Copyright (c) 2026 Aurex Labs — MIT License
+  Copyright (c) 2026 Inpriv Labs — MIT License
 
   Blur / pixelate / black out sensitive content on screenshots (faces, card
   numbers, IPs, tokens, passwords) before sharing. Manual studio + optional
@@ -17,8 +17,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="description" content="censor — Aurex Labs zero-knowledge screenshot redactor. Blur, pixelate or black out faces, card numbers, IPs and tokens before sharing. 100% client-side.">
-<title>censor — Screenshot Redactor | Aurex Labs</title>
+<meta name="description" content="censor — Inpriv Labs zero-knowledge screenshot redactor. Blur, pixelate or black out faces, card numbers, IPs and tokens before sharing. 100% client-side.">
+<title>censor — Screenshot Redactor | Inpriv Labs</title>
 <link rel="icon" href="https://hush.best/icon.png">
 <link rel="apple-touch-icon" href="https://hush.best/icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -27,7 +27,7 @@
 
 <style>
 /* ==========================================================================
-   AUREX LABS DESIGN SYSTEM — MATERIAL DESIGN 3 (EARTHY FOREST)
+   INPRIV LABS DESIGN SYSTEM — MATERIAL DESIGN 3 (EARTHY FOREST)
    ========================================================================== */
 
 :root, [data-theme="dark"] {
@@ -70,7 +70,7 @@
   --md-glass: rgba(19, 20, 14, 0.72);
   --md-glass-border: rgba(171, 211, 122, 0.14);
 
-  --aurex-ease: cubic-bezier(0.2, 1.4, 0, 1);
+  --inpriv-ease: cubic-bezier(0.2, 1.4, 0, 1);
 }
 
 [data-theme="light"] {
@@ -194,7 +194,7 @@ body {
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   color: var(--md-on-surface);
   display: grid; place-items: center; cursor: pointer;
-  transition: transform 0.3s var(--aurex-ease), border-color 0.2s ease;
+  transition: transform 0.3s var(--inpriv-ease), border-color 0.2s ease;
 }
 .icon-btn:hover { transform: translateY(-1px); border-color: var(--md-primary); }
 .icon-btn:active { transform: scale(0.94); }
@@ -226,7 +226,7 @@ body {
   padding: 44px 24px;
   text-align: center; cursor: pointer;
   background: var(--md-surface-container-low);
-  transition: border-color 0.25s ease, background 0.25s ease, transform 0.3s var(--aurex-ease);
+  transition: border-color 0.25s ease, background 0.25s ease, transform 0.3s var(--inpriv-ease);
 }
 .dropzone:hover, .dropzone.dragover {
   border-color: var(--md-primary);
@@ -277,7 +277,7 @@ body {
   background: var(--md-surface-container-low);
   border: 1px solid var(--md-glass-border);
   border-radius: 20px; padding: 12px 14px;
-  animation: cardIn 0.45s var(--aurex-ease) both;
+  animation: cardIn 0.45s var(--inpriv-ease) both;
 }
 .file-card + .file-card { margin-top: 10px; }
 @keyframes cardIn {
@@ -316,7 +316,7 @@ body {
   padding: 12px 22px; border-radius: 9999px;
   border: none; cursor: pointer;
   font-family: inherit; font-size: 14px; font-weight: 650;
-  transition: transform 0.3s var(--aurex-ease), box-shadow 0.25s ease, opacity 0.2s ease;
+  transition: transform 0.3s var(--inpriv-ease), box-shadow 0.25s ease, opacity 0.2s ease;
   -webkit-tap-highlight-color: transparent;
 }
 .btn:active { transform: scale(0.96); }
@@ -355,7 +355,7 @@ body {
   padding: 9px 10px; border-radius: 9999px; border: none; cursor: pointer;
   background: transparent; color: var(--md-on-surface-variant);
   font-family: inherit; font-size: 12.5px; font-weight: 650;
-  transition: background 0.25s ease, color 0.25s ease, transform 0.3s var(--aurex-ease);
+  transition: background 0.25s ease, color 0.25s ease, transform 0.3s var(--inpriv-ease);
 }
 .seg-btn .material-symbols-rounded { font-size: 17px; }
 .seg-btn.active {
@@ -382,7 +382,7 @@ input[type="range"]::-webkit-slider-thumb {
   background: var(--md-primary); cursor: pointer;
   border: 3px solid var(--md-surface);
   box-shadow: 0 1px 6px rgba(0,0,0,0.3);
-  transition: transform 0.3s var(--aurex-ease);
+  transition: transform 0.3s var(--inpriv-ease);
 }
 input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
 input[type="range"]::-moz-range-thumb {
@@ -415,7 +415,7 @@ input[type="range"]::-moz-range-thumb {
   width: 16px; height: 16px; border-radius: 9999px;
   background: var(--md-on-surface-variant);
   transform: translateY(-50%);
-  transition: left 0.3s var(--aurex-ease), width 0.3s var(--aurex-ease), background 0.25s ease;
+  transition: left 0.3s var(--inpriv-ease), width 0.3s var(--inpriv-ease), background 0.25s ease;
 }
 .switch[aria-checked="true"] {
   background: var(--md-primary); border-color: var(--md-primary);
@@ -474,7 +474,7 @@ input[type="range"]::-moz-range-thumb {
   background: var(--md-surface-container);
   border: 1px solid var(--md-glass-border);
   border-radius: 16px;
-  animation: cardIn 0.35s var(--aurex-ease) both;
+  animation: cardIn 0.35s var(--inpriv-ease) both;
   cursor: pointer;
   transition: border-color 0.2s ease, background 0.2s ease;
 }
@@ -502,7 +502,7 @@ input[type="range"]::-moz-range-thumb {
   border: 1px solid var(--md-glass-border);
   border-radius: 24px; padding: 18px;
   cursor: pointer;
-  transition: border-color 0.25s ease, transform 0.3s var(--aurex-ease);
+  transition: border-color 0.25s ease, transform 0.3s var(--inpriv-ease);
 }
 .mode-card:hover { border-color: var(--md-primary); transform: translateY(-2px); }
 .mode-icon {
@@ -584,7 +584,7 @@ input[type="range"]::-moz-range-thumb {
   border: 1px solid var(--md-glass-border);
   box-shadow: var(--md-shadow);
   font-size: 13px; font-weight: 600;
-  animation: toastIn 0.45s var(--aurex-ease) both;
+  animation: toastIn 0.45s var(--inpriv-ease) both;
 }
 .toast .material-symbols-rounded { font-size: 19px; color: var(--md-primary); }
 .toast.err .material-symbols-rounded { color: var(--md-error); }
@@ -621,7 +621,7 @@ input[type="range"]::-moz-range-thumb {
       </button>
       <div>
         <div class="brand-title">censor<span class="accent">.</span></div>
-        <div class="brand-tagline">Aurex Labs</div>
+        <div class="brand-tagline">Inpriv Labs</div>
       </div>
     </div>
     <div class="header-actions">
@@ -634,6 +634,7 @@ input[type="range"]::-moz-range-thumb {
       </button>
     </div>
   </header>
+
 <style data-inpriv-mobile-header>
 /* ── mobile floating glass app-bar (fake.inpriv.xyz style) — <600px only ── */
 @media (max-width: 599.98px) {
@@ -672,7 +673,6 @@ input[type="range"]::-moz-range-thumb {
   
 }
 </style>
-
 
   <!-- ── UPLOAD VIEW ────────────────────────────────────────────────────── -->
   <section class="view" id="view-upload">
@@ -837,7 +837,7 @@ input[type="range"]::-moz-range-thumb {
   </section>
 
   <footer style="margin-top: 34px; text-align: center; font-size: 11.5px; color: var(--md-on-surface-variant);">
-    Aurex Labs &copy; 2026 &bull; Earthy Forest Design System
+    Inpriv Labs &copy; 2026 &bull; Earthy Forest Design System
   </footer>
 </div>
 
@@ -909,12 +909,12 @@ function hideOverlay() { $('processingOverlay').classList.remove('show'); }
 function toggleTheme() {
   const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
   document.documentElement.setAttribute('data-theme', next);
-  try { localStorage.setItem('aurex_theme', next); } catch (e) {}
+  try { localStorage.setItem('inpriv_theme', next); } catch (e) {}
   $('themeIcon').textContent = next === 'dark' ? 'light_mode' : 'dark_mode';
 }
 (function initTheme() {
   let saved = 'dark';
-  try { saved = localStorage.getItem('aurex_theme') || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'); } catch (e) {}
+  try { saved = localStorage.getItem('inpriv_theme') || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'); } catch (e) {}
   document.documentElement.setAttribute('data-theme', saved);
   $('themeIcon').textContent = saved === 'dark' ? 'light_mode' : 'dark_mode';
 })();

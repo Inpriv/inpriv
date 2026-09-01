@@ -2,7 +2,7 @@
 
 > Zero-knowledge end-to-end encrypted chat with WebSocket signaling.
 
-Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Aurex Labs](https://aurexlabs.xyz).
+Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Inpriv Labs](https://inpriv.xyz).
 
 ## What it does
 
@@ -105,4 +105,4 @@ the WebSocket endpoint at `/ws`, and the admin panel at `/panel`.
 - Python 3.10+, `aiohttp` (async WebSocket server)
 - Vanilla HTML/CSS/JS client (WebCrypto API for E2EE)
 - No database — zero persistence by design
-- Material Design 3 (Aurex Labs Design System)
+- Material Design 3 (Inpriv Labs Design System)

@@ -2,7 +2,7 @@
 
 > Zero-knowledge local metadata inspector and sanitizer. See exactly what your photos leak — then wipe it. 100% client-side. No data leaves your device.
 
-Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Aurex Labs](https://aurexlabs.xyz).
+Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Inpriv Labs](https://inpriv.xyz).
 
 Live at [wipe.inpriv.xyz](https://wipe.inpriv.xyz).
 
@@ -27,7 +27,7 @@ Beyond inspection, three processing modes: **Total Purge** (destroys all metadat
 - **Multi-format support** — JPEG, PNG, TIFF, WebP (non-JPEG formats are rasterized to JPEG via `<canvas>`); `imageOrientation: 'from-image'` keeps EXIF-rotated phone photos upright
 - **Mobile-first UI** — thumb-friendly bottom nav, snap-scroll mode rail, safe-area insets, 44px touch targets, 16px inputs (no iOS zoom), back button on subviews; sidebar layout on ≥600px
 - **Drag-and-drop** upload with file validation (`accept="image/*"` — full camera roll on mobile)
-- **Dark/light theme** toggle, persisted via `localStorage` (`aurex_theme`)
+- **Dark/light theme** toggle, persisted via `localStorage` (`inpriv_theme`)
 
 ## How it works
 
@@ -56,6 +56,6 @@ Or just open `index.html` directly in a browser — no build step required.
 ## Tech
 
 - Vanilla HTML/CSS/JS — single self-contained `index.html`
-- Material Design 3 (Aurex Labs Design System, Earthy Forest)
+- Material Design 3 (Inpriv Labs Design System, Earthy Forest)
 - piexifjs (CDN) for EXIF manipulation
 - Roboto Flex + Material Symbols Rounded (Google Fonts)

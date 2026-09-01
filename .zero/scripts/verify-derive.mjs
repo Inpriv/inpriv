@@ -1,5 +1,5 @@
 // scripts/verify-derive.mjs — regression guard for client-side key derivation.
-// Copyright (c) 2026 Aurex Labs — MIT License
+// Copyright (c) 2026 Inpriv Labs — MIT License
 //
 // Asserts that the SAME crypto code path used in the browser produces the
 // Phantom-standard address for the canonical BIP39 test mnemonic.

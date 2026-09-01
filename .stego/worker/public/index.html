@@ -1041,7 +1041,7 @@ textarea::placeholder, .text-input::placeholder { color: color-mix(in srgb, var(
   color: var(--md-on-surface);
   display: grid; place-items: center; cursor: pointer;
   padding: 0; font: inherit; text-decoration: none;
-  transition: transform 0.3s var(--aurex-ease, cubic-bezier(0.2, 1.4, 0, 1)), border-color 0.2s ease;
+  transition: transform 0.3s var(--inpriv-ease, cubic-bezier(0.2, 1.4, 0, 1)), border-color 0.2s ease;
 }
 .top-header .icon-btn:hover { transform: translateY(-1px); border-color: var(--md-primary); }
 .top-header .icon-btn:active { transform: scale(0.94); }
@@ -1081,7 +1081,7 @@ textarea::placeholder, .text-input::placeholder { color: color-mix(in srgb, var(
     <div class="brand">
       <div>
         <div class="brand-title">stego<span class="accent">.</span></div>
-        <div class="brand-tagline">Aurex Labs</div>
+        <div class="brand-tagline">Inpriv Labs</div>
       </div>
     </div>
     <div class="header-actions">
@@ -1097,6 +1097,7 @@ textarea::placeholder, .text-input::placeholder { color: color-mix(in srgb, var(
       </button>
     </div>
   </header>
+
 <style data-inpriv-mobile-header>
 /* ── mobile floating glass app-bar (fake.inpriv.xyz style) — <600px only ── */
 @media (max-width: 599.98px) {
@@ -1135,7 +1136,6 @@ textarea::placeholder, .text-input::placeholder { color: color-mix(in srgb, var(
   
 }
 </style>
-
 
   <header class="hero">
     <h1 class="hero-title"><span data-i18n="hero1">Hide in plain</span><br><span class="accent" data-i18n="hero2">sight.</span></h1>
@@ -1302,7 +1302,7 @@ textarea::placeholder, .text-input::placeholder { color: color-mix(in srgb, var(
 
   <p class="footnote">
     Part of <a href="https://inpriv.xyz" target="_blank" rel="noopener noreferrer">Inpriv</a> — zero-knowledge utilities by
-    <a href="https://aurexlabs.xyz" target="_blank" rel="noopener noreferrer">Aurex Labs</a>.
+    <a href="https://inpriv.xyz" target="_blank" rel="noopener noreferrer">Inpriv Labs</a>.
     Share images as <strong>files</strong> — compressing or re-encoding (JPEG, screenshots, messengers) destroys the hidden data.
   </p>
 </div>
@@ -1686,10 +1686,10 @@ const state = {
 /* ─── Theme ─── */
 function setTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
-  localStorage.setItem('aurex_theme', theme);
+  localStorage.setItem('inpriv_theme', theme);
   els.themeIcon.textContent = theme === 'dark' ? 'light_mode' : 'dark_mode';
 }
-const savedTheme = localStorage.getItem('aurex_theme') ||
+const savedTheme = localStorage.getItem('inpriv_theme') ||
   (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
 setTheme(savedTheme);
 els.themeToggle.addEventListener('click', () => {

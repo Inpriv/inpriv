@@ -1,5 +1,5 @@
 // src/app.js — Zero Wallet application controller.
-// Copyright (c) 2026 Aurex Labs — MIT License
+// Copyright (c) 2026 Inpriv Labs — MIT License
 //
 // Wires the UI to the client-side crypto + server proxy. Holds the only
 // in-memory copy of the unlocked keypair (cleared on lock / idle timeout).

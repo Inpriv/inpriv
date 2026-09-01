@@ -1,6 +1,6 @@
 /* =====================================================================
    presets.js — content formatters + AES-GCM encrypted notes
-   Copyright (c) 2026 Aurex Labs — MIT License
+   Copyright (c) 2026 Inpriv Labs — MIT License
    All encoding is in-browser; nothing is transmitted.
    ===================================================================== */
 (function (global) {

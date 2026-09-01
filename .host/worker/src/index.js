@@ -6,7 +6,7 @@
 //     pixel beacons and tracker scripts BEFORE it is published
 //   · public serving with sandbox + stealth headers, cached at the edge
 //   · login via Inpriv ID (D1 cross-read — no password data stored here)
-// Copyright (c) 2026 Aurex Labs — MIT License
+// Copyright (c) 2026 Inpriv Labs — MIT License
 // ═════════════════════════════════════════════════════════════════════════════
 
 import { maintenanceGate, maintenancePage } from "../../../common/gate.js";

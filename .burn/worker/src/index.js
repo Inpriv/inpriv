@@ -1,7 +1,7 @@
 // Inpriv Burn — Cloudflare Worker
 // Zero-knowledge ephemeral notes: server stores ONLY encrypted blobs.
 // Key never leaves the client (URL fragment). KV with TTL + burn-after-read.
-// Copyright (c) 2026 Aurex Labs — MIT License
+// Copyright (c) 2026 Inpriv Labs — MIT License
 
 import { maintenanceGate, maintenancePage } from "../../../common/gate.js";
 

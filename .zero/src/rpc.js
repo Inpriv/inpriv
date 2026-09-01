@@ -1,5 +1,5 @@
 // src/rpc.js — talks ONLY to our own server proxy (/api/rpc, /api/sol-price).
-// Copyright (c) 2026 Aurex Labs — MIT License
+// Copyright (c) 2026 Inpriv Labs — MIT License
 //
 // The server forwards to the real Solana RPC + price feeds. This keeps the
 // client free of CORS concerns and lets operators swap RPC providers without a

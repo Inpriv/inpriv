@@ -2,7 +2,7 @@
 
 > Client-side DNS leak detection. Resolve test hostnames through multiple DNS-over-HTTPS resolvers and compare against your HTTP egress IP. Honest, in-browser, zero-knowledge.
 
-Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Aurex Labs](https://aurexlabs.xyz).
+Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Inpriv Labs](https://inpriv.xyz).
 
 ## What it does
 
@@ -47,7 +47,7 @@ Or just open `index.html` directly in a browser — no build step required.
 ## Tech
 
 - Vanilla HTML/CSS/JS
-- Material Design 3 (Aurex Labs Design System)
+- Material Design 3 (Inpriv Labs Design System)
 - DNS-over-HTTPS (DoH) JSON API (`application/dns-json`)
 - Fetch API for IP intelligence and DoH queries
 - Roboto Flex + Material Symbols Rounded (Google Fonts)

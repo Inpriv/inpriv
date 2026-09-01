@@ -1,5 +1,5 @@
 // src/crypto.js — all client-side cryptography for Zero Wallet.
-// Copyright (c) 2026 Aurex Labs — MIT License
+// Copyright (c) 2026 Inpriv Labs — MIT License
 //
 // NOTHING here touches the network. NOTHING here touches the server.
 // This module is the trust root of the wallet.

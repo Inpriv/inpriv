@@ -12,7 +12,7 @@
 
 ## Engineering notes
 
-- Single self-contained `index.html` (Aurex Labs M3 Earthy Forest design system).
+- Single self-contained `index.html` (Inpriv Labs M3 Earthy Forest design system).
 - Detection engines load lazily from CDN on first use, then stay cached for the session.
 - Redaction composites always sample from the *original* pixels, so overlapping regions never smear into each other.
 - OCR words are grouped into visual lines before regex matching; matches map back to word bounding boxes for precise boxes.
@@ -29,4 +29,4 @@ cp index.html worker/public/index.html
 cd worker && npx wrangler deploy
 ```
 
-© 2026 Aurex Labs — MIT License.
+© 2026 Inpriv Labs — MIT License.

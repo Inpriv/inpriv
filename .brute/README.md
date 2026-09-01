@@ -2,7 +2,7 @@
 
 > Client-side hash brute-force matcher for educational password-security demonstrations.
 
-Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Aurex Labs](https://aurexlabs.xyz).
+Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Inpriv Labs](https://inpriv.xyz).
 
 ## What it does
 
@@ -58,4 +58,4 @@ python -m http.server 8080
 - Web Crypto API (`crypto.subtle.digest`) for SHA family
 - Pure-JS MD5 implementation (RFC 1321)
 - File Stream API for memory-efficient large-file processing
-- Material Design 3 (Aurex Labs Design System — Earthy Forest)
+- Material Design 3 (Inpriv Labs Design System — Earthy Forest)

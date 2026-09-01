@@ -24,7 +24,7 @@ A **privacy score (0–100)** and an overall verdict summarize all three, and th
 
 ## Tech
 
-Single self-contained `index.html` (Aurex Labs M3 Earthy Forest design system, Roboto Flex + Material Symbols Rounded, dark theme default, glass app bar, spring motion). Deployed as a Cloudflare Worker with static assets + the shared maintenance gate (`common/gate.js`, kill-switch wired to admin.inpriv.xyz, `run_worker_first = true`).
+Single self-contained `index.html` (Inpriv Labs M3 Earthy Forest design system, Roboto Flex + Material Symbols Rounded, dark theme default, glass app bar, spring motion). Deployed as a Cloudflare Worker with static assets + the shared maintenance gate (`common/gate.js`, kill-switch wired to admin.inpriv.xyz, `run_worker_first = true`).
 
 ## Deploy
 
@@ -38,4 +38,4 @@ npx wrangler deploy
 
 Replaces `ipinfo.inpriv.xyz`, `dns.inpriv.xyz` and `webrtc.inpriv.xyz` (2026-08). Those subdomains now redirect here. The legacy tools live in git history under `.ipinfo/`, `.dns/`, `.webrtc/`.
 
-— Aurex Labs, MIT License
+— Inpriv Labs, MIT License

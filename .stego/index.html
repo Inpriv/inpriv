@@ -1041,7 +1041,7 @@ textarea::placeholder, .text-input::placeholder { color: color-mix(in srgb, var(
   color: var(--md-on-surface);
   display: grid; place-items: center; cursor: pointer;
   padding: 0; font: inherit; text-decoration: none;
-  transition: transform 0.3s var(--aurex-ease, cubic-bezier(0.2, 1.4, 0, 1)), border-color 0.2s ease;
+  transition: transform 0.3s var(--inpriv-ease, cubic-bezier(0.2, 1.4, 0, 1)), border-color 0.2s ease;
 }
 .top-header .icon-btn:hover { transform: translateY(-1px); border-color: var(--md-primary); }
 .top-header .icon-btn:active { transform: scale(0.94); }
@@ -1081,7 +1081,7 @@ textarea::placeholder, .text-input::placeholder { color: color-mix(in srgb, var(
     <div class="brand">
       <div>
         <div class="brand-title">stego<span class="accent">.</span></div>
-        <div class="brand-tagline">Aurex Labs</div>
+        <div class="brand-tagline">Inpriv Labs</div>
       </div>
     </div>
     <div class="header-actions">
@@ -1097,6 +1097,45 @@ textarea::placeholder, .text-input::placeholder { color: color-mix(in srgb, var(
       </button>
     </div>
   </header>
+
+<style data-inpriv-mobile-header>
+/* ── mobile floating glass app-bar (fake.inpriv.xyz style) — <600px only ── */
+@media (max-width: 599.98px) {
+  .top-header {
+    position: sticky; top: 12px; z-index: 50;
+    max-width: none; width: auto; margin: 12px 12px 22px; padding: 6px 6px 6px 14px;
+    gap: 8px; align-items: center;
+    border-radius: 9999px;
+    background: color-mix(in srgb, var(--md-surface-container, #1F211B) 80%, transparent);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid color-mix(in srgb, var(--md-outline-variant, #43483D) 50%, transparent);
+    box-shadow: 0 4px 20px -4px rgba(0,0,0,.4);
+    animation: thBarIn .7s cubic-bezier(.2,1.4,0,1) both;
+  }
+  @keyframes thBarIn { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
+  .top-header .brand { align-items: center; gap: 10px; }
+  .top-header .brand-title { font-size: 17px; white-space: nowrap; }
+  .top-header .brand-tagline { display: none; }
+  
+  .top-header .brand-icon {
+    width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+    background: var(--md-primary-container, #2E4F2F); color: var(--md-on-primary-container, #C7EFA0);
+    display: grid; place-items: center;
+  }
+  .top-header .brand-icon .material-symbols-rounded { font-size: 19px; }
+  .top-header .header-actions { gap: 2px; flex-wrap: nowrap; }
+  .top-header .icon-btn { width: 40px; height: 40px; flex-shrink: 0; }
+  
+  .top-header .privacy-pill { padding: 0; border: none; background: transparent; box-shadow: none; min-width: 40px; height: 40px; justify-content: center; border-radius: 50%; flex-shrink: 0; }
+  .top-header .privacy-pill > span:not(.material-symbols-rounded):not(.ms):not(.icon) { display: none; }
+  .top-header .privacy-pill .material-symbols-rounded,
+  .top-header .privacy-pill .ms,
+  .top-header .privacy-pill .icon { font-size: 21px; }
+  
+  
+}
+</style>
 
   <header class="hero">
     <h1 class="hero-title"><span data-i18n="hero1">Hide in plain</span><br><span class="accent" data-i18n="hero2">sight.</span></h1>
@@ -1263,7 +1302,7 @@ textarea::placeholder, .text-input::placeholder { color: color-mix(in srgb, var(
 
   <p class="footnote">
     Part of <a href="https://inpriv.xyz" target="_blank" rel="noopener noreferrer">Inpriv</a> — zero-knowledge utilities by
-    <a href="https://aurexlabs.xyz" target="_blank" rel="noopener noreferrer">Aurex Labs</a>.
+    <a href="https://inpriv.xyz" target="_blank" rel="noopener noreferrer">Inpriv Labs</a>.
     Share images as <strong>files</strong> — compressing or re-encoding (JPEG, screenshots, messengers) destroys the hidden data.
   </p>
 </div>
@@ -1647,10 +1686,10 @@ const state = {
 /* ─── Theme ─── */
 function setTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
-  localStorage.setItem('aurex_theme', theme);
+  localStorage.setItem('inpriv_theme', theme);
   els.themeIcon.textContent = theme === 'dark' ? 'light_mode' : 'dark_mode';
 }
-const savedTheme = localStorage.getItem('aurex_theme') ||
+const savedTheme = localStorage.getItem('inpriv_theme') ||
   (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
 setTheme(savedTheme);
 els.themeToggle.addEventListener('click', () => {

@@ -12,9 +12,9 @@ No trackers. No remote logs. No compromises — everything runs in your browser.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Website](https://img.shields.io/badge/website-inpriv.xyz-466E47)](https://inpriv.xyz)
-[![Tools](https://img.shields.io/badge/tools-18%20live%20%2B%206%20in%20dev-ABD37A)](https://inpriv.xyz)
+[![Tools](https://img.shields.io/badge/tools-20%20live%20%2B%203%20in%20dev-ABD37A)](https://inpriv.xyz)
 [![Zero-Knowledge](https://img.shields.io/badge/zero--knowledge-%E2%9C%93-C7EFA0)]()
-[![By Aurex Labs](https://img.shields.io/badge/by-Aurex%20Labs-9C4231)]()
+[![By Inpriv Labs](https://img.shields.io/badge/by-Inpriv%20Labs-9C4231)]()
 
 <img src="assets/icons/link.svg" width="14" height="14" alt=""> Quick links: [Website](https://inpriv.xyz) · [License](LICENSE) · [Security](SECURITY.md) · [Contributing](CONTRIBUTING.md)
 
@@ -49,10 +49,13 @@ Inpriv is an ecosystem of **zero-knowledge, fully client-side web utilities** �
 - **Censor** — [censor.inpriv.xyz](https://censor.inpriv.xyz) — blur/pixelate faces, cards, IPs & tokens on screenshots (on-device auto-detect)
 - **Share** — [share.inpriv.xyz](https://share.inpriv.xyz) — direct device-to-device file transfer over an encrypted P2P tunnel (no uploads, no size limits)
 - **Labs** — [labs.inpriv.xyz](https://labs.inpriv.xyz) — public experiment bench: live UI concepts and prototypes under evaluation
+- **ID** — [id.inpriv.xyz](https://id.inpriv.xyz) — Inpriv ID: one account for the whole suite (SSO, @inpriv.xyz address, optional 2FA)
+- **Mail** — [mail.inpriv.xyz](https://mail.inpriv.xyz) — zero-knowledge encrypted mail: E2EE inside the suite, external delivery to Gmail/Outlook/any
+- **Fake** — [fake.inpriv.xyz](https://fake.inpriv.xyz) — time-limited fake identities for Inpriv ID members (persona, password, real @inpriv.xyz mailbox)
 
 ## <img src="assets/icons/clock.svg" width="18" height="18" align="center" alt=""> In Development
 
-- **Mail** · **Zero** (wallet) · **OSINT** · **Hexa** · **Verdant**
+- **Zero** (wallet) · **OSINT**
 
 ---
 
@@ -125,13 +128,16 @@ inpriv/
 ├── .brute/             # Hash brute-force matcher
 ├── .stego/             # LSB steganography — hide encrypted messages in PNGs
 ├── .temp/              # disposable email — random @inpriv.xyz inboxes, Resend inbound
+├── .id/                # Inpriv ID — central account & SSO (@inpriv.xyz addresses)
+├── .mail/              # Inpriv Mail — zero-knowledge encrypted mail
+├── .fake/              # Fake — time-limited fake identities for Inpriv ID
+├── .share/             # Share — P2P encrypted file transfer (WebRTC)
+├── .labs/              # Labs — public experiment bench
 ├── .admin/             # admin dashboard — admin.inpriv.xyz (TOTP login, kill-switches)
 ├── .zero/              # Crypto wallet (WIP)
 ├── .osint/             # OSINT engine (WIP)
-├── .mail/              # Disposable email (WIP)
 ├── .totp/              # TOTP generator (WIP)
 ├── .hexa/              # In development
-├── .verdant/           # In development
 ├── ..swift/            # inpriv-swift — Rust text editor
 └── .cftcfg/            # Cloudflare Tunnel config manager
 ```
@@ -142,10 +148,9 @@ inpriv/
 
 ## <img src="assets/icons/map.svg" width="18" height="18" align="center" alt=""> Roadmap
 
-- [x] 18 core tools live on production
+- [x] 20 core tools live on production
 - [ ] PWA + offline support
 - [ ] Zero wallet — security audit before release
-- [ ] Mail — encrypted disposable email
 - [ ] OSINT — AI-powered intelligence engine
 - [ ] Security headers + SRI hardening
 - [ ] i18n (PL/EN)
@@ -167,12 +172,12 @@ Found a security issue? See **[SECURITY.md](SECURITY.md)**.
 
 ## <img src="assets/icons/file-text.svg" width="18" height="18" align="center" alt=""> License
 
-MIT © 2026 [Aurex Labs](https://aurexlabs.xyz)
+MIT © 2026 [Inpriv Labs](https://inpriv.xyz)
 
 ---
 
 <div align="center">
 
-<img src="assets/icons/heart.svg" width="14" height="14" alt=""> Built with love and paranoia — by **Aurex Labs**, independent studio
+<img src="assets/icons/heart.svg" width="14" height="14" alt=""> Built with love and paranoia — by **Inpriv Labs**, independent studio
 
 </div>

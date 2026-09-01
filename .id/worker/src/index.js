@@ -159,7 +159,7 @@ async function authUser(req, env, rotate = true) {
 }
 
 const RESERVED_USERNAMES = new Set([
-  "admin", "administrator", "root", "system", "inpriv", "aurex", "aurexlabs",
+  "admin", "administrator", "root", "system", "inpriv", "inprivlabs",
   "support", "security", "abuse", "postmaster", "noreply", "no-reply",
   "mailer-daemon", "help", "hello", "hi", "info", "contact", "team", "staff",
   "account", "accounts", "billing", "invoice", "payments", "sales", "legal",
@@ -176,7 +176,7 @@ const RESERVED_USERNAMES = new Set([
 // pop, mx, www, ftp, vpn, dev) only block separator/digit continuations, so
 // "mode" or "metal" stay available.
 const RESERVED_PREFIXES = [
-  "abuse", "account", "admin", "administrator", "alert", "api", "aurex",
+  "abuse", "account", "admin", "administrator", "alert", "api",
   "auth", "backup", "billing", "bot", "burn", "cert", "cluster", "contact",
   "demo", "dev", "dns", "do-not-reply", "donotreply", "everyone", "example",
   "feedback", "ftp", "gateway", "guest", "hello", "help", "hi", "hostmaster",

@@ -1,6 +1,6 @@
 /* =====================================================================
    app.js — Inpriv Hexa controller
-   Copyright (c) 2026 Aurex Labs — MIT License
+   Copyright (c) 2026 Inpriv Labs — MIT License
    Wires inputs, presets, customizer, renderer, export, and UI feedback.
    ===================================================================== */
 (function () {
@@ -474,7 +474,7 @@
     setColorValue("colSurface", "swSurface", state.colors.surface);
     document.addEventListener("themechange", regenerateDebounced);
     // seed URL input with a sample so the first render isn't empty
-    if (!$("urlInput").value) $("urlInput").value = "https://aurexlabs.example";
+    if (!$("urlInput").value) $("urlInput").value = "https://example.com";
     regenerate();
   }
 

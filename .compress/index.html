@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   Inpriv Compress — Client-side Image Compressor
-  Copyright (c) 2026 Aurex Labs — MIT License
+  Copyright (c) 2026 Inpriv Labs — MIT License
 
   Resize and recompress images on a local <canvas>; output PNG/JPEG/WebP via
   toBlob. No uploads — pixels never leave the browser.
@@ -12,21 +12,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com fonts.gstatic.com; script-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.googleapis.com fonts.gstatic.com https://fonts.gstatic.com; img-src 'self' data: blob: https://hush.best; media-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'; connect-src 'self'; worker-src 'none'; manifest-src 'self'">
 <title>Inpriv Compress — Privacy-first Image Compressor</title>
-<meta name="description" content="Inpriv Compress — a modern, privacy-first, client-side image compressor by Aurex Labs." />
+<meta name="description" content="Inpriv Compress — a modern, privacy-first, client-side image compressor by Inpriv Labs." />
 
 <!-- Favicon + brand mark: hush.best icon (referenced by URL, not downloaded) -->
 <link rel="icon" type="image/png" href="https://hush.best/icon.png" />
 <link rel="apple-touch-icon" href="https://hush.best/icon.png" />
 <link rel="shortcut icon" href="https://hush.best/icon.png" />
 
-<!-- Aurex Labs · Material Design 3 — Earthy Forest Aesthetic -->
+<!-- Inpriv Labs · Material Design 3 — Earthy Forest Aesthetic -->
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,100..1000&display=swap" rel="stylesheet" />
 
 <style>
 /* =====================================================================
-   AUREX LABS · MATERIAL DESIGN 3 — EARTHY FOREST AESTHETIC
+   INPRIV LABS · MATERIAL DESIGN 3 — EARTHY FOREST AESTHETIC
    ===================================================================== */
 
 /* ---------- 1. COLOR TOKENS (M3) ---------- */
@@ -808,7 +808,7 @@ body {
   color: var(--md-on-surface);
   display: grid; place-items: center; cursor: pointer;
   padding: 0; font: inherit; text-decoration: none;
-  transition: transform 0.3s var(--aurex-ease, cubic-bezier(0.2, 1.4, 0, 1)), border-color 0.2s ease;
+  transition: transform 0.3s var(--inpriv-ease, cubic-bezier(0.2, 1.4, 0, 1)), border-color 0.2s ease;
 }
 .top-header .icon-btn:hover { transform: translateY(-1px); border-color: var(--md-primary); }
 .top-header .icon-btn:active { transform: scale(0.94); }
@@ -863,7 +863,7 @@ body {
     <div class="brand">
       <div>
         <div class="brand-title">compress<span class="accent">.</span></div>
-        <div class="brand-tagline">Aurex Labs</div>
+        <div class="brand-tagline">Inpriv Labs</div>
       </div>
     </div>
     <div class="header-actions">
@@ -877,6 +877,44 @@ body {
       </button>
     </div>
   </header>
+
+<style data-inpriv-mobile-header>
+/* ── mobile floating glass app-bar (fake.inpriv.xyz style) — <600px only ── */
+@media (max-width: 599.98px) {
+  .top-header {
+    position: sticky; top: 12px; z-index: 50;
+    max-width: none; width: auto; margin: 12px 12px 22px; padding: 6px 6px 6px 14px;
+    gap: 8px; align-items: center;
+    border-radius: 9999px;
+    background: color-mix(in srgb, var(--md-surface-container, #1F211B) 80%, transparent);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid color-mix(in srgb, var(--md-outline-variant, #43483D) 50%, transparent);
+    box-shadow: 0 4px 20px -4px rgba(0,0,0,.4);
+    animation: thBarIn .7s cubic-bezier(.2,1.4,0,1) both;
+  }
+  @keyframes thBarIn { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
+  .top-header .brand { align-items: center; gap: 10px; }
+  .top-header .brand-title { font-size: 17px; white-space: nowrap; }
+  .top-header .brand-tagline { display: none; }
+  
+  .top-header .brand-icon:empty {
+    width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+    background: var(--md-primary-container, #2E4F2F); color: var(--md-on-primary-container, #C7EFA0);
+    display: grid; place-items: center;
+  }
+  .top-header .brand-icon:empty::before { content: 'theater_comedy'; font-family: 'Material Symbols Rounded'; font-size: 19px; }
+  .top-header .header-actions { gap: 2px; flex-wrap: nowrap; }
+  .top-header .icon-btn { width: 40px; height: 40px; flex-shrink: 0; }
+  
+  .top-header .privacy-pill { padding: 6px 12px 6px 10px; gap: 5px; font-size: 11px; border-radius: 9999px; flex-shrink: 0; }
+  .top-header .privacy-pill .material-symbols-rounded,
+  .top-header .privacy-pill .ms,
+  .top-header .privacy-pill .icon { font-size: 16px; }
+  
+  
+}
+</style>
 
   <!-- Main -->
   <main class="app">
@@ -1008,7 +1046,7 @@ body {
   <footer class="footer">
     <span>&copy; 2026 Inpriv Compress</span>
     <span class="dot">•</span>
-    <span>by <a href="#" rel="noopener">Aurex Labs</a></span>
+    <span>by <a href="#" rel="noopener">Inpriv Labs</a></span>
   </footer>
 
 <script>

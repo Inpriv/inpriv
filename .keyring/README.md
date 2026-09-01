@@ -2,7 +2,7 @@
 
 > Zero-knowledge encrypted secret vault for SSH keys, API tokens, passwords and notes.
 
-Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Aurex Labs](https://aurexlabs.xyz).
+Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Inpriv Labs](https://inpriv.xyz).
 
 ## What it does
 
@@ -56,4 +56,4 @@ python -m http.server 8080
 
 - Vanilla HTML/CSS/JS (single `index.html`, no build step)
 - Web Crypto API (`crypto.subtle`)
-- Material Design 3 (Aurex Labs Design System — Earthy Forest)
+- Material Design 3 (Inpriv Labs Design System — Earthy Forest)

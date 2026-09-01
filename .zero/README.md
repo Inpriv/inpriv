@@ -2,7 +2,7 @@
 
 > Zero-knowledge Solana crypto wallet — client-side key management with BIP39 mnemonic recovery.
 
-Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Aurex Labs](https://aurexlabs.xyz).
+Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Inpriv Labs](https://inpriv.xyz).
 
 > ⚠️ **Status: Work in Progress** — Not audited. Do not use with real funds yet.
 
@@ -89,4 +89,4 @@ npm run build
 
 - **Frontend:** Vanilla JS + esbuild, `@solana/web3.js`, `@noble/curves`, `@scure/bip39`
 - **Backend utils:** Python 3.10+, `solders`, `argon2-cffi`, `PyNaCl`
-- **Design:** Material Design 3 (Aurex Labs Design System)
+- **Design:** Material Design 3 (Inpriv Labs Design System)

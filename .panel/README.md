@@ -2,7 +2,7 @@
 
 > Centralized operations dashboard for the Inpriv privacy suite.
 
-Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Aurex Labs](https://aurexlabs.xyz).
+Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Inpriv Labs](https://inpriv.xyz).
 
 ## What it does
 
@@ -115,4 +115,4 @@ python main.py
 - `httpx` for async GeoIP lookups
 - JSON file storage (`config.json`) with atomic writes
 - Frontend: HTML + Google Fonts (Inter, JetBrains Mono)
-- Material Design 3 (Aurex Labs Design System)
+- Material Design 3 (Inpriv Labs Design System)

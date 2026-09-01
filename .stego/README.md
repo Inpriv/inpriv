@@ -2,7 +2,7 @@
 
 > Hide encrypted messages inside PNG images — in your browser, forever.
 
-Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Aurex Labs](https://aurexlabs.xyz).
+Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Inpriv Labs](https://inpriv.xyz).
 
 ## What it does
 
@@ -79,4 +79,4 @@ holds ~778 KB of hidden data.
 
 - Vanilla HTML/CSS/JS, single-file tool (no build step)
 - Web Crypto API (AES-GCM, PBKDF2), Canvas API
-- Material Design 3, Earthy Forest (Aurex Labs Design System)
+- Material Design 3, Earthy Forest (Inpriv Labs Design System)
