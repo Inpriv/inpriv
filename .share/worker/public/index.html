@@ -586,6 +586,7 @@ const I18N = {
     errPeerDisc: "The other device disconnected",
     errSendFail: "Transfer failed — please retry",
     errOffline: "You appear to be offline",
+    errNoWebrtc: "This browser blocks direct connections (WebRTC), so files can't travel. Open Share in Chrome, Safari or Firefox — or disable the extension that blocks WebRTC.",
     cancelSent: "Transfer closed",
     incomingFrom: "Incoming file",
     waitingSender: "Waiting for the sender to start…",
@@ -632,6 +633,7 @@ const I18N = {
     errPeerDisc: "Drugie urządzenie się rozłączyło",
     errSendFail: "Transfer nieudany — spróbuj ponownie",
     errOffline: "Wygląda na to, że jesteś offline",
+    errNoWebrtc: "Ta przeglądarka blokuje połączenia bezpośrednie (WebRTC), więc plik nie może przejść. Otwórz Share w Chrome, Safari albo Firefoksie — lub wyłącz rozszerzenie blokujące WebRTC.",
     cancelSent: "Transfer zamknięty",
     incomingFrom: "Plik przychodzący",
     waitingSender: "Czekamy, aż nadawca zacznie…",
@@ -885,8 +887,15 @@ async function flushCandidates() {
 }
 
 /* ── shared peer setup ────────────────────────────────────── */
+const RTC = window.RTCPeerConnection || window.webkitRTCPeerConnection;
 function makePeer() {
-  const pc = new RTCPeerConnection(ICE);
+  if (!RTC) {
+    const msg = t("errNoWebrtc");
+    showSendError(msg);
+    showRecvError(msg);
+    throw new Error("webrtc_unavailable");
+  }
+  const pc = new RTC(ICE);
   // Trickle ICE: forward every candidate to the peer (sealed).
   pc.onicecandidate = (e) => {
     if (!e.candidate || !state.code || !state.signalKey) return;
@@ -1190,6 +1199,12 @@ $("saveBtn").addEventListener("click", () => {
 
 /* deep link: /#CODE → receive mode */
 (function initFromHash() {
+  // Early, friendly notice if this browser can't do P2P at all.
+  const RTC = window.RTCPeerConnection || window.webkitRTCPeerConnection;
+  if (!RTC) {
+    showSendError(t("errNoWebrtc"));
+    showRecvError(t("errNoWebrtc"));
+  }
   const h = location.hash.replace(/^#/, "");
   if (/^[A-Za-z0-9_-]{16,64}$/.test(h)) {
     setMode("recv");
