@@ -17,7 +17,7 @@ These principles define what Inpriv IS. Violating them means the PR will be reje
 
 ## Design System
 
-All UI follows the **Inpriv Labs Design System** — Material Design 3, "Earthy Forest" aesthetic.
+All UI follows the **Inpriv Labs Design System** — Material Design 3, "Earthy Forest" aesthetic. See [`.inpriv-labs/inpriv-labs.md`](.inpriv-labs/inpriv-labs.md) for tokens, typography, motion, and component specs.
 
 **Key tokens:**
 
