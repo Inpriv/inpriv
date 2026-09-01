@@ -12,7 +12,7 @@ No trackers. No remote logs. No compromises — everything runs in your browser.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Website](https://img.shields.io/badge/website-inpriv.xyz-466E47)](https://inpriv.xyz)
-[![Tools](https://img.shields.io/badge/tools-17%20live%20%2B%206%20in%20dev-ABD37A)](https://inpriv.xyz)
+[![Tools](https://img.shields.io/badge/tools-18%20live%20%2B%206%20in%20dev-ABD37A)](https://inpriv.xyz)
 [![Zero-Knowledge](https://img.shields.io/badge/zero--knowledge-%E2%9C%93-C7EFA0)]()
 [![By Aurex Labs](https://img.shields.io/badge/by-Aurex%20Labs-9C4231)]()
 
@@ -48,6 +48,7 @@ Inpriv is an ecosystem of **zero-knowledge, fully client-side web utilities** �
 - **Temp** — [temp.inpriv.xyz](https://temp.inpriv.xyz) — disposable email addresses, live inbox, one-click shred
 - **Censor** — [censor.inpriv.xyz](https://censor.inpriv.xyz) — blur/pixelate faces, cards, IPs & tokens on screenshots (on-device auto-detect)
 - **Share** — [share.inpriv.xyz](https://share.inpriv.xyz) — direct device-to-device file transfer over an encrypted P2P tunnel (no uploads, no size limits)
+- **Labs** — [labs.inpriv.xyz](https://labs.inpriv.xyz) — public experiment bench: live UI concepts and prototypes under evaluation
 
 ## <img src="assets/icons/clock.svg" width="18" height="18" align="center" alt=""> In Development
 
@@ -141,7 +142,7 @@ inpriv/
 
 ## <img src="assets/icons/map.svg" width="18" height="18" align="center" alt=""> Roadmap
 
-- [x] 17 core tools live on production
+- [x] 18 core tools live on production
 - [ ] PWA + offline support
 - [ ] Zero wallet — security audit before release
 - [ ] Mail — encrypted disposable email
