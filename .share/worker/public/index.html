@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com fonts.gstatic.com; script-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.googleapis.com fonts.gstatic.com https://fonts.gstatic.com; img-src 'self' data: blob: https://hush.best https://qr.inpriv.xyz https://inpriv-qr-api.saloyek.workers.dev; media-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self' data:">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://fonts.googleapis.com fonts.gstatic.com https://fonts.gstatic.com; img-src 'self' data: blob: https://hush.best https://qr.inpriv.xyz https://inpriv-qr-api.saloyek.workers.dev; media-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self' data:">
 <title>Inpriv Share — Private P2P File Transfer</title>
 <meta name="description" content="Share is end-to-end encrypted peer-to-peer file transfer. Your file travels straight between devices — it never touches a server. No accounts, no size limits, no traces.">
 <meta name="theme-color" content="#13140E" media="(prefers-color-scheme: dark)">
@@ -297,6 +297,16 @@ main { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; padding
 [data-theme="dark"] .banner-err { color: #FFDAD6; }
 /* ── receive flow ───────────────────────────────────────────── */
 .code-row { display: flex; gap: 8px; margin-top: 16px; }
+.scanner { position: relative; margin-top: 12px; border-radius: 18px; overflow: hidden; background: #000; }
+.scanner video { display: block; width: 100%; max-height: 62vh; object-fit: cover; }
+.scan-frame {
+  position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(to right, transparent 12%, color-mix(in srgb, var(--md-primary) 85%, transparent) 12%, color-mix(in srgb, var(--md-primary) 85%, transparent) calc(12% + 2px), transparent calc(12% + 2px)),
+              linear-gradient(to left, transparent 12%, color-mix(in srgb, var(--md-primary) 85%, transparent) 12%, color-mix(in srgb, var(--md-primary) 85%, transparent) calc(12% + 2px), transparent calc(12% + 2px)),
+              linear-gradient(to bottom, transparent 18%, color-mix(in srgb, var(--md-primary) 85%, transparent) 18%, color-mix(in srgb, var(--md-primary) 85%, transparent) calc(18% + 2px), transparent calc(18% + 2px)),
+              linear-gradient(to top, transparent 18%, color-mix(in srgb, var(--md-primary) 85%, transparent) 18%, color-mix(in srgb, var(--md-primary) 85%, transparent) calc(18% + 2px), transparent calc(18% + 2px));
+}
+.scan-actions { position: absolute; left: 0; right: 0; bottom: 12px; display: flex; justify-content: center; }
 .input {
   flex: 1; min-width: 0; height: 48px; border-radius: 16px;
   border: 1px solid var(--md-outline-variant); background: var(--md-surface-container);
@@ -347,11 +357,163 @@ footer a { color: var(--md-primary); text-decoration: none; font-weight: 600; }
 @media (min-width: 1024px) {
   .top-header, main { max-width: 860px; }
 }
+/* ── mobile polish (all themes): spring press feedback, shine, reveals ── */
+@media (max-width: 599px) {
+  .card, .btn, .icon-btn, .back-btn, .dropzone, .file-chip, .seg, .step, .input, .code-row .btn {
+    will-change: transform;
+  }
+  .btn:active, .seg button:active { transform: scale(0.955); }
+  .icon-btn:active, .back-btn:active { transform: scale(0.88); }
+  .dropzone:active { transform: scale(0.985); }
+  .card:active { transform: scale(0.995); }
+  /* progress shine sweep while active */
+  .progress .p-bar { position: relative; overflow: hidden; }
+  .progress .p-fill::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(100deg, transparent 20%, rgba(255,255,255,0.55) 50%, transparent 80%);
+    transform: translateX(-100%);
+    animation: shine 1.6s var(--ease-standard) infinite;
+  }
+  @keyframes shine { to { transform: translateX(100%); } }
+  /* mode-switch replay nudge: cards re-rise when flows swap */
+  .stack.replay .card { animation: rise 0.5s var(--ease-spring) both; }
+  /* toast: springier pop on phones */
+  .toast.show { animation: toastPop 0.45s var(--ease-spring); }
+  @keyframes toastPop { 0% { transform: translate(-50%, 20px) scale(0.92); } 60% { transform: translate(-50%, 0) scale(1.03); } 100% { transform: translate(-50%, 0) scale(1); } }
+}
+/* ════════════════════════════════════════════════════════════
+   LIQUID GLASS theme (optional) — Apple-style frosted glass,
+   aurora backdrop, specular edges. Opt-in via [data-theme="glass"].
+   Falls back gracefully when backdrop-filter is unsupported.
+   ════════════════════════════════════════════════════════════ */
+[data-theme="glass"] {
+  --md-primary: #2E7D46;
+  --md-on-primary: #FFFFFF;
+  --md-primary-container: #B9F0C2;
+  --md-on-primary-container: #0E3A1C;
+  --md-secondary-container: rgba(255, 255, 255, 0.55);
+  --md-on-secondary-container: #14301E;
+  --md-tertiary: #D06549;
+  --md-tertiary-container: rgba(255, 214, 200, 0.6);
+  --md-on-tertiary-container: #571F10;
+  --md-surface: #EDF3F2;
+  --md-surface-container-lowest: rgba(255, 255, 255, 0.42);
+  --md-surface-container-low: rgba(255, 255, 255, 0.34);
+  --md-surface-container: rgba(255, 255, 255, 0.30);
+  --md-surface-container-high: rgba(255, 255, 255, 0.46);
+  --md-surface-container-highest: rgba(255, 255, 255, 0.58);
+  --md-on-surface: #101418;
+  --md-on-surface-variant: rgba(20, 34, 28, 0.72);
+  --md-outline: rgba(16, 34, 26, 0.30);
+  --md-outline-variant: rgba(255, 255, 255, 0.65);
+  --md-error: #C62839;
+  --md-error-container: rgba(255, 205, 205, 0.65);
+  --md-shadow: rgba(20, 40, 34, 0.28);
+  --header-glass: rgba(255, 255, 255, 0.38);
+  color-scheme: light;
+}
+[data-theme="glass"] body { background: var(--md-surface); }
+/* aurora backdrop replaces dots+blob in glass mode */
+.glass-aurora { position: fixed; inset: 0; z-index: 0; pointer-events: none; display: none; }
+[data-theme="glass"] .glass-aurora { display: block; }
+[data-theme="glass"] .bg-dots, [data-theme="glass"] .bg-blob { display: none; }
+.glass-aurora::before, .glass-aurora::after {
+  content: ""; position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.6;
+}
+.glass-aurora::before {
+  width: 70vmax; height: 70vmax; top: -28vmax; left: -22vmax;
+  background: radial-gradient(circle at 30% 30%, #7BE3A5, transparent 62%);
+  animation: driftA 22s var(--ease-standard) infinite alternate;
+}
+.glass-aurora::after {
+  width: 62vmax; height: 62vmax; bottom: -26vmax; right: -20vmax;
+  background: radial-gradient(circle at 65% 60%, #8FD0FF 0%, #C9A7F5 48%, transparent 70%);
+  animation: driftB 27s var(--ease-standard) infinite alternate;
+}
+@keyframes driftA { to { transform: translate(9vmax, 7vmax) scale(1.14); } }
+@keyframes driftB { to { transform: translate(-8vmax, -9vmax) scale(1.1); } }
+[data-theme="glass"] .top-header {
+  background: var(--header-glass);
+  backdrop-filter: blur(26px) saturate(180%);
+  -webkit-backdrop-filter: blur(26px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 9999px;
+  padding: 10px 12px 10px 10px;
+  margin-top: 12px;
+  box-shadow: 0 10px 34px -12px var(--md-shadow), inset 0 1px 0 rgba(255,255,255,0.65);
+}
+[data-theme="glass"] .brand-mark {
+  background: linear-gradient(145deg, rgba(123, 227, 165, 0.9), rgba(46, 125, 70, 0.85));
+  color: #FFFFFF;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.7), 0 6px 16px -6px rgba(46, 125, 70, 0.55);
+}
+[data-theme="glass"] .card {
+  background: linear-gradient(160deg, rgba(255,255,255,0.62), rgba(255,255,255,0.30));
+  backdrop-filter: blur(30px) saturate(170%);
+  -webkit-backdrop-filter: blur(30px) saturate(170%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 18px 50px -18px var(--md-shadow), inset 0 1px 0 rgba(255,255,255,0.75);
+  position: relative;
+  overflow: hidden;
+}
+/* specular sheen drifting across the card */
+[data-theme="glass"] .card::before {
+  content: ""; position: absolute; top: -60%; left: -30%; width: 55%; height: 220%;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,0.5), transparent);
+  transform: rotate(12deg);
+  animation: sheen 7s var(--ease-standard) infinite;
+  pointer-events: none;
+}
+@keyframes sheen { 0%, 55% { left: -45%; } 90%, 100% { left: 130%; } }
+[data-theme="glass"] .btn {
+  background: linear-gradient(160deg, rgba(88, 178, 118, 0.92), rgba(35, 110, 65, 0.92));
+  box-shadow: 0 10px 28px -8px rgba(35, 110, 65, 0.55), inset 0 1px 0 rgba(255,255,255,0.45);
+}
+[data-theme="glass"] .btn:hover { box-shadow: 0 14px 34px -8px rgba(35, 110, 65, 0.65), inset 0 1px 0 rgba(255,255,255,0.5); }
+[data-theme="glass"] .btn-secondary, [data-theme="glass"] .btn-danger {
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--md-on-surface);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+}
+[data-theme="glass"] .seg { background: rgba(255,255,255,0.4); backdrop-filter: blur(20px) saturate(160%); -webkit-backdrop-filter: blur(20px) saturate(160%); border: 1px solid rgba(255,255,255,0.55); }
+[data-theme="glass"] .seg button[aria-pressed="true"] {
+  background: linear-gradient(160deg, rgba(88,178,118,0.92), rgba(35,110,65,0.92));
+  box-shadow: 0 6px 18px -6px rgba(35,110,65,0.6), inset 0 1px 0 rgba(255,255,255,0.4);
+}
+[data-theme="glass"] .dropzone {
+  background: rgba(255,255,255,0.28);
+  border-color: rgba(255,255,255,0.75);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+[data-theme="glass"] .dropzone:hover, [data-theme="glass"] .dropzone.drag { background: rgba(255,255,255,0.44); }
+[data-theme="glass"] .file-chip, [data-theme="glass"] .step, [data-theme="glass"] .incoming, [data-theme="glass"] .link-row, [data-theme="glass"] .banner, [data-theme="glass"] .scanner {
+  background: rgba(255,255,255,0.38);
+  border: 1px solid rgba(255,255,255,0.6);
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+}
+[data-theme="glass"] .input { background: rgba(255,255,255,0.5); border: 1px solid rgba(255,255,255,0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+[data-theme="glass"] .step.done { background: rgba(123, 227, 165, 0.28); border-color: rgba(46, 125, 70, 0.35); }
+[data-theme="glass"] .priv { background: rgba(255,255,255,0.32); border: 1px solid rgba(255,255,255,0.55); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+[data-theme="glass"] .toast { background: rgba(255,255,255,0.6); backdrop-filter: blur(24px) saturate(170%); -webkit-backdrop-filter: blur(24px) saturate(170%); }
+[data-theme="glass"] .qr-wrap img { background: #FFFFFF; padding: 10px; border-radius: 22px; }
+[data-theme="glass"] footer a { color: var(--md-primary); }
+/* glass needs more motion restraint: respect reduced motion too */
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="glass"] .card::before, .glass-aurora::before, .glass-aurora::after { animation: none; }
+}
+
 </style>
 </head>
 <body>
 <div class="bg-dots" aria-hidden="true"></div>
 <div class="bg-blob" aria-hidden="true"></div>
+<div class="glass-aurora" aria-hidden="true"></div>
 
 <header class="top-header">
   <a class="back-btn" href="https://inpriv.xyz" aria-label="Back to Inpriv">
@@ -440,6 +602,16 @@ footer a { color: var(--md-primary); text-decoration: none; font-weight: 600; }
         <input class="input" id="codeInput" maxlength="24" autocomplete="off" spellcheck="false" placeholder="code" aria-label="Transfer code">
         <button class="btn" id="connectBtn"><span class="ms">qrcode</span><span data-i18n="connect">Connect</span></button>
       </div>
+      <button class="btn btn-secondary btn-block" id="scanBtn" style="margin-top:10px">
+        <span class="ms">photo_camera</span><span data-i18n="scanQr">Scan QR code</span>
+      </button>
+      <div class="scanner" id="scanner" hidden>
+        <video id="scanVideo" playsinline muted></video>
+        <div class="scan-frame" aria-hidden="true"></div>
+        <div class="scan-actions">
+          <button class="btn btn-sm" id="scanStop"><span class="ms">close</span><span data-i18n="scanClose">Close</span></button>
+        </div>
+      </div>
       <div class="incoming" id="incoming" hidden>
         <div class="file-chip">
           <span class="ms">description</span>
@@ -525,22 +697,27 @@ async function sha256Hex(str) {
 
 /* ── theme ────────────────────────────────────────────────── */
 const THEME_KEY = "share_theme";
+const THEME_CYCLE = ["dark", "light", "glass"];
+const THEME_ICON = { dark: "light_mode", light: "auto_awesome", glass: "dark_mode" };
 function applyTheme(t) {
   document.documentElement.dataset.theme = t;
   const metaDark = document.querySelector('meta[media="(prefers-color-scheme: dark)"]');
   const metaLight = document.querySelector('meta[media="(prefers-color-scheme: light)"]');
-  if (metaDark) metaDark.content = t === "dark" ? "#13140E" : "#13140E";
+  const browserBar = t === "dark" ? "#13140E" : t === "glass" ? "#EDF3F2" : "#FAF9F0";
+  if (metaDark) metaDark.content = browserBar;
+  if (metaLight) metaLight.content = browserBar;
   try { localStorage.setItem(THEME_KEY, t); } catch {}
   const icon = document.querySelector("#themeToggle .ms");
-  if (icon) icon.textContent = t === "dark" ? "light_mode" : "dark_mode";
+  if (icon) icon.textContent = THEME_ICON[t] || "dark_mode";
 }
 (function initTheme() {
   let t = null;
   try { t = localStorage.getItem(THEME_KEY); } catch {}
-  applyTheme(t === "light" ? "light" : "dark");
+  applyTheme(THEME_CYCLE.includes(t) ? t : "dark");
 })();
 $("themeToggle").addEventListener("click", () => {
-  applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
+  const cur = document.documentElement.dataset.theme;
+  applyTheme(THEME_CYCLE[(THEME_CYCLE.indexOf(cur) + 1) % THEME_CYCLE.length]);
 });
 
 /* ── i18n ─────────────────────────────────────────────────── */
@@ -587,6 +764,12 @@ const I18N = {
     errSendFail: "Transfer failed — please retry",
     errOffline: "You appear to be offline",
     errNoWebrtc: "This browser blocks direct connections (WebRTC), so files can't travel. Open Share in Chrome, Safari or Firefox — or disable the extension that blocks WebRTC.",
+    scanQr: "Scan QR code",
+    scanClose: "Close",
+    scanStarting: "Starting camera…",
+    scanDenied: "Camera access was denied. Allow it in your browser settings, or type the code instead.",
+    scanFailed: "Could not start the camera on this device.",
+    scanFound: "Code found — connecting…",
     cancelSent: "Transfer closed",
     incomingFrom: "Incoming file",
     waitingSender: "Waiting for the sender to start…",
@@ -634,6 +817,12 @@ const I18N = {
     errSendFail: "Transfer nieudany — spróbuj ponownie",
     errOffline: "Wygląda na to, że jesteś offline",
     errNoWebrtc: "Ta przeglądarka blokuje połączenia bezpośrednie (WebRTC), więc plik nie może przejść. Otwórz Share w Chrome, Safari albo Firefoksie — lub wyłącz rozszerzenie blokujące WebRTC.",
+    scanQr: "Skanuj kod QR",
+    scanClose: "Zamknij",
+    scanStarting: "Uruchamiam aparat…",
+    scanDenied: "Brak dostępu do aparatu. Zezwól w ustawieniach przeglądarki albo wpisz kod ręcznie.",
+    scanFailed: "Nie udało się uruchomić aparatu na tym urządzeniu.",
+    scanFound: "Kod znaleziony — łączę…",
     cancelSent: "Transfer zamknięty",
     incomingFrom: "Plik przychodzący",
     waitingSender: "Czekamy, aż nadawca zacznie…",
@@ -1077,8 +1266,15 @@ function showRecvError(msg) {
 function setMode(mode) {
   $("modeSend").setAttribute("aria-pressed", String(mode === "send"));
   $("modeRecv").setAttribute("aria-pressed", String(mode === "recv"));
-  $("sendFlow").hidden = mode !== "send";
-  $("recvFlow").hidden = mode !== "recv";
+  const showing = mode === "send" ? $("sendFlow") : $("recvFlow");
+  const hiding = mode === "send" ? $("recvFlow") : $("sendFlow");
+  hiding.hidden = true;
+  showing.hidden = false;
+  // replay the rise animation on each mode swap (reflow nudge — CSS animations
+  // don't restart on hidden toggles alone)
+  showing.classList.remove("replay");
+  void showing.offsetWidth;
+  showing.classList.add("replay");
 }
 $("modeSend").addEventListener("click", () => setMode("send"));
 $("modeRecv").addEventListener("click", () => setMode("recv"));
@@ -1186,6 +1382,75 @@ $("connectBtn").addEventListener("click", async () => {
   }
 });
 $("codeInput").addEventListener("keydown", (e) => { if (e.key === "Enter") $("connectBtn").click(); });
+
+/* ── QR scanner (camera → jsQR, lazy-loaded from CDN on first use) ── */
+const scanner = { stream: null, raf: 0, canvas: null, jsqrPromise: null };
+function loadJsQR() {
+  if (!scanner.jsqrPromise) {
+    scanner.jsqrPromise = new Promise((resolve, reject) => {
+      const s = document.createElement("script");
+      s.src = "https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js";
+      s.onload = () => (window.jsQR ? resolve(window.jsQR) : reject(new Error("jsQR missing")));
+      s.onerror = () => reject(new Error("jsQR load failed"));
+      document.head.appendChild(s);
+    });
+  }
+  return scanner.jsqrPromise;
+}
+async function scannerStart() {
+  $("recvErr").hidden = true;
+  $("scanner").hidden = false;
+  try {
+    scanner.stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: false,
+    });
+  } catch (e) {
+    $("scanner").hidden = true;
+    showRecvError(String(e && e.name) === "NotAllowedError" ? t("scanDenied") : t("scanFailed"));
+    return;
+  }
+  const video = $("scanVideo");
+  video.srcObject = scanner.stream;
+  try { await video.play(); } catch {}
+  if (!scanner.canvas) scanner.canvas = document.createElement("canvas");
+  const tick = async () => {
+    if (!scanner.stream) return;
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      const w = 480, h = Math.max(1, Math.round((video.videoHeight / video.videoWidth) * 480) || 360);
+      scanner.canvas.width = w; scanner.canvas.height = h;
+      const ctx = scanner.canvas.getContext("2d", { willReadFrequently: true });
+      ctx.drawImage(video, 0, 0, w, h);
+      try {
+        const img = ctx.getImageData(0, 0, w, h);
+        const jsQR = await loadJsQR();
+        const found = jsQR(img.data, img.width, img.height, { inversionAttempts: "dontInvert" });
+        if (found && found.data) {
+          scannerStop();
+          const code = found.data.split("#").pop().replace(/[^A-Za-z0-9_-]/g, "");
+          if (code.length >= 16 && code.length <= 64) {
+            $("codeInput").value = code;
+            showToast("scanFound", "qr_code_scanner");
+            $("connectBtn").click();
+            return;
+          }
+        }
+      } catch {}
+    }
+    scanner.raf = requestAnimationFrame(tick);
+  };
+  scanner.raf = requestAnimationFrame(tick);
+}
+function scannerStop() {
+  if (scanner.raf) { cancelAnimationFrame(scanner.raf); scanner.raf = 0; }
+  try { if (scanner.stream) scanner.stream.getTracks().forEach((tr) => tr.stop()); } catch {}
+  scanner.stream = null;
+  $("scanner").hidden = true;
+  $("scanVideo").srcObject = null;
+}
+$("scanBtn").addEventListener("click", scannerStart);
+$("scanStop").addEventListener("click", scannerStop);
+window.addEventListener("pagehide", scannerStop);
 $("saveBtn").addEventListener("click", () => {
   if (!state.blob) return;
   const a = document.createElement("a");
