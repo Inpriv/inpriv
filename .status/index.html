@@ -461,7 +461,7 @@ footer a { font-weight: 600; }
   <div class="row">
     <a href="https://inpriv.xyz">inpriv.xyz</a>
     <span>·</span>
-    <a href="https://admin.inpriv.xyz">Panel statusu</a>
+    <a href="https://admin.inpriv.xyz">Admin Panel</a>
   </div>
   <div class="updated" id="updated"></div>
 </footer>
@@ -553,7 +553,7 @@ footer a { font-weight: 600; }
     if (state.paused[id]) return "paused";
     var s = state.status && state.status.services && state.status.services[id];
     if (!s) return "nodata";
-    return s.ok ? "up" : "down";
+    return s.s === "up" ? "up" : "down";
   }
 
   function fmtDay(dstr) {
@@ -629,9 +629,9 @@ footer a { font-weight: 600; }
         var cls = d.s === "up" ? "up" : d.s === "down" ? "down" : d.s === "paused" ? "paused" : "";
         if (d.d === todayKey) {
           cls = st === "up" ? "up" : st === "down" ? "down" : st === "paused" ? "paused" : cls;
-          b.classList.add("today");
         }
         b.className = "bar " + cls;
+        if (d.d === todayKey) b.classList.add("today");
         b.setAttribute("data-tip", fmtDay(d.d) + " &middot; " + STATE_LABEL[d.s] + (d.d === todayKey ? " (today)" : ""));
         chart.appendChild(b);
       });
