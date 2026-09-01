@@ -12,7 +12,7 @@ No trackers. No remote logs. No compromises — everything runs in your browser.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Website](https://img.shields.io/badge/website-inpriv.xyz-466E47)](https://inpriv.xyz)
-[![Tools](https://img.shields.io/badge/tools-20%20live%20%2B%203%20in%20dev-ABD37A)](https://inpriv.xyz)
+[![Tools](https://img.shields.io/badge/tools-20%20live%20%2B%204%20in%20dev-ABD37A)](https://inpriv.xyz)
 [![Zero-Knowledge](https://img.shields.io/badge/zero--knowledge-%E2%9C%93-C7EFA0)]()
 [![By Inpriv Labs](https://img.shields.io/badge/by-Inpriv%20Labs-9C4231)]()
 
@@ -55,7 +55,7 @@ Inpriv is an ecosystem of **zero-knowledge, fully client-side web utilities** �
 
 ## <img src="assets/icons/clock.svg" width="18" height="18" align="center" alt=""> In Development
 
-- **Zero** (wallet) · **OSINT**
+- **Zero** (wallet) · **OSINT** · **Pass** (password generator) · **Base64** (encoder/decoder)
 
 ---
 
@@ -85,7 +85,7 @@ Inpriv is an ecosystem of **zero-knowledge, fully client-side web utilities** �
 ## <img src="assets/icons/rocket.svg" width="18" height="18" align="center" alt=""> Getting Started
 
 ```bash
-git clone https://github.com/salo-yek/inpriv.git
+git clone https://github.com/Inpriv/inpriv.git
 cd inpriv
 
 # Serve locally (any static server works)
