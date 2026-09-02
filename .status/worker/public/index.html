@@ -635,7 +635,7 @@ footer a { font-weight: 600; }
         }
         b.className = "bar " + cls;
         if (d.d === todayKey) b.classList.add("today");
-        b.setAttribute("data-tip", fmtDay(d.d) + " &middot; " + STATE_LABEL[d.s] + (d.d === todayKey ? " (today)" : ""));
+        b.setAttribute("data-tip", fmtDay(d.d) + " \u00b7 " + STATE_LABEL[d.s] + (d.d === todayKey ? " (today)" : ""));
         chart.appendChild(b);
       });
 
