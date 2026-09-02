@@ -217,10 +217,10 @@ def make(key, title, subtitle, glyph):
     d.text((W-70, 96), "inpriv.xyz", font=ImageFont.truetype(FL, 26), fill=MUTED, anchor="ra")
 
     # real site logo (icon.png) in a badge — no drawn glyphs
-    gcx, gcy, gr = 200, 330, 78
-    d.rounded_rectangle([gcx-gr-26, gcy-gr-26, gcx+gr+26, gcy+gr+26], radius=44,
+    gcx, gcy, gr = 200, 330, 100
+    d.rounded_rectangle([gcx-gr-26, gcy-gr-26, gcx+gr+26, gcy+gr+26], radius=52,
                         fill=SURFACE, outline=LINE, width=2)
-    logo_size = 132
+    logo_size = 184
     logo = LOGO.resize((logo_size, logo_size), Image.LANCZOS)
     img.paste(logo, (gcx - logo_size//2, gcy - logo_size//2), logo)
 
