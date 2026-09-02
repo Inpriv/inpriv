@@ -475,6 +475,9 @@ footer a { color: var(--md-primary); text-decoration: none; font-weight: 600; }
         <input class="input" id="codeInput" maxlength="24" autocomplete="off" spellcheck="false" placeholder="code" aria-label="Transfer code">
         <button class="btn" id="connectBtn"><span class="ms">qrcode</span><span data-i18n="connect">Connect</span></button>
       </div>
+      <div class="banner banner-ok" id="recvWait" hidden style="margin-top:12px">
+        <span class="ms">autorenew</span><span data-i18n="waitingSender">Waiting for the sender to start…</span>
+      </div>
       <button class="btn btn-secondary btn-block" id="scanBtn" style="margin-top:10px">
         <span class="ms">photo_camera</span><span data-i18n="scanQr">Scan QR code</span>
       </button>
@@ -821,10 +824,11 @@ const state = {
   shaHex: null,
   startedAt: 0,
   lastProgAt: 0,
+  peerGoneAt: 0,         // disconnected-but-reconnecting grace timer
 };
 
 function cleanup(keepCode) {
-  if (state.pollTimer) { clearInterval(state.pollTimer); state.pollTimer = null; }
+  if (state.pollTimer) { clearTimeout(state.pollTimer); state.pollTimer = null; }
   try { if (state.dc) { state.dc.onmessage = null; state.dc.close(); } } catch {}
   try { if (state.pc) state.pc.close(); } catch {}
   state.pc = null; state.dc = null;
@@ -864,11 +868,19 @@ async function startPolling() {
     } catch (e) {
       if (String(e.message) === "api:404") { onRoomGone(); return; }
       fails++;
-      if (fails > 8) { onPeerError(t("errApi")); return; }
+      // Only give up after ~30 s of consecutive failures — transient Drive
+      // latency must never look like "the other device is offline".
+      if (fails > 20) { onPeerError(t("errApi")); return; }
     }
   };
-  state.pollTimer = setInterval(tick, 1100);
-  tick();
+  // Adaptive interval: 700 ms during setup (snappy connect), 2 s once the
+  // data channel is open (only "bye" messages flow then).
+  const interval = () => (state.connected ? 2000 : 700);
+  const loop = () => {
+    if (!state.code || state.finished) return;
+    tick().finally(() => { state.pollTimer = setTimeout(loop, interval()); });
+  };
+  state.pollTimer = setTimeout(loop, 0);
 }
 
 async function handleSignal(blob) {
@@ -889,23 +901,28 @@ async function handleSignal(blob) {
     return;
   }
   const msg = await unseal(state.signalKey, blob);
-  if (msg.sdp) {
-    if (msg.sdp.type === "offer") {
-      await state.pc.setRemoteDescription(msg.sdp);
-      await flushCandidates();
-      const answer = await state.pc.createAnswer();
-      await state.pc.setLocalDescription(answer);
-      await postSignal2({ sdp: { type: answer.type, sdp: answer.sdp } });
-    } else if (msg.sdp.type === "answer") {
-      if (state.pc.signalingState !== "stable") {
-        await state.pc.setRemoteDescription(msg.sdp);
+  // A batch carries several messages in order: [{cand:...},{cand:...}] or
+  // plain single-message shapes ({sdp}|{cand}|{bye}).
+  const items = Array.isArray(msg.batch) ? msg.batch : [msg];
+  for (const item of items) {
+    if (item.sdp) {
+      if (item.sdp.type === "offer") {
+        await state.pc.setRemoteDescription(item.sdp);
         await flushCandidates();
+        const answer = await state.pc.createAnswer();
+        await state.pc.setLocalDescription(answer);
+        await postSignal2({ sdp: { type: answer.type, sdp: answer.sdp } });
+      } else if (item.sdp.type === "answer") {
+        if (state.pc.signalingState !== "stable") {
+          await state.pc.setRemoteDescription(item.sdp);
+          await flushCandidates();
+        }
       }
+    } else if (item.cand) {
+      await tryAddCandidate(item.cand);
+    } else if (item.bye) {
+      if (!state.finished) onPeerError(t("errPeerDisc"));
     }
-  } else if (msg.cand) {
-    await tryAddCandidate(msg.cand);
-  } else if (msg.bye) {
-    if (!state.finished) onPeerError(t("errPeerDisc"));
   }
 }
 async function postSignal2(obj) { await postSignal(await seal(state.signalKey, obj)); }
@@ -958,14 +975,36 @@ function makePeer() {
     throw new Error("webrtc_unavailable");
   }
   const pc = new RTC(ICE);
-  // Trickle ICE: forward every candidate to the peer (sealed).
+  // Trickle ICE: batch candidates and flush them ~every 400 ms in one signal
+  // (fewer relay round-trips than posting each candidate separately).
+  pc._candBuf = [];
+  pc._candTimer = 0;
   pc.onicecandidate = (e) => {
     if (!e.candidate || !state.code || !state.signalKey) return;
-    postSignal2({ cand: e.candidate.toJSON() }).catch(() => {});
+    pc._candBuf.push(e.candidate.toJSON());
+    if (!pc._candTimer) {
+      pc._candTimer = setTimeout(() => {
+        pc._candTimer = 0;
+        if (!pc._candBuf.length || !state.code || !state.signalKey) return;
+        const batch = pc._candBuf.splice(0);
+        postSignal2({ batch: batch.map((c) => ({ cand: c })) }).catch(() => {});
+      }, 400);
+    }
   };
   pc.onconnectionstatechange = () => {
-    if (pc.connectionState === "failed" || pc.connectionState === "disconnected") {
+    if (pc.connectionState === "disconnected") {
+      // Give ICE a moment to self-heal (mobile network switch etc.) before
+      // declaring failure — instant aborts were the main "offline" false positive.
+      state.peerGoneAt = Date.now();
+      setTimeout(() => {
+        if (!state.finished && pc.connectionState !== "connected" && pc.connectionState !== "closed") {
+          onPeerError(t("errConnFailed"));
+        }
+      }, 6000);
+    } else if (pc.connectionState === "failed") {
       if (!state.finished) onPeerError(t("errConnFailed"));
+    } else if (pc.connectionState === "connected") {
+      state.peerGoneAt = 0;
     }
   };
   return pc;
@@ -1063,6 +1102,7 @@ function wireReceiverChannel(dc) {
   dc.binaryType = "arraybuffer";
   dc.onopen = () => {
     state.connected = true;
+    $("recvWait").hidden = true; // sender is here — connection live
     setStep("rConn", false, true); setStep("rRecv", true);
     $("recvProg").hidden = false;
     state.startedAt = Date.now();
@@ -1243,12 +1283,14 @@ $("connectBtn").addEventListener("click", async () => {
   $("recvErr").hidden = true;
   $("incoming").hidden = true;
   $("recvProg").hidden = true;
+  $("recvWait").hidden = false; // "waiting for the sender" while signaling
   resetSteps(["rConn", "rRecv", "rDone"]);
   try {
     await receiverStart(code);
     $("incoming").hidden = false;
     showToast("incomingFrom", "download");
   } catch (e) {
+    $("recvWait").hidden = true;
     if (String(e.message) === "api:404") showRecvError(t("errRoomGone"));
     else showRecvError(t("errApi"));
     $("connectBtn").disabled = false;
