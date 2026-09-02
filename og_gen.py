@@ -195,64 +195,37 @@ def make(key, title, subtitle, glyph):
     img = Image.new("RGB", (W, H), BG)
     d = ImageDraw.Draw(img)
 
-    # subtle radial glow behind logo
-    glow = Image.new("L", (W, H), 0)
-    gd = ImageDraw.Draw(glow)
-    gcx, gcy = 950, 200
-    for rr in range(340, 0, -8):
-        a = int(38 * ease(1 - rr/340))
-        gd.ellipse([gcx-rr, gcy-rr, gcx+rr, gcy+rr], fill=a)
-    img.paste(Image.new("RGB", (W, H), PRIMARY), (0, 0), glow)
-
-    # faint grid
-    for x in range(0, W, 60):
-        d.line([(x, 0), (x, H)], fill=(24, 26, 19), width=1)
-    for y in range(0, H, 60):
-        d.line([(0, y), (W, y)], fill=(24, 26, 19), width=1)
-
-    # top rule + brand
-    d.line([(70, 78), (W-70, 78)], fill=LINE, width=2)
-    f_brand = ImageFont.truetype(FB, 30)
-    d.text((70, 96), "INPRIV LABS", font=f_brand, fill=PRIMARY)
-    d.text((W-70, 96), "inpriv.xyz", font=ImageFont.truetype(FL, 26), fill=MUTED, anchor="ra")
-
-    # real site logo (icon.png) — no background box
-    gcx, gcy = 210, 330
-    logo_size = 200
+    # ── clean minimal card ──
+    # logo left, vertically centered
+    logo_size = 170
     logo = LOGO.resize((logo_size, logo_size), Image.LANCZOS)
-    img.paste(logo, (gcx - logo_size//2, gcy - logo_size//2), logo)
+    lx, ly = 120, (H - logo_size) // 2
+    img.paste(logo, (lx, ly), logo)
 
-    # title + subtitle
-    f_title = ImageFont.truetype(FB, 78)
-    f_sub = ImageFont.truetype(FL, 34)
-    tx = 340
-    ty = 250
-    d.text((tx, ty), title, font=f_title, fill=TEXT)
-    # wrap subtitle
-    words = subtitle.split(" ")
+    # title + short tagline right of the logo
+    tx = lx + logo_size + 70
+    f_title = ImageFont.truetype(FB, 96)
+    d.text((tx, H // 2 - 128), title, font=f_title, fill=TEXT)
+
+    # shorten subtitle to first sentence, wrap to max 2 lines
+    short = subtitle.split(". ")[0].rstrip(".") + "."
+    f_sub = ImageFont.truetype(FL, 40)
+    words = short.split(" ")
     lines, cur = [], ""
     for w_ in words:
         t = (cur + " " + w_).strip()
-        if d.textlength(t, font=f_sub) <= 760:
+        if d.textlength(t, font=f_sub) <= 700:
             cur = t
         else:
             lines.append(cur); cur = w_
     lines.append(cur)
-    yy = ty + 108
-    for ln in lines[:3]:
+    yy = H // 2 + 22
+    for ln in lines[:2]:
         d.text((tx, yy), ln, font=f_sub, fill=MUTED)
-        yy += 46
+        yy += 54
 
-    # bottom rule + chips
-    d.line([(70, H-96), (W-70, H-96)], fill=LINE, width=2)
-    chips = ["Zero-Knowledge", "Client-Side", "Open Source"] if key != "landing" else ["21 Tools", "No Trackers", "No Server Logs"]
-    f_chip = ImageFont.truetype(FS, 24)
-    cx = 70
-    for c in chips:
-        wl = int(d.textlength(c, font=f_chip)) + 36
-        d.rounded_rectangle([cx, H-72, cx+wl, H-28], radius=22, outline=LINE, width=2)
-        d.text((cx+18, H-64), c, font=f_chip, fill=TEXT)
-        cx += wl + 16
+    # single small brand mark bottom-left
+    d.text((120, H - 92), "inpriv.xyz", font=ImageFont.truetype(FL, 30), fill=(120, 122, 108))
 
     path = os.path.join(OUT, f"{key}.png")
     img.save(path, "PNG", optimize=True)
