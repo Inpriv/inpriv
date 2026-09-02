@@ -27,3 +27,11 @@ Disallow:
 # Search: permitted
 Content-Signal: search: yes
 Content-Signal: ai-input: no
+
+# Private surfaces — never indexed
+User-agent: *
+Disallow: /api/
+Noindex: admin.inpriv.xyz
+Noindex: pages.inpriv.xyz
+
+Sitemap: https://inpriv.xyz/sitemap.xml

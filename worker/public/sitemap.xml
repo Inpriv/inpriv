@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://inpriv.xyz/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://id.inpriv.xyz/</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://mail.inpriv.xyz/</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://temp.inpriv.xyz/</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://host.inpriv.xyz/</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://share.inpriv.xyz/</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://burn.inpriv.xyz/</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://trace.inpriv.xyz/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://censor.inpriv.xyz/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://wipe.inpriv.xyz/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://compress.inpriv.xyz/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://qr.inpriv.xyz/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://hash.inpriv.xyz/</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://keyring.inpriv.xyz/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://brute.inpriv.xyz/</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://totp.inpriv.xyz/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://pay.inpriv.xyz/</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://stego.inpriv.xyz/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://fake.inpriv.xyz/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://hush.best/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+</urlset>

@@ -64,6 +64,13 @@ const SCANNABLE = new Set(["html", "htm", "css", "js", "mjs", "txt", "md", "json
 // isolation model as github.com vs *.github.io. A guest-uploaded page can
 // never touch a signed-in visitor's session because it is a different origin.
 const PAGES_HOST = "pages.inpriv.xyz";
+// link-preview crawlers (Discord/Telegram/X/WhatsApp/Slack/…) — they fetch
+// og:* metadata for shared links and then re-fetch og:image with the same UA,
+// so preview cards are ONLY served for non-media files (media streams bytes
+// and renders as a native embed).
+const CRAWLER_RE = /discordbot|twitterbot|telegrambot|whatsapp|facebookexternalhit|slackbot|linkedinbot|embedly|iframely|vkshare|viber|skypeuripreview|bluesky|bsky/i;
+// buffer cap for OG-meta injection into user HTML on the sandbox origin
+const HTML_INJECT_MAX = 2 * 1024 * 1024;
 // extensions editable through the built-in editor (PUT …/content)
 const EDITABLE = SCANNABLE;
 const EDIT_MAX_BYTES = 1.5 * 1024 * 1024;   // editor round-trips one JSON body
@@ -840,6 +847,16 @@ async function servePublic(request, env, ctx, path, onPages = false) {
   const ext = (f.name.split(".").pop() || "").toLowerCase();
   const isPage = ext === "html" || ext === "htm";
 
+  // ── link-preview cards for crawlers ────────────────────────────────────────
+  // Shared links get a branded card (title, description, big OG image).
+  // Media files skip the card entirely: the crawler re-fetches og:image with
+  // the same UA, and for images/video the raw bytes ARE the best preview.
+  const ua = request.headers.get("user-agent") || "";
+  const isMedia = /^(png|jpe?g|gif|webp|avif|bmp|svg|ico|mp4|webm|mov|mp3|wav|ogg)$/.test(ext);
+  if (CRAWLER_RE.test(ua) && !isMedia) {
+    return crawlerCard(request, f, path, isPage);
+  }
+
   // On the dashboard origin, HTML/HTM lives on the sandbox origin instead —
   // an uploaded page can never script the dashboard or read its session.
   // 302 (not 301) so a later switch keeps control in the worker.
@@ -857,10 +874,101 @@ async function servePublic(request, env, ctx, path, onPages = false) {
   const upstream = await driveDownload(await getAccessToken(env), f.drive_file_id);
   if (!upstream.ok || !upstream.body) return notFoundPage();
 
+  // ── OG injection into user HTML (sandbox origin only) ─────────────────────
+  // User pages rarely carry og: tags, so shared links get a default branded
+  // card. Any og:* tags the author already set are preserved (injector runs
+  // only when no og:title exists). Capped at HTML_INJECT_MAX.
+  if (isPage && onPages && CRAWLER_RE.test(request.headers.get("user-agent") || "")) {
+    let injected = null;
+    if (f.size <= HTML_INJECT_MAX) {
+      try {
+        const buf = new Uint8Array(await new Response(upstream.body).arrayBuffer());
+        let txt = new TextDecoder("utf-8", { fatal: false }).decode(buf);
+        if (!/property=["']og:title["']/.test(txt)) {
+          const og = `<meta property="og:title" content="${escHtml(f.name)}">` +
+            `<meta property="og:site_name" content="Inpriv Host">` +
+            `<meta property="og:description" content="${escHtml(f.name)} — hosted on Inpriv Host. Private static hosting with a privacy shield.">` +
+            `<meta property="og:url" content="${escHtml("https://" + PAGES_HOST + path)}">` +
+            `<meta property="og:image" content="https://inpriv.xyz/og/host.png">` +
+            `<meta property="og:image:width" content="1200">` +
+            `<meta property="og:image:height" content="630">` +
+            `<meta name="twitter:card" content="summary_large_image">` +
+            `<meta name="twitter:image" content="https://inpriv.xyz/og/host.png">`;
+          if (txt.includes("</head>")) txt = txt.replace("</head>", og + "</head>");
+          else if (txt.includes("<body")) txt = txt.replace(/<body/, og + "<body");
+          else txt = og + txt;
+          injected = txt;
+        }
+      } catch { injected = null; }
+    }
+    if (injected !== null) {
+      const ih = serveHeaders(f, true);
+      delete ih["content-length"];
+      ih["cache-control"] = "public, max-age=60";
+      return new Response(injected, { status: 200, headers: ih });
+    }
+  }
+
   const headers = serveHeaders(f, isPage);
   if (request.method === "HEAD") return new Response(null, { status: 200, headers });
   ctx.waitUntil(env.DB.prepare("UPDATE files SET hits = hits + 1 WHERE id = ?").bind(f.id).run().catch(() => {}));
   return new Response(upstream.body, { status: 200, headers });
+}
+
+// ── link preview (crawler card) ──────────────────────────────────────────────
+// Branded share-card for public files when fetched by a link-preview crawler.
+// Crawler hits land on the file URL — the card points humans back to the real
+// bytes via <meta http-equiv="refresh"> + a visible link, and crawlers use it
+// as the og:url/canonical target. No scripts, ~1 KB of HTML.
+function crawlerCard(request, f, path, isPage) {
+  const origin = isPage ? "https://" + PAGES_HOST : "https://host.inpriv.xyz";
+  const fileUrl = origin + path;
+  const ext = (f.name.split(".").pop() || "").toLowerCase();
+  const kb = f.size >= 1024 * 1024 ? (f.size / (1024 * 1024)).toFixed(1) + " MB" : Math.max(1, Math.round(f.size / 1024)) + " KB";
+  const media = { png: "PNG image", jpg: "JPEG image", jpeg: "JPEG image", gif: "GIF", webp: "WebP image", svg: "SVG image",
+                  pdf: "PDF document", zip: "ZIP archive", rar: "RAR archive", "7z": "7Z archive", tar: "TAR archive",
+                  gz: "GZip archive", mp4: "MP4 video", webm: "WebM video", mov: "QuickTime video", mp3: "MP3 audio",
+                  wav: "WAV audio", ogg: "OGG audio", txt: "Text file", md: "Markdown file", csv: "CSV data", json: "JSON data" };
+  const kind = media[ext] || (ext.toUpperCase() + " file");
+  const title = f.name;
+  const desc = `${kind} · ${kb} — hosted on Inpriv Host. Zero-knowledge static hosting with a privacy shield: scanned for trackers before publishing, served without logs.`;
+  const card = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">` +
+    `<meta name="viewport" content="width=device-width,initial-scale=1">` +
+    `<title>${escHtml(title)} — Inpriv Host</title>` +
+    `<meta name="robots" content="noindex">` +
+    `<meta property="og:type" content="website">` +
+    `<meta property="og:site_name" content="Inpriv">` +
+    `<meta property="og:title" content="${escHtml(title)}">` +
+    `<meta property="og:description" content="${escHtml(desc)}">` +
+    `<meta property="og:url" content="${escHtml(fileUrl)}">` +
+    `<meta property="og:image" content="https://inpriv.xyz/og/host.png">` +
+    `<meta property="og:image:width" content="1200">` +
+    `<meta property="og:image:height" content="630">` +
+    `<meta name="twitter:card" content="summary_large_image">` +
+    `<meta name="twitter:title" content="${escHtml(title)}">` +
+    `<meta name="twitter:description" content="${escHtml(desc)}">` +
+    `<meta name="twitter:image" content="https://inpriv.xyz/og/host.png">` +
+    `<meta http-equiv="refresh" content="0;url=${escHtml(fileUrl)}">` +
+    `</head><body style="font-family:system-ui,sans-serif;background:#13140e;color:#e3e2d3;display:grid;place-items:center;min-height:100vh;margin:0">` +
+    `<div style="max-width:420px;text-align:center;padding:44px 32px;background:#1a1c17;border:1px solid #3c3f34;border-radius:28px">` +
+    `<h1 style="font-size:1.15rem;margin:0 0 10px;word-break:break-all">${escHtml(title)}</h1>` +
+    `<p style="color:#c7c6b8;font-size:.9rem;margin:0 0 6px">${kind} · ${kb}</p>` +
+    `<p style="color:#a8aa9b;font-size:.82rem;margin:0 0 18px">Hosted on <a href="https://host.inpriv.xyz" style="color:#abd37a">Inpriv Host</a> — private, scanned, log-free.</p>` +
+    `<p style="font-size:.95rem"><a href="${escHtml(fileUrl)}" style="color:#abd37a">Continue to the file &rarr;</a></p>` +
+    `</div></body></html>`;
+  return new Response(card, {
+    status: 200,
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "public, max-age=300",
+      "x-content-type-options": "nosniff",
+      "referrer-policy": "no-referrer",
+    },
+  });
+}
+
+function escHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
 function gonePage() {
