@@ -223,7 +223,7 @@ input[type="text"]:focus,textarea:focus{border-color:var(--primary)}
   <form class="login-card" id="login-form" autocomplete="off">
     <div class="brand">
       <div class="logo"><span class="msymbol filled">shield_lock</span></div>
-      <div><h1>Inpriv Admin</h1><p>Control panel · saloyek only</p></div>
+      <div><h1>Inpriv Admin</h1><p>Control panel · Inpriv Labs</p></div>
     </div>
     <div class="field">
       <input type="text" id="l-user" placeholder=" " autocomplete="username" spellcheck="false">
@@ -524,7 +524,7 @@ async function unlockReasons() {
     const res = await fetch("https://mail.inpriv.xyz/api/v1/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: sessUser || "saloyek", password: pw }),
+      body: JSON.stringify({ username: sessUser, password: pw }),
     });
     const d = await res.json().catch(() => ({}));
     if (!res.ok || !d.token) throw new Error("wrong password");
