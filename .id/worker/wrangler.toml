@@ -29,10 +29,7 @@ directory = "./public"
 binding = "ASSETS"
 run_worker_first = true
 
-# Admin kill-switch state (shared namespace with admin.inpriv.xyz)
-[[kv_namespaces]]
-binding = "MAINTENANCE"
-id = "37e2feceae474e21a0b9664c9bdfdea3"
+# (KV binding removed — MAINTENANCE was never read; gate goes over HTTP)
 
 [vars]
 DOMAIN = "inpriv.xyz"

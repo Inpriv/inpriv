@@ -90,7 +90,6 @@ export { verifySvix };
 let gateCache = { data: null, until: 0 };
 
 async function maintenanceGate(env) {
-  if (!env.MAINTENANCE) return { locked: false, message: "", info: null };
   const now = Date.now();
   if (gateCache.data && gateCache.until > now) return gateCache.data;
   try {

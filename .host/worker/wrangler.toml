@@ -35,10 +35,7 @@ database_id = "d5c75cf0-46ba-4721-99fc-da18d2ccbabe"
 [triggers]
 crons = ["23 2 * * *"]
 
-# Drive OAuth token cache
-[[kv_namespaces]]
-binding = "KV"
-id = "2143a54e5e0b427f821a9e30680db0a5"
+# (KV removed — the Drive access token now caches in worker memory)
 
 # Static frontend served from ./public (the single-file Host dashboard)
 # run_worker_first: the worker MUST run on every request so the kill-switch

@@ -1,9 +1,11 @@
 // Inpriv Burn — Cloudflare Worker
 // Zero-knowledge ephemeral notes: server stores ONLY encrypted blobs.
-// Key never leaves the client (URL fragment). KV with TTL + burn-after-read.
+// Key never leaves the client (URL fragment). Notes live as files on Google
+// Drive (folder "inpriv/.burn"); TTL + burn-after-read enforced server-side.
 // Copyright (c) 2026 Inpriv Labs — MIT License
 
 import { maintenanceGate, maintenancePage } from "../../../common/gate.js";
+import { kvPut, kvGet, kvDelete, kvDeleteId, kvList } from "../../../common/drive.js";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -16,6 +18,15 @@ const MAX_CIPHERTEXT = 200000; // chars (~150 KB)
 const MIN_TTL = 60;             // 1 minute
 const MAX_TTL = 30 * 24 * 3600; // 30 days
 
+const nameFor = (id) => `note_${id}`;
+
+// Parse the Drive file name into { id, expiresAt } — null when malformed.
+function parseName(name) {
+  const m = name.match(/^note_([A-Za-z0-9_-]{16,64})_(\d+)$/);
+  if (!m) return null;
+  return { id: m[1], expiresAt: Number(m[2]) };
+}
+
 function json(body, status = 200, extra = {}) {
   return new Response(JSON.stringify(body), {
     status,
@@ -23,11 +34,47 @@ function json(body, status = 200, extra = {}) {
   });
 }
 
+// Hourly sweep logic (shared by /api/sweep and the scheduled handler).
+async function sweepExpired(env) {
+  try {
+    const now = Date.now();
+    const files = await kvList(env, "note_");
+    let removed = 0;
+    for (const f of files) {
+      const p = parseName(f.name);
+      if (p && p.expiresAt < now) {
+        await kvDeleteId(env, f.id);
+        removed++;
+      }
+    }
+    console.log(`burn sweep: removed ${removed}/${files.length} expired notes`);
+    return removed;
+  } catch (e) {
+    console.log("burn sweep failed:", String(e?.message || e));
+    return 0;
+  }
+}
+
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const path = url.pathname;
     const method = request.method;
+
+    // ─── POST /api/sweep — internal, called by admin cron with shared secret ───
+    if (method === "POST" && path === "/api/sweep") {
+      const h = request.headers.get("X-Sweep-Secret") || "";
+      if (!env.SWEEP_SECRET || h !== env.SWEEP_SECRET) return json({ error: "unauthorized" }, 401);
+      const removed = await sweepExpired(env);
+      return json({ ok: true, removed });
+    }
+
+    // Lazy sweep: no cron slots left on the Free plan, so ~4% of requests
+    // clean expired files instead (expected once per ~25 requests).
+    if (!env.SWEEP_SECRET || Math.random() < 0.04) {
+      // ctx.waitUntil keeps the response fast while the sweep finishes
+      (typeof ctx !== "undefined" && ctx?.waitUntil ? ctx.waitUntil(sweepExpired(env)) : Promise.resolve().then(() => sweepExpired(env)).catch(() => {}));
+    }
 
     const gate = await maintenanceGate("burn");
     if (gate.locked && path !== "/api/health") {
@@ -39,6 +86,9 @@ export default {
     if (method === "OPTIONS") {
       return new Response(null, { status: 204, headers: CORS });
     }
+
+    // ─── GET /api/health — always passes (monitoring) ───
+    if (method === "GET" && path === "/api/health") return json({ ok: true, service: "burn" });
 
     // ─── POST /api/notes — store an encrypted blob ───
     if (method === "POST" && path === "/api/notes") {
@@ -58,6 +108,9 @@ export default {
       }
 
       const ttl = Math.min(Math.max(parseInt(ttlSeconds, 10) || 86400, MIN_TTL), MAX_TTL);
+      const expiresAt = Date.now() + ttl * 1000;
+      // TTL lives in the file NAME (cheap cron cleanup — no metadata reads).
+      const name = `${nameFor(id)}_${expiresAt}`;
       const value = JSON.stringify({
         c: ciphertext,
         b: !!burnAfterRead,
@@ -65,7 +118,7 @@ export default {
       });
 
       try {
-        await env.BURN_KV.put(`note:${id}`, value, { expirationTtl: ttl });
+        await kvPut(env, name, value);
         return json({ ok: true, ttl });
       } catch (e) {
         return json({ error: "storage failure" }, 500);
@@ -76,11 +129,17 @@ export default {
     const m = path.match(/^\/api\/notes\/([A-Za-z0-9_-]{16,64})$/);
     if (m) {
       const id = m[1];
-      const key = `note:${id}`;
 
       if (method === "GET") {
-        const raw = await env.BURN_KV.get(key);
-        if (!raw) return json({ error: "not found" }, 404);
+        const files = await kvList(env, `${nameFor(id)}_`);
+        const fresh = files.find((f) => (parseName(f.name)?.expiresAt ?? 0) > Date.now());
+        const stale = files.filter((f) => f !== fresh);
+        // lazy cleanup of expired duplicates / expired read
+        if (stale.length) for (const f of stale) kvDeleteId(env, f.id);
+
+        if (!fresh) return json({ error: "not found" }, 404);
+        const raw = await kvGet(env, fresh.name);
+        if (raw == null) return json({ error: "not found" }, 404);
         let data;
         try {
           data = JSON.parse(raw);
@@ -89,7 +148,7 @@ export default {
         }
         // Burn-after-read: destroy after first successful read
         if (data.b) {
-          await env.BURN_KV.delete(key).catch(() => {});
+          await kvDelete(env, fresh.name);
         }
         return json({
           ciphertext: data.c,
@@ -99,7 +158,8 @@ export default {
       }
 
       if (method === "DELETE") {
-        await env.BURN_KV.delete(key).catch(() => {});
+        const files = await kvList(env, `${nameFor(id)}_`);
+        for (const f of files) await kvDeleteId(env, f.id);
         return json({ ok: true });
       }
     }
@@ -109,5 +169,11 @@ export default {
     }
 
     return json({ error: "not found" }, 404);
+  },
+
+  // cron kept as fallback (when the account-wide slot frees up); the primary
+  // trigger is admin's cron → POST /api/sweep
+  async scheduled(controller, env, ctx) {
+    await sweepExpired(env);
   },
 };

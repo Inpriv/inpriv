@@ -8,13 +8,19 @@ routes = [
   { pattern = "admin.inpriv.xyz", custom_domain = true }
 ]
 
+# No cron for admin itself (Free plan slots are taken); its own stale-file
+# sweep runs lazily on authenticated requests, and the /api/sweep endpoint
+# (called with X-Sweep-Secret) cleans burn/share/status on demand.
+
 [assets]
 directory = "./public"
 not_found_handling = "single-page-application"
 
-[[kv_namespaces]]
-binding = "MAINTENANCE"
-id = "37e2feceae474e21a0b9664c9bdfdea3"
+# Storage: Google Drive folder "inpriv/.admin" (user OAuth).
+# state.json + per-session/rate-limit files. Replaces the old MAINTENANCE KV.
+[vars]
+DRIVE_PARENT = "1yLBrRjNDorTiBgGwQ12krHavKGLshFmV"
+DRIVE_FOLDER_NAME = ".admin"
 
 # Host review queue — storage limit requests from host.inpriv.xyz
 [[d1_databases]]
@@ -29,4 +35,5 @@ database_name = "inpriv-id"
 database_id = "1cd1ca2e-51fd-40d9-94d8-aa75f989291b"
 
 # secrets (wrangler secret put …):
-#   TOTP_SECRET — base32 secret for Google Authenticator (user: saloyek)
+#   TOTP_SECRET  — base32 secret for Google Authenticator (user: saloyek)
+#   DRIVE_OAUTH  — {"client_id":"…","client_secret":"…","refresh_token":"…"}

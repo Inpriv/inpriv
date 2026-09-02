@@ -130,9 +130,10 @@ body {
 .icon-btn:hover { background: var(--md-surface-container-high); color: var(--md-on-surface); }
 .suite-link {
   font-size: 13px; color: var(--md-on-surface-variant);
-  text-decoration: none; padding: 8px 14px; border-radius: 999px;
+  text-decoration: none; padding: 0 14px; border-radius: 999px;
   border: 1px solid var(--md-outline-variant); white-space: nowrap;
   transition: background 0.15s, color 0.15s;
+  display: inline-flex; align-items: center; height: 34px;
 }
 .suite-link:hover { background: var(--md-surface-container-high); color: var(--md-on-surface); }
 
@@ -393,7 +394,7 @@ footer a { color: var(--md-on-surface-variant); }
 }
 .header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 .top-header .icon-btn {
-  width: 42px; height: 42px; border-radius: 9999px;
+  width: 34px; height: 34px; border-radius: 9999px;
   border: 1px solid var(--md-glass-border, color-mix(in srgb, var(--md-outline-variant) 50%, transparent));
   background: var(--md-glass, color-mix(in srgb, var(--md-surface-container) 75%, transparent));
   backdrop-filter: blur(24px) saturate(180%);
@@ -414,6 +415,7 @@ footer a { color: var(--md-on-surface-variant); }
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   font-size: 12px; font-weight: 600; color: var(--md-on-surface-variant);
   white-space: nowrap;
+  height: 34px;
 }
 .privacy-pill .material-symbols-rounded,
 .privacy-pill .ms,

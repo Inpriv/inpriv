@@ -8,8 +8,11 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' 'unsafe-inline' https://id.inpriv.xyz; font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; img-src 'self' data: blob: https://hush.best https://id.inpriv.xyz; connect-src 'self' https://id.inpriv.xyz https://mail.inpriv.xyz http://localhost:* http://127.0.0.1:*; object-src 'none'; base-uri 'self'; form-action 'self';" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' 'unsafe-inline' https://id.inpriv.xyz; font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://id.inpriv.xyz https://mail.inpriv.xyz http://localhost:* http://127.0.0.1:*; object-src 'none'; base-uri 'self'; form-action 'self';" />
 <meta name="theme-color" content="#13140E" />
+<link rel="icon" type="image/png" href="https://inpriv.xyz/icon.png">
+<link rel="apple-touch-icon" href="https://inpriv.xyz/icon.png">
+<link rel="shortcut icon" href="https://inpriv.xyz/icon.png">
 <meta name="description" content="Inpriv Mail — Mobile-first, zero-knowledge encrypted email powered by RSA-2048 and AES-GCM. Fully synchronized with Inpriv ID." />
 <title>Inpriv Mail — Zero-Knowledge Encrypted Mail</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -96,6 +99,8 @@
 /* ---------- Reset ---------- */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; -webkit-tap-highlight-color: transparent; }
+/* Block native browser pull-to-refresh (full page reload on swipe down) */
+html, body { overscroll-behavior-y: contain; }
 body {
   font-family: 'Roboto Flex', system-ui, -apple-system, sans-serif;
   font-optical-sizing: auto;
@@ -221,6 +226,8 @@ body {
 .icon-btn:hover { background: color-mix(in srgb, var(--md-on-surface) 10%, transparent); color: var(--md-on-surface); }
 .icon-btn:active { transform: scale(0.92); }
 .icon-btn .ms { font-size: 20px; }
+/* spinning icon while messages reload */
+.icon-btn.is-refreshing .ms { animation: spin 0.9s linear infinite; }
 
 /* ---------- Main Container ---------- */
 .main-content {
@@ -228,21 +235,15 @@ body {
   width: 100%;
   max-width: 960px;
   margin: 0 auto;
-  padding: calc(68px + var(--safe-top)) 14px calc(90px + var(--safe-bottom));
+  padding: 0 14px calc(90px + var(--safe-bottom));
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
 
 @media(min-width: 768px) {
-  .app-bar {
-    top: 16px;
-    left: max(20px, calc(50vw - 480px));
-    right: max(20px, calc(50vw - 480px));
-    height: 56px;
-  }
   .main-content {
-    padding: 92px 20px 100px;
+    padding: 0 20px 100px;
     gap: 20px;
   }
 }
@@ -424,6 +425,10 @@ body {
 .field input:focus, .field textarea:focus {
   border-color: var(--md-primary);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-primary) 18%, transparent);
+}
+/* ≥16px on phones prevents iOS Safari focus auto-zoom */
+@media(max-width: 767.98px) {
+  .field input, .field textarea { font-size: max(15px, 16px); }
 }
 .input-suffix {
   position: absolute;
@@ -631,6 +636,11 @@ body {
   font-family: inherit;
   font-size: 14px;
   color: var(--md-on-surface);
+  min-width: 0;
+}
+/* ≥16px on phones prevents iOS Safari focus auto-zoom */
+@media(max-width: 767.98px) {
+  .search-bar input { font-size: max(14px, 16px); }
 }
 
 .filter-row {
@@ -646,8 +656,8 @@ body {
   padding: 3px;
 }
 .tab-seg button {
-  height: 36px;
-  padding: 0 14px;
+  height: 40px;
+  padding: 0 16px;
   border: none;
   background: transparent;
   cursor: pointer;
@@ -660,6 +670,7 @@ body {
   align-items: center;
   gap: 6px;
   transition: all 0.2s cubic-bezier(0.2, 1.4, 0, 1);
+  -webkit-tap-highlight-color: transparent;
 }
 .tab-seg button.active {
   background: var(--md-secondary-container);
@@ -693,6 +704,7 @@ body {
   animation: fadeUp 0.35s cubic-bezier(0.2, 1.4, 0, 1) both;
   user-select: none;
   -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 .msg-card:active { transform: scale(0.98); }
 .msg-card.unread {
@@ -860,6 +872,52 @@ body {
   gap: 10px;
   flex-wrap: wrap;
   padding-top: 4px;
+}
+
+/* ---------- Rich (HTML) mail view ---------- */
+.view-format-toggle {
+  display: inline-flex;
+  background: var(--md-surface-container-high);
+  border-radius: 9999px;
+  padding: 3px;
+  gap: 2px;
+  align-self: flex-start;
+}
+.fmt-btn {
+  height: 34px;
+  padding: 0 14px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--md-on-surface-variant);
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s cubic-bezier(0.2, 1.4, 0, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+.fmt-btn .ms { font-size: 16px; }
+.fmt-btn.active {
+  background: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
+}
+.view-rich-wrap {
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 20px;
+  overflow: hidden;
+}
+.view-rich-frame {
+  display: block;
+  width: 100%;
+  min-height: 160px;
+  border: none;
+  background: transparent;
+  color-scheme: inherit;
 }
 
 /* ---------- Mobile Bottom Navigation Bar ---------- */
@@ -1034,6 +1092,18 @@ body {
   flex-wrap: wrap;
 }
 
+/* Compose actions: full-width primary CTA on phones */
+.compose-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+@media(max-width: 480px) {
+  .compose-actions { flex-direction: column-reverse; }
+  .compose-actions .btn { width: 100%; }
+}
+
 .modal-head {
   display: flex;
   align-items: center;
@@ -1190,7 +1260,6 @@ body {
 .header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 .top-header .icon-btn {
   width: 42px; height: 42px; border-radius: 9999px;
-  border: 1px solid var(--md-glass-border, color-mix(in srgb, var(--md-outline-351variant) 50%, transparent));
   border: 1px solid var(--md-glass-border, color-mix(in srgb, var(--md-outline-variant) 50%, transparent));
   background: var(--md-glass, color-mix(in srgb, var(--md-surface-container) 75%, transparent));
   backdrop-filter: blur(24px) saturate(180%);
@@ -1203,7 +1272,6 @@ body {
 .top-header .icon-btn:hover { transform: translateY(-1px); border-color: var(--md-primary); }
 .top-header .icon-btn:active { transform: scale(0.94); }
 .privacy-pill {
-  display: inline-flex; align-items: center;  gap: 6px;
   display: inline-flex; align-items: center; gap: 6px;
   padding: 7px 14px; border-radius: 9999px;
   border: 1px solid var(--md-glass-border, color-mix(in srgb, var(--md-outline-variant) 50%, transparent));
@@ -1227,7 +1295,8 @@ body {
 }
 
 /* header sits in the centered content column (like trace) */
-I00px;
+.top-header {
+  max-width: 960px;
   margin-inline: auto;
   padding: 20px 16px 0;
   width: 100%;
@@ -1328,6 +1397,15 @@ function initials(name) {
   if (parts.length === 0) return '?';
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return (parts[0][0] + parts[1][0]).toUpperCase();
+}
+
+/* Deterministic avatar color per sender — earthy forest palette hues */
+function avatarBg(seed) {
+  const hues = [95, 140, 75, 18, 160, 45, 115, 25];
+  let h = 0;
+  const s = String(seed || '').toLowerCase();
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return `hsl(${hues[h % hues.length]} ${30 + (h % 12)}% ${33 + (h % 6)}%)`;
 }
 
 function fmtTime(ts) {
@@ -1614,11 +1692,11 @@ function renderShell() {
       </div>
     </header>
 <style data-inpriv-mobile-header>
-/* ── mobile floating glass app-bar (fake.inpriv.xyz style) — <600px only ── */
-@media (max-width: 599.98px) {
+/* ── mobile floating glass app-bar (fake.inpriv.xyz style) — <768px only ── */
+@media (max-width: 767.98px) {
   .top-header {
     position: sticky; top: 12px; z-index: 50;
-    max-width: none; width: auto; margin: 12px 12px 22px; padding: 6px 6px 6px 14px;
+    max-width: none; width: auto; margin: max(12px, var(--safe-top)) 12px 22px; padding: 6px 6px 6px 14px;
     gap: 8px; align-items: center;
     border-radius: 9999px;
     background: color-mix(in srgb, var(--md-surface-container, #1F211B) 80%, transparent);
@@ -2085,8 +2163,8 @@ function renderDashboard() {
             ${mkIcon('send')} <span>Sent</span> <span class="pill-num" id="sentCount">0</span>
           </button>
         </div>
-        <button class="btn btn-tonal" id="refreshBtn" style="height:36px;padding:0 14px;font-size:13px">
-          ${mkIcon('refresh')} <span>Refresh</span>
+        <button class="icon-btn refresh-spin" id="refreshBtn" title="Refresh" aria-label="Refresh" style="width:40px;height:40px">
+          ${mkIcon('refresh')}
         </button>
       </div>
     </div>
@@ -2194,6 +2272,8 @@ function updateNavActive() {
 
 /* ---------- Load & Render Messages ---------- */
 async function loadMessages() {
+  const refreshBtn = $('#refreshBtn');
+  if (refreshBtn) refreshBtn.classList.add('is-refreshing');
   try {
     const data = await api('/messages');
     state.messages = data.items || [];
@@ -2205,6 +2285,8 @@ async function loadMessages() {
       return;
     }
     toast('Failed to load messages', e.message, 'error');
+  } finally {
+    if (refreshBtn && refreshBtn.isConnected) refreshBtn.classList.remove('is-refreshing');
   }
 }
 
@@ -2251,7 +2333,7 @@ function renderMessageCards() {
 
   listArea.innerHTML = filtered.map((m, i) => `
     <div class="msg-card ${m.is_read ? '' : 'unread'}" data-id="${m.id}" style="animation-delay:${i * 30}ms">
-      <div class="msg-avatar">${initials(m.peer_label || m.peer_address)}</div>
+      <div class="msg-avatar" style="background:${avatarBg(m.peer_label || m.peer_address)}">${initials(m.peer_label || m.peer_address)}</div>
       <div class="msg-body-meta">
         <div class="msg-top-line">
           <div class="msg-peer-name">${escapeHtml(m.peer_label || m.peer_address)}</div>
@@ -2306,8 +2388,19 @@ async function openMessageView(id) {
           <span>Zero-Knowledge Encrypted (RSA-OAEP-2048 + AES-256-GCM)</span>
         </div>
 
+        <div class="view-format-toggle hidden" id="viewFormatToggle">
+          <button type="button" class="fmt-btn active" id="viewFmtRich">${mkIcon('palette')} <span>Rich</span></button>
+          <button type="button" class="fmt-btn" id="viewFmtPlain">${mkIcon('subject')} <span>Plain</span></button>
+        </div>
+
         <div class="view-body-box decrypting" id="viewBody">
           <span class="spinner"></span> Decrypting in browser memory…
+        </div>
+
+        <div class="view-rich-wrap hidden" id="viewRichWrap">
+          <iframe class="view-rich-frame" id="viewRichFrame"
+                  sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+                  referrerpolicy="no-referrer" title="Message content"></iframe>
         </div>
 
         <div class="view-actions-bar">
@@ -2369,12 +2462,26 @@ async function openMessageView(id) {
 
     let decryptedText = '';
     let decryptFailed = false;
+    let richHtml = '';
+    let payload = null;
     if (!state.privKey) {
       decryptFailed = true;
       decryptedText = 'Encryption key not in browser memory. Please unlock again.';
     } else {
       try {
-        decryptedText = await hybridDecrypt(state.privKey, msg);
+        const raw = await hybridDecrypt(state.privKey, msg);
+        try {
+          const parsed = JSON.parse(raw);
+          if (parsed && (parsed.v === 1 || typeof parsed.text === 'string')) {
+            payload = parsed;
+          }
+        } catch (_) { /* legacy envelope: plain text, not JSON */ }
+        if (payload) {
+          decryptedText = String(payload.text || '');
+          richHtml = String(payload.html || '');
+        } else {
+          decryptedText = raw;
+        }
       } catch (decErr) {
         decryptFailed = true;
         decryptedText = 'Decryption failed: ' + decErr.message;
@@ -2386,6 +2493,37 @@ async function openMessageView(id) {
     bodyEl.textContent = decryptedText;
     if (decryptFailed) {
       bodyEl.innerHTML = `<span style="color:var(--md-error)">${mkIcon('error')} ${escapeHtml(decryptedText)}</span>`;
+    }
+
+    // Rich (HTML) view — sanitized server-side, rendered in a script-less
+    // sandboxed iframe; styles are scoped so the mail can't restyle the app.
+    const richWrap = $('#viewRichWrap');
+    const toggle = $('#viewFormatToggle');
+    if (richHtml && !decryptFailed) {
+      const doc = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+        body{margin:0;padding:12px;font-family:'Roboto Flex',system-ui,-apple-system,sans-serif;
+             font-size:14.5px;line-height:1.6;color:var(--md-on-surface);word-break:break-word;
+             background:transparent}
+        img{max-width:100%;height:auto;border-radius:8px}
+        a{color:var(--md-primary)}
+        table{max-width:100%}
+      </style></head><body>${richHtml}</body></html>`;
+      const frame = $('#viewRichFrame');
+      frame.srcdoc = doc;
+      richWrap.classList.remove('hidden');
+      toggle.classList.remove('hidden');
+      const setFmt = (fmt) => {
+        richWrap.classList.toggle('hidden', fmt !== 'rich');
+        bodyEl.classList.toggle('hidden', fmt !== 'plain');
+        $('#viewFmtRich')?.classList.toggle('active', fmt === 'rich');
+        $('#viewFmtPlain')?.classList.toggle('active', fmt === 'plain');
+        if (fmt === 'rich' && frame) frame.style.height = Math.max(160, frame.contentDocument?.body?.scrollHeight || 160) + 'px';
+      };
+      $('#viewFmtRich').addEventListener('click', () => setFmt('rich'));
+      $('#viewFmtPlain').addEventListener('click', () => setFmt('plain'));
+      setFmt('rich');
+    } else if (toggle) {
+      toggle.classList.add('hidden');
     }
 
     // Mark as read in local list
@@ -2455,7 +2593,7 @@ function openComposeModal(prefillTo = '', prefillSubject = '') {
       <div class="field" style="position:relative">
         <label for="cmpTo" id="cmpToLabel">${initMode === 'inpriv' ? 'To (Inpriv ID Username)' : 'To (Recipient Email Address)'}</label>
         <div class="input-wrap">
-          <input type="text" id="cmpTo" placeholder="${initMode === 'inpriv' ? 'username' : 'e.g. name@gmail.com, user@outlook.com'}" autocomplete="off" autocapitalize="none" spellcheck="false" value="${escapeHtml(cleanTo)}">
+          <input type="text" id="cmpTo" placeholder="${initMode === 'inpriv' ? 'username' : 'e.g. name@gmail.com, user@outlook.com'}" autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="next" value="${escapeHtml(cleanTo)}">
           <span class="input-suffix" id="cmpSuffix" style="${initMode === 'inpriv' ? '' : 'display:none'}">@${DOMAIN}</span>
         </div>
         <div class="autocomplete-list hidden" id="cmpSuggestions"></div>
@@ -2464,7 +2602,7 @@ function openComposeModal(prefillTo = '', prefillSubject = '') {
       <div class="field">
         <label for="cmpSubject">Subject</label>
         <div class="input-wrap">
-          <input type="text" id="cmpSubject" placeholder="Subject" maxlength="200" value="${escapeHtml(cleanSubject)}">
+          <input type="text" id="cmpSubject" placeholder="Subject" maxlength="200" enterkeyhint="next" value="${escapeHtml(cleanSubject)}">
         </div>
       </div>
 
@@ -2473,7 +2611,7 @@ function openComposeModal(prefillTo = '', prefillSubject = '') {
         <textarea id="cmpBody" rows="7" placeholder="Type your message here…"></textarea>
       </div>
 
-      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:10px">
+      <div class="compose-actions">
         <button class="btn btn-outlined" id="composeCancelBtn" type="button">Cancel</button>
         <button class="btn btn-primary" id="composeSendBtn" type="button">
           ${initMode === 'inpriv' ? `${mkIcon('lock')} <span>Encrypt & Send</span>` : `${mkIcon('send')} <span>Send Email</span>`}

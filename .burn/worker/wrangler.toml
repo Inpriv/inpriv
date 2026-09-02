@@ -7,16 +7,19 @@ routes = [
   { pattern = "burn.inpriv.xyz", custom_domain = true }
 ]
 
+# No cron (Free plan: 5 slots taken by temp/mail/host/fake/cordium).
+# Sweeps are lazy (~4% of requests) + manual via admin panel /api/sweep calls.
 # Static frontend served from ./public
 [assets]
 directory = "./public"
 binding = "ASSETS"
 run_worker_first = true
 
-# KV namespace for ephemeral encrypted note storage
-# Create your own: npx wrangler kv namespace create BURN_KV
-# Then paste the returned ID below or set it via:
-#   CLOUDFLARE_KV_BURN_ID=<id> npx wrangler deploy
-[[kv_namespaces]]
-binding = "BURN_KV"
-id = "e0bf863f6dd748aa90f8799ab1bccc42"
+# Storage: Google Drive folder "inpriv/.burn" (user OAuth, like Host).
+# One file per note; encrypted blobs only. Replaces the old BURN_KV.
+[vars]
+DRIVE_PARENT = "1yLBrRjNDorTiBgGwQ12krHavKGLshFmV"
+DRIVE_FOLDER_NAME = ".burn"
+
+# Secrets (set via `npx wrangler secret put DRIVE_OAUTH`):
+#   DRIVE_OAUTH — {"client_id":"…","client_secret":"…","refresh_token":"…"}

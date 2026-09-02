@@ -1,17 +1,19 @@
-// ── Inpriv Share — signaling relay (Cloudflare Worker + KV) ──────────────────
+// ── Inpriv Share — signaling relay (Cloudflare Worker + Google Drive) ────────
 // Zero-knowledge relay for WebRTC signaling. Rooms are opaque ids; every
 // payload after hello is AES-GCM sealed client-side (ECDH P-256), so the
 // relay never sees ICE candidates, IPs or SDP. Rooms self-destruct (TTL),
 // are single-use, and can be burned by the sender after transfer.
 //
-// KV layout (SHARE_KV):
-//   room:<id>          → JSON { pub, created }         (TTL ~15 min)
-//   room:<id>:<n>      → JSON { from, data }           (TTL ~15 min, n = 1,2,…)
-//   room:<id>:count    → counter for n
+// Storage: Google Drive folder "inpriv/.share" (user OAuth):
+//   room_<id>.json          → { pub, created, expiresAt }   (room, ~15 min)
+//   room_<id>_sig_<n>.json  → { from, data }                (signal, ~10 min)
+//   room_<id>_count         → counter for n
+// File names carry expiry; the hourly cron sweeps expired rooms/signals.
 //
 // All state is ephemeral. No logs, no analytics, no IPs stored.
 
 import { maintenanceGate, maintenancePage } from "../../../common/gate.js";
+import { kvPut, kvGet, kvDelete, kvDeleteId, kvList } from "../../../common/drive.js";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -46,11 +48,38 @@ async function readJson(request) {
   }
 }
 
+// Hourly sweep logic (called by /api/sweep and the scheduled handler).
+async function sweepExpired(env) {
+  try {
+    const now = Date.now();
+    let removed = 0;
+    for (const f of await kvList(env, "room_")) {
+      let expired = false;
+      try {
+        const d = JSON.parse(await kvGet(env, f.name));
+        expired = (d.expiresAt || 0) < now;
+      } catch { expired = f.name.endsWith(".json"); } // malformed → only remove json payloads
+      if (expired) { await kvDeleteId(env, f.id); removed++; }
+    }
+    console.log(`share sweep: removed ${removed} expired files`);
+    return removed;
+  } catch (e) {
+    console.log("share sweep failed:", String(e?.message || e));
+    return 0;
+  }
+}
+
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const path = url.pathname;
     const method = request.method;
+
+    // Lazy sweep: ~4% of requests clean expired rooms/signals (no cron slots
+    // left on the Free plan; expected once per ~25 requests).
+    if (Math.random() < 0.04 && ctx?.waitUntil) {
+      ctx.waitUntil(sweepExpired(env).catch(() => {}));
+    }
 
     const gate = await maintenanceGate("share");
     if (gate.locked && path !== "/api/health") {
@@ -61,7 +90,12 @@ export default {
 
     if (method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
 
-    if (!env.SHARE_KV) return json({ error: "kv_not_bound" }, 500);
+    // ─── POST /api/sweep — internal, called by admin cron with shared secret ───
+    if (method === "POST" && path === "/api/sweep") {
+      const h = request.headers.get("X-Sweep-Secret") || "";
+      if (!env.SWEEP_SECRET || h !== env.SWEEP_SECRET) return json({ error: "unauthorized" }, 401);
+      return json({ ok: true, removed: await sweepExpired(env) });
+    }
 
     // ─── POST /api/rooms — create a room ───
     if (method === "POST" && path === "/api/rooms") {
@@ -72,21 +106,27 @@ export default {
       if (typeof pub !== "string" || !PUB_RE.test(pub)) return json({ error: "invalid pub" }, 400);
       const roomTtl = Math.min(Math.max(parseInt(ttl, 10) || ROOM_TTL, 60), 3600);
 
-      const existing = await env.SHARE_KV.get(`room:${id}`);
-      if (existing) return json({ error: "room exists" }, 409);
+      const existing = await kvGet(env, `room_${id}.json`);
+      if (existing != null) {
+        // expired file not yet swept? treat as gone
+        try {
+          const r = JSON.parse(existing);
+          if ((r.expiresAt || 0) > Date.now()) return json({ error: "room exists" }, 409);
+        } catch { return json({ error: "room exists" }, 409); }
+      }
 
-      await env.SHARE_KV.put(`room:${id}`, JSON.stringify({ pub, created: Date.now() }), {
-        expirationTtl: roomTtl,
-      });
+      await kvPut(env, `room_${id}.json`, JSON.stringify({ pub, created: Date.now(), expiresAt: Date.now() + roomTtl * 1000 }));
       return json({ ok: true, ttl: roomTtl });
     }
 
     // ─── GET /api/rooms/:id — fetch room pubkey (receiver) ───
     const mRoom = path.match(/^\/api\/rooms\/([A-Za-z0-9_-]{16,64})$/);
     if (method === "GET" && mRoom) {
-      const raw = await env.SHARE_KV.get(`room:${mRoom[1]}`);
-      if (!raw) return json({ error: "not found" }, 404);
-      const room = JSON.parse(raw);
+      const raw = await kvGet(env, `room_${mRoom[1]}.json`);
+      if (raw == null) return json({ error: "not found" }, 404);
+      let room;
+      try { room = JSON.parse(raw); } catch { return json({ error: "not found" }, 404); }
+      if ((room.expiresAt || 0) < Date.now()) { await kvDelete(env, `room_${mRoom[1]}.json`); return json({ error: "not found" }, 404); }
       return json({ pub: room.pub });
     }
 
@@ -101,16 +141,14 @@ export default {
         return json({ error: "invalid payload" }, 400);
       }
       const id = mSig[1];
-      const roomRaw = await env.SHARE_KV.get(`room:${id}`);
-      if (!roomRaw) return json({ error: "not found" }, 404);
+      const roomRaw = await kvGet(env, `room_${id}.json`);
+      if (roomRaw == null) return json({ error: "not found" }, 404);
 
-      const cntRaw = await env.SHARE_KV.get(`room:${id}:count`);
+      const cntRaw = await kvGet(env, `room_${id}_count`);
       const n = (parseInt(cntRaw, 10) || 0) + 1;
       if (n > MAX_SIGNALS) return json({ error: "too many signals" }, 429);
-      await env.SHARE_KV.put(`room:${id}:signals:${n}`, JSON.stringify({ from, data }), {
-        expirationTtl: SIGNAL_TTL,
-      });
-      await env.SHARE_KV.put(`room:${id}:count`, String(n), { expirationTtl: SIGNAL_TTL });
+      await kvPut(env, `room_${id}_sig_${n}.json`, JSON.stringify({ from, data, expiresAt: Date.now() + SIGNAL_TTL * 1000 }));
+      await kvPut(env, `room_${id}_count`, String(n));
       return json({ ok: true, n });
     }
 
@@ -120,17 +158,19 @@ export default {
       const from = url.searchParams.get("from") || "";
       const after = parseInt(url.searchParams.get("after"), 10) || 0;
       if (from !== "s" && from !== "r") return json({ error: "invalid from" }, 400);
-      const roomRaw = await env.SHARE_KV.get(`room:${id}`);
-      if (!roomRaw) return json({ error: "not found" }, 404);
+      const roomRaw = await kvGet(env, `room_${id}.json`);
+      if (roomRaw == null) return json({ error: "not found" }, 404);
 
-      const cntRaw = await env.SHARE_KV.get(`room:${id}:count`);
+      const cntRaw = await kvGet(env, `room_${id}_count`);
       const count = Math.min(parseInt(cntRaw, 10) || 0, MAX_SIGNALS);
       const signals = [];
       for (let n = after + 1; n <= count && signals.length < 40; n++) {
-        const raw = await env.SHARE_KV.get(`room:${id}:signals:${n}`);
-        if (raw) {
-          const sig = JSON.parse(raw);
-          if (sig.from !== from) signals.push({ n, data: sig.data });
+        const raw = await kvGet(env, `room_${id}_sig_${n}.json`);
+        if (raw != null) {
+          try {
+            const sig = JSON.parse(raw);
+            if (sig.from !== from) signals.push({ n, data: sig.data });
+          } catch {}
         }
       }
       return json({ signals, count });
@@ -140,16 +180,9 @@ export default {
     const mBurn = path.match(/^\/api\/rooms\/([A-Za-z0-9_-]{16,64})\/burn$/);
     if (method === "POST" && mBurn) {
       const id = mBurn[1];
-      const keys = [];
-      let cur = "";
-      for (;;) {
-        const page = await env.SHARE_KV.list({ prefix: `room:${id}`, cursor: cur || undefined, limit: 100 });
-        for (const k of page.keys) keys.push(k.name);
-        if (page.list_complete || !page.cursor) break;
-        cur = page.cursor;
-      }
-      await Promise.all(keys.map((k) => env.SHARE_KV.delete(k)));
-      return json({ ok: true, removed: keys.length });
+      const files = await kvList(env, `room_${id}`);
+      for (const f of files) await kvDeleteId(env, f.id);
+      return json({ ok: true, removed: files.length });
     }
 
     // ─── GET /api/health — always passes (monitoring) ───
@@ -157,5 +190,11 @@ export default {
 
     // ─── everything else: static frontend (single-file app) ───
     return env.ASSETS.fetch(request);
+  },
+
+  // cron kept as fallback (when the account-wide slot frees up); the primary
+  // trigger is admin's cron → POST /api/sweep
+  async scheduled(controller, env, ctx) {
+    await sweepExpired(env);
   },
 };

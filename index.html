@@ -480,8 +480,8 @@
       display: inline-flex;
       align-items: center;
       gap: 5px;
-      height: 28px;
-      padding: 0 10px 0 7px;
+      height: 42px;
+      padding: 0 14px 0 11px;
       border-radius: 9999px;
       background: var(--md-primary-container);
       color: var(--md-on-primary-container);
@@ -495,7 +495,7 @@
     }
 
     .app-bar-id-chip .icon {
-      font-size: 15px;
+      font-size: 18px;
     }
 
     .app-bar-id-chip:hover {
@@ -986,6 +986,20 @@
       color: var(--md-primary); font-weight: 700;
     }
 
+    footer .github-link {
+      display: inline-flex; align-items: center; gap: 7px;
+      margin-top: 12px; padding: 8px 16px;
+      border: 1px solid var(--md-outline-variant); border-radius: 9999px;
+      font-size: 13px; font-weight: 600; color: var(--md-on-surface);
+      text-decoration: none;
+      transition: border-color 0.2s, color 0.2s, transform 0.2s var(--md-easing-standard, cubic-bezier(0.2, 1.4, 0, 1));
+    }
+
+    footer .github-link:hover {
+      border-color: var(--md-primary); color: var(--md-primary);
+      transform: translateY(-2px);
+    }
+
     @keyframes barIn {
       from { opacity: 0; transform: translateY(-12px); }
       to { opacity: 1; transform: translateY(0); }
@@ -1062,7 +1076,11 @@
   display: flex; align-items: center; justify-content: space-between;
   gap: 12px; margin-bottom: 22px;
 }
-.top-header .brand { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.top-header .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.top-header .brand-icon {
+  width: 42px; height: 42px; flex-shrink: 0;
+  object-fit: contain; display: block;
+}
 .top-header .brand-title {
   font-size: 26px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.1;
 }
@@ -1132,10 +1150,8 @@
   .top-header .brand-tagline { display: none; }
   .top-header .brand-icon {
     width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
-    background: var(--md-primary-container, #2E4F2F); color: var(--md-on-primary-container, #C7EFA0);
-    display: grid; place-items: center;
+    object-fit: cover; display: block;
   }
-  .top-header .brand-icon .icon { font-size: 17px; }
   .top-header .header-actions { gap: 2px; flex-wrap: nowrap; }
   .top-header .icon-btn { width: 40px; height: 40px; flex-shrink: 0; }
   .top-header .app-bar-id-chip { width: 40px; height: 40px; padding: 0; justify-content: center; gap: 0; flex-shrink: 0; }
@@ -1152,7 +1168,7 @@
 <div class="container">
 <nav class="top-header" aria-label="Main Navigation">
     <div class="brand">
-      <span class="brand-icon" aria-hidden="true"><span class="icon">shield</span></span><div>
+      <img class="brand-icon" src="https://inpriv.xyz/icon.png" alt="" width="30" height="30" aria-hidden="true"><div>
         <div class="brand-title">Inpriv<span class="accent">.</span></div>
         <div class="brand-tagline">Inpriv Labs</div>
       </div>
@@ -1540,6 +1556,10 @@
   <footer>
     <div class="copyright" data-i18n="copyright">Copyright 2026, Inpriv</div>
     <div class="byline"><span data-i18n="by">by</span> <span>Inpriv Labs</span></div>
+    <a class="github-link" href="https://github.com/Inpriv/inpriv" target="_blank" rel="noopener noreferrer" aria-label="Inpriv on GitHub">
+      <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+      <span>GitHub</span>
+    </a>
   </footer>
 </div>
 

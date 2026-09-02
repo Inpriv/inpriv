@@ -1076,6 +1076,10 @@ function scanText(text, fname) {
 }
 
 // ── Google Drive (user OAuth refresh token preferred; service account fallback) ──
+// Access-token cache lives in worker memory (no KV — saves the daily ops quota).
+// A fresh isolate simply refreshes once per hour; that's fine.
+const _tokCache = { token: null, exp: 0 };
+
 async function getAccessToken(env) {
   const nowSec0 = Math.floor(Date.now() / 1000);
 
@@ -1083,13 +1087,7 @@ async function getAccessToken(env) {
   if (env.DRIVE_OAUTH) {
     let oa;
     try { oa = JSON.parse(env.DRIVE_OAUTH); } catch { throw new Error("drive_bad_oauth_secret"); }
-    const cached = await env.KV.get("drive_token");
-    if (cached) {
-      try {
-        const t = JSON.parse(cached);
-        if (t.exp - 300 > nowSec0) return t.token;
-      } catch {}
-    }
+    if (_tokCache.token && _tokCache.exp - 300 > nowSec0) return _tokCache.token;
     const res = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded" },
@@ -1102,7 +1100,8 @@ async function getAccessToken(env) {
     });
     if (!res.ok) throw new Error("drive_oauth_refresh_failed: " + res.status + " " + (await res.text()).slice(0, 120));
     const d = await res.json();
-    await env.KV.put("drive_token", JSON.stringify({ token: d.access_token, exp: nowSec0 + (d.expires_in || 3600) }), { expirationTtl: 3300 });
+    _tokCache.token = d.access_token;
+    _tokCache.exp = nowSec0 + (d.expires_in || 3600);
     return d.access_token;
   }
 
@@ -1112,13 +1111,7 @@ async function getAccessToken(env) {
   try { sa = JSON.parse(env.DRIVE_SERVICE_ACCOUNT); } catch { throw new Error("drive_bad_secret"); }
   const nowSec = Math.floor(Date.now() / 1000);
 
-  const cached = await env.KV.get("drive_token");
-  if (cached) {
-    try {
-      const t = JSON.parse(cached);
-      if (t.exp - 300 > nowSec) return t.token;
-    } catch {}
-  }
+  if (_tokCache.token && _tokCache.exp - 300 > nowSec) return _tokCache.token;
 
   const header = b64urlStr(JSON.stringify({ alg: "RS256", typ: "JWT" }));
   const claims = b64urlStr(JSON.stringify({
@@ -1142,7 +1135,8 @@ async function getAccessToken(env) {
   });
   if (!res.ok) throw new Error("drive_token_failed: " + res.status);
   const d = await res.json();
-  await env.KV.put("drive_token", JSON.stringify({ token: d.access_token, exp: nowSec + (d.expires_in || 3600) }), { expirationTtl: 3300 });
+  _tokCache.token = d.access_token;
+  _tokCache.exp = nowSec + (d.expires_in || 3600);
   return d.access_token;
 }
 

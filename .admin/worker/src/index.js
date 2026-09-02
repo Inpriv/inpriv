@@ -1,17 +1,15 @@
 // ── Inpriv Admin — private control plane ────────────────────────────────────
 // admin.inpriv.xyz — TOTP login (single user: saloyek), service kill-switches,
-// global info banner, rate limiting, audit log. All state in MAINTENANCE KV.
-//
-// KV layout (MAINTENANCE):
-//   global     → { locked, message, ts }   global kill + banner text
-//   service:X  → { locked, message, ts }   per-service override
-//   info       → { active, message, ts }   global info banner (no lock)
-//   audit      → [ ...last 50 events ]
-//   sess:<id>  → { user, exp }             sessions (7d TTL)
-//   rl:<ip>    → { a, f, reset, block }    login rate limit
-//
-// Public read-only (used by tool workers, cached 15s on the edge):
-//   GET /public/state → { global, services, ts }
+// global info banner, rate limiting, audit log. All state on Google Drive
+// (folder "inpriv/.admin"):
+//   state.json           → { global, info, services, audit }  (one read/write)
+//   sess_<id>.json       → { user, exp }                      sessions (7d)
+//   rl_<ip>.json         → { a, f, reset, block }             login rate limit
+// Public read-only (used by tool workers, cached 2s on the edge):
+//   GET /public/state → { global, info, services, ts }
+// Hourly cron sweeps expired sessions and stale rate-limit files.
+
+import { kvPut, kvGet, kvDelete, kvDeleteId, kvList } from "../../../common/drive.js";
 
 // ── config ───────────────────────────────────────────────────────────────────
 const SERVICES = [
@@ -78,12 +76,42 @@ export default {
     };
     if (method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
 
+    // fire-and-forget helper (no ctx needed — KeepAlive via event.waitUntil
+    // is unavailable in fetch without ctx; just let the promise run)
+    function ctxWaitUntil(_req, p) { p.catch(() => {}); }
+
     try {
       if (path === "/public/state") return await publicState(env, cors);
       if (path === "/api/login" && method === "POST") return await login(request, env, cors);
 
+      // cross-service sweep trigger (shared secret, called from dashboard or scripts)
+      if (path === "/api/sweep" && method === "POST") {
+        const h = request.headers.get("X-Sweep-Secret") || "";
+        if (!env.SWEEP_SECRET || h !== env.SWEEP_SECRET) return json({ error: "unauthorized" }, 401, cors);
+        const own = await sweepOwn(env);
+        const targets = [
+          "https://burn.inpriv.xyz/api/sweep",
+          "https://share.inpriv.xyz/api/sweep",
+          "https://status.inpriv.xyz/api/sweep",
+        ];
+        const results = {};
+        for (const t of targets) {
+          const key = t.replace("https://", "").split(".")[0];
+          try {
+            const res = await fetch(t, { method: "POST", headers: { "X-Sweep-Secret": env.SWEEP_SECRET } });
+            results[key] = res.ok ? await res.json() : { error: res.status };
+          } catch (e) {
+            results[key] = { error: String(e?.message || e) };
+          }
+        }
+        return json({ ok: true, admin: { removed: own }, ...results }, 200, cors);
+      }
+
       const sess = await authed(request, env);
       if (!sess) return json({ error: "unauthorized" }, 401, cors);
+
+      // lazy own-state sweep (5% of authed requests)
+      if (Math.random() < 0.05) ctxWaitUntil(request, sweepOwn(env));
 
       if (path === "/api/logout" && method === "POST") return await logout(request, env, cors);
       if (path === "/api/me") return json({ user: sess.user }, 200, cors);
@@ -101,17 +129,89 @@ export default {
       return json({ error: String(err?.message || err) }, 500, cors);
     }
   },
+
+  // No cron slot on the Free plan — own sweep runs lazily on authed requests.
+  // The scheduled handler stays for when a slot frees up.
+  async scheduled(controller, env, ctx) {
+    await this.sweepOwn(env);
+    const secret = env.SWEEP_SECRET || "";
+    if (!secret) return;
+    const targets = [
+      "https://burn.inpriv.xyz/api/sweep",
+      "https://share.inpriv.xyz/api/sweep",
+      "https://status.inpriv.xyz/api/sweep",
+    ];
+    for (const t of targets) {
+      try {
+        const res = await fetch(t, { method: "POST", headers: { "X-Sweep-Secret": secret } });
+        console.log("sweep →", t, res.status);
+      } catch (e) {
+        console.log("sweep failed →", t, String(e?.message || e));
+      }
+    }
+  },
+
+  async sweepOwn(env) {
+    try {
+      const nowS = Math.floor(Date.now() / 1000);
+      let removed = 0;
+      for (const f of await kvList(env, "sess_")) {
+        try {
+          const rec = JSON.parse(await kvGet(env, f.name));
+          if (!rec || (rec.exp || 0) < nowS) { await kvDeleteId(env, f.id); removed++; }
+        } catch { await kvDeleteId(env, f.id); removed++; }
+      }
+      for (const f of await kvList(env, "rl_")) {
+        try {
+          const rl = JSON.parse(await kvGet(env, f.name));
+          if (!rl || ((rl.reset || 0) < nowS - 3600 && (rl.block || 0) < nowS)) {
+            await kvDeleteId(env, f.id); removed++;
+          }
+        } catch { await kvDeleteId(env, f.id); removed++; }
+      }
+      console.log(`admin sweep: removed ${removed} stale files`);
+    } catch (e) {
+      console.log("admin sweep failed:", String(e?.message || e));
+    }
+  },
 };
+
+// ── state.json (single-file state) ───────────────────────────────────────────
+function defaultState() {
+  return {
+    global: { locked: false, message: "", ts: 0 },
+    info: { active: false, message: "", ts: 0 },
+    services: {},
+    audit: [],
+  };
+}
+
+async function readState(env) {
+  const raw = await kvGet(env, "state.json");
+  if (!raw) return defaultState();
+  try {
+    const st = JSON.parse(raw);
+    return { ...defaultState(), ...st };
+  } catch {
+    return defaultState();
+  }
+}
+
+async function writeState(env, st) {
+  await kvPut(env, "state.json", JSON.stringify(st));
+}
 
 // ── auth: TOTP + sessions ────────────────────────────────────────────────────
 async function authed(request, env) {
   const raw = request.headers.get("Cookie") || "";
   const m = raw.match(/inpriv_admin=([A-Za-z0-9_-]{20,})/);
   if (!m) return null;
-  const rec = await env.MAINTENANCE.get(`sess:${m[1]}`, { type: "json" });
-  if (!rec) return null;
+  const recRaw = await kvGet(env, `sess_${m[1]}.json`);
+  if (!recRaw) return null;
+  let rec;
+  try { rec = JSON.parse(recRaw); } catch { return null; }
   if (rec.exp < Date.now() / 1000) {
-    await env.MAINTENANCE.delete(`sess:${m[1]}`);
+    await kvDelete(env, `sess_${m[1]}.json`);
     return null;
   }
   return rec;
@@ -121,8 +221,11 @@ async function login(request, env, cors) {
   const ip = request.headers.get("CF-Connecting-IP") || "0.0.0.0";
 
   // rate limit: 10 attempts / 5 min / IP; 30 fails / 5 min → 15 min block
-  const rlKey = `rl:${ip}`;
-  const rl = (await env.MAINTENANCE.get(rlKey, { type: "json" })) || { a: 0, f: 0, reset: 0, block: 0 };
+  const rlName = `rl_${ip}.json`;
+  const rlRaw = await kvGet(env, rlName);
+  let rl = null;
+  try { rl = rlRaw ? JSON.parse(rlRaw) : null; } catch { rl = null; }
+  if (!rl) rl = { a: 0, f: 0, reset: 0, block: 0 };
   const now = Date.now() / 1000;
   if (rl.block > now) {
     return json({ error: "too_many_attempts", retry_after: Math.ceil(rl.block - now) }, 429, cors, {
@@ -137,7 +240,7 @@ async function login(request, env, cors) {
   rl.a += 1;
   if (rl.a > 10) {
     rl.block = now + 900;
-    await env.MAINTENANCE.put(rlKey, JSON.stringify(rl), { expirationTtl: 3600 });
+    await kvPut(env, rlName, JSON.stringify(rl));
     return json({ error: "too_many_attempts", retry_after: 900 }, 429, cors, { "Retry-After": "900" });
   }
 
@@ -152,14 +255,14 @@ async function login(request, env, cors) {
   if (failReason) {
     rl.f += 1;
     if (rl.f >= 30) rl.block = now + 900;
-    await env.MAINTENANCE.put(rlKey, JSON.stringify(rl), { expirationTtl: 3600 });
+    await kvPut(env, rlName, JSON.stringify(rl));
     return json({ error: failReason }, 401, cors);
   }
 
-  await env.MAINTENANCE.delete(rlKey); // clear on success
+  await kvDelete(env, rlName); // clear on success
   const sid = crypto.randomUUID().replace(/-/g, "");
   const rec = { user, exp: now + SESSION_TTL };
-  await env.MAINTENANCE.put(`sess:${sid}`, JSON.stringify(rec), { expirationTtl: SESSION_TTL });
+  await kvPut(env, `sess_${sid}.json`, JSON.stringify(rec));
   await audit(env, "login", { ip });
   return json({ ok: true, user }, 200, cors, {
     "Set-Cookie": `${COOKIE}=${sid}; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=${SESSION_TTL}`,
@@ -169,7 +272,7 @@ async function login(request, env, cors) {
 async function logout(request, env, cors) {
   const raw = request.headers.get("Cookie") || "";
   const m = raw.match(/inpriv_admin=([A-Za-z0-9_-]{20,})/);
-  if (m) await env.MAINTENANCE.delete(`sess:${m[1]}`);
+  if (m) await kvDelete(env, `sess_${m[1]}.json`);
   return json({ ok: true }, 200, cors, {
     "Set-Cookie": `${COOKIE}=; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=0`,
   });
@@ -227,13 +330,12 @@ function timingSafeEq(a, b) {
 
 // ── kill-switch state ────────────────────────────────────────────────────────
 async function getState(env) {
-  const global = (await env.MAINTENANCE.get("global", { type: "json" })) || { locked: false, message: "" };
-  const info = (await env.MAINTENANCE.get("info", { type: "json" })) || { active: false, message: "" };
+  const st = await readState(env);
   const services = {};
   for (const s of SERVICES) {
-    services[s] = (await env.MAINTENANCE.get(`service:${s}`, { type: "json" })) || { locked: false, message: "" };
+    services[s] = st.services[s] || { locked: false, message: "" };
   }
-  return { global, info, services };
+  return { global: st.global, info: st.info, services };
 }
 
 async function publicState(env, cors) {
@@ -259,7 +361,9 @@ async function setGlobal(request, env, cors) {
   const b = await request.json().catch(() => ({}));
   const locked = !!b.locked;
   const message = String(b.message || "").slice(0, 500);
-  await env.MAINTENANCE.put("global", JSON.stringify({ locked, message, ts: Date.now() }));
+  const st = await readState(env);
+  st.global = { locked, message, ts: Date.now() };
+  await writeState(env, st);
   await audit(env, locked ? "global_lock" : "global_unlock", { message });
   return json({ ok: true }, 200, cors);
 }
@@ -268,7 +372,9 @@ async function setInfo(request, env, cors) {
   const b = await request.json().catch(() => ({}));
   const active = !!b.active;
   const message = String(b.message || "").slice(0, 500);
-  await env.MAINTENANCE.put("info", JSON.stringify({ active, message, ts: Date.now() }));
+  const st = await readState(env);
+  st.info = { active, message, ts: Date.now() };
+  await writeState(env, st);
   await audit(env, active ? "info_on" : "info_off", { message });
   return json({ ok: true }, 200, cors);
 }
@@ -279,19 +385,23 @@ async function setService(request, env, cors) {
   if (!SERVICES.includes(svc)) return json({ error: "unknown_service" }, 400, cors);
   const locked = !!b.locked;
   const message = String(b.message || "").slice(0, 500);
-  await env.MAINTENANCE.put(`service:${svc}`, JSON.stringify({ locked, message, ts: Date.now() }));
+  const st = await readState(env);
+  st.services[svc] = { locked, message, ts: Date.now() };
+  await writeState(env, st);
   await audit(env, locked ? `lock_${svc}` : `unlock_${svc}`, { message });
   return json({ ok: true }, 200, cors);
 }
 
 async function audit(env, action, extra = {}) {
-  const list = await getAuditRecords(env);
-  list.unshift({ ts: Date.now(), action, ...extra });
-  await env.MAINTENANCE.put("audit", JSON.stringify(list.slice(0, MAX_AUDIT)));
+  const st = await readState(env);
+  st.audit = st.audit || [];
+  st.audit.unshift({ ts: Date.now(), action, ...extra });
+  await writeState(env, st);
 }
 
 async function getAuditRecords(env) {
-  return (await env.MAINTENANCE.get("audit", { type: "json" })) || [];
+  const st = await readState(env);
+  return st.audit || [];
 }
 
 async function getAudit(env, cors) {

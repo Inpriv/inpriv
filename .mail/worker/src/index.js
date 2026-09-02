@@ -206,6 +206,7 @@ async function serverHybridEncrypt(pubKeyB64, plaintextStr) {
 // ── Inbound external email (Resend webhook `email.received`) ───────────────
 const SVIX_TOLERANCE_S = 5 * 60;            // reject webhook timestamps outside ±5 min
 const INBOUND_MAX_TEXT_CHARS = 100_000;     // stored plaintext cap (encrypted at rest)
+const INBOUND_MAX_HTML_CHARS = 200_000;     // sanitized rich-part cap (encrypted at rest)
 
 async function verifySvix(secret, svixId, svixTs, svixSigHeader, rawBody) {
   if (!secret || !svixId || !svixTs || !svixSigHeader || typeof rawBody !== "string") return false;
@@ -246,6 +247,20 @@ function htmlToText(html) {
     .replace(/&#39;/g, "'")
     .replace(/[ \t]+/g, " ")
     .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+// Strip active content from inbound HTML before it is sealed into the
+// encrypted envelope. The browser additionally renders it in a script-less
+// sandboxed iframe — this is the second layer of the same defense.
+function sanitizeEmailHtml(html) {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<iframe[\s\S]*?<\/iframe>/gi, "")
+    .replace(/<(object|embed|form|base|link|meta)[^>]*>/gi, "")
+    .replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+    .replace(/(href|src)\s*=\s*("|')\s*javascript:[^"']*\2/gi, '$1="#"')
+    .replace(/\starget\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, ' target="_blank" rel="noopener noreferrer"')
     .trim();
 }
 
@@ -302,6 +317,7 @@ async function handleInbound(request, env) {
   const readKey = env.RESEND_READ_API_KEY || env.RESEND_API_KEY || env.RESEND_KEY || "";
   const emailId = String(d.email_id || "");
   let text = null;
+  let rawHtml = null;
   let fromName = null;
 
   if (readKey && emailId) {
@@ -312,7 +328,8 @@ async function handleInbound(request, env) {
       if (res.ok) {
         const email = await res.json();
         text = String(email.text || "").slice(0, INBOUND_MAX_TEXT_CHARS) || null;
-        if (!text && email.html) text = htmlToText(String(email.html)).slice(0, INBOUND_MAX_TEXT_CHARS) || null;
+        rawHtml = String(email.html || "").slice(0, INBOUND_MAX_HTML_CHARS) || null;
+        if (!text && rawHtml) text = htmlToText(rawHtml).slice(0, INBOUND_MAX_TEXT_CHARS) || null;
         const hf = (email.headers && email.headers.from) || "";
         const nm = String(hf).match(/^[^<]+(?=\s*<)/);
         if (nm) fromName = nm[0].trim().replace(/^"|"$/g, "").slice(0, 200) || null;
@@ -337,11 +354,19 @@ async function handleInbound(request, env) {
     plaintext += `\n\n— Attachments (${atts.length}) —\n${lines.join("\n")}\n(Attachment downloads are not supported yet; only the list is stored.)`;
   }
 
+  // Rich part: sanitized HTML (script/iframe/event-handler free), sealed in
+  // the same zero-knowledge envelope as the plain text.
+  const payload = { v: 1, text: plaintext };
+  if (rawHtml) {
+    const safe = sanitizeEmailHtml(rawHtml);
+    if (safe) payload.html = safe;
+  }
+
   // Encrypt to the recipient's public key — identical envelope format to
   // internal messages, so the existing browser decrypt path just works.
   let envelope;
   try {
-    envelope = await serverHybridEncrypt(target.public_key, plaintext);
+    envelope = await serverHybridEncrypt(target.public_key, JSON.stringify(payload));
   } catch (err) {
     console.error("inbound: hybrid encrypt failed", err);
     return json({ error: "encryption failure" }, 500); // 500 → Resend retries

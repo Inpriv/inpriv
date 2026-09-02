@@ -7,14 +7,20 @@ routes = [
   { pattern = "status.inpriv.xyz", custom_domain = true }
 ]
 
-# Static frontend served from ./public
+# No cron (Free plan: 5 slots taken by temp/mail/host/fake/cordium).
+# Sweeps are lazy (~4% of requests).
+
+# Static frontend
 [assets]
 directory = "./public"
 binding = "ASSETS"
 run_worker_first = true
 
-# KV namespace for uptime history (7 daily buckets per service).
-# Create your own: npx wrangler kv namespace create STATUS_KV
-[[kv_namespaces]]
-binding = "STATUS_KV"
-id = "31e75a350c3a4b988432706159bd1719"
+# Storage: Google Drive folder "inpriv/.status" (user OAuth).
+# snap.json + day_YYYY-MM-DD.json; replaces the old STATUS_KV.
+[vars]
+DRIVE_PARENT = "1yLBrRjNDorTiBgGwQ12krHavKGLshFmV"
+DRIVE_FOLDER_NAME = ".status"
+
+# Secrets (set via `npx wrangler secret put DRIVE_OAUTH`):
+#   DRIVE_OAUTH — {"client_id":"…","client_secret":"…","refresh_token":"…"}
