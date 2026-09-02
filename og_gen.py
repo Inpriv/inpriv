@@ -216,9 +216,9 @@ def make(key, title, subtitle, glyph):
     d.text((70, 96), "INPRIV LABS", font=f_brand, fill=PRIMARY)
     d.text((W-70, 96), "inpriv.xyz", font=ImageFont.truetype(FL, 26), fill=MUTED, anchor="ra")
 
-    # real site logo (icon.png) — big, no background box
-    gcx, gcy = 230, 330
-    logo_size = 300
+    # real site logo (icon.png) — no background box
+    gcx, gcy = 210, 330
+    logo_size = 200
     logo = LOGO.resize((logo_size, logo_size), Image.LANCZOS)
     img.paste(logo, (gcx - logo_size//2, gcy - logo_size//2), logo)
 
