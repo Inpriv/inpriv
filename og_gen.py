@@ -4,6 +4,9 @@
 from PIL import Image, ImageDraw, ImageFont
 import os, math
 
+# real site logo — used in every OG card
+LOGO = Image.open(os.path.join(os.path.dirname(__file__), ".hush", "icon.png")).convert("RGBA")
+
 W, H = 1200, 630
 BG = (19, 20, 14)        # #13140E
 SURFACE = (26, 28, 23)   # rgba(26,28,23)
@@ -192,7 +195,7 @@ def make(key, title, subtitle, glyph):
     img = Image.new("RGB", (W, H), BG)
     d = ImageDraw.Draw(img)
 
-    # subtle radial glow behind glyph
+    # subtle radial glow behind logo
     glow = Image.new("L", (W, H), 0)
     gd = ImageDraw.Draw(glow)
     gcx, gcy = 950, 200
@@ -213,11 +216,13 @@ def make(key, title, subtitle, glyph):
     d.text((70, 96), "INPRIV LABS", font=f_brand, fill=PRIMARY)
     d.text((W-70, 96), "inpriv.xyz", font=ImageFont.truetype(FL, 26), fill=MUTED, anchor="ra")
 
-    # glyph badge
+    # real site logo (icon.png) in a badge — no drawn glyphs
     gcx, gcy, gr = 200, 330, 78
     d.rounded_rectangle([gcx-gr-26, gcy-gr-26, gcx+gr+26, gcy+gr+26], radius=44,
                         fill=SURFACE, outline=LINE, width=2)
-    draw_glyph(d, glyph, gcx, gcy, gr, PRIMARY)
+    logo_size = 132
+    logo = LOGO.resize((logo_size, logo_size), Image.LANCZOS)
+    img.paste(logo, (gcx - logo_size//2, gcy - logo_size//2), logo)
 
     # title + subtitle
     f_title = ImageFont.truetype(FB, 78)
