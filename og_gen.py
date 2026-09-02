@@ -195,37 +195,26 @@ def make(key, title, subtitle, glyph):
     img = Image.new("RGB", (W, H), BG)
     d = ImageDraw.Draw(img)
 
-    # ── clean minimal card ──
-    # logo left, vertically centered
-    logo_size = 170
+    # ── clean centered card ──
+    # logo centered horizontally, upper area
+    logo_size = 190
     logo = LOGO.resize((logo_size, logo_size), Image.LANCZOS)
-    lx, ly = 120, (H - logo_size) // 2
+    lx = (W - logo_size) // 2
+    ly = 78
     img.paste(logo, (lx, ly), logo)
 
-    # title + short tagline right of the logo
-    tx = lx + logo_size + 70
-    f_title = ImageFont.truetype(FB, 96)
-    d.text((tx, H // 2 - 128), title, font=f_title, fill=TEXT)
+    # title centered under the logo
+    f_title = ImageFont.truetype(FB, 92)
+    ty = ly + logo_size + 58
+    d.text((W // 2, ty), title, font=f_title, fill=TEXT, anchor="ma")
 
-    # shorten subtitle to first sentence, wrap to max 2 lines
+    # short tagline centered under the title
     short = subtitle.split(". ")[0].rstrip(".") + "."
-    f_sub = ImageFont.truetype(FL, 40)
-    words = short.split(" ")
-    lines, cur = [], ""
-    for w_ in words:
-        t = (cur + " " + w_).strip()
-        if d.textlength(t, font=f_sub) <= 700:
-            cur = t
-        else:
-            lines.append(cur); cur = w_
-    lines.append(cur)
-    yy = H // 2 + 22
-    for ln in lines[:2]:
-        d.text((tx, yy), ln, font=f_sub, fill=MUTED)
-        yy += 54
+    f_sub = ImageFont.truetype(FL, 42)
+    d.text((W // 2, ty + 128), short, font=f_sub, fill=MUTED, anchor="ma")
 
-    # single small brand mark bottom-left
-    d.text((120, H - 92), "inpriv.xyz", font=ImageFont.truetype(FL, 30), fill=(120, 122, 108))
+    # small domain centered at the bottom
+    d.text((W // 2, H - 74), "inpriv.xyz", font=ImageFont.truetype(FL, 32), fill=(122, 124, 110), anchor="ma")
 
     path = os.path.join(OUT, f"{key}.png")
     img.save(path, "PNG", optimize=True)
