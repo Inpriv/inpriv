@@ -344,6 +344,10 @@ main {
   pointer-events: none;
 }
 
+/* Edge bars: clamp tooltips inside the viewport (today = last bar) */
+.bar-chart .bar.today:hover::after { left: auto; right: 0; transform: none; }
+.bar-chart .bar:first-child:hover::after { left: 0; right: auto; transform: none; }
+
 .legend {
   display: flex;
   gap: 18px;
