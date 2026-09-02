@@ -81,16 +81,29 @@ async function probeOne(url) {
   }
 }
 
-// Probe with caching: a fresh snapshot at most once per 60 s.
-async function getStatus(env) {
+// Probe with caching: serve a snapshot up to 5 min old instantly, refresh in
+// the background. Little-traffic service = isolates die constantly; without
+// this every cold visit re-probed all 20 services (~8–10 s).
+const SNAP_MAX_AGE = 5 * 60 * 1000;
+
+async function getStatus(env, ctx) {
   try {
     const raw = await kvGet(env, "snap.json");
     if (raw) {
       const snap = JSON.parse(raw);
-      if (snap && Date.now() - snap.t < 60000) return snap;
+      const age = Date.now() - snap.t;
+      if (age < SNAP_MAX_AGE) return snap;
+      // stale but present: return it now, refresh in background
+      if (ctx?.waitUntil) {
+        ctx.waitUntil(probeAndStore(env).catch(() => {}));
+        return snap;
+      }
     }
   } catch (e) { /* fall through to live probe */ }
+  return probeAndStore(env);
+}
 
+async function probeAndStore(env) {
   const results = await Promise.all(
     SERVICES.map(async (svc) => [svc.id, await probeOne(svc.url)])
   );
@@ -219,9 +232,23 @@ export default {
     }
 
     if (method === "GET" && path === "/api/status") {
-      const snap = await getStatus(env);
-      if (env.DRIVE_OAUTH) await recordToday(env, snap);
-      return json(snap);
+      // Edge-cache 30 s: the status page polls this on load; snapshot reads
+      // (2 Drive calls) + history merge shouldn't run on every hit.
+      const cache = caches.default;
+      const ck = new Request("https://cache.local/api/status", request);
+      let res = await cache.match(ck);
+      if (!res) {
+        const snap = await getStatus(env, ctx);
+        res = json(snap);
+        const cc = res.clone();
+        cc.headers.set("Cache-Control", "public, max-age=30");
+        await cache.put(ck, cc);
+        res = (await cache.match(ck)) || res;
+        if (env.DRIVE_OAUTH && ctx?.waitUntil) {
+          ctx.waitUntil(recordToday(env, snap).catch(() => {}));
+        }
+      }
+      return res;
     }
 
     if (method === "GET" && path === "/api/history") {

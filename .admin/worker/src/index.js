@@ -81,7 +81,7 @@ export default {
     function ctxWaitUntil(_req, p) { p.catch(() => {}); }
 
     try {
-      if (path === "/public/state") return await publicState(env, cors);
+      if (path === "/public/state") return await publicState(env, cors, request);
       if (path === "/api/login" && method === "POST") return await login(request, env, cors);
 
       // cross-service sweep trigger (shared secret, called from dashboard or scripts)
@@ -177,6 +177,11 @@ export default {
 };
 
 // ── state.json (single-file state) ───────────────────────────────────────────
+// Cached in isolate memory for 15 s — /public/state (hit by every tool worker
+// every few seconds) and the dashboard no longer touch Drive on each call.
+const STATE_CACHE_TTL = 15_000;
+let _stateCache = { data: null, until: 0 };
+
 function defaultState() {
   return {
     global: { locked: false, message: "", ts: 0 },
@@ -187,33 +192,47 @@ function defaultState() {
 }
 
 async function readState(env) {
+  const now = Date.now();
+  if (_stateCache.data && _stateCache.until > now) return _stateCache.data;
   const raw = await kvGet(env, "state.json");
-  if (!raw) return defaultState();
-  try {
-    const st = JSON.parse(raw);
-    return { ...defaultState(), ...st };
-  } catch {
-    return defaultState();
-  }
+  let st;
+  if (raw) {
+    try { st = JSON.parse(raw); } catch { st = defaultState(); }
+  } else st = defaultState();
+  st = { ...defaultState(), ...st };
+  _stateCache = { data: st, until: now + STATE_CACHE_TTL };
+  return st;
 }
 
 async function writeState(env, st) {
   await kvPut(env, "state.json", JSON.stringify(st));
+  _stateCache = { data: st, until: 0 }; // invalidate — next read hits Drive
 }
 
 // ── auth: TOTP + sessions ────────────────────────────────────────────────────
+// Session cache (per isolate, 60 s) — the dashboard polls authed endpoints;
+// without this every poll pays 1–2 Drive round-trips.
+const _sessCache = new Map(); // sid -> rec | null
+const SESS_CACHE_TTL = 60_000;
+
 async function authed(request, env) {
   const raw = request.headers.get("Cookie") || "";
   const m = raw.match(/inpriv_admin=([A-Za-z0-9_-]{20,})/);
   if (!m) return null;
-  const recRaw = await kvGet(env, `sess_${m[1]}.json`);
-  if (!recRaw) return null;
+  const sid = m[1];
+  const now = Date.now();
+  const hit = _sessCache.get(sid);
+  if (hit && hit.until > now) return hit.rec;
+  const recRaw = await kvGet(env, `sess_${sid}.json`);
+  if (!recRaw) { _sessCache.set(sid, { rec: null, until: now + SESS_CACHE_TTL }); return null; }
   let rec;
   try { rec = JSON.parse(recRaw); } catch { return null; }
-  if (rec.exp < Date.now() / 1000) {
-    await kvDelete(env, `sess_${m[1]}.json`);
+  if (rec.exp < now / 1000) {
+    await kvDelete(env, `sess_${sid}.json`);
+    _sessCache.set(sid, { rec: null, until: now + SESS_CACHE_TTL });
     return null;
   }
+  _sessCache.set(sid, { rec, until: now + SESS_CACHE_TTL });
   return rec;
 }
 
@@ -255,15 +274,17 @@ async function login(request, env, cors) {
   if (failReason) {
     rl.f += 1;
     if (rl.f >= 30) rl.block = now + 900;
-    await kvPut(env, rlName, JSON.stringify(rl));
+    // persist the failure counter in the background — respond immediately
+    kvPut(env, rlName, JSON.stringify(rl)).catch(() => {});
     return json({ error: failReason }, 401, cors);
   }
 
-  await kvDelete(env, rlName); // clear on success
+  kvDelete(env, rlName).catch(() => {}); // clear on success (background)
   const sid = crypto.randomUUID().replace(/-/g, "");
   const rec = { user, exp: now + SESSION_TTL };
-  await kvPut(env, `sess_${sid}.json`, JSON.stringify(rec));
-  await audit(env, "login", { ip });
+  // session write in background too — the cookie is already in this response
+  kvPut(env, `sess_${sid}.json`, JSON.stringify(rec)).catch(() => {});
+  audit(env, "login", { ip }).catch(() => {});
   return json({ ok: true, user }, 200, cors, {
     "Set-Cookie": `${COOKIE}=${sid}; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=${SESSION_TTL}`,
   });
@@ -338,17 +359,29 @@ async function getState(env) {
   return { global: st.global, info: st.info, services };
 }
 
-async function publicState(env, cors) {
-  const st = await getState(env);
-  const body = JSON.stringify({ global: st.global, info: st.info, services: st.services, ts: Date.now() });
-  return new Response(body, {
-    status: 200,
-    headers: {
-      "content-type": "application/json",
-      "cache-control": `public, max-age=${PUB_CACHE_S}, stale-while-revalidate=30`,
-      ...cors,
-    },
-  });
+async function publicState(env, cors, request) {
+  // Edge-cache the public state for 5 s: gate checks from every tool worker
+  // hammer this endpoint; without caching each miss pays ~2 s of Drive reads.
+  const cache = caches.default;
+  const cacheKey = new Request("https://cache.local/public/state", request);
+  let res = await cache.match(cacheKey);
+  if (!res) {
+    const st = await getState(env);
+    const body = JSON.stringify({ global: st.global, info: st.info, services: st.services, ts: Date.now() });
+    res = new Response(body, {
+      status: 200,
+      headers: {
+        "content-type": "application/json",
+        "cache-control": `public, max-age=${PUB_CACHE_S}, stale-while-revalidate=30`,
+        ...cors,
+      },
+    });
+    res = res.clone();
+    await cache.put(cacheKey, res);
+    // rebuild from the cached representation so the returned object is independent
+    res = await cache.match(cacheKey);
+  }
+  return res;
 }
 
 async function apiState(env, cors) {
@@ -396,6 +429,7 @@ async function audit(env, action, extra = {}) {
   const st = await readState(env);
   st.audit = st.audit || [];
   st.audit.unshift({ ts: Date.now(), action, ...extra });
+  st.audit = st.audit.slice(0, MAX_AUDIT);
   await writeState(env, st);
 }
 

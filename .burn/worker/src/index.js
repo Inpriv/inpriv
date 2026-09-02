@@ -5,7 +5,7 @@
 // Copyright (c) 2026 Inpriv Labs — MIT License
 
 import { maintenanceGate, maintenancePage } from "../../../common/gate.js";
-import { kvPut, kvGet, kvDelete, kvDeleteId, kvList } from "../../../common/drive.js";
+import { kvPut, kvGet, kvGetId, kvDelete, kvDeleteId, kvList } from "../../../common/drive.js";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -131,35 +131,58 @@ export default {
       const id = m[1];
 
       if (method === "GET") {
-        const files = await kvList(env, `${nameFor(id)}_`);
-        const fresh = files.find((f) => (parseName(f.name)?.expiresAt ?? 0) > Date.now());
-        const stale = files.filter((f) => f !== fresh);
-        // lazy cleanup of expired duplicates / expired read
-        if (stale.length) for (const f of stale) kvDeleteId(env, f.id);
+        // Edge-cache plain notes for 60 s (immutable until expiry) — repeat
+        // opens of the same link skip Drive entirely. Burn-after-read notes
+        // bypass the cache (one-shot semantics).
+        const noEdgeCache = request.headers.get("X-No-Edge-Cache") === "1";
+        const cache = caches.default;
+        const ck = new Request(`https://cache.local/notes/${id}`, request);
+        let res = noEdgeCache ? null : await cache.match(ck);
+        if (!res) {
+          const files = await kvList(env, `${nameFor(id)}_`);
+          const fresh = files.find((f) => (parseName(f.name)?.expiresAt ?? 0) > Date.now());
+          const stale = files.filter((f) => f !== fresh);
+          // lazy cleanup of expired duplicates / expired read
+          if (stale.length) for (const f of stale) kvDeleteId(env, f.id);
 
-        if (!fresh) return json({ error: "not found" }, 404);
-        const raw = await kvGet(env, fresh.name);
-        if (raw == null) return json({ error: "not found" }, 404);
-        let data;
-        try {
-          data = JSON.parse(raw);
-        } catch {
-          return json({ error: "corrupt" }, 500);
+          if (!fresh) return json({ error: "not found" }, 404);
+          const raw = await kvGetId(env, fresh.id); // reuse id from kvList — no second lookup
+          if (raw == null) return json({ error: "not found" }, 404);
+          let data;
+          try {
+            data = JSON.parse(raw);
+          } catch {
+            return json({ error: "corrupt" }, 500);
+          }
+          const body = JSON.stringify({
+            ciphertext: data.c,
+            burnAfterRead: !!data.b,
+            createdAt: data.t,
+          });
+          res = new Response(body, {
+            status: 200,
+            headers: { "Content-Type": "application/json; charset=utf-8", ...CORS },
+          });
+          if (!data.b) {
+            // clone into edge cache; BAR responses are never cached
+            const cc = res.clone();
+            cc.headers.set("Cache-Control", "public, max-age=60");
+            await cache.put(ck, cc);
+          }
+          // Burn-after-read: destroy after first successful read
+          if (data.b) {
+            await kvDelete(env, fresh.name);
+          }
+          return res;
         }
-        // Burn-after-read: destroy after first successful read
-        if (data.b) {
-          await kvDelete(env, fresh.name);
-        }
-        return json({
-          ciphertext: data.c,
-          burnAfterRead: !!data.b,
-          createdAt: data.t,
-        });
+        return res;
       }
 
       if (method === "DELETE") {
         const files = await kvList(env, `${nameFor(id)}_`);
         for (const f of files) await kvDeleteId(env, f.id);
+        // drop the edge-cached GET response, if any
+        try { await caches.default.delete(new Request(`https://cache.local/notes/${id}`, request)); } catch {}
         return json({ ok: true });
       }
     }

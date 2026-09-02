@@ -14,6 +14,7 @@
 
 const _tok = { v: null, exp: 0 }; // access token cache (per isolate)
 const _folders = new Map();       // service folder id cache (per isolate)
+const _fileIds = new Map();       // "folder|name" -> file id (per isolate)
 
 const DRIVE_API = "https://www.googleapis.com/drive/v3";
 const DRIVE_UPLOAD = "https://www.googleapis.com/upload/drive/v3";
@@ -21,6 +22,17 @@ const DRIVE_UPLOAD = "https://www.googleapis.com/upload/drive/v3";
 export async function driveToken(env) {
   const nowS = Math.floor(Date.now() / 1000);
   if (_tok.v && _tok.exp - 120 > nowS) return _tok.v;
+  // Cross-isolate token share via the edge Cache API: tokens live 1 h, so a
+  // warm cache entry saves every cold isolate a ~1 s OAuth round-trip.
+  try {
+    const cache = caches.default;
+    const ck = new Request("https://cache.local/drive_token");
+    const hit = await cache.match(ck);
+    if (hit) {
+      const j = await hit.json();
+      if (j && j.exp - 300 > nowS) { _tok.v = j.v; _tok.exp = j.exp; return _tok.v; }
+    }
+  } catch {}
   let oa;
   try { oa = JSON.parse(env.DRIVE_OAUTH); } catch { throw new Error("drive_bad_oauth_secret"); }
   const res = await fetch("https://oauth2.googleapis.com/token", {
@@ -37,6 +49,13 @@ export async function driveToken(env) {
   const d = await res.json();
   _tok.v = d.access_token;
   _tok.exp = nowS + (d.expires_in || 3600);
+  try {
+    const cache = caches.default;
+    const ck = new Request("https://cache.local/drive_token");
+    await cache.put(ck, new Response(JSON.stringify({ v: _tok.v, exp: _tok.exp }), {
+      headers: { "cache-control": "public, max-age=3300" },
+    }));
+  } catch {}
   return _tok.v;
 }
 
@@ -76,12 +95,18 @@ export async function driveFolder(env) {
 
 function esc(s) { return s.replace(/'/g, "\\'"); }
 
-// Exact-name lookup → file id or null.
+// Exact-name lookup → file id or null (per-isolate cache; misses are NOT
+// cached negatively so brand-new keys still resolve on the next call).
 async function findId(env, folder, name) {
+  const ck = folder + "|" + name;
+  const hit = _fileIds.get(ck);
+  if (hit !== undefined) return hit;
   const q = encodeURIComponent(`name = '${esc(name)}' and '${folder}' in parents and trashed = false`);
   const res = await gapi(env, `${DRIVE_API}/files?q=${q}&fields=files(id)&pageSize=1`);
   const j = await res.json();
-  return (j.files && j.files[0] && j.files[0].id) || null;
+  const id = (j.files && j.files[0] && j.files[0].id) || null;
+  if (id) _fileIds.set(ck, id);
+  return id;
 }
 
 // KV-style put (create or overwrite by exact name).
@@ -106,11 +131,16 @@ export async function kvPut(env, key, value) {
       body: value,
     });
   } else {
-    await gapi(env, `${DRIVE_UPLOAD}/files?uploadType=multipart&fields=id`, {
+    const res = await gapi(env, `${DRIVE_UPLOAD}/files?uploadType=multipart&fields=id`, {
       method: "POST",
       headers: { "content-type": `multipart/related; boundary=${boundary}` },
       body,
     });
+    // cache the new id so the next get/put skips the lookup round-trip
+    try {
+      const nid = (await res.json()).id;
+      if (nid) _fileIds.set(folder + "|" + key, nid);
+    } catch {}
   }
 }
 
@@ -127,13 +157,28 @@ export async function kvDelete(env, key) {
   try {
     const folder = await driveFolder(env);
     const id = await findId(env, folder, key);
-    if (id) await gapi(env, `${DRIVE_API}/files/${id}`, { method: "DELETE" });
-  } catch { /* best effort, like the old .catch(() => {}) */ }
+    if (id) {
+      await gapi(env, `${DRIVE_API}/files/${id}`, { method: "DELETE" });
+      _fileIds.delete(folder + "|" + key);
+    }
+  } catch { /* best effort, like the old .catch(() => {}) */
+  }
 }
 
 // Delete by file id (after kvList).
 export async function kvDeleteId(env, id) {
   try { await gapi(env, `${DRIVE_API}/files/${id}`, { method: "DELETE" }); } catch {}
+  // drop any cached id entries pointing at this file
+  for (const [k, v] of _fileIds) if (v === id) _fileIds.delete(k);
+}
+
+
+// Media fetch by file id (use after kvList to skip the name lookup).
+export async function kvGetId(env, id) {
+  try {
+    const res = await gapi(env, `${DRIVE_API}/files/${id}?alt=media`);
+    return res ? await res.text() : null;
+  } catch { return null; }
 }
 
 // List keys whose name contains `prefix` → [{ id, name }].
