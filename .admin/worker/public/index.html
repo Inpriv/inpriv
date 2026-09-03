@@ -7,7 +7,8 @@
 <title>Inpriv Admin — Control Panel</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..700&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..600,0..1,0&display=swap" rel="stylesheet">
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..700&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap">
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..700&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
 <style>
 :root{
   --primary:#466E47;--on-primary:#fff;--primary-container:#C8E8C4;--on-primary-container:#0E2A0F;
@@ -347,7 +348,9 @@ function busy(on) { $("busy").classList.toggle("show", on); }
 $("login-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const btn = $("login-btn");
-  btn.disabled = true; $("login-error").textContent = "";
+  btn.disabled = true;
+  btn.innerHTML = '<span class="msymbol">progress_activity</span> Signing in…';
+  $("login-error").textContent = "";
   try {
     const res = await fetch(`${API}/api/login`, {
       method: "POST",
@@ -367,7 +370,10 @@ $("login-form").addEventListener("submit", async (e) => {
     }
     $("l-code").value = "";
   } catch { $("login-error").textContent = "Network error — try again."; }
-  finally { btn.disabled = false; }
+  finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span class="msymbol">login</span> Sign in';
+  }
 });
 
 let retryTimer;
@@ -383,50 +389,70 @@ function startRetryCountdown(sec) {
 }
 
 // ── app ──
+let entering = false;
 async function enterApp() {
-  $("login-view").style.display = "none";
-  $("app-view").style.display = "flex";
+  if (entering) return;
+  entering = true;
   try {
-    const r = await fetch(`${API}/api/me`);
-    if (r.ok) sessUser = (await r.json()).user || "";
-  } catch {}
-  await refresh();
+    $("login-view").style.display = "none";
+    $("app-view").style.display = "flex";
+    await refresh();
+  } finally { entering = false; }
 }
 $("logout-btn").onclick = async () => {
   await fetch(`${API}/api/logout`, { method: "POST" });
   location.reload();
 };
 
-async function refresh() {
-  busy(true);
-  try {
-    const res = await fetch(`${API}/api/state`);
-    if (res.status === 401) return location.reload();
-    const st = await res.json();
-    renderGlobal(st);
-    renderInfo(st);
-    renderServices(st);
-    renderAudit(st.audit || []);
-    await refreshRequests();
-  } catch { toast("Failed to fetch state", true); }
-  finally { busy(false); }
-}
-
-// ── Host limit requests ──
+// single /api/state fetch carries everything (audit + meta included) — the
+// extra /api/me round-trip on every login/refresh was doubling cold-start
 let limitRequests = [];
 let adminPrivKey = null;   // operator RSA private key (unwrapped in this tab)
 let sessUser = "";
 
+async function refresh() {
+  busy(true);
+  try {
+    const res = await fetch(`${API}/api/state`);
+    if (res.status === 401) { backToLogin(); return; }
+    const st = await res.json();
+    sessUser = st.user || sessUser;
+    renderGlobal(st);
+    renderInfo(st);
+    renderServices(st);
+    renderAudit(st.audit || []);
+    // fetch the requests list only when the server-side pending count moved
+    // (or first load) — saves a D1 round-trip on every 30 s auto-refresh
+    const localPending = limitRequests.filter((r) => r.status === "pending").length;
+    if (localPending !== (st.pending_count ?? 0) || !limitRequests.length) await refreshRequests();
+    if (adminPrivKey) await decryptAllReasons();
+  } catch { toast("Failed to fetch state", true); }
+  finally { busy(false); }
+}
+
 async function refreshRequests() {
   try {
     const res = await fetch(`${API}/api/limit-requests`);
-    if (res.status === 401) return location.reload();
+    if (res.status === 401) { backToLogin(); return; }
     const d = await res.json();
     limitRequests = d.requests || [];
     renderRequests();
     if (adminPrivKey) await decryptAllReasons();
-  } catch { /* card stays empty on error */ }
+  } catch { /* card stays empty on error */
+  }
 }
+
+// show the login screen again WITHOUT reloading — a reload would wipe an
+// in-flight login (this is the "logged out half a second later" symptom)
+function backToLogin() {
+  entering = false;
+  $("app-view").style.display = "none";
+  $("login-view").style.display = "flex";
+  $("login-error").textContent = "Session expired — sign in again.";
+  $("l-code").value = "";
+}
+
+// ── Host limit requests ──
 
 function reqGb(mb) { return mb >= 1024 ? (mb / 1024) : mb; }
 function reqSizeLabel(mb) { return mb >= 1024 ? `${(mb / 1024)} GB` : `${mb} MB`; }
@@ -489,7 +515,7 @@ async function decideRequest(id, decision, btn) {
   try {
     await post("/api/limit-request", { id: Number(id), decision, grant_gb: grantGb || 0 });
     toast(decision === "approve" ? `Approved — quota raised to ${grantGb} GB` : "Request denied");
-    await refreshRequests();
+    await refresh();
   } catch (err) {
     toast("Error: " + err.message, true);
     btn.disabled = false;
@@ -590,6 +616,8 @@ function renderInfo(st) {
 
 function renderServices(st) {
   const list = $("services-list");
+  // an auto-refresh landing mid-typing would wipe the field — skip re-render
+  if (list.contains(document.activeElement)) return;
   list.innerHTML = "";
   for (const [id, svc] of Object.entries(st.services || {})) {
     const meta = (st.meta && st.meta[id]) || { name: id, url: "", icon: "shield" };
@@ -680,10 +708,12 @@ setInterval(async () => {
   if (document.visibilityState === "visible" && $("app-view").style.display === "flex") refresh();
 }, 30000);
 
-// on load: check session
+// on load: ONE request decides login-vs-app (state carries audit+requests)
 (async () => {
-  const res = await fetch(`${API}/api/state`);
-  if (res.ok) await enterApp();
+  try {
+    const res = await fetch(`${API}/api/state`);
+    if (res.ok) await enterApp();
+  } catch { /* login view stays */ }
 })();
 </script>
 </body>

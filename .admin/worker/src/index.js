@@ -65,7 +65,7 @@ const PUB_CACHE_S = 2;
 
 // ── router ───────────────────────────────────────────────────────────────────
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const path = url.pathname;
     const method = request.method;
@@ -76,13 +76,16 @@ export default {
     };
     if (method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
 
-    // fire-and-forget helper (no ctx needed — KeepAlive via event.waitUntil
-    // is unavailable in fetch without ctx; just let the promise run)
-    function ctxWaitUntil(_req, p) { p.catch(() => {}); }
+    // keep background promises alive past the response (a bare floating
+    // promise is cancelled once fetch returns — that is what dropped the
+    // session write and logged the user out right after login)
+    const waitUntil = (p) => {
+      try { ctx.waitUntil(Promise.resolve(p).catch(() => {})); } catch { Promise.resolve(p).catch(() => {}); }
+    };
 
     try {
       if (path === "/public/state") return await publicState(env, cors, request);
-      if (path === "/api/login" && method === "POST") return await login(request, env, cors);
+      if (path === "/api/login" && method === "POST") return await login(request, env, cors, waitUntil);
 
       // cross-service sweep trigger (shared secret, called from dashboard or scripts)
       if (path === "/api/sweep" && method === "POST") {
@@ -111,11 +114,11 @@ export default {
       if (!sess) return json({ error: "unauthorized" }, 401, cors);
 
       // lazy own-state sweep (5% of authed requests)
-      if (Math.random() < 0.05) ctxWaitUntil(request, sweepOwn(env));
+      if (Math.random() < 0.05) waitUntil(sweepOwn(env));
 
       if (path === "/api/logout" && method === "POST") return await logout(request, env, cors);
       if (path === "/api/me") return json({ user: sess.user }, 200, cors);
-      if (path === "/api/state") return await apiState(env, cors);
+      if (path === "/api/state") return await apiState(env, cors, sess);
       if (path === "/api/global" && method === "POST") return await setGlobal(request, env, cors);
       if (path === "/api/info" && method === "POST") return await setInfo(request, env, cors);
       if (path === "/api/service" && method === "POST") return await setService(request, env, cors);
@@ -224,19 +227,22 @@ async function authed(request, env) {
   const hit = _sessCache.get(sid);
   if (hit && hit.until > now) return hit.rec;
   const recRaw = await kvGet(env, `sess_${sid}.json`);
-  if (!recRaw) { _sessCache.set(sid, { rec: null, until: now + SESS_CACHE_TTL }); return null; }
+  if (!recRaw) return null; // never cache misses: right after login the file
+                            // may not be visible yet (Drive read-after-write
+                            // lag) — a cached null would keep the user logged
+                            // out for the whole TTL
   let rec;
   try { rec = JSON.parse(recRaw); } catch { return null; }
   if (rec.exp < now / 1000) {
-    await kvDelete(env, `sess_${sid}.json`);
-    _sessCache.set(sid, { rec: null, until: now + SESS_CACHE_TTL });
+    _sessCache.set(sid, { rec: null, until: now + SESS_CACHE_TTL }); // expired: safe to cache
+    kvDelete(env, `sess_${sid}.json`).catch(() => {});
     return null;
   }
   _sessCache.set(sid, { rec, until: now + SESS_CACHE_TTL });
   return rec;
 }
 
-async function login(request, env, cors) {
+async function login(request, env, cors, waitUntil) {
   const ip = request.headers.get("CF-Connecting-IP") || "0.0.0.0";
 
   // rate limit: 10 attempts / 5 min / IP; 30 fails / 5 min → 15 min block
@@ -274,17 +280,25 @@ async function login(request, env, cors) {
   if (failReason) {
     rl.f += 1;
     if (rl.f >= 30) rl.block = now + 900;
-    // persist the failure counter in the background — respond immediately
-    kvPut(env, rlName, JSON.stringify(rl)).catch(() => {});
+    // persist the failure counter — queued so the response stays fast
+    waitUntil(kvPut(env, rlName, JSON.stringify(rl)));
     return json({ error: failReason }, 401, cors);
   }
 
-  kvDelete(env, rlName).catch(() => {}); // clear on success (background)
+  waitUntil(kvDelete(env, rlName)); // clear the counter on success
   const sid = crypto.randomUUID().replace(/-/g, "");
   const rec = { user, exp: now + SESSION_TTL };
-  // session write in background too — the cookie is already in this response
-  kvPut(env, `sess_${sid}.json`, JSON.stringify(rec)).catch(() => {});
-  audit(env, "login", { ip }).catch(() => {});
+  // The session MUST exist before the cookie reaches the browser: the client
+  // immediately calls /api/state, and Drive writes take ~300–500 ms. This
+  // exact gap is what logged the user out half a second after login.
+  try {
+    await kvPut(env, `sess_${sid}.json`, JSON.stringify(rec));
+  } catch (e) {
+    return json({ error: "session_write_failed" }, 503, cors);
+  }
+  // one audit record → one state read+write; queued so the login response
+  // never waits on the second Drive round-trip
+  waitUntil(audit(env, "login", { ip }));
   return json({ ok: true, user }, 200, cors, {
     "Set-Cookie": `${COOKIE}=${sid}; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=${SESSION_TTL}`,
   });
@@ -323,9 +337,11 @@ async function verifyTOTP(code, b32Secret, nowS) {
   const key = base32Decode(b32Secret);
   if (!key.length) return false;
   const step = Math.floor(nowS / 30);
-  for (const off of [-1, 0, 1]) {
-    const expect = await hotp(key, step + off);
-    if (timingSafeEq(code, expect)) return true;
+  // check the current step FIRST — it matches ~97% of real logins, so the
+  // usual path costs one HMAC instead of three
+  if (timingSafeEq(code, await hotp(key, step))) return true;
+  for (const off of [-1, 1]) {
+    if (timingSafeEq(code, await hotp(key, step + off))) return true;
   }
   return false;
 }
@@ -384,10 +400,20 @@ async function publicState(env, cors, request) {
   return res;
 }
 
-async function apiState(env, cors) {
+async function apiState(env, cors, sess = null) {
   const st = await getState(env);
   const list = await getAuditRecords(env);
-  return json({ ...st, audit: list, meta: SERVICES_META }, 200, cors);
+  const payload = { ...st, audit: list, meta: SERVICES_META };
+  if (sess) payload.user = sess.user;
+  // limit requests: pending count is cheap and lets the UI show the badge
+  // without a second endpoint round-trip
+  try {
+    const cnt = await env.HOST_DB.prepare(
+      "SELECT COUNT(*) AS n FROM limit_requests WHERE status = 'pending'"
+    ).first();
+    payload.pending_count = cnt ? cnt.n : 0;
+  } catch { payload.pending_count = 0; }
+  return json(payload, 200, cors);
 }
 
 async function setGlobal(request, env, cors) {
