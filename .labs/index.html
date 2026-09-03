@@ -179,6 +179,48 @@ main { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; padding
 .btn:active { transform: scale(0.96); }
 .btn-secondary { background: var(--md-surface-container-high); color: var(--md-on-surface); box-shadow: none; }
 .btn-block { width: 100%; }
+/* ═══ experiment 6: Minimal Error Pages — live error-page style demo ═══ */
+/* Mirrors common/errors.js (shared worker module) — keep both in sync. */
+.er-wrap { display: flex; flex-direction: column; gap: 10px; }
+.er-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.er-tab {
+  font-family: var(--font-sans); font-size: 0.78rem; font-weight: 700;
+  padding: 7px 14px; border-radius: 9999px; cursor: pointer;
+  background: var(--md-surface-container); border: 1px solid var(--md-outline-variant);
+  color: var(--md-on-surface-variant);
+  transition: border-color 0.2s, color 0.2s, transform 0.2s var(--ease-spring);
+}
+.er-tab:active { transform: scale(0.95); }
+.er-tab[aria-pressed="true"] { border-color: var(--md-primary); color: var(--md-primary); }
+.er-frame {
+  position: relative; border-radius: 16px; overflow: hidden;
+  background: #13140E; border: 1px solid var(--md-outline-variant);
+  min-height: 264px;
+}
+.er-page {
+  padding: 26px 28px; color: #E3E2D3;
+  font: 16px/1.6 'Roboto Flex', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  animation: er-fade 0.4s cubic-bezier(0.2, 1.4, 0, 1) both;
+}
+@keyframes er-fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.er-code { font-size: 64px; font-weight: 200; line-height: 1; letter-spacing: -0.04em; color: #43483D; margin-bottom: 14px; font-variant-numeric: tabular-nums; }
+.er-h { font-size: 1.05rem; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 6px; }
+.er-p { color: #8D9283; font-size: 0.86rem; line-height: 1.6; margin: 0; }
+.er-p a { color: #ABD37A; text-decoration: none; }
+.er-p a:hover { text-decoration: underline; }
+.er-act { margin-top: 20px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.er-btn {
+  display: inline-flex; align-items: center; padding: 8px 18px; border-radius: 9999px;
+  border: 1px solid #43483D; color: #E3E2D3; text-decoration: none;
+  font-size: 0.82rem; font-weight: 600; cursor: pointer;
+  font-family: var(--font-sans); background: none;
+  transition: border-color 0.2s, color 0.2s, transform 0.2s var(--ease-spring);
+}
+.er-btn:hover { border-color: #ABD37A; color: #C7EFA0; transform: translateY(-1px); }
+.er-link { color: #8D9283; font-size: 0.8rem; text-decoration: none; }
+.er-link:hover { color: #C7EFA0; }
+
 /* ═══ experiment demo previews ═══ */
 .demo-shell {
   margin-top: 16px; border-radius: 20px; overflow: hidden;
@@ -556,6 +598,37 @@ footer a { color: var(--md-primary); text-decoration: none; font-weight: 600; }
           </div>
           <div class="ds-sub" id="dsFoot">scanning…</div>
         </div>
+      </div>
+    </div>
+    <!-- ══ EXPERIMENT 6: Minimal Error Pages ══ -->
+    <div class="card" style="--d:118">
+      <div class="panel-title"><span class="ms">error</span><span>Minimal Errors — error-page style</span></div>
+      <p class="hint">The error pages now live across the whole suite: a flat dark canvas, an oversized thin status number, one line of copy and a single quiet action — nothing decorative. This is the real shared style (common/errors.js) rendered live; pick a status below.</p>
+      <div class="chips">
+        <span class="chip ok"><span class="ms">rocket_launch</span>Shipped suite-wide</span>
+        <span class="chip"><span class="ms">text_fields</span>Typographic</span>
+        <span class="chip"><span class="ms">block</span>Zero decoration</span>
+      </div>
+      <div class="demo-shell">
+        <div class="demo-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span style="margin-left:6px">live render — same module the workers serve</span></div>
+        <div class="demo-body">
+          <div class="er-wrap">
+            <div class="er-tabs" role="group" aria-label="Error status">
+              <button type="button" class="er-tab" data-er="404" aria-pressed="true">404</button>
+              <button type="button" class="er-tab" data-er="403" aria-pressed="false">403</button>
+              <button type="button" class="er-tab" data-er="410" aria-pressed="false">410</button>
+              <button type="button" class="er-tab" data-er="429" aria-pressed="false">429</button>
+              <button type="button" class="er-tab" data-er="500" aria-pressed="false">500</button>
+            </div>
+            <div class="er-frame">
+              <div class="er-page" id="erPage" aria-live="polite"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="chips" style="margin-top:14px">
+        <span class="chip"><span class="ms">code</span>common/errors.js</span>
+        <span class="chip"><span class="ms">bolt</span>noindex · no-store · zero requests</span>
       </div>
     </div>
     <!-- ══ STATUS ══ -->
@@ -1492,6 +1565,96 @@ document.querySelectorAll("[data-glass-demo], [data-nightglass-demo]").forEach((
   /* keep live rows fresh on resize / orientation change */
   let rzT = null;
   window.addEventListener("resize", () => { clearTimeout(rzT); rzT = setTimeout(render, 250); });
+})();
+
+/* ── experiment 6: Minimal Error Pages — live renders of common/errors.js.
+   Copy mirrors the shared module — keep both in sync. ── */
+(function () {
+  "use strict";
+  const PAGES = {
+    "404": {
+      h: "Page not found",
+      p: () => "The address may be mistyped, or the page may have moved.",
+      btn: "Go home",
+    },
+    "403": {
+      h: "Access restricted",
+      p: () => "You don't have access to this page. If it's yours, sign in first.",
+      btn: "Go home",
+    },
+    "410": {
+      h: "Gone",
+      p: () => "Whatever lived here was set to expire \u2014 and it did. When time's up, it's gone for good.",
+      btn: "Go home",
+    },
+    "429": {
+      h: "Too many requests",
+      p: () => "A short pause \u2014 give it a minute, then try again.",
+      btn: "Try again",
+    },
+    "500": {
+      h: "Something went wrong",
+      p: () => {
+        const a = document.createElement("a");
+        a.href = "https://status.inpriv.xyz";
+        a.textContent = "status.inpriv.xyz";
+        const frag = document.createDocumentFragment();
+        frag.append("That's on our side, not yours. Your data was not affected. If it keeps happening, check ");
+        frag.append(a);
+        frag.append(".");
+        return frag;
+      },
+      btn: "Try again",
+    },
+  };
+  const page = document.getElementById("erPage");
+  function render(code) {
+    const def = PAGES[code];
+    page.textContent = "";
+    const num = document.createElement("div");
+    num.className = "er-code";
+    num.textContent = code;
+    const h = document.createElement("div");
+    h.className = "er-h";
+    h.textContent = def.h;
+    const p = document.createElement("p");
+    p.className = "er-p";
+    p.append(def.p());
+    const act = document.createElement("div");
+    act.className = "er-act";
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "er-btn";
+    btn.textContent = def.btn;
+    act.append(btn);
+    const link = document.createElement("a");
+    link.className = "er-link";
+    link.href = "https://inpriv.xyz";
+    link.textContent = "inpriv.xyz";
+    act.append(link);
+    page.append(num, h, p, act);
+    /* restart the entrance animation */
+    page.style.animation = "none";
+    void page.offsetWidth;
+    page.style.animation = "";
+  }
+  document.querySelectorAll(".er-tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".er-tab").forEach((t) => t.setAttribute("aria-pressed", "false"));
+      tab.setAttribute("aria-pressed", "true");
+      render(tab.dataset.er);
+    });
+  });
+  page.closest(".er-frame").addEventListener("click", (e) => {
+    const btn = e.target.closest(".er-btn");
+    if (!btn) return;
+    /* demo actions are inert — flash the frame instead of navigating */
+    const frame = page.closest(".er-frame");
+    frame.style.transition = "border-color 0.3s";
+    frame.style.borderColor = "#ABD37A";
+    setTimeout(() => { frame.style.borderColor = ""; }, 350);
+  });
+  render("404");
 })();
 
 /* ── PWA ── */
