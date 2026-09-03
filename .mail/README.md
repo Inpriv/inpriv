@@ -13,6 +13,34 @@ the user's master password via PBKDF2-SHA256 (300,000 iterations).
 
 The server stores only ciphertext envelopes and can never decrypt messages.
 
+## Encryption scope — what is and isn't E2EE
+
+**End-to-end encrypted (nobody but the participants can read these):**
+
+- **Internal mail** — `@inpriv.xyz` → `@inpriv.xyz`. The body is encrypted in the
+  sender's browser to the recipient's public key (hybrid RSA-2048-OAEP + AES-256-GCM)
+  and stays ciphertext until the recipient opens it. The server never holds the key.
+
+**Encrypted at rest, but not end-to-end (the server sees the content briefly):**
+
+- **Inbound external mail** (from Gmail, Outlook, etc.) — the sender cannot know the
+  recipient's key, so the message arrives over TLS in plain text. The Worker encrypts
+  it to the recipient's public key (`serverHybridEncrypt`) *before* writing it to the
+  database. This is gateway encryption — the same model Proton Mail uses for inbound
+  external mail. It is a fundamental limit of email, not a missing feature.
+- **Outbound external mail** — relayed through Resend in plain text (with TLS in
+  transit). A recipient outside the suite cannot decrypt anything.
+
+**Never encrypted (metadata):**
+
+- Subject lines, sender/recipient addresses, timestamps and read flags are stored as
+  plain columns in the database, for all mail — internal included. Only message bodies
+  are end-to-end encrypted.
+
+**Attachments:** external inbound attachments are listed as metadata only (names,
+sizes, types); contents are not stored or encrypted yet. Internal mail does not
+support attachments.
+
 ## Key Features
 
 - **Inpriv ID Synchronization:** Seamless single sign-on integration with `id.inpriv.xyz`. Accounts share identity and `@inpriv.xyz` mailboxes across the suite.

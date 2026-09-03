@@ -2,6 +2,9 @@
 
 > Random `@inpriv.xyz` addresses that live for 24 hours. No signup, no logs.
 
+> **Not end-to-end encrypted.** Incoming messages are stored as plain text in the
+> Worker's database — see [Security model](#security-model) for what that means.
+
 Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Inpriv Labs](https://inpriv.xyz).
 
 **Live:** <https://temp.inpriv.xyz>
@@ -16,6 +19,29 @@ automatically after 24 h (hourly cron sweeps them away).
 
 You can also pick a custom local part, and send outbound mail from the
 disposable address (10/hour limit).
+
+## Security model
+
+**Temp is not end-to-end encrypted, and doesn't pretend to be.** Incoming bodies and
+attachments are fetched from Resend and stored as **plain text** in D1. What actually
+protects a mailbox:
+
+- **Un guessable addresses** — random three-word local parts; a live mailbox cannot be
+  found without knowing its exact address (no enumeration: the inbound webhook returns
+  200 for unknown recipients without storing anything).
+- **Bearer token, scoped per mailbox** — the inbox is readable only with the token the
+  browser got at creation; only its SHA-256 hash is stored server-side.
+- **Short life** — 24 h mailbox TTL, 7 d message hard cap, hourly cron sweep, one-click
+  Shred (deletes the address and every message immediately).
+- **Sandboxed HTML viewer** — remote content renders in a script-less sandboxed iframe;
+  a plain-text tab is always available.
+- **Hardened webhook** — svix/Standard Webhooks HMAC-SHA256 signature verification with
+  timestamp tolerance; reserved local parts (`admin`, `postmaster`, …) can never be
+  claimed.
+
+In practice: the operator (or whoever compromises the Worker/D1) can read mail while it
+exists. Use Temp for sign-ups and verifications, not for secrets — for confidential
+mail use [Mail](https://mail.inpriv.xyz), which encrypts internal mail end-to-end.
 
 ## Architecture
 
