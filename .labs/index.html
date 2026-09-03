@@ -285,6 +285,37 @@ footer a { color: var(--md-primary); text-decoration: none; font-weight: 600; }
   .nn-canvas { width: 208px; height: 208px; }
   .nn-btns .btn { flex: 1 1 auto; justify-content: center; }
 }
+/* ═══ experiment 4: generative fingerprint (identity art) ═══ */
+.fp-grid-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.fp-canvas {
+  width: 232px; height: 232px; max-width: 64vw; aspect-ratio: 1;
+  border-radius: 20px; border: 1px solid var(--md-outline-variant);
+  display: block; background: #13140E;
+}
+.fp-gallery { display: flex; gap: 10px; }
+.fp-mini {
+  width: 56px; height: 56px; border-radius: 14px;
+  border: 1px solid var(--md-outline-variant); cursor: pointer;
+  background: #13140E; touch-action: manipulation;
+  transition: transform 0.25s var(--ease-spring);
+}
+.fp-mini:active { transform: scale(0.9); }
+.fp-controls { display: flex; gap: 8px; flex-wrap: wrap; }
+.fp-input-wrap {
+  flex: 1 1 200px; display: flex; align-items: center; gap: 8px;
+  height: 46px; padding: 0 16px; border-radius: 9999px;
+  background: var(--md-surface-container-high); border: 1px solid var(--md-outline-variant);
+}
+.fp-input-wrap .ms { font-size: 18px; color: var(--md-on-surface-variant); }
+.fp-input-wrap input {
+  flex: 1; min-width: 0; border: none; outline: none; background: transparent;
+  color: var(--md-on-surface); font-family: var(--font-sans);
+  font-size: 16px; font-weight: 600;
+}
+.fp-controls .btn { height: 46px; padding: 0 20px; font-size: 0.88rem; }
+@media (max-width: 599px) {
+  .fp-controls .btn { flex: 1 1 auto; justify-content: center; }
+}
 .progress-demo { border-radius: 9999px; height: 8px; background: var(--md-surface-container-high); overflow: hidden; }
 .progress-demo .p-fill { height: 100%; width: 62%; border-radius: 9999px; background: var(--md-primary); position: relative; }
 @media (min-width: 600px) {
@@ -411,6 +442,34 @@ footer a { color: var(--md-primary); text-decoration: none; font-weight: 600; }
           </div>
           <div class="nn-pred"><span class="nn-pred-name" id="nnPredOut">Train on a few examples first</span><div class="nn-pred-bar"><div class="progress-demo"><div class="p-fill" id="nnPredBar" style="width:0%"></div></div></div></div>
           <div class="nn-log" id="nnLog">draw &rarr; Add &rarr; switch category &rarr; draw &rarr; Add &rarr; Train</div>
+        </div>
+      </div>
+    </div>
+    <!-- ══ EXPERIMENT 4: Generative Fingerprint ══ -->
+    <div class="card" style="--d:110">
+      <div class="panel-title"><span class="ms">fingerprint</span><span>Generative Fingerprint — identity art</span></div>
+      <p class="hint">Type any name and a tiny generator paints its unique artwork: the name is hashed into a random-looking (but perfectly repeatable) seed that drives thousands of brush strokes. The same name always produces the exact same picture on every device — nothing is stored, nothing is sent.</p>
+      <div class="chips">
+        <span class="chip testing"><span class="ms">hourglass_top</span>In testing</span>
+        <span class="chip"><span class="ms">brush</span>Generative art</span>
+        <span class="chip"><span class="ms">sync_lock</span>Deterministic</span>
+      </div>
+      <div class="demo-shell">
+        <div class="demo-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span style="margin-left:6px">live preview — type to repaint</span></div>
+        <div class="demo-body">
+          <div class="fp-grid-wrap">
+            <canvas id="fpCanvas" class="fp-canvas" width="464" height="464" aria-label="Generated fingerprint artwork"></canvas>
+            <div class="fp-gallery" role="group" aria-label="Sample names">
+              <canvas class="fp-mini" data-fp-seed="aurora" width="112" height="112" aria-label="Sample: aurora"></canvas>
+              <canvas class="fp-mini" data-fp-seed="ember" width="112" height="112" aria-label="Sample: ember"></canvas>
+              <canvas class="fp-mini" data-fp-seed="river" width="112" height="112" aria-label="Sample: river"></canvas>
+            </div>
+          </div>
+          <div class="fp-controls">
+            <label class="fp-input-wrap"><span class="ms">badge</span><input id="fpName" placeholder="type a name — e.g. aurora" maxlength="32" autocomplete="off" spellcheck="false" aria-label="Name to generate artwork from"></label>
+            <button class="btn" id="fpDownload"><span class="ms">download</span>Save PNG</button>
+          </div>
+          <div class="nn-log" id="fpLog">same name &rarr; same picture, everywhere, forever</div>
         </div>
       </div>
     </div>
@@ -744,6 +803,164 @@ document.querySelectorAll("[data-glass-demo], [data-nightglass-demo]").forEach((
     log("memory wiped — draw &rarr; Add &rarr; Train");
   }
   els.wipe.addEventListener("click", () => { reset(); showToast("Model and samples erased from memory", "mop"); });
+})();
+
+
+/* ── experiment 4: Generative Fingerprint — a name becomes a unique,
+      repeatable artwork. FNV-1a hash feeds an xorshift128 PRNG that drives
+      a flow-field of strokes; nothing is stored, nothing is sent. ── */
+(function () {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const canvas = $("fpCanvas");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const log = $("fpLog");
+  const nameInput = $("fpName");
+
+  function fnv1a(str) {
+    let h = 0x811c9dc5;
+    for (let i = 0; i < str.length; i++) {
+      h ^= str.charCodeAt(i);
+      h = (h * 0x01000193) >>> 0;
+    }
+    return h >>> 0;
+  }
+
+  /* xorshift128 — fast, deterministic, enough entropy for art */
+  function makeRng(a, b, c, d) {
+    let s0 = a || 1, s1 = b || 2, s2 = c || 3, s3 = d || 4;
+    const next = () => {
+      let t = s3;
+      const s = s0;
+      s3 = s2; s2 = s1; s1 = s;
+      t ^= t << 11;
+      t ^= t >>> 8;
+      s0 = t;
+      t = (t + s) >>> 0;
+      return t / 4294967296;
+    };
+    return next;
+  }
+
+  const PALETTES = [
+    ["#ABD37A", "#466E47", "#C7EFA0", "#8FE6AC", "#FAF9F0"],
+    ["#7BE3A5", "#236E41", "#C9A7F5", "#8FD0FF", "#EDF3F2"],
+    ["#F5C97B", "#D98E4A", "#C7EFA0", "#FFB4AB", "#FAF9F0"],
+    ["#8FD0FF", "#3D5BD9", "#7A4FD0", "#ABD37A", "#E4EEE7"],
+    ["#FFB4AB", "#9C4231", "#F5C97B", "#8FE6AC", "#FAF9F0"],
+    ["#C9A7F5", "#6A4FA3", "#8FE6AC", "#F5C97B", "#E4EEE7"],
+  ];
+
+  function paint(target, seedStr, mini) {
+    const c = target, g = c.getContext("2d");
+    const W = c.width, H = c.height;
+    const norm = seedStr.trim().toLowerCase() || "inpriv";
+    const h1 = fnv1a(norm);
+    const h2 = fnv1a(norm + "::salt");
+    const h3 = fnv1a("salt::" + norm);
+    const h4 = fnv1a(norm.split("").reverse().join(""));
+    const rng = makeRng(h1, h2, h3, h4);
+    const pal = PALETTES[h1 % PALETTES.length];
+
+    /* background: deep tone tinted by the seed */
+    g.fillStyle = mini ? "#13140E" : "#13140E";
+    g.fillRect(0, 0, W, H);
+    const bgGlow = g.createRadialGradient(W * (0.3 + rng() * 0.4), H * (0.25 + rng() * 0.4), 8, W / 2, H / 2, W * 0.8);
+    bgGlow.addColorStop(0, pal[rng() * 4 | 0] + "26");
+    bgGlow.addColorStop(1, "transparent");
+    g.fillStyle = bgGlow;
+    g.fillRect(0, 0, W, H);
+
+    /* flow field angle from low-freq noise over the seed */
+    const fa = rng() * Math.PI * 2, fb = rng() * Math.PI * 2;
+    const fc = rng() * Math.PI * 2, fd = rng() * Math.PI * 2;
+    const ang = (x, y) => {
+      const nx = x / W, ny = y / H;
+      return Math.sin(nx * 3.1 + fa) * 1.4 + Math.cos(ny * 2.7 + fb) * 1.4
+        + Math.sin((nx + ny) * 1.9 + fc) * 1.1 + Math.cos((nx - ny) * 2.3 + fd) * 1.1;
+    };
+
+    /* strokes: thousands of short particles following the field */
+    const STROKES = mini ? 160 : 900;
+    g.lineCap = "round";
+    for (let i = 0; i < STROKES; i++) {
+      let x = rng() * W, y = rng() * H;
+      const color = pal[rng() * pal.length | 0];
+      g.strokeStyle = color;
+      g.globalAlpha = 0.16 + rng() * 0.4;
+      g.lineWidth = (0.6 + rng() * 2.2) * (W / 464);
+      g.beginPath();
+      g.moveTo(x, y);
+      const steps = 14 + (rng() * 22 | 0);
+      for (let s = 0; s < steps; s++) {
+        const a = ang(x, y);
+        x += Math.cos(a) * (W / 90);
+        y += Math.sin(a) * (W / 90);
+        if (x < -20 || x > W + 20 || y < -20 || y > H + 20) break;
+        g.lineTo(x, y);
+      }
+      g.stroke();
+    }
+
+    /* orbit ring + monogram — the identity element */
+    g.globalAlpha = 1;
+    const r = W * 0.31;
+    g.strokeStyle = pal[4];
+    g.lineWidth = W / 232;
+    g.beginPath();
+    g.arc(W / 2, H / 2, r, rng() * 6.28, rng() * 6.28 + Math.PI * (1.1 + rng() * 0.7));
+    g.stroke();
+    const mono = (seedStr.trim()[0] || "?").toUpperCase();
+    g.font = "700 " + (W * 0.3) + "px 'Roboto Flex', system-ui, sans-serif";
+    g.textAlign = "center";
+    g.textBaseline = "middle";
+    g.fillStyle = pal[4];
+    g.fillText(mono, W / 2, H * 0.53);
+
+    /* corner ticks derived from the seed — a signature, not decoration */
+    for (let k = 0; k < 4; k++) {
+      if (!(h2 >> k & 1)) continue;
+      g.fillStyle = pal[k % 4];
+      const s = W / 26;
+      g.fillRect(W - s * 1.6, H - s * 1.6 - k * s * 0.7, s * 0.55, s * 0.55);
+    }
+    return pal;
+  }
+
+  function render() {
+    const name = nameInput.value.trim() || "inpriv";
+    paint(canvas, name, false);
+    const words = name.split(/\s+/).filter(Boolean);
+    log.textContent = "seed: \"" + name + "\" — palette " + (fnv1a(name.toLowerCase()) % PALETTES.length + 1) + "/6, "
+      + (900 + (words.length - 1) * 0) + " strokes, repeatable on every device";
+  }
+
+  let deb = null;
+  nameInput.addEventListener("input", () => {
+    clearTimeout(deb);
+    deb = setTimeout(render, 160);
+  });
+
+  $("fpDownload").addEventListener("click", () => {
+    const a = document.createElement("a");
+    a.download = "inpriv-fingerprint-" + (nameInput.value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-") || "seed") + ".png";
+    a.href = canvas.toDataURL("image/png");
+    a.click();
+    showToast("PNG saved — check your downloads", "download_done");
+  });
+
+  /* gallery minis render once; tap loads that seed into the main canvas */
+  document.querySelectorAll(".fp-mini").forEach((m) => {
+    paint(m, m.dataset.fpSeed, true);
+    m.addEventListener("click", () => {
+      nameInput.value = m.dataset.fpSeed;
+      render();
+      showToast("Seed: " + m.dataset.fpSeed, "brush");
+    });
+  });
+
+  render();
 })();
 
 /* ── PWA ── */
