@@ -402,26 +402,33 @@ main {
 .row-label { font-size: 14px; font-weight: 500; }
 .row-sub { font-size: 12px; color: var(--md-on-surface-variant); margin-top: 2px; }
 
-/* M3 switch */
+/* M3 switch — proportions match the Mail settings */
 .switch {
   position: relative; width: 52px; height: 32px; flex-shrink: 0;
   border-radius: 9999px; border: 2px solid var(--md-outline);
   background: var(--md-surface-container-highest);
-  cursor: pointer; transition: all 0.3s var(--md-easing-standard);
+  cursor: pointer; user-select: none; touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.3s var(--md-easing-spring), border-color 0.3s var(--md-easing-spring), filter 0.15s ease;
 }
 .switch::after {
   content: ""; position: absolute; top: 50%; left: 6px;
   width: 16px; height: 16px; border-radius: 50%;
-  background: var(--md-outline);
+  background: var(--md-on-surface-variant);
   transform: translateY(-50%);
-  transition: all 0.3s var(--md-easing-spring);
+  transition: left 0.3s var(--md-easing-spring), width 0.3s var(--md-easing-spring),
+              height 0.3s var(--md-easing-spring), background 0.3s ease, transform 0.15s ease;
 }
+.switch:hover { filter: brightness(1.08); }
+.switch:active::after { transform: translateY(-50%) scale(1.18); }
+.switch:focus-visible { outline: 2px solid var(--md-primary); outline-offset: 3px; }
 .switch.on {
   background: var(--md-primary); border-color: var(--md-primary);
 }
 .switch.on::after {
-  left: 26px; width: 24px; height: 24px;
+  left: 22px; width: 24px; height: 24px;
   background: var(--md-on-primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
 }
 
 /* session rows */
