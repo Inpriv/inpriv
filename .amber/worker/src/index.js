@@ -431,17 +431,18 @@ function rewriteHtml(text, snapId, pagePath, pageAbs) {
     return open + rw + close;
   });
 
-  src = src.replace(/\s(src|href|poster|data-src)\s*=\s*("([^"]*)"|'([^']*)')/gi, (m, attr, _q, dq, sq) => {
-    const raw = dq !== undefined ? dq : sq;
+  src = src.replace(/\s(src|href|poster|data-src)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s">]+))/gi, (m, attr, dq, sq, uq) => {
+    const raw = dq !== undefined ? dq : (sq !== undefined ? sq : uq);
     if (!raw || raw.startsWith("#") || /^(data|blob|javascript|mailto|tel|about|sms):/i.test(raw)) return m;
     const u = resolveAbs(pageAbs, raw);
     if (!u) return m;
     refs.add(u.toString());
+    const quote = dq !== undefined ? '"' : (sq !== undefined ? "'" : '"');
     if (attr.toLowerCase() === "href" && !ASSET_EXT_RE.test(u.pathname + u.search)) {
       // page navigation — resolved against snap_pages at view time
-      return ` ${attr}="${archiveRef(snapId, pathKey(u.toString()))}" data-orig="${u.origin + u.pathname}"`;
+      return ` ${attr}=${quote}${archiveRef(snapId, pathKey(u.toString()))}${quote} data-orig="${u.origin + u.pathname}"`;
     }
-    return ` ${attr}="${archiveRef(snapId, pathKey(u.toString()))}"`;
+    return ` ${attr}=${quote}${archiveRef(snapId, pathKey(u.toString()))}${quote}`;
   });
 
   src = src.replace(/\ssrcset\s*=\s*"([^"]*)"/gi, (m, val) => {
@@ -926,12 +927,14 @@ export default {
     if (am && (method === "GET" || method === "HEAD")) {
       const inner = am[2] || "";
       if (!inner) {
-        // snapshot root → resolve the entry page path from snap_pages
+        // snapshot root → redirect to the ENTRY page (the captured URL)
         const me0 = await whoami(request, env);
         if (!me0) return new Response("Sign in to view archived pages", { status: 401, headers: { "Content-Type": "text/plain" } });
-        const snap0 = await env.DB.prepare("SELECT user_id FROM snapshots WHERE id = ?").bind(am[1]).first();
+        const snap0 = await env.DB.prepare("SELECT user_id, url FROM snapshots WHERE id = ?").bind(am[1]).first();
         if (!snap0 || snap0.user_id !== me0.uid) return new Response("Not found", { status: 404 });
-        const row = await env.DB.prepare("SELECT path FROM snap_pages WHERE snap_id = ? LIMIT 1").bind(am[1]).first();
+        let row = await env.DB.prepare("SELECT path FROM snap_pages WHERE snap_id = ? AND url = ?")
+          .bind(am[1], snap0.url).first();
+        if (!row) row = await env.DB.prepare("SELECT path FROM snap_pages WHERE snap_id = ? LIMIT 1").bind(am[1]).first();
         return Response.redirect(`https://amber.inpriv.xyz/a/${am[1]}/${row && row.path ? row.path.replace(/^\/+/, "") : "index"}`, 302);
       }
       return serveArchive(request, env, am[1], inner);
