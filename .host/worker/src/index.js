@@ -889,11 +889,11 @@ async function servePublic(request, env, ctx, path, onPages = false) {
             `<meta property="og:site_name" content="Inpriv Host">` +
             `<meta property="og:description" content="${escHtml(f.name)} — hosted on Inpriv Host. Private static hosting with a privacy shield.">` +
             `<meta property="og:url" content="${escHtml("https://" + PAGES_HOST + path)}">` +
-            `<meta property="og:image" content="https://inpriv.xyz/og/host.png">` +
+            `<meta property="og:image" content="https://inpriv.xyz/og/host.png?v=2">` +
             `<meta property="og:image:width" content="1200">` +
             `<meta property="og:image:height" content="630">` +
             `<meta name="twitter:card" content="summary_large_image">` +
-            `<meta name="twitter:image" content="https://inpriv.xyz/og/host.png">`;
+            `<meta name="twitter:image" content="https://inpriv.xyz/og/host.png?v=2">`;
           if (txt.includes("</head>")) txt = txt.replace("</head>", og + "</head>");
           else if (txt.includes("<body")) txt = txt.replace(/<body/, og + "<body");
           else txt = og + txt;
@@ -941,13 +941,13 @@ function crawlerCard(request, f, path, isPage) {
     `<meta property="og:title" content="${escHtml(title)}">` +
     `<meta property="og:description" content="${escHtml(desc)}">` +
     `<meta property="og:url" content="${escHtml(fileUrl)}">` +
-    `<meta property="og:image" content="https://inpriv.xyz/og/host.png">` +
+    `<meta property="og:image" content="https://inpriv.xyz/og/host.png?v=2">` +
     `<meta property="og:image:width" content="1200">` +
     `<meta property="og:image:height" content="630">` +
     `<meta name="twitter:card" content="summary_large_image">` +
     `<meta name="twitter:title" content="${escHtml(title)}">` +
     `<meta name="twitter:description" content="${escHtml(desc)}">` +
-    `<meta name="twitter:image" content="https://inpriv.xyz/og/host.png">` +
+    `<meta name="twitter:image" content="https://inpriv.xyz/og/host.png?v=2">` +
     `<meta http-equiv="refresh" content="0;url=${escHtml(fileUrl)}">` +
     `</head><body style="font-family:system-ui,sans-serif;background:#13140e;color:#e3e2d3;display:grid;place-items:center;min-height:100vh;margin:0">` +
     `<div style="max-width:420px;text-align:center;padding:44px 32px;background:#1a1c17;border:1px solid #3c3f34;border-radius:28px">` +
