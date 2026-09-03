@@ -112,15 +112,33 @@ async function ssrfFetch(url, extra = {}) {
 // ── HTML rewriting (archive:// URLs) ─────────────────────────────────────────
 const ARCHIVE_SCHEME = "archive://";
 // In-zip path: "host/sanitized/path" — host keeps different origins apart.
-function pathKey(absUrl) {
-  let p;
+// Assets (isAsset=true) with a query string get a short query hash appended
+// when the pathname has no extension — "fonts.googleapis.com/css2" URLs for
+// different families must not collide inside the ZIP.
+function pathKey(absUrl, isAsset) {
+  let p, hostL, hasExt, q = "";
   try {
     const u = new URL(absUrl);
-    p = (u.host.toLowerCase() + "/" + decodeURIComponent(u.pathname)).replace(/\/+/g, "/");
+    hostL = u.host.toLowerCase();
+    hasExt = /\.[a-z0-9]{1,5}$/i.test(u.pathname);
+    q = u.search || "";
+    p = (hostL + "/" + decodeURIComponent(u.pathname)).replace(/\/+/g, "/");
     p = p.replace(/\/+$/, "");
-    if (p === u.host.toLowerCase()) p += "/index";
-  } catch { p = "invalid"; }
+    if (p === hostL) p += "/index";
+  } catch { return "invalid"; }
+  if (isAsset && q && !hasExt) {
+    p += "_" + qhash(q);
+    // extension-less stylesheets (Google Fonts css2!) must keep a .css name,
+    // otherwise the viewer serves them as octet-stream and fonts never load
+    if (/(^|\.)fonts\.googleapis\.(com|cn)$/.test(hostL) || /family=|\/css/i.test(q)) p += ".css";
+  }
   return p.replace(/[^\w.\-~/@+,=!&;()'%]/g, "_");
+}
+// deterministic 6-char hash (pure, stable across isolates/deploys)
+function qhash(s) {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
+  return h.toString(36).padStart(6, "0").slice(0, 6);
 }
 function resolveAbs(absBase, href) {
   try {
@@ -431,18 +449,39 @@ function rewriteHtml(text, snapId, pagePath, pageAbs) {
     return open + rw + close;
   });
 
+  // <link rel="stylesheet|icon|manifest|preload"> point at ASSETS even though
+  // their URLs often have no file extension (Google Fonts css2!, favicon).
+  // preconnect/dns-prefetch point at bare origins — neutralize to "#".
+  src = src.replace(/<link\b[^>]*>/gi, (tag) => {
+    if (!/\bhref\s*=/i.test(tag)) return tag;
+    const relM = tag.match(/\brel\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s">]+))/i);
+    const rel = ((relM && (relM[1] || relM[2] || relM[3])) || "").toLowerCase();
+    if (/preconnect|dns-prefetch/.test(rel)) return tag.replace(/\bhref\s*=\s*(?:"[^"]*"|'[^']*'|[^\s">]+)/i, 'href="#"');
+    if (!/stylesheet|icon|apple-touch|manifest|preload|shortcut/.test(rel)) return tag;
+    return tag.replace(/\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s">]+))/i, (hm, dq2, sq2, uq2) => {
+      const raw = dq2 !== undefined ? dq2 : (sq2 !== undefined ? sq2 : uq2);
+      if (!raw || raw.startsWith("#") || /^(data|blob|javascript|mailto|tel|about):/i.test(raw)) return hm;
+      const u = resolveAbs(pageAbs, raw);
+      if (!u) return hm;
+      refs.add(u.toString());
+      const quote = dq2 !== undefined ? '"' : (sq2 !== undefined ? "'" : '"');
+      return `href=${quote}${archiveRef(snapId, pathKey(u.toString(), true))}${quote}`;
+    });
+  });
+
   src = src.replace(/\s(src|href|poster|data-src)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s">]+))/gi, (m, attr, dq, sq, uq) => {
     const raw = dq !== undefined ? dq : (sq !== undefined ? sq : uq);
-    if (!raw || raw.startsWith("#") || /^(data|blob|javascript|mailto|tel|about|sms):/i.test(raw)) return m;
+    if (!raw || raw.startsWith("/a/") || raw.startsWith("#") || /^(data|blob|javascript|mailto|tel|about|sms):/i.test(raw)) return m;
     const u = resolveAbs(pageAbs, raw);
     if (!u) return m;
     refs.add(u.toString());
     const quote = dq !== undefined ? '"' : (sq !== undefined ? "'" : '"');
-    if (attr.toLowerCase() === "href" && !ASSET_EXT_RE.test(u.pathname + u.search)) {
+    const low = attr.toLowerCase();
+    if (low === "href" && !ASSET_EXT_RE.test(u.pathname + u.search)) {
       // page navigation — resolved against snap_pages at view time
       return ` ${attr}=${quote}${archiveRef(snapId, pathKey(u.toString()))}${quote} data-orig="${u.origin + u.pathname}"`;
     }
-    return ` ${attr}=${quote}${archiveRef(snapId, pathKey(u.toString()))}${quote}`;
+    return ` ${attr}=${quote}${archiveRef(snapId, pathKey(u.toString(), true))}${quote}`;
   });
 
   src = src.replace(/\ssrcset\s*=\s*"([^"]*)"/gi, (m, val) => {
@@ -480,7 +519,7 @@ async function captureSite(snap, startAbs) {
       total += buf.length;
       if (total > MAX_ZIP) throw new Error("too-big");
       const fin = res.url || absUrl;
-      const finPath = pathKey(fin);
+      const finPath = pathKey(fin, true);
       if (/css/i.test(ct) || /\.css($|\?)/i.test(new URL(fin).pathname)) {
         const txt = new TextDecoder("utf-8").decode(buf);
         const { text: rw, absUrls } = cssRewrite(txt, snap.id, fin);
@@ -530,6 +569,18 @@ async function captureSite(snap, startAbs) {
     const { html: mainRw, refs: mainRefs } = rewriteHtml(html, snap.id, mainPath, mainFinal);
     addFile(mainPath, new TextEncoder().encode(mainRw));
     pageRows.push({ url: urlKey(new URL(mainFinal)), path: mainPath, title, text: extractText(html) });
+
+    // stylesheets + icons discovered on the main page go FIRST — the 40-asset
+    // cap must never eat the CSS in favour of images
+    const considerAssetFirst = (absStr) => {
+      try {
+        const u = new URL(absStr);
+        if (isForbiddenHost(u.hostname)) return;
+        if (/\.css($|\?)/i.test(u.pathname + u.search) || /fonts\.googleapis\./i.test(u.host) ||
+            /\.(png|jpe?g|gif|webp|svg|ico|avif)$/i.test(u.pathname)) queueAsset(u.toString());
+      } catch {}
+    };
+    for (const r of mainRefs) considerAssetFirst(r);
 
     // breadth-first subpage walk (same-host only, capped)
     const pageQueue = [];
