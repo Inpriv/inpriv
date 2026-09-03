@@ -535,7 +535,9 @@ body {
 }
 .auth-segmented button {
   flex: 1;
-  height: 38px;
+  min-width: 0;
+  height: 40px;
+  padding: 0 10px;
   border: none;
   background: transparent;
   cursor: pointer;
@@ -545,7 +547,14 @@ body {
   color: var(--md-on-surface-variant);
   border-radius: 9999px;
   transition: all 0.25s cubic-bezier(0.2, 1.4, 0, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
 }
+.auth-segmented button .ms { font-size: 17px; flex-shrink: 0; }
+.auth-segmented button.active .ms { color: var(--md-primary); }
 .auth-segmented button.active {
   background: var(--md-secondary-container);
   color: var(--md-on-secondary-container);
@@ -2604,14 +2613,14 @@ function openComposeModal(prefillTo = '', prefillSubject = '') {
           ${mkIcon('lock')} <span>Inpriv E2EE</span>
         </button>
         <button type="button" class="mode-btn ${initMode === 'external' ? 'active' : ''}" data-mode="external">
-          ${mkIcon('public')} <span>External (Gmail, etc.)</span>
+          ${mkIcon('outgoing_mail')} <span>External</span>
         </button>
       </div>
 
       <div class="sec-badge" id="composeSecBadge">
         ${initMode === 'inpriv'
           ? `${mkIcon('lock')} <span>Zero-Knowledge E2EE · Encrypted in browser with recipient's public key</span>`
-          : `${mkIcon('public')} <span>External Relay · Dispatched from ${escapeHtml(state.user.email)} via secure relay. Stored encrypted in your Sent box.</span>`
+          : `${mkIcon('outgoing_mail')} <span>External Relay · Sent as regular email via secure relay (not E2EE). Encrypted copy kept in your Sent box.</span>`
         }
       </div>
 
@@ -2688,7 +2697,7 @@ function openComposeModal(prefillTo = '', prefillSubject = '') {
       if (suffix) suffix.style.display = '';
       if (sendBtn) sendBtn.innerHTML = `${mkIcon('lock')} <span>Encrypt & Send</span>`;
     } else {
-      if (secBadge) secBadge.innerHTML = `${mkIcon('public')} <span>External Relay · Dispatched from ${escapeHtml(state.user.email)} via secure relay. Stored encrypted in your Sent box.</span>`;
+      if (secBadge) secBadge.innerHTML = `${mkIcon('outgoing_mail')} <span>External Relay · Sent as regular email via secure relay (not E2EE). Encrypted copy kept in your Sent box.</span>`;
       if (toLabel) toLabel.textContent = 'To (Recipient Email Address)';
       if (toInput) toInput.placeholder = 'e.g. name@gmail.com, user@outlook.com';
       if (suffix) suffix.style.display = 'none';
