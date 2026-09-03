@@ -284,12 +284,26 @@ main { position: relative; z-index: 1; max-width: 720px; margin: 0 auto; padding
 
 /* ── reveal dialog ───────────────────────────────────────── */
 dialog {
-  border: none; padding: 0; border-radius: 24px; max-width: 480px; width: calc(100% - 32px);
+  border: none; padding: 0; border-radius: 28px; max-width: 480px; width: calc(100% - 32px);
   background: var(--md-surface-container-low); color: var(--md-on-surface);
+  position: fixed; inset: 0; margin: auto; height: fit-content;
 }
 dialog::backdrop { background: rgba(0,0,0,0.55); backdrop-filter: blur(6px); }
 .dlg-pad { padding: 24px; }
-.dlg-pad h3 { font-size: 18px; margin-bottom: 14px; }
+.dlg-pad .id-head { margin-bottom: 16px; }
+.dlg-pad .id-head h3 { font-size: 18px; }
+.dlg-ttl {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin: -6px 0 16px; padding: 5px 12px; border-radius: 9999px;
+  background: color-mix(in srgb, var(--md-surface-container-high) 80%, transparent);
+  border: 1px solid var(--md-outline-var);
+  font-size: 11.5px; font-weight: 700; color: var(--md-on-surface-var);
+  font-variant-numeric: tabular-nums;
+}
+.dlg-ttl .material-symbols-rounded { font-size: 14px; color: var(--md-primary); }
+.dlg-actions { display: flex; gap: 10px; }
+.dlg-actions .btn { flex: 1; min-width: 0; padding: 0 12px; }
+#dlgClose { width: 100%; margin-top: 10px; }
 
 /* ── snackbar ────────────────────────────────────────────── */
 .snack {
@@ -442,7 +456,14 @@ dialog::backdrop { background: rgba(0,0,0,0.55); backdrop-filter: blur(6px); }
 <!-- reveal dialog -->
 <dialog id="revealDlg">
   <div class="dlg-pad">
-    <h3 id="dlgNick">Identity</h3>
+    <div class="id-head">
+      <div class="id-avatar" id="dlgAvatar">?</div>
+      <div class="who">
+        <h3 id="dlgNick">Identity</h3>
+        <p id="dlgName">—</p>
+      </div>
+    </div>
+    <div class="dlg-ttl"><span class="material-symbols-rounded">schedule</span><span id="dlgTtl">—</span></div>
     <div class="cred">
       <div class="cred-row">
         <div class="c-info"><div class="c-label">Mailbox</div><div class="c-val" id="dlgAddr">—</div></div>
@@ -453,11 +474,11 @@ dialog::backdrop { background: rgba(0,0,0,0.55); backdrop-filter: blur(6px); }
         <button class="copy-btn" data-copy="dlgPass" title="Copy password" aria-label="Copy password"><span class="material-symbols-rounded">content_copy</span></button>
       </div>
     </div>
-    <div class="row-btns">
+    <div class="dlg-actions">
       <a class="btn small" id="dlgMail" href="https://mail.inpriv.xyz" target="_blank" rel="noopener"><span class="material-symbols-rounded">mail</span> Mailbox</a>
       <button class="btn small danger" id="dlgBurn"><span class="material-symbols-rounded">local_fire_department</span> Burn</button>
-      <button class="btn small ghost" id="dlgClose">Close</button>
     </div>
+    <button class="btn small ghost" id="dlgClose">Close</button>
     <div class="err" id="dlgErr"></div>
   </div>
 </dialog>
@@ -726,18 +747,26 @@ function renderList() {
 
 /* reveal dialog */
 let dlgId = null;
+let dlgTimer = null;
 async function openReveal(idn) {
   dlgId = idn;
-  $("#dlgNick").textContent = idn.nick + " · " + idn.first_name + " " + idn.last_name;
+  $("#dlgAvatar").textContent = initials(idn.nick);
+  $("#dlgNick").textContent = idn.nick;
+  $("#dlgName").textContent = idn.first_name + " " + idn.last_name;
   $("#dlgAddr").textContent = idn.address;
   $("#dlgPass").textContent = "…";
   $("#dlgErr").textContent = "";
+  const tick = () => { $("#dlgTtl").textContent = fmtCountdown(idn.expires_at - Date.now()) + " remaining"; };
+  tick();
+  clearInterval(dlgTimer);
+  dlgTimer = setInterval(tick, 1000);
   $("#revealDlg").showModal();
   try {
     const d = await api(`/api/identities/${idn.id}/password`);
     $("#dlgPass").textContent = d.password;
   } catch (e) { $("#dlgErr").textContent = e.message; }
 }
+$("#revealDlg").addEventListener("close", () => clearInterval(dlgTimer));
 $("#dlgClose").addEventListener("click", () => $("#revealDlg").close());
 $("#dlgBurn").addEventListener("click", async () => {
   if (!dlgId) return;
