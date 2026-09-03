@@ -41,6 +41,7 @@ const SERVICES = [
   { id: "wipe",     url: "https://wipe.inpriv.xyz" },
   { id: "pay",      url: "https://pay.inpriv.xyz" },
   { id: "labs",     url: "https://labs.inpriv.xyz" },
+  { id: "amber",    url: "https://amber.inpriv.xyz" },
 ];
 
 const CORS = {

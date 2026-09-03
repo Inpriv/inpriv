@@ -34,6 +34,7 @@ const SERVICES = [
   "share",
   "labs",
   "status",
+  "amber",
 ];
 const SERVICES_META = {
   landing:  { name: "Landing (inpriv.xyz)", url: "https://inpriv.xyz", icon: "home" },
@@ -57,6 +58,7 @@ const SERVICES_META = {
   share:    { name: "Share (P2P files)", url: "https://share.inpriv.xyz", icon: "swap_horiz" },
   labs:     { name: "Labs (experiments)", url: "https://labs.inpriv.xyz", icon: "science" },
   status:   { name: "Status (service health)", url: "https://status.inpriv.xyz", icon: "monitor_heart" },
+  amber:    { name: "Amber (web archive)", url: "https://amber.inpriv.xyz", icon: "history_edu" },
 };
 const SESSION_TTL = 7 * 24 * 3600; // seconds
 const COOKIE = "inpriv_admin";

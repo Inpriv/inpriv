@@ -26,6 +26,7 @@ SERVICES = {
     "pay":      ("pay.inpriv.xyz",      "pay",      "index, follow", "FinanceApplication", "Encrypted payment links. Share payment details without exposing them."),
     "stego":    ("stego.inpriv.xyz",    "stego",    "index, follow", "SecurityApplication", "Hide secret messages inside ordinary images with LSB steganography. Invisible ink for the web."),
     "status":   ("status.inpriv.xyz",   "status",   "noindex, nofollow", "WebApplication", "Live health and 7-day uptime of every Inpriv service."),
+    "amber":    ("amber.inpriv.xyz",    "amber",    "index, follow", "WebApplication", "Personal web archive. Capture any page, browse it by date and read it offline - snapshots stored on your own Google Drive."),
     "labs":     ("labs.inpriv.xyz",     "labs",     "noindex, nofollow", "WebApplication", "Experiments and concepts from Inpriv Labs."),
     "hush":     ("hush.best",           "hush",     "index, follow", "SecurityApplication", "End-to-end encrypted chat. No logs, no servers, no traces."),
 }

@@ -42,6 +42,7 @@ SERVICES = [
     ("pay",     "Inpriv Pay", "Encrypted Payment Links", "payment"),
     ("stego",   "Inpriv Stego", "Hide Messages Inside Images", "image"),
     ("status",  "Inpriv Status", "Suite Health & 7-Day Uptime", "monitor_heart"),
+    ("amber",   "Inpriv Amber", "Your Personal Web Archive", "history_edu"),
     ("labs",    "Inpriv Labs", "Experiments & Concepts", "science"),
     ("hush",    "Hush", "End-to-End Encrypted Chat. No Logs. No Servers.", "forum"),
 ]

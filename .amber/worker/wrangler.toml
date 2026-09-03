@@ -1,0 +1,42 @@
+name = "inpriv-amber"
+main = "src/index.js"
+compatibility_date = "2025-08-01"
+workers_dev = true
+
+routes = [
+  { pattern = "amber.inpriv.xyz", custom_domain = true }
+]
+
+# Service database (snapshots, sessions, rate-limit counters)
+[[d1_databases]]
+binding = "DB"
+database_name = "inpriv-amber"
+database_id = "aa2e416b-3618-4cbd-8ded-17f380402279"
+
+# Cross-read: verify credentials against Inpriv ID accounts
+[[d1_databases]]
+binding = "ID_DB"
+database_name = "inpriv-id"
+database_id = "1cd1ca2e-51fd-40d9-94d8-aa75f989291b"
+
+# Static frontend served from ./public (the single-file Amber app)
+# run_worker_first: the worker MUST run on every request so the kill-switch
+# can replace the page with a maintenance screen
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = true
+
+[vars]
+# Google Drive: snapshots live in the "inpriv/.amber" folder (user OAuth,
+# same pattern as Host/Burn). Created lazily on first upload via common/drive.js
+DRIVE_PARENT = "1yLBrRjNDorTiBgGwQ12krHavKGLshFmV"
+DRIVE_FOLDER_NAME = ".amber"
+
+# Per-account storage quota (bytes) — snapshot bodies only, D1 metadata excluded
+QUOTA_BYTES = "536870912"
+
+# Secrets (set via `npx wrangler secret put <NAME>`):
+#   DRIVE_OAUTH  — {"client_id":"…","client_secret":"…","refresh_token":"…"}
+#                  the user's Google Drive (folder "inpriv/.amber")
+#   SERVICE_KEY  — shared Inpriv ID service key (TOTP verify + SSO grant redeem)

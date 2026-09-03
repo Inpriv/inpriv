@@ -12,7 +12,7 @@ No trackers. No remote logs. No compromises — everything runs in your browser.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Website](https://img.shields.io/badge/website-inpriv.xyz-466E47)](https://inpriv.xyz)
-[![Tools](https://img.shields.io/badge/tools-21%20live%20%2B%204%20in%20dev-ABD37A)](https://inpriv.xyz)
+[![Tools](https://img.shields.io/badge/tools-22%20live%20%2B%204%20in%20dev-ABD37A)](https://inpriv.xyz)
 [![Zero-Knowledge](https://img.shields.io/badge/zero--knowledge-%E2%9C%93-C7EFA0)]()
 [![By Inpriv Labs](https://img.shields.io/badge/by-Inpriv%20Labs-9C4231)]()
 
@@ -50,6 +50,7 @@ Inpriv is an ecosystem of **zero-knowledge, fully client-side web utilities** �
 - **Share** — [share.inpriv.xyz](https://share.inpriv.xyz) — direct device-to-device file transfer over an encrypted P2P tunnel (no uploads, no size limits)
 - **Labs** — [labs.inpriv.xyz](https://labs.inpriv.xyz) — public experiment bench: live UI concepts and prototypes under evaluation
 - **Status** — [status.inpriv.xyz](https://status.inpriv.xyz) — live health, response time and 7-day uptime for every Inpriv tool
+- **Amber** — [amber.inpriv.xyz](https://amber.inpriv.xyz) — personal web archive: capture pages, browse snapshots by date, read offline (stored on your Google Drive)
 - **ID** — [id.inpriv.xyz](https://id.inpriv.xyz) — Inpriv ID: one account for the whole suite (SSO, @inpriv.xyz address, optional 2FA)
 - **Mail** — [mail.inpriv.xyz](https://mail.inpriv.xyz) — zero-knowledge encrypted mail: E2EE inside the suite, external delivery to Gmail/Outlook/any
 - **Fake** — [fake.inpriv.xyz](https://fake.inpriv.xyz) — time-limited fake identities for Inpriv ID members (persona, password, real @inpriv.xyz mailbox)
@@ -137,6 +138,7 @@ inpriv/
 ├── .labs/              # Labs — public experiment bench
 ├── .admin/             # admin dashboard — admin.inpriv.xyz (TOTP login, kill-switches)
 ├── .status/            # Status — live service health & uptime page
+├── .amber/             # Amber — personal web archive (Wayback-style, Drive-backed)
 ├── .zero/              # Crypto wallet (WIP)
 ├── .osint/             # OSINT engine (WIP)
 ├── .totp/              # TOTP generator (WIP)

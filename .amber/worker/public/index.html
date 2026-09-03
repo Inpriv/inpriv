@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://id.inpriv.xyz; font-src 'self' https://fonts.googleapis.com fonts.gstatic.com https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' blob:; object-src 'none'; frame-src 'self'; base-uri 'self'; form-action 'self'; connect-src 'self' https://id.inpriv.xyz; worker-src 'none'; manifest-src 'self' data:">
+<title>Inpriv Amber — Personal Web Archive</title>
+<meta name="description" content="Amber is a personal web archive. Capture any page, keep it on your own timeline and read it offline — snapshots are stored as ZIP archives on your Google Drive.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Inpriv">
+<meta property="og:title" content="Inpriv Amber — Personal Web Archive">
+<meta property="og:description" content="Capture any page, keep it on your own timeline and read it offline — snapshots are stored as ZIP archives on your Google Drive.">
+<meta property="og:url" content="https://amber.inpriv.xyz/">
+<meta property="og:image" content="https://inpriv.xyz/og/amber.png?v=1">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Inpriv Amber — Personal Web Archive">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Inpriv Amber — Personal Web Archive">
+<meta name="twitter:description" content="Capture any page, keep it on your own timeline and read it offline — snapshots are stored as ZIP archives on your Google Drive.">
+<meta name="twitter:image" content="https://inpriv.xyz/og/amber.png?v=1">
+<meta name="twitter:image:alt" content="Inpriv Amber — Personal Web Archive">
+<link rel="canonical" href="https://amber.inpriv.xyz/">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "WebApplication", "name": "Inpriv Amber — Personal Web Archive", "url": "https://amber.inpriv.xyz/", "description": "Capture any page, keep it on your own timeline and read it offline — snapshots are stored as ZIP archives on your Google Drive.", "applicationCategory": "UtilitiesApplication", "operatingSystem": "All", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "publisher": {"@type": "Organization", "name": "Inpriv Labs", "url": "https://inpriv.xyz/"}, "inLanguage": "en"}</script>
+<meta name="theme-color" content="#13140E" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#FAF9F0" media="(prefers-color-scheme: light)">
+<meta name="robots" content="index, follow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Inpriv Amber">
+<link rel="apple-touch-icon" href="/icon.png">
+<link rel="manifest" href="data:application/json,{&quot;name&quot;:&quot;Inpriv Amber&quot;,&quot;short_name&quot;:&quot;Amber&quot;,&quot;start_url&quot;:&quot;https://amber.inpriv.xyz&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;background_color&quot;:&quot;#13140E&quot;,&quot;theme_color&quot;:&quot;#13140E&quot;,&quot;icons&quot;:[{&quot;src&quot;:&quot;/icon.png&quot;,&quot;sizes&quot;:&quot;512x512&quot;,&quot;type&quot;:&quot;image/png&quot;}]}">
+<link rel="icon" href="/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:ital,opsz,wght@0,8..144,300..800;1,8..144,300..800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<style>
+[hidden] { display: none !important; }
+
+:root {
+  --ease-standard: cubic-bezier(0.2, 0.0, 0.0, 1.0);
+  --ease-spring: cubic-bezier(0.2, 1.3, 0.0, 1.0);
+  --ease-spring-soft: cubic-bezier(0.34, 1.3, 0.64, 1.0);
+  --inpriv-ease: cubic-bezier(0.2, 1.4, 0, 1);
+  --font-sans: 'Roboto Flex', system-ui, -apple-system, sans-serif;
+  --font-icon: 'Material Symbols Rounded';
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+[data-theme="dark"], :root {
+  --md-primary: #ABD37A;
+  --md-on-primary: #173800;
+  --md-primary-container: #2E4F2F;
+  --md-on-primary-container: #C7EFA0;
+  --md-secondary: #BCCBAF;
+  --md-secondary-container: #3D4B34;
+  --md-on-secondary-container: #D8E7CB;
+  --md-tertiary: #FFB4A5;
+  --md-error: #FFB4AB;
+  --md-surface: #13140E;
+  --md-surface-container: #1F211B;
+  --md-surface-container-high: #292B25;
+  --md-surface-container-highest: #33362E;
+  --md-on-surface: #E3E2D3;
+  --md-on-surface-variant: #C3C8B6;
+  --md-outline: #8D9283;
+  --md-outline-variant: #43483D;
+  --md-scrim: rgba(0,0,0,0.6);
+  --glass: rgba(31,33,27,0.72);
+}
+[data-theme="light"] {
+  --md-primary: #466E47;
+  --md-on-primary: #FFFFFF;
+  --md-primary-container: #C7EFA0;
+  --md-on-primary-container: #0C2000;
+  --md-secondary: #55624C;
+  --md-secondary-container: #D8E7CB;
+  --md-on-secondary-container: #131F10;
+  --md-tertiary: #7E2D1E;
+  --md-error: #BA1A1A;
+  --md-surface: #FAF9F0;
+  --md-surface-container: #EEEDDE;
+  --md-surface-container-high: #E6E4D4;
+  --md-surface-container-highest: #E0DED0;
+  --md-on-surface: #1A1C17;
+  --md-on-surface-variant: #43483D;
+  --md-outline: #74796C;
+  --md-outline-variant: #C3C8B6;
+  --md-scrim: rgba(0,0,0,0.35);
+  --glass: rgba(250,249,240,0.78);
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-weight: 380;
+  background: var(--md-surface);
+  color: var(--md-on-surface);
+  min-height: 100dvh;
+  line-height: 1.5;
+  transition: background 0.35s var(--ease-standard), color 0.35s var(--ease-standard);
+}
+.ms {
+  font-family: var(--font-icon);
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  user-select: none;
+}
+.ms.fill { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+
+/* ── app bar ── */
+.appbar-wrap { position: sticky; top: 0; z-index: 40; padding: 0 12px; }
+.appbar {
+  display: flex; align-items: center; gap: 4px;
+  margin: 12px auto 0; max-width: 720px;
+  background: var(--glass);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 28px;
+  padding: 8px 10px;
+  animation: barIn 0.55s var(--inpriv-ease) both;
+}
+@keyframes barIn { from { opacity: 0; transform: translateY(-14px); } to { opacity: 1; transform: none; } }
+.appbar .brand {
+  display: flex; align-items: center; gap: 10px;
+  font-weight: 560; font-size: 1.02rem; letter-spacing: 0.2px;
+  color: var(--md-on-surface); text-decoration: none;
+  flex: 1; min-width: 0; cursor: pointer;
+}
+.appbar .brand .ms { color: var(--md-primary); font-size: 26px; }
+.appbar .brand span.t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.iconbtn {
+  appearance: none; border: 0; background: transparent; color: var(--md-on-surface-variant);
+  width: 44px; height: 44px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; flex: 0 0 auto;
+  transition: background 0.2s var(--ease-standard), color 0.2s var(--ease-standard), transform 0.25s var(--inpriv-ease);
+}
+.iconbtn:hover { background: var(--md-surface-container-high); color: var(--md-on-surface); }
+.iconbtn:active { transform: scale(0.92); }
+.iconbtn .ms { font-size: 24px; }
+
+main { max-width: 720px; margin: 0 auto; padding: 18px 16px calc(40px + env(safe-area-inset-bottom)); }
+
+/* ── capture card ── */
+.capture-card {
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 24px;
+  padding: 18px 16px;
+  margin: 6px 0 14px;
+  animation: rise 0.5s var(--inpriv-ease) both;
+}
+@keyframes rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+.capture-card h1 { font-size: 1.35rem; font-weight: 480; margin: 0 0 4px; letter-spacing: 0.2px; }
+.capture-card p.sub { margin: 0 0 14px; color: var(--md-on-surface-variant); font-size: 0.92rem; }
+.capture-row { display: flex; gap: 8px; }
+.capture-row .field { flex: 1; min-width: 0; }
+
+.field {
+  position: relative; display: flex; align-items: center;
+  background: var(--md-surface-container-high);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 16px;
+  transition: border-color 0.2s var(--ease-standard), box-shadow 0.2s var(--ease-standard);
+}
+.field:focus-within { border-color: var(--md-primary); box-shadow: 0 0 0 1px var(--md-primary); }
+.field .ms.lead { color: var(--md-on-surface-variant); font-size: 22px; margin: 0 4px 0 14px; flex: 0 0 auto; }
+.field input {
+  flex: 1; min-width: 0; border: 0; outline: 0; background: transparent;
+  color: var(--md-on-surface); font: inherit; font-size: 1rem;
+  padding: 15px 14px 15px 6px; border-radius: 16px;
+}
+.field input::placeholder { color: var(--md-outline); }
+
+.btn {
+  appearance: none; border: 0; cursor: pointer;
+  font: inherit; font-weight: 560; font-size: 0.95rem;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  border-radius: 16px; padding: 0 20px; height: 52px;
+  background: var(--md-primary); color: var(--md-on-primary);
+  transition: transform 0.25s var(--inpriv-ease), box-shadow 0.25s var(--ease-standard), opacity 0.2s;
+  white-space: nowrap;
+}
+.btn:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.25); }
+.btn:active { transform: scale(0.97); }
+.btn:disabled { opacity: 0.55; cursor: default; transform: none; }
+.btn .ms { font-size: 21px; }
+.btn.tonal { background: var(--md-secondary-container); color: var(--md-on-secondary-container); }
+.btn.text { background: transparent; color: var(--md-primary); height: 44px; padding: 0 14px; }
+.btn.small { height: 40px; padding: 0 14px; font-size: 0.88rem; border-radius: 12px; }
+.btn.danger { background: transparent; color: var(--md-tertiary); }
+
+/* usage bar */
+.usage { margin: 4px 2px 18px; display: flex; align-items: center; gap: 12px; color: var(--md-on-surface-variant); font-size: 0.85rem; }
+.usage .track { flex: 1; height: 6px; border-radius: 3px; background: var(--md-surface-container-highest); overflow: hidden; }
+.usage .fillbar { height: 100%; border-radius: 3px; background: var(--md-primary); width: 0%; transition: width 0.6s var(--inpriv-ease); }
+
+/* ── search + list ── */
+.list-head { display: flex; align-items: center; gap: 10px; margin: 8px 0 12px; }
+.list-head h2 { font-size: 1.02rem; font-weight: 540; margin: 0; flex: 1; letter-spacing: 0.2px; }
+.search { margin: 0 0 14px; }
+.search input { padding: 13px 14px 13px 6px; }
+
+.site-card {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 20px;
+  padding: 14px 8px 14px 16px;
+  margin-bottom: 10px; cursor: pointer;
+  text-decoration: none; color: inherit;
+  animation: rise 0.45s var(--inpriv-ease) both;
+  transition: transform 0.25s var(--inpriv-ease), background 0.2s;
+}
+.site-card:active { transform: scale(0.985); }
+.site-card:hover { background: var(--md-surface-container-high); }
+.site-card .glyph {
+  width: 44px; height: 44px; border-radius: 14px; flex: 0 0 auto;
+  background: var(--md-primary-container); color: var(--md-on-primary-container);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 600; font-size: 1.15rem; text-transform: uppercase;
+}
+.site-card .meta { flex: 1; min-width: 0; }
+.site-card .meta .h { font-weight: 560; font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.site-card .meta .s { color: var(--md-on-surface-variant); font-size: 0.84rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+.site-card .chev { color: var(--md-outline); margin-right: 8px; }
+
+.empty {
+  text-align: center; padding: 48px 20px; color: var(--md-on-surface-variant);
+  animation: rise 0.5s var(--inpriv-ease) both;
+}
+.empty .ms { font-size: 52px; color: var(--md-outline); display: block; margin-bottom: 12px; }
+.empty .big { font-size: 1.1rem; font-weight: 520; color: var(--md-on-surface); margin-bottom: 6px; }
+.empty .chips { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 18px; }
+.empty .chip {
+  border: 1px solid var(--md-outline-variant); border-radius: 999px;
+  padding: 8px 16px; font-size: 0.88rem; cursor: pointer; background: transparent;
+  color: var(--md-on-surface-variant); font-family: inherit;
+  transition: border-color 0.2s, color 0.2s, transform 0.25s var(--inpriv-ease);
+}
+.empty .chip:hover { border-color: var(--md-primary); color: var(--md-primary); }
+.empty .chip:active { transform: scale(0.96); }
+
+/* ── site detail / timeline ── */
+.backrow { display: flex; align-items: center; gap: 6px; margin: 2px 0 10px; }
+.backrow button.back {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: transparent; border: 0; color: var(--md-primary);
+  font: inherit; font-weight: 540; cursor: pointer; padding: 10px 10px 10px 2px; border-radius: 12px;
+}
+.site-hero { margin: 0 0 18px; }
+.site-hero .host { font-size: 1.45rem; font-weight: 520; word-break: break-all; }
+.site-hero .url { color: var(--md-on-surface-variant); font-size: 0.9rem; word-break: break-all; margin-top: 2px; }
+
+.timeline { position: relative; padding-left: 22px; }
+.timeline::before {
+  content: ""; position: absolute; left: 6px; top: 8px; bottom: 8px;
+  width: 2px; border-radius: 1px; background: var(--md-outline-variant);
+}
+.snap {
+  position: relative;
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 18px;
+  padding: 14px 14px 12px;
+  margin-bottom: 12px;
+  animation: rise 0.45s var(--inpriv-ease) both;
+}
+.snap::before {
+  content: ""; position: absolute; left: -21px; top: 22px;
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--md-primary); box-shadow: 0 0 0 3px var(--md-surface);
+}
+.snap.failed::before { background: var(--md-tertiary); }
+.snap.queued::before { background: var(--md-outline); animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: 0.35; } }
+.snap .row1 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.snap .when { font-weight: 560; font-size: 0.98rem; }
+.snap .badge {
+  font-size: 0.72rem; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase;
+  border-radius: 999px; padding: 3px 10px;
+}
+.snap .badge.ok { background: var(--md-primary-container); color: var(--md-on-primary-container); }
+.snap .badge.queued { background: var(--md-surface-container-highest); color: var(--md-on-surface-variant); }
+.snap .badge.failed { background: transparent; border: 1px solid var(--md-tertiary); color: var(--md-tertiary); }
+.snap .stats { color: var(--md-on-surface-variant); font-size: 0.84rem; margin-top: 4px; }
+.snap .title-line { font-size: 0.92rem; margin-top: 4px; color: var(--md-on-surface-variant); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.snap .actions { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; }
+.snap .actions .spacer { flex: 1; }
+.snap .err { color: var(--md-tertiary); font-size: 0.84rem; margin-top: 6px; word-break: break-all; }
+
+/* ── viewer overlay ── */
+#viewer { position: fixed; inset: 0; z-index: 100; background: var(--md-surface); display: flex; flex-direction: column; }
+#viewer .vbar {
+  display: flex; align-items: center; gap: 4px;
+  padding: 8px 10px calc(8px);
+  padding-top: calc(8px + env(safe-area-inset-top));
+  background: var(--glass);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-bottom: 1px solid var(--md-outline-variant);
+}
+#viewer .vbar .vinfo { flex: 1; min-width: 0; padding: 0 6px; }
+#viewer .vbar .vinfo .vh { font-weight: 560; font-size: 0.92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#viewer .vbar .vinfo .vs { color: var(--md-on-surface-variant); font-size: 0.78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#viewer iframe { flex: 1; width: 100%; border: 0; background: #fff; }
+[data-theme="dark"] #viewer iframe { background: #161711; }
+
+/* ── auth view ── */
+#view-auth { min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px 16px; }
+.auth-card { width: 100%; max-width: 400px; animation: rise 0.5s var(--inpriv-ease) both; }
+.auth-logo { text-align: center; margin-bottom: 22px; }
+.auth-logo .ms { font-size: 56px; color: var(--md-primary); }
+.auth-logo h1 { font-size: 1.7rem; font-weight: 480; margin: 10px 0 4px; letter-spacing: 0.3px; }
+.auth-logo p { color: var(--md-on-surface-variant); margin: 0; font-size: 0.95rem; }
+.auth-card .field { margin-bottom: 10px; }
+.auth-card .btn { width: 100%; margin-top: 6px; }
+.auth-alt { text-align: center; margin-top: 18px; color: var(--md-on-surface-variant); font-size: 0.9rem; }
+.auth-alt a { color: var(--md-primary); text-decoration: none; font-weight: 540; }
+.sso-card {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 18px; padding: 12px 14px;
+  margin-bottom: 14px; cursor: pointer;
+  transition: transform 0.25s var(--inpriv-ease), background 0.2s;
+  width: 100%; text-align: left; font: inherit; color: inherit;
+}
+.sso-card:hover { background: var(--md-surface-container-high); }
+.sso-card:active { transform: scale(0.98); }
+.sso-card .avatar {
+  width: 42px; height: 42px; border-radius: 50%; flex: 0 0 auto;
+  background: var(--md-primary-container); color: var(--md-on-primary-container);
+  display: flex; align-items: center; justify-content: center; font-weight: 600;
+}
+.sso-card .t { flex: 1; min-width: 0; }
+.sso-card .t .a { font-weight: 560; font-size: 0.95rem; }
+.sso-card .t .b { color: var(--md-on-surface-variant); font-size: 0.82rem; }
+.sso-card .ms { color: var(--md-primary); }
+.brand-foot { margin-top: 34px; text-align: center; color: var(--md-outline); font-size: 0.8rem; }
+.brand-foot a { color: var(--md-on-surface-variant); text-decoration: none; }
+
+/* ── toast ── */
+#toast {
+  position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom));
+  transform: translateX(-50%) translateY(20px);
+  background: var(--md-surface-container-highest); color: var(--md-on-surface);
+  border: 1px solid var(--md-outline-variant);
+  padding: 12px 20px; border-radius: 16px; font-size: 0.92rem;
+  opacity: 0; pointer-events: none; z-index: 200;
+  transition: opacity 0.3s var(--ease-standard), transform 0.35s var(--inpriv-ease);
+  max-width: min(92vw, 480px); text-align: center;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+#toast.err { border-color: var(--md-tertiary); color: var(--md-tertiary); }
+
+/* ── dialog ── */
+#dialog-scrim {
+  position: fixed; inset: 0; z-index: 150; background: var(--md-scrim);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+  opacity: 0; pointer-events: none; transition: opacity 0.25s var(--ease-standard);
+}
+#dialog-scrim.open { opacity: 1; pointer-events: auto; }
+.dialog {
+  background: var(--md-surface-container-high);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 24px; padding: 22px 20px 16px;
+  max-width: 380px; width: 100%;
+  transform: translateY(14px) scale(0.97); transition: transform 0.3s var(--inpriv-ease);
+}
+#dialog-scrim.open .dialog { transform: none; }
+.dialog h3 { margin: 0 0 8px; font-weight: 540; font-size: 1.1rem; }
+.dialog p { margin: 0 0 18px; color: var(--md-on-surface-variant); font-size: 0.92rem; }
+.dialog .drow { display: flex; justify-content: flex-end; gap: 6px; }
+
+/* spinner */
+.spin {
+  width: 20px; height: 20px; border-radius: 50%;
+  border: 2.5px solid var(--md-outline-variant); border-top-color: var(--md-primary);
+  animation: rot 0.8s linear infinite; display: inline-block; vertical-align: -4px;
+}
+@keyframes rot { to { transform: rotate(360deg); } }
+
+/* wider screens */
+@media (min-width: 640px) {
+  .capture-card { padding: 22px 22px 20px; }
+  .capture-card h1 { font-size: 1.55rem; }
+  main { padding-top: 26px; }
+}
+/* suppress id.js floating widgets (double-render protection) */
+#inpriv-id-chip, .inpriv-id-chip, #inpriv-id-prompt, .inpriv-id-prompt,
+#inpriv-id-card, .inpriv-id-card { display: none !important;
+  visibility: hidden !important; pointer-events: none !important; }
+</style>
+</head>
+<body>
+<!-- ══ auth ══ -->
+<div id="view-auth" hidden>
+  <div class="auth-card">
+    <div class="auth-logo">
+      <span class="ms fill" aria-hidden="true">history_edu</span>
+      <h1>Amber</h1>
+      <p>Your personal web archive</p>
+    </div>
+    <button id="quickSignInBtn" class="sso-card" style="display:none" type="button">
+      <span class="avatar" aria-hidden="true" id="ssoAvatar"></span>
+      <span class="t">
+        <span class="a" id="quickSignInLabel">Continue</span>
+        <span class="b">Quick sign-in · no password</span>
+      </span>
+      <span class="ms" aria-hidden="true">arrow_forward</span>
+    </button>
+    <form id="loginForm">
+      <div class="field">
+        <span class="ms lead" aria-hidden="true">person</span>
+        <input id="login-user" autocomplete="username" placeholder="username" aria-label="Username or address">
+      </div>
+      <div class="field">
+        <span class="ms lead" aria-hidden="true">lock</span>
+        <input id="login-pass" type="password" autocomplete="current-password" placeholder="Password" aria-label="Password">
+      </div>
+      <div class="field" id="totp-field" hidden>
+        <span class="ms lead" aria-hidden="true">pin</span>
+        <input id="login-totp" inputmode="numeric" autocomplete="one-time-code" placeholder="2FA code" aria-label="Two-factor code" maxlength="6">
+      </div>
+      <button class="btn" id="login-btn" type="submit"><span class="ms" aria-hidden="true">login</span>Sign in</button>
+    </form>
+    <div class="auth-alt">No account? <a href="https://id.inpriv.xyz" target="_blank" rel="noopener noreferrer">Create one on Inpriv ID</a></div>
+    <div class="brand-foot"><a href="https://inpriv.xyz" target="_blank" rel="noopener noreferrer">inpriv.xyz</a> · snapshots stay on your Drive</div>
+  </div>
+</div>
+
+<!-- ══ app ══ -->
+<div id="view-app" hidden>
+  <header class="appbar-wrap">
+    <div class="appbar">
+      <a class="brand" id="brandBtn" href="#" role="button" aria-label="Amber home">
+        <span class="ms fill" aria-hidden="true">history_edu</span>
+        <span class="t">Amber</span>
+      </a>
+      <button class="iconbtn" id="themeBtn" aria-label="Toggle theme" type="button"><span class="ms">dark_mode</span></button>
+      <button class="iconbtn" id="userBtn" aria-label="Account" type="button"><span class="ms">account_circle</span></button>
+    </div>
+  </header>
+
+  <main>
+    <!-- capture -->
+    <section class="capture-card">
+      <h1>Save a page forever</h1>
+      <p class="sub">Paste a link — Amber captures the page and keeps it on your timeline.</p>
+      <div class="capture-row">
+        <div class="field" style="flex:1">
+          <span class="ms lead" aria-hidden="true">link</span>
+          <input id="cap-url" inputmode="url" enterkeyhint="go" placeholder="example.com/article" aria-label="URL to capture">
+        </div>
+        <button class="btn" id="cap-btn" type="button"><span class="ms" aria-hidden="true">photo_camera</span>Save</button>
+      </div>
+    </section>
+
+    <div class="usage">
+      <span class="track"><span class="fillbar" id="usage-fill"></span></span>
+      <span id="usage-text">—</span>
+    </div>
+
+    <div class="list-head">
+      <h2>Your archive</h2>
+    </div>
+    <div class="field search">
+      <span class="ms lead" aria-hidden="true">search</span>
+      <input id="search-input" type="search" placeholder="Search pages and snapshots" aria-label="Search your archive">
+    </div>
+
+    <div id="site-list"></div>
+    <div id="list-empty" class="empty" hidden>
+      <span class="ms" aria-hidden="true">travel_explore</span>
+      <div class="big" id="empty-title">Nothing archived yet</div>
+      <div id="empty-sub">Save your first page above — it only takes a moment.</div>
+      <div class="chips" id="empty-chips" hidden></div>
+    </div>
+  </main>
+
+  <!-- ══ viewer overlay ══ -->
+  <div id="viewer" hidden role="dialog" aria-modal="true" aria-label="Archived page viewer">
+    <div class="vbar">
+      <button class="iconbtn" id="viewer-close" aria-label="Close viewer" type="button"><span class="ms">arrow_back</span></button>
+      <div class="vinfo">
+        <div class="vh" id="viewer-host">—</div>
+        <div class="vs" id="viewer-sub">—</div>
+      </div>
+      <a class="iconbtn" id="viewer-open" href="#" target="_blank" rel="noopener noreferrer" aria-label="Open original page"><span class="ms">open_in_new</span></a>
+      <a class="iconbtn" id="viewer-dl" href="#" download aria-label="Download snapshot ZIP"><span class="ms">download</span></a>
+    </div>
+    <iframe id="viewer-frame" title="Archived page"></iframe>
+  </div>
+</div>
+
+<!-- ══ toast + dialog ══ -->
+<div id="toast" role="status"></div>
+<div id="dialog-scrim">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-title">
+    <h3 id="dlg-title">Sign out?</h3>
+    <p id="dlg-body">Your snapshots stay on your Drive.</p>
+    <div class="drow">
+      <button class="btn text" id="dlg-cancel" type="button">Cancel</button>
+      <button class="btn tonal" id="dlg-ok" type="button">Sign out</button>
+    </div>
+  </div>
+</div>
+<script src="https://id.inpriv.xyz/id.js" data-service="amber" data-accounts defer></script>
+<script>
+(function () {
+'use strict';
+
+// ── tiny helpers ──
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+const state = { token: null, user: null, usage: null, view: 'list', detailId: null, poll: null, q: '', ssoTried: false };
+
+async function api(path, opts) {
+  opts = opts || {};
+  const headers = Object.assign({}, opts.headers || {});
+  if (state.token) headers['Authorization'] = 'Bearer ' + state.token;
+  if (opts.body) headers['Content-Type'] = 'application/json';
+  const r = await fetch(path, Object.assign({}, opts, { headers: headers }));
+  let d = null;
+  try { d = await r.json(); } catch (e) {}
+  if (!r.ok) { const err = new Error((d && d.error) || ('Request failed (' + r.status + ')')); err.status = r.status; throw err; }
+  return d;
+}
+
+// ── formatting ──
+function fmtDate(ts) {
+  const d = new Date(Number(ts));
+  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) +
+    ' · ' + d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+}
+function fmtBytes(n) {
+  n = Number(n) || 0;
+  if (n >= 1048576) return (n / 1048576).toFixed(1) + ' MB';
+  if (n >= 1024) return Math.round(n / 1024) + ' KB';
+  return n + ' B';
+}
+function ago(ts) {
+  const s = Math.floor((Date.now() - Number(ts)) / 1000);
+  if (s < 60) return 'just now';
+  if (s < 3600) return Math.floor(s / 60) + ' min ago';
+  if (s < 86400) return Math.floor(s / 3600) + ' h ago';
+  if (s < 2592000) return Math.floor(s / 86400) + ' d ago';
+  return fmtDate(ts).split(' · ')[0];
+}
+
+// ── theme ──
+function applyTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  const icon = $('themeBtn') && $('themeBtn').querySelector('.ms');
+  if (icon) icon.textContent = t === 'dark' ? 'light_mode' : 'dark_mode';
+  try { localStorage.setItem('inpriv_theme', t); } catch (e) {}
+}
+applyTheme((function () { try { return localStorage.getItem('inpriv_theme') || 'dark'; } catch (e) { return 'dark'; } })());
+$('themeBtn').addEventListener('click', function () {
+  applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+});
+
+// ── toast + dialog ──
+let toastTimer = null;
+function toast(msg, isErr) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = isErr ? 'err show' : 'show';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { t.className = ''; }, 3400);
+}
+let dlgOk = null;
+function openDialog(title, body, okLabel, fn) {
+  $('dlg-title').textContent = title;
+  $('dlg-body').textContent = body;
+  $('dlg-ok').textContent = okLabel;
+  dlgOk = fn;
+  $('dialog-scrim').classList.add('open');
+}
+function closeDialog() { $('dialog-scrim').classList.remove('open'); dlgOk = null; }
+$('dlg-cancel').addEventListener('click', closeDialog);
+$('dialog-scrim').addEventListener('click', function (e) { if (e.target === this) closeDialog(); });
+$('dlg-ok').addEventListener('click', function () { const f = dlgOk; closeDialog(); if (f) f(); });
+
+// ── views ──
+function showAuth() {
+  state.token = null; state.user = null;
+  try { localStorage.removeItem('amber_token'); } catch (e) {}
+  $('view-app').hidden = true;
+  $('view-auth').hidden = false;
+}
+function showApp() {
+  $('view-auth').hidden = true;
+  $('view-app').hidden = false;
+  if (!location.hash || location.hash === '#/') renderList();
+}
+
+// ── auth: password + 2FA ──
+$('loginForm').addEventListener('submit', async function (e) {
+  e.preventDefault();
+  const btn = $('login-btn');
+  const user = $('login-user').value.trim();
+  const pass = $('login-pass').value;
+  if (!user || !pass) { toast('Enter your username and password', true); return; }
+  btn.disabled = true;
+  try {
+    const d = await api('/api/auth/login', { method: 'POST', body: JSON.stringify({ user: user, password: pass, totp: $('login-totp').value.trim() }) });
+    if (d.totp_required) {
+      $('totp-field').hidden = false;
+      $('login-totp').focus();
+      toast('Enter your 2FA code');
+      return;
+    }
+    if (!d.token) throw new Error('No session returned');
+    state.token = d.token; state.user = d.user;
+    try { localStorage.setItem('amber_token', d.token); } catch (err) {}
+    $('totp-field').hidden = true; $('login-totp').value = ''; $('login-pass').value = '';
+    toast('Signed in as ' + (d.user.nick || d.user.username));
+    await enterApp();
+  } catch (err) {
+    toast(err.message, true);
+  } finally { btn.disabled = false; }
+});
+
+// ── auth: SSO via Inpriv ID ──
+async function ssoRedeem() {
+  const g = await new Promise(function (res) { window.InprivID.sso(res); });
+  if (!g || !g.ok) return false;
+  const r = await api('/api/auth/sso', { method: 'POST', body: JSON.stringify({ grant: g.grant, state: g.state }) });
+  if (r.totp_required) { toast('Two-factor is on — sign in with your password', true); return false; }
+  if (!r.token) return false;
+  state.token = r.token; state.user = r.user;
+  try { localStorage.setItem('amber_token', r.token); } catch (e) {}
+  toast('Signed in with Inpriv ID as ' + (r.user.nick || r.user.username));
+  await enterApp();
+  return true;
+}
+window.addEventListener('inpriv:connect', function () {
+  if (state.token || !window.InprivID || !window.InprivID.user) return;
+  const u = window.InprivID.user;
+  $('ssoAvatar').textContent = (u.nick || u.username || '?').charAt(0).toUpperCase();
+  $('quickSignInLabel').textContent = 'Continue as ' + (u.nick || u.username);
+  $('quickSignInBtn').style.display = 'flex';
+  if (!state.ssoTried) { state.ssoTried = true; ssoRedeem().catch(function () {}); }
+});
+window.addEventListener('inpriv:id', function (ev) {
+  if (ev.detail && ev.detail.user && !state.token) {
+    const u = ev.detail.user;
+    $('ssoAvatar').textContent = (u.nick || u.username || '?').charAt(0).toUpperCase();
+    $('quickSignInLabel').textContent = 'Continue as ' + (u.nick || u.username);
+    $('quickSignInBtn').style.display = 'flex';
+  }
+});
+$('quickSignInBtn').addEventListener('click', async function () {
+  this.disabled = true;
+  try { await ssoRedeem(); } catch (e) { toast('Quick sign-in failed — use your password', true); }
+  this.disabled = false;
+});
+
+// ── app entry ──
+async function enterApp() {
+  try {
+    const d = await api('/api/me');
+    state.user = d.user; state.usage = d.usage;
+    paintUsage();
+    showApp();
+  } catch (e) {
+    if (e.status === 401) showAuth(); else toast(e.message, true);
+  }
+}
+function paintUsage() {
+  const u = state.usage;
+  if (!u) return;
+  const pct = Math.min(100, Math.round((u.used_bytes / u.quota_bytes) * 100));
+  $('usage-fill').style.width = pct + '%';
+  $('usage-text').textContent = fmtBytes(u.used_bytes) + ' / ' + fmtBytes(u.quota_bytes) + ' · ' + u.snapshots + ' snapshots';
+}
+
+// ── list ──
+function siteCard(s) {
+  const letter = (s.host || '?').replace(/^www\./, '').charAt(0);
+  const sub = s.snap_count === 1 ? '1 snapshot' : (s.snap_count + ' snapshots');
+  return '<a class="site-card" href="#/site/' + s.site_id + '">' +
+    '<span class="glyph" aria-hidden="true">' + esc(letter) + '</span>' +
+    '<span class="meta"><span class="h">' + esc(s.host) + '</span>' +
+    '<span class="s">' + sub + ' · latest ' + esc(ago(s.last_at)) + '</span></span>' +
+    '<span class="ms chev" aria-hidden="true">chevron_right</span></a>';
+}
+async function renderList() {
+  state.view = 'list';
+  if (state.poll) { clearTimeout(state.poll); state.poll = null; }
+  closeViewer();
+  const listEl = $('site-list'), emptyEl = $('list-empty');
+  try {
+    const d = await api('/api/sites' + (state.q ? '?q=' + encodeURIComponent(state.q) : ''));
+    const sites = d.sites || [];
+    listEl.innerHTML = sites.map(siteCard).join('');
+    const isEmpty = sites.length === 0;
+    emptyEl.hidden = !isEmpty;
+    if (isEmpty) {
+      if (state.q) {
+        $('empty-title').textContent = 'No matches';
+        $('empty-sub').textContent = 'Nothing in your archive matches “' + state.q + '”.';
+        $('empty-chips').hidden = true;
+      } else {
+        $('empty-title').textContent = 'Nothing archived yet';
+        $('empty-sub').textContent = 'Save your first page above — it only takes a moment.';
+        $('empty-chips').hidden = false;
+      }
+    }
+    refreshUsageQuiet();
+  } catch (e) {
+    if (e.status === 401) return showAuth();
+    toast(e.message, true);
+  }
+}
+async function refreshUsageQuiet() {
+  try { const d = await api('/api/me'); state.usage = d.usage; paintUsage(); } catch (e) {}
+}
+
+// example chips on the empty state
+(function () {
+  const chips = $('empty-chips');
+  ['example.com', 'news.ycombinator.com', 'en.wikipedia.org'].forEach(function (h) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'chip'; b.textContent = h;
+    b.addEventListener('click', function () { $('cap-url').value = h; $('cap-url').focus(); });
+    chips.appendChild(b);
+  });
+})();
+
+// ── site detail (timeline) ──
+function snapHtml(s) {
+  const cls = s.status === 'ok' ? 'ok' : (s.status === 'failed' ? 'failed' : 'queued');
+  let actions = '';
+  if (s.status === 'ok') {
+    actions =
+      '<button class="btn small" data-act="view" data-snap="' + esc(s.id) + '" data-host="' + esc(snapCtx.host) + '" data-url="' + esc(snapCtx.url) + '" data-ts="' + s.created_at + '" data-title="' + esc(s.title || '') + '"><span class="ms" aria-hidden="true">visibility</span>View</button>' +
+      '<button class="iconbtn" data-act="recap" data-snap="' + esc(s.id) + '" aria-label="Save a new snapshot now"><span class="ms" aria-hidden="true">refresh</span></button>' +
+      '<a class="iconbtn" href="/api/snap/download?id=' + esc(s.id) + '" download aria-label="Download ZIP"><span class="ms" aria-hidden="true">download</span></a>' +
+      '<span class="spacer"></span>' +
+      '<button class="iconbtn" data-act="del" data-snap="' + esc(s.id) + '" aria-label="Delete snapshot"><span class="ms" aria-hidden="true">delete</span></button>';
+  } else if (s.status === 'queued') {
+    actions = '<span class="spin" aria-hidden="true"></span><span style="font-size:0.88rem;color:var(--md-on-surface-variant);align-self:center">Capturing…</span>' +
+      '<span class="spacer"></span><button class="iconbtn" data-act="del" data-snap="' + esc(s.id) + '" aria-label="Cancel and delete"><span class="ms" aria-hidden="true">delete</span></button>';
+  } else {
+    actions = '<button class="btn small tonal" data-act="recap" data-snap="' + esc(s.id) + '"><span class="ms" aria-hidden="true">refresh</span>Try again</button>' +
+      '<span class="spacer"></span><button class="iconbtn" data-act="del" data-snap="' + esc(s.id) + '" aria-label="Delete snapshot"><span class="ms" aria-hidden="true">delete</span></button>';
+  }
+  const stats = s.status === 'ok'
+    ? fmtBytes(s.size_bytes) + ' · ' + s.pages + (s.pages === 1 ? ' page' : ' pages') + ' · ' + s.assets + ' assets'
+    : '';
+  const errLine = s.status === 'failed' && s.error ? '<div class="err">' + esc(s.error) + '</div>' : '';
+  const titleLine = s.title ? '<div class="title-line">' + esc(s.title) + '</div>' : '';
+  return '<div class="snap ' + cls + '">' +
+    '<div class="row1"><span class="when">' + esc(fmtDate(s.created_at)) + '</span>' +
+    '<span class="badge ' + cls + '">' + cls + '</span></div>' +
+    titleLine +
+    (stats ? '<div class="stats">' + esc(stats) + '</div>' : '') +
+    errLine +
+    '<div class="actions">' + actions + '</div></div>';
+}
+let snapCtx = { host: '', url: '' };
+async function renderSiteDetail(id, silent) {
+  state.view = 'detail'; state.detailId = id;
+  closeViewer();
+  const listEl = $('site-list'), emptyEl = $('list-empty');
+  try {
+    const d = await api('/api/site/' + id);
+    snapCtx = { host: d.site.host, url: d.site.url };
+    listEl.innerHTML =
+      '<div class="backrow"><button class="back" id="back-btn" type="button"><span class="ms" aria-hidden="true">arrow_back</span>Archive</button></div>' +
+      '<div class="site-hero"><div class="host">' + esc(d.site.host) + '</div><div class="url">' + esc(d.site.url) + '</div></div>' +
+      '<div class="timeline">' + (d.snapshots || []).map(snapHtml).join('') + '</div>' +
+      ((d.snapshots || []).length === 0 ? '<div class="empty"><span class="ms" aria-hidden="true">hourglass_empty</span><div class="big">No snapshots yet</div><div>Save this page from the field above.</div></div>' : '');
+    emptyEl.hidden = true;
+    const back = $('back-btn');
+    if (back) back.addEventListener('click', function () { location.hash = '#/'; });
+    // poll while something is in flight
+    if (state.poll) clearTimeout(state.poll);
+    if ((d.snapshots || []).some(function (s) { return s.status === 'queued'; })) {
+      state.poll = setTimeout(function () {
+        if (state.view === 'detail' && state.detailId === id) renderSiteDetail(id, true);
+      }, 4000);
+    }
+    if (!silent) window.scrollTo({ top: 0 });
+  } catch (e) {
+    if (e.status === 401) return showAuth();
+    if (e.status === 404) { location.hash = '#/'; return; }
+    toast(e.message, true);
+  }
+}
+
+// snapshot actions (delegated)
+document.addEventListener('click', async function (e) {
+  const el = e.target.closest && e.target.closest('[data-act]');
+  if (!el) return;
+  const act = el.getAttribute('data-act');
+  const snapId = el.getAttribute('data-snap');
+  if (act === 'view') {
+    openViewer({
+      id: snapId,
+      host: el.getAttribute('data-host'),
+      url: el.getAttribute('data-url'),
+      ts: Number(el.getAttribute('data-ts')),
+      title: el.getAttribute('data-title')
+    });
+  } else if (act === 'recap') {
+    el.disabled = true;
+    try {
+      await api('/api/snap/recapture', { method: 'POST', body: JSON.stringify({ id: snapId }) });
+      toast('Capturing a fresh copy…');
+      renderSiteDetail(state.detailId, true);
+    } catch (err) { toast(err.message, true); el.disabled = false; }
+  } else if (act === 'del') {
+    openDialog('Delete snapshot?', 'This removes the snapshot and its copy on your Drive. This cannot be undone.', 'Delete', async function () {
+      try {
+        await api('/api/snap/' + snapId, { method: 'DELETE' });
+        toast('Snapshot deleted');
+        if (state.view === 'detail') renderSiteDetail(state.detailId, true); else renderList();
+      } catch (err) { toast(err.message, true); }
+    });
+  }
+});
+
+// ── capture ──
+$('cap-btn').addEventListener('click', submitCapture);
+$('cap-url').addEventListener('keydown', function (e) { if (e.key === 'Enter') submitCapture(); });
+async function submitCapture() {
+  const url = $('cap-url').value.trim();
+  const btn = $('cap-btn');
+  if (!url) { $('cap-url').focus(); toast('Paste a link first', true); return; }
+  btn.disabled = true;
+  try {
+    const d = await api('/api/capture', { method: 'POST', body: JSON.stringify({ url: url }) });
+    $('cap-url').value = '';
+    toast('Capturing — watch it appear on the timeline');
+    if (d.site_id) location.hash = '#/site/' + d.site_id;
+    else renderList();
+  } catch (e) {
+    toast(e.message, true);
+  } finally { btn.disabled = false; }
+}
+
+// ── search ──
+let searchTimer = null;
+$('search-input').addEventListener('input', function () {
+  clearTimeout(searchTimer);
+  const v = this.value.trim();
+  searchTimer = setTimeout(function () {
+    state.q = v;
+    if (state.view === 'detail') { location.hash = '#/'; } else { renderList(); }
+  }, 350);
+});
+
+// ── viewer ──
+function openViewer(s) {
+  $('viewer-host').textContent = s.host || '';
+  $('viewer-sub').textContent = (s.title ? s.title + ' · ' : '') + fmtDate(s.ts);
+  $('viewer-open').href = s.url || '#';
+  $('viewer-dl').href = '/api/snap/download?id=' + s.id;
+  $('viewer-frame').src = '/a/' + s.id + '/';
+  $('viewer').hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+function closeViewer() {
+  if ($('viewer').hidden) return;
+  $('viewer').hidden = true;
+  $('viewer-frame').src = 'about:blank';
+  document.body.style.overflow = '';
+}
+$('viewer-close').addEventListener('click', closeViewer);
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { closeViewer(); closeDialog(); } });
+
+// ── account ──
+$('userBtn').addEventListener('click', function () {
+  openDialog('Sign out?', 'Your snapshots stay safe on your Drive.', 'Sign out', async function () {
+    try { await api('/api/auth/logout', { method: 'POST' }); } catch (e) {}
+    showAuth();
+  });
+});
+$('brandBtn').addEventListener('click', function (e) { e.preventDefault(); location.hash = '#/'; });
+
+// ── routing ──
+function route() {
+  const m = (location.hash || '#/').match(/^#\/site\/(\d+)$/);
+  if (!state.token) return;
+  if (m) renderSiteDetail(m[1]); else renderList();
+}
+window.addEventListener('hashchange', route);
+
+// ── boot ──
+(function boot() {
+  try { state.token = localStorage.getItem('amber_token'); } catch (e) {}
+  if (state.token) enterApp(); else showAuth();
+})();
+
+})();
+</script>
+</body>
+</html>
