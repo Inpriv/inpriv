@@ -316,6 +316,59 @@ footer a { color: var(--md-primary); text-decoration: none; font-weight: 600; }
 @media (max-width: 599px) {
   .fp-controls .btn { flex: 1 1 auto; justify-content: center; }
 }
+/* ═══ experiment 5: device specs scan ═══ */
+.ds-sec { display: grid; gap: 8px; }
+.ds-sec-h {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 0.78rem; font-weight: 800; letter-spacing: 0.07em;
+  text-transform: uppercase; color: var(--md-primary);
+}
+.ds-sec-h .ms { font-size: 17px; }
+.ds-table {
+  border: 1px solid var(--md-outline-variant); border-radius: 16px;
+  overflow: hidden; background: var(--md-surface-container-low);
+}
+.ds-row {
+  display: flex; gap: 12px; align-items: baseline;
+  padding: 9px 14px; font-size: 0.86rem;
+  border-top: 1px solid color-mix(in srgb, var(--md-outline-variant) 55%, transparent);
+}
+.ds-row:first-child { border-top: none; }
+.ds-k { flex: 0 0 42%; color: var(--md-on-surface-variant); font-weight: 600; }
+.ds-v {
+  flex: 1; min-width: 0; font-weight: 600; text-align: right;
+  word-break: break-word; overflow-wrap: anywhere;
+}
+.ds-ip-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+.ds-ip {
+  display: inline-flex; align-items: center; gap: 7px; cursor: pointer;
+  border-radius: 9999px; padding: 8px 16px;
+  border: 1px dashed var(--md-outline-variant);
+  background: var(--md-surface-container-high); color: var(--md-on-surface-variant);
+  font-family: var(--font-sans); font-size: 0.84rem; font-weight: 700;
+  transition: border-color 0.2s var(--ease-standard), color 0.2s var(--ease-standard), transform 0.25s var(--ease-spring);
+}
+.ds-ip:hover { border-color: var(--md-primary); color: var(--md-primary); }
+.ds-ip:active { transform: scale(0.95); }
+.ds-ip-shown { border-style: solid; color: var(--md-on-surface); }
+.ds-sub { font-size: 0.72rem; font-weight: 500; color: var(--md-on-surface-variant); text-align: right; }
+.ds-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.ds-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  height: 40px; padding: 0 16px; border-radius: 9999px;
+  border: 1px solid var(--md-outline-variant);
+  background: var(--md-surface-container); color: var(--md-on-surface-variant);
+  font-family: var(--font-sans); font-size: 0.84rem; font-weight: 700; cursor: pointer;
+  transition: transform 0.25s var(--ease-spring), border-color 0.2s var(--ease-standard), color 0.2s var(--ease-standard);
+}
+.ds-btn:hover { border-color: var(--md-primary); color: var(--md-primary); }
+.ds-btn:active { transform: scale(0.95); }
+.ds-btn .ms { font-size: 17px; }
+@media (max-width: 599px) {
+  .ds-k { flex-basis: 46%; font-size: 0.8rem; }
+  .ds-v { font-size: 0.8rem; }
+  .ds-btn { flex: 1 1 auto; justify-content: center; }
+}
 .progress-demo { border-radius: 9999px; height: 8px; background: var(--md-surface-container-high); overflow: hidden; }
 .progress-demo .p-fill { height: 100%; width: 62%; border-radius: 9999px; background: var(--md-primary); position: relative; }
 @media (min-width: 600px) {
@@ -470,6 +523,38 @@ footer a { color: var(--md-primary); text-decoration: none; font-weight: 600; }
             <button class="btn" id="fpDownload"><span class="ms">download</span>Save PNG</button>
           </div>
           <div class="nn-log" id="fpLog">same name &rarr; same picture, everywhere, forever</div>
+        </div>
+      </div>
+    </div>
+    <!-- ══ EXPERIMENT 5: Device Specs Scan ══ -->
+    <div class="card" style="--d:115">
+      <div class="panel-title"><span class="ms">memory</span><span>Device Specs — full hardware scan</span></div>
+      <p class="hint">See exactly what your browser can tell this page about your computer or phone: processor, graphics, memory, screen, battery, network, storage and sensors. Everything is measured on your device, in this tab — nothing is uploaded, nothing is stored. The IP address stays masked until you tap it.</p>
+      <div class="chips">
+        <span class="chip testing"><span class="ms">hourglass_top</span>In testing</span>
+        <span class="chip"><span class="ms">devices</span>PC &amp; phone</span>
+        <span class="chip"><span class="ms">lock</span>Zero upload</span>
+      </div>
+      <div class="demo-shell">
+        <div class="demo-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span style="margin-left:6px">scan result — measured live in this tab</span>
+          <span class="ds-btn" id="dsRescan" role="button" tabindex="0" style="margin-left:auto;height:30px;padding:0 12px;font-size:0.76rem"><span class="ms" style="font-size:15px">refresh</span>Re-scan</span>
+        </div>
+        <div class="demo-body">
+          <div class="ds-sec">
+            <div class="ds-sec-h"><span class="ms">public</span>Network</div>
+            <div class="ds-table">
+              <div class="ds-row"><span class="ds-k">IP address</span><span class="ds-v"><span class="ds-ip-wrap"><button type="button" class="ds-ip" id="dsIpBtn"><span class="ms" style="font-size:16px">visibility_off</span><span id="dsIpText">tap to reveal</span></button></span></span></div>
+              <div class="ds-row"><span class="ds-k">Approx. location</span><span class="ds-v" id="dsIpLoc">hidden</span></div>
+              <div class="ds-row"><span class="ds-k">Edge server (colo)</span><span class="ds-v" id="dsColo">—</span></div>
+            </div>
+            <div class="ds-sub" id="dsIpNote">IP is masked by default — one tap reveals it, another tap hides it again.</div>
+          </div>
+          <div id="dsSections"></div>
+          <div class="ds-btns">
+            <button type="button" class="ds-btn" id="dsMore"><span class="ms">unfold_more</span>Show all details</button>
+            <button type="button" class="ds-btn" id="dsCopy"><span class="ms">content_copy</span>Copy report</button>
+          </div>
+          <div class="ds-sub" id="dsFoot">scanning…</div>
         </div>
       </div>
     </div>
@@ -961,6 +1046,452 @@ document.querySelectorAll("[data-glass-demo], [data-nightglass-demo]").forEach((
   });
 
   render();
+})();
+
+/* ── experiment 5: Device Specs — everything the browser will honestly tell
+      this page about the hardware, measured locally. Network section: the IP
+      comes from our own edge endpoint (stateless, nothing logged) and stays
+      masked until the visitor taps it; tapping again hides it. ── */
+(function () {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const root = $("dsSections");
+  if (!root) return;
+
+  /* async probe results land here; row getters read from this map so the
+     plain render() loop and the async setters always agree */
+  const asyncVals = new Map();
+  function asyncGet(secId, key, placeholder) {
+    const v = asyncVals.get(secId + "|" + key);
+    return v === undefined ? placeholder : v;
+  }
+
+  const SECTIONS = [
+    { id: "sys", icon: "devices", title: "System & browser", rows: [
+      ["Platform", () => navigator.platform || null],
+      ["Operating system", () => { const u = navigator.userAgent; let m = u.match(/Windows NT ([\d.]+)/); if (m) return "Windows (NT " + m[1] + ")"; m = u.match(/Android ([\d.]+)/); if (m) return "Android " + m[1]; m = u.match(/iPhone OS ([\d_]+)/); if (m) return "iOS " + m[1].replace(/_/g, "."); m = u.match(/Mac OS X ([\d_]+)/); if (m) return "macOS " + m[1].replace(/_/g, "."); m = u.match(/CrOS \w+ ([\d.]+)/); if (m) return "ChromeOS " + m[1]; if (/Linux/.test(u)) return "Linux"; return null; }],
+      ["OS version (UA-CH)", () => asyncGet("sys", "OS version (UA-CH)", null)],
+      ["Device model", () => asyncGet("sys", "Device model", null)],
+      ["Browser", () => { const u = navigator.userAgent; if (/Edg\//.test(u)) return "Microsoft Edge " + (u.match(/Edg\/([\d.]+)/) || [])[1]; if (/OPR\//.test(u)) return "Opera " + (u.match(/OPR\/([\d.]+)/) || [])[1]; if (/SamsungBrowser\//.test(u)) return "Samsung Internet " + (u.match(/SamsungBrowser\/([\d.]+)/) || [])[1]; if (/Firefox\//.test(u)) return "Firefox " + (u.match(/Firefox\/([\d.]+)/) || [])[1]; if (/Chrome\//.test(u)) return "Chrome " + (u.match(/Chrome\/([\d.]+)/) || [])[1]; if (/Safari\//.test(u)) return "Safari " + (u.match(/Version\/([\d.]+)/) || [])[1]; return null; }],
+      ["Browser full version", () => asyncGet("sys", "Browser full version", null)],
+      ["Engine", () => { if (typeof InstallTrigger !== "undefined") return "Gecko"; if (window.chrome) return "Blink"; if (/Apple/.test(navigator.vendor || "")) return "WebKit"; return null; }],
+      ["User agent", () => navigator.userAgent, { detail: true, mono: true }],
+      ["Language", () => navigator.language],
+      ["Languages", () => (navigator.languages || []).join(", "), { detail: true }],
+      ["Time zone", () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) { return null; } }],
+      ["Local time", () => { try { return new Date().toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" }); } catch (e) { return null; } }],
+      ["Cookies enabled", () => navigator.cookieEnabled ? "yes" : "no", { detail: true }],
+      ["Do Not Track", () => navigator.doNotTrack === "1" ? "enabled" : navigator.doNotTrack === "0" ? "disabled" : "not set", { detail: true }],
+      ["PDF viewer", () => navigator.pdfViewerEnabled === true ? "yes" : navigator.pdfViewerEnabled === false ? "no" : null, { detail: true }],
+      ["Touch points", () => navigator.maxTouchPoints > 0 ? String(navigator.maxTouchPoints) : "0", { detail: true }],
+      ["Automation (headless)", () => /HeadlessChrome/.test(navigator.userAgent) ? "yes" : "no", { detail: true }],
+    ]},
+    { id: "cpu", icon: "memory", title: "Processor", rows: [
+      ["CPU threads", () => navigator.hardwareConcurrency || null],
+      ["Architecture", () => asyncGet("cpu", "Architecture", "detecting…")],
+      ["Benchmark: mixed", () => asyncGet("cpu", "Benchmark: mixed", "measuring…")],
+      ["Benchmark: int math", () => asyncGet("cpu", "Benchmark: int math", "measuring…")],
+      ["Benchmark: float", () => asyncGet("cpu", "Benchmark: float", "measuring…")],
+      ["Benchmark: memory", () => asyncGet("cpu", "Benchmark: memory", "measuring…")],
+    ]},
+    { id: "gpu", icon: "developer_board", title: "Graphics", rows: [
+      ["Renderer", () => asyncGet("gpu", "Renderer", "detecting…")],
+      ["Vendor", () => asyncGet("gpu", "Vendor", "detecting…")],
+      ["Max texture size", () => asyncGet("gpu", "Max texture size", "detecting…")],
+      ["Max viewport", () => asyncGet("gpu", "Max viewport", "detecting…")],
+      ["WebGL version", () => asyncGet("gpu", "WebGL version", "detecting…")],
+    ]},
+    { id: "mem", icon: "sd_card", title: "Memory & storage", rows: [
+      ["JS heap limit", () => performance.memory ? fmtBytes(performance.memory.jsHeapSizeLimit) : null],
+      ["JS heap used", () => performance.memory ? fmtBytes(performance.memory.usedJSHeapSize) : null],
+      ["JS heap total", () => performance.memory ? fmtBytes(performance.memory.totalJSHeapSize) : null],
+      ["Device RAM (approx.)", () => navigator.deviceMemory ? "≥ " + navigator.deviceMemory + " GB" : null],
+      ["Storage quota", () => asyncGet("mem", "Storage quota", "measuring…")],
+      ["Storage used", () => asyncGet("mem", "Storage used", "measuring…")],
+    ]},
+    { id: "disp", icon: "smartphone", title: "Display & media", rows: [
+      ["Screen resolution", () => screen.width + " × " + screen.height + " px"],
+      ["Window size", () => window.innerWidth + " × " + window.innerHeight + " px"],
+      ["Available screen", () => screen.availWidth + " × " + screen.availHeight + " px", { detail: true }],
+      ["Pixel ratio (DPR)", () => window.devicePixelRatio],
+      ["Color depth", () => screen.colorDepth + "-bit"],
+      ["Color gamut", () => { for (const g of ["rec2020", "p3", "srgb"]) if (matchMedia("(color-gamut: " + g + ")").matches) return g.toUpperCase(); return null; }],
+      ["HDR capable", () => matchMedia("(dynamic-range: high)").matches ? "yes" : "no"],
+      ["Color scheme", () => matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"],
+      ["Refresh rate", () => asyncGet("disp", "Refresh rate", "measuring…")],
+      ["Orientation", () => { try { return screen.orientation ? screen.orientation.type : null; } catch (e) { return null; } }],
+      ["Touch support", () => navigator.maxTouchPoints > 0 ? "yes (" + navigator.maxTouchPoints + " points)" : "no"],
+      ["Media devices", () => asyncGet("disp", "Media devices", "counting…"), { detail: true }],
+      ["Fonts (sample)", () => probeFonts(), { detail: true }],
+    ]},
+    { id: "batt", icon: "battery_charging_full", title: "Battery & power", rows: [
+      ["Battery level", () => asyncGet("batt", "Battery level", "reading…")],
+      ["Charging", () => asyncGet("batt", "Charging", "reading…")],
+      ["Charge time", () => asyncGet("batt", "Charge time", "reading…")],
+    ]},
+    { id: "net", icon: "wifi", title: "Connection", rows: [
+      ["Type", () => conn() ? conn().effectiveType || null : null],
+      ["Downlink (approx.)", () => conn() && conn().downlink != null ? conn().downlink + " Mb/s" : null],
+      ["Round-trip time", () => conn() && conn().rtt != null ? conn().rtt + " ms" : null],
+      ["Data saver", () => conn() && conn().saveData != null ? (conn().saveData ? "on" : "off") : null, { detail: true }],
+      ["Online", () => navigator.onLine ? "yes" : "no"],
+      ["WebRTC local IPs", () => asyncGet("net", "WebRTC local IPs", "probing…")],
+    ]},
+    { id: "sens", icon: "sensors", title: "Sensors & features", rows: [
+      ["Accelerometer", () => "Accelerometer" in window ? "yes" : null],
+      ["Gyroscope", () => "Gyroscope" in window ? "yes" : null],
+      ["Ambient light", () => "AmbientLightSensor" in window ? "yes" : null],
+      ["Magnetometer", () => "Magnetometer" in window ? "yes" : null],
+      ["Vibration API", () => "vibrate" in navigator ? "yes" : null, { detail: true }],
+      ["Bluetooth", () => navigator.bluetooth ? "yes" : null],
+      ["USB", () => navigator.usb ? "yes" : null],
+      ["NFC (Web NFC)", () => "NDEFReader" in window ? "yes" : null],
+      ["Gamepads", () => navigator.getGamepads ? "yes" : null, { detail: true }],
+      ["Geolocation", () => navigator.geolocation ? "yes" : null],
+      ["WebGPU", () => navigator.gpu ? "yes" : null],
+      ["WASM", () => typeof WebAssembly === "object" ? "yes" : "no", { detail: true }],
+      ["Speech synthesis", () => "speechSynthesis" in window ? "yes" : null, { detail: true }],
+      ["Speech recognition", () => ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) ? "yes" : null, { detail: true }],
+      ["Wake lock", () => navigator.wakeLock ? "yes" : null, { detail: true }],
+      ["Idle detection", () => "IdleDetector" in window ? "yes" : null, { detail: true }],
+    ]},
+  ];
+
+  function conn() { return navigator.connection || navigator.mozConnection || navigator.webkitConnection; }
+  function fmtBytes(b) {
+    if (b == null || isNaN(b)) return null;
+    const units = ["B", "KB", "MB", "GB", "TB"];
+    let i = 0; let n = b;
+    while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
+    return (i === 0 ? n : n.toFixed(1)) + " " + units[i];
+  }
+  function esc(s) { return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+  function probeFonts() {
+    /* width-comparison probe: a font "exists" if text set in it measures
+       differently from the same text in the bare fallback family */
+    const test = "mmmmmmmmmmlli WWWWWW@@@%&";
+    const span = document.createElement("span");
+    span.style.cssText = "position:absolute;left:-9999px;top:-9999px;font-size:48px;white-space:nowrap;visibility:hidden;";
+    span.textContent = test;
+    document.body.appendChild(span);
+    const width = (fam) => { span.style.fontFamily = fam; return span.offsetWidth; };
+    const baseW = { mono: width("monospace"), sans: width("sans-serif"), serif: width("serif") };
+    const list = ["Arial", "Helvetica", "Helvetica Neue", "Times New Roman", "Courier New", "Georgia", "Verdana", "Comic Sans MS", "Impact", "Trebuchet MS", "Segoe UI", "Roboto", "Ubuntu", "Cantarell", "DejaVu Sans", "SF Pro Text"];
+    const found = [];
+    for (const f of list) {
+      const quoted = '"' + f + '",';
+      if (width(quoted + "monospace") !== baseW.mono || width(quoted + "sans-serif") !== baseW.sans || width(quoted + "serif") !== baseW.serif) found.push(f);
+    }
+    span.remove();
+    return found.length ? found.slice(0, 10).join(", ") + (found.length > 10 ? " +" + (found.length - 10) : "") : null;
+  }
+
+  /* rows render engine: each row = [label, getter, opts]; getter returns
+     string|number|null — null hides the row entirely */
+  const rowRefs = new Map();
+  const rowSecId = new Map();
+  function buildSections() {
+    root.innerHTML = "";
+    rowRefs.clear();
+    rowSecId.clear();
+    for (const sec of SECTIONS) {
+      const wrap = document.createElement("div");
+      wrap.className = "ds-sec";
+      const h = document.createElement("div");
+      h.className = "ds-sec-h";
+      h.innerHTML = '<span class="ms">' + sec.icon + "</span>" + esc(sec.title);
+      wrap.appendChild(h);
+      const table = document.createElement("div");
+      table.className = "ds-table";
+      for (const row of sec.rows) {
+        const [k, , opts] = row;
+        const r = document.createElement("div");
+        r.className = "ds-row";
+        r.innerHTML = '<span class="ds-k">' + esc(k) + '</span><span class="ds-v' + (opts && opts.mono ? '" style="font-family:ui-monospace,Consolas,monospace;font-size:0.76rem' : "") + '"></span>';
+        table.appendChild(r);
+        rowRefs.set(row, r.lastChild);
+        rowSecId.set(row, sec.id);
+      }
+      wrap.appendChild(table);
+      root.appendChild(wrap);
+    }
+  }
+
+  let moreShown = false;
+  function render() {
+    let visible = 0;
+    for (const [row, el] of rowRefs) {
+      const [, get, opts] = row;
+      let v = null;
+      try { v = get(); } catch (e) { v = null; }
+      if (v == null || v === "") { el.closest(".ds-row").style.display = "none"; continue; }
+      if (opts && opts.detail && !moreShown) { el.closest(".ds-row").style.display = "none"; continue; }
+      el.closest(".ds-row").style.display = "";
+      el.textContent = String(v);
+      visible++;
+    }
+    /* collapse whole sections whose rows are all hidden (e.g. no Battery API) */
+    root.querySelectorAll(".ds-sec").forEach((w) => {
+      const any = Array.from(w.querySelectorAll(".ds-row")).some((r) => r.style.display !== "none");
+      w.style.display = any ? "" : "none";
+    });
+    return { visible };
+  }
+
+  /* write an async probe result into its row (null hides the row) */
+  function setRow(secId, key, val) {
+    asyncVals.set(secId + "|" + key, val);
+    for (const [row, el] of rowRefs) {
+      const [k, , opts] = row;
+      if (k !== key || rowSecId.get(row) !== secId) continue;
+      if (val == null) { el.closest(".ds-row").style.display = "none"; continue; }
+      const hide = opts && opts.detail && !moreShown;
+      el.closest(".ds-row").style.display = hide ? "none" : "";
+      if (!hide) el.textContent = String(val);
+    }
+  }
+
+  /* async probes: GPU, storage, battery, refresh rate, media devices,
+     UA client hints, WebRTC locals, micro benchmarks */
+  function runAsync() {
+    asyncVals.clear();
+
+    /* GPU via WebGL debug info */
+    (function () {
+      try {
+        const c = document.createElement("canvas");
+        const gl = c.getContext("webgl2") || c.getContext("webgl") || c.getContext("experimental-webgl");
+        if (!gl) { setRow("gpu", "Renderer", "not available"); setRow("gpu", "Vendor", null); setRow("gpu", "Max texture size", null); setRow("gpu", "Max viewport", null); setRow("gpu", "WebGL version", null); return; }
+        const ext = gl.getExtension("WEBGL_debug_renderer_info");
+        const renderer = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
+        const vendor = ext ? gl.getParameter(ext.UNMASKED_VENDOR_WEBGL) : gl.getParameter(gl.VENDOR);
+        setRow("gpu", "Renderer", renderer || "unknown");
+        setRow("gpu", "Vendor", vendor || "unknown");
+        setRow("gpu", "Max texture size", gl.getParameter(gl.MAX_TEXTURE_SIZE) + " px");
+        const vp = gl.getParameter(gl.MAX_VIEWPORT_DIMS);
+        setRow("gpu", "Max viewport", vp ? vp[0] + " × " + vp[1] + " px" : null);
+        setRow("gpu", "WebGL version", "WebGL " + gl.getParameter(gl.VERSION));
+      } catch (e) { setRow("gpu", "Renderer", "not available"); }
+    })();
+
+    /* storage estimate */
+    (async function () {
+      try {
+        if (navigator.storage && navigator.storage.estimate) {
+          const est = await navigator.storage.estimate();
+          setRow("mem", "Storage quota", fmtBytes(est.quota));
+          setRow("mem", "Storage used", fmtBytes(est.usage));
+        } else { setRow("mem", "Storage quota", null); setRow("mem", "Storage used", null); }
+      } catch (e) { setRow("mem", "Storage quota", null); setRow("mem", "Storage used", null); }
+    })();
+
+    /* battery */
+    (async function () {
+      try {
+        if (!navigator.getBattery) { ["Battery level", "Charging", "Charge time"].forEach((k) => setRow("batt", k, null)); return; }
+        const b = await navigator.getBattery();
+        const paint = () => {
+          setRow("batt", "Battery level", Math.round(b.level * 100) + "%");
+          setRow("batt", "Charging", b.charging ? "yes" : "no");
+          setRow("batt", "Charge time", b.charging
+            ? (isFinite(b.chargingTime) && b.chargingTime > 0 ? "full in ~" + Math.round(b.chargingTime / 60) + " min" : "calculating…")
+            : (isFinite(b.dischargingTime) && b.dischargingTime > 0 ? "~" + Math.round(b.dischargingTime / 3600) + " h left" : "calculating…"));
+        };
+        paint();
+        b.addEventListener("levelchange", paint);
+        b.addEventListener("chargingchange", paint);
+      } catch (e) { ["Battery level", "Charging", "Charge time"].forEach((k) => setRow("batt", k, null)); }
+    })();
+
+    /* refresh rate: sample 20 animation frames */
+    (function () {
+      let n = 0, t0 = 0;
+      const step = (t) => {
+        if (!t0) t0 = t;
+        if (++n < 20) requestAnimationFrame(step);
+        else {
+          const hz = Math.round(1000 / ((t - t0) / (n - 1)));
+          setRow("disp", "Refresh rate", "≈ " + hz + " Hz");
+        }
+      };
+      requestAnimationFrame(step);
+    })();
+
+    /* media device counts (no permission prompt for counts) */
+    (async function () {
+      try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) { setRow("disp", "Media devices", null); return; }
+        const devs = await navigator.mediaDevices.enumerateDevices();
+        const c = { audioinput: 0, audiooutput: 0, videoinput: 0 };
+        devs.forEach((d) => { if (c[d.kind] != null) c[d.kind]++; });
+        setRow("disp", "Media devices", c.audioinput + " mic · " + c.audiooutput + " speaker · " + c.videoinput + " camera");
+      } catch (e) { setRow("disp", "Media devices", null); }
+    })();
+
+    /* UA client hints: real architecture, bitness, device model (Chromium) */
+    (async function () {
+      try {
+        if (navigator.userAgentData && navigator.userAgentData.getHighEntropyValues) {
+          const h = await navigator.userAgentData.getHighEntropyValues(["architecture", "bitness", "model", "platformVersion", "uaFullVersion"]);
+          setRow("cpu", "Architecture", h.architecture ? h.architecture + (h.bitness ? " · " + h.bitness + "-bit" : "") : null);
+          if (h.model) setRow("sys", "Device model", h.model);
+          if (h.platformVersion) setRow("sys", "OS version (UA-CH)", h.platformVersion);
+          if (h.uaFullVersion) setRow("sys", "Browser full version", h.uaFullVersion);
+        } else { setRow("cpu", "Architecture", null); }
+      } catch (e) { setRow("cpu", "Architecture", null); }
+    })();
+
+    /* WebRTC host candidates (local IPs only; modern browsers answer with mDNS) */
+    (function () {
+      try {
+        if (!window.RTCPeerConnection) { setRow("net", "WebRTC local IPs", null); return; }
+        const ids = new Set();
+        const pc = new RTCPeerConnection({ iceServers: [] });
+        pc.createDataChannel("x");
+        pc.onicecandidate = (e) => {
+          if (!e.candidate) {
+            try { pc.close(); } catch (err) {}
+            const arr = Array.from(ids);
+            setRow("net", "WebRTC local IPs", arr.length ? arr.join(", ") : "hidden by browser (mDNS)");
+            return;
+          }
+          const m = e.candidate.candidate.match(/([0-9]{1,3}(?:\.[0-9]{1,3}){3})|(([a-f0-9]{1,4})(:[a-f0-9]{0,4}){2,7})/i);
+          if (m && m[0] && !/\.local$/i.test(m[0]) && m[0] !== "0.0.0.0") ids.add(m[0]);
+        };
+        pc.createOffer().then((o) => pc.setLocalDescription(o)).catch(() => setRow("net", "WebRTC local IPs", null));
+        setTimeout(() => {
+          try { pc.close(); } catch (err) {}
+          if (!ids.size) {
+            const cur = asyncVals.get("net|WebRTC local IPs");
+            if (cur === undefined) setRow("net", "WebRTC local IPs", "hidden by browser (mDNS)");
+          }
+        }, 2500);
+      } catch (e) { setRow("net", "WebRTC local IPs", null); }
+    })();
+
+    /* micro benchmarks: short busy loops, iter/ms (higher = faster) */
+    (function () {
+      const r = (fn, ms) => {
+        const t0 = performance.now(); let it = 0;
+        while (performance.now() - t0 < ms) { fn(); it++; }
+        return Math.round(it / ms);
+      };
+      setTimeout(() => {
+        try {
+          let acc = 0;
+          const mix = r(() => { acc += Math.sqrt(acc + 1.0001) % 7 + Math.sin(acc); }, 8);
+          setRow("cpu", "Benchmark: mixed", mix.toLocaleString("en-US") + " iter/ms");
+          const int = r(() => { acc = (acc * 1664525 + 1013904223) % 4294967296; }, 8);
+          setRow("cpu", "Benchmark: int math", int.toLocaleString("en-US") + " iter/ms");
+          const flt = r(() => { acc += 1.0000001 * Math.PI; acc = acc % 1000; }, 8);
+          setRow("cpu", "Benchmark: float", flt.toLocaleString("en-US") + " iter/ms");
+          const buf = new Float64Array(65536);
+          const mem = r(() => { for (let i = 0; i < buf.length; i++) buf[i] = i; }, 8);
+          setRow("cpu", "Benchmark: memory", mem.toLocaleString("en-US") + " KB/ms");
+        } catch (e) {
+          ["Benchmark: mixed", "Benchmark: int math", "Benchmark: float", "Benchmark: memory"].forEach((k) => setRow("cpu", k, null));
+        }
+        render();
+      }, 60);
+    })();
+  }
+
+  /* ── IP: masked until tapped, tap again hides ── */
+  const ipBtn = $("dsIpBtn"), ipText = $("dsIpText"), ipLoc = $("dsIpLoc"), coloEl = $("dsColo"), ipNote = $("dsIpNote");
+  let ipState = "hidden", ipValue = null, ipMeta = null;
+  const IP_MASK = "•••.•••.•••.•••";
+  function paintIp() {
+    const ipIcon = ipBtn.querySelector(".ms");
+    if (ipState === "shown") {
+      ipText.textContent = ipValue || "unavailable";
+      ipBtn.classList.add("ds-ip-shown");
+      if (ipIcon) ipIcon.textContent = "visibility";
+      ipLoc.textContent = ipMeta && ipMeta.country ? "country " + ipMeta.country : "n/a";
+      coloEl.textContent = ipMeta && ipMeta.colo ? ipMeta.colo : "n/a";
+      ipNote.textContent = "Tap again to hide the IP address.";
+    } else {
+      ipText.textContent = ipState === "loading" ? "loading…" : IP_MASK;
+      ipBtn.classList.remove("ds-ip-shown");
+      if (ipIcon) ipIcon.textContent = "visibility_off";
+      ipLoc.textContent = ipState === "loading" ? "loading…" : "hidden";
+      coloEl.textContent = ipState === "loading" ? "…" : "—";
+      ipNote.textContent = "IP is masked by default — one tap reveals it, another tap hides it again.";
+    }
+  }
+  ipBtn.addEventListener("click", async () => {
+    if (ipState === "shown") { ipState = "hidden"; paintIp(); return; }
+    if (ipValue == null) {
+      ipState = "loading"; paintIp();
+      try {
+        const res = await fetch("/api/ip", { cache: "no-store" });
+        const j = await res.json();
+        ipValue = j.ip; ipMeta = j;
+      } catch (e) { ipValue = "unavailable"; }
+    }
+    ipState = "shown"; paintIp();
+  });
+  paintIp();
+
+  /* copy report (clipboard API with execCommand fallback) */
+  function copyReport() {
+    const lines = ["Inpriv Labs — Device Specs report", "generated: " + new Date().toISOString(), ""];
+    lines.push("== Network ==");
+    lines.push("IP address: " + (ipState === "shown" ? (ipValue || "unavailable") : IP_MASK + " (hidden)"));
+    lines.push("Approx. location: " + (ipState === "shown" ? (ipMeta && ipMeta.country ? "country " + ipMeta.country : "n/a") : "hidden"));
+    lines.push("Edge server (colo): " + (ipState === "shown" ? (ipMeta && ipMeta.colo ? ipMeta.colo : "n/a") : "—"));
+    lines.push("");
+    const pending = /^(measuring|detecting|reading|counting|probing)…$/;
+    for (const s of SECTIONS) {
+      const rows = [];
+      for (const row of s.rows) {
+        const el = rowRefs.get(row);
+        if (!el || el.closest(".ds-row").style.display === "none") continue;
+        const v = el.textContent.trim();
+        if (v && !pending.test(v)) rows.push(row[0] + ": " + v);
+      }
+      if (rows.length) { lines.push("== " + s.title + " =="); Array.prototype.push.apply(lines, rows); lines.push(""); }
+    }
+    lines.push("Measured locally by labs.inpriv.xyz — the only network call is the opt-in IP reveal.");
+    const text = lines.join("\n");
+    const done = () => showToast("Report copied to clipboard", "content_copy");
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+    else fallbackCopy(text, done);
+  }
+  function fallbackCopy(text, done) {
+    const ta = document.createElement("textarea");
+    ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); done(); } catch (e) { showToast("Copy failed — clipboard blocked", "error"); }
+    ta.remove();
+  }
+  $("dsCopy").addEventListener("click", copyReport);
+
+  /* show/hide extra details */
+  const moreBtn = $("dsMore");
+  moreBtn.addEventListener("click", () => {
+    moreShown = !moreShown;
+    moreBtn.innerHTML = '<span class="ms">' + (moreShown ? "unfold_less" : "unfold_more") + "</span>" + (moreShown ? "Hide details" : "Show all details");
+    render();
+  });
+
+  /* re-scan */
+  $("dsRescan").addEventListener("click", () => {
+    buildSections();
+    render();
+    runAsync();
+    showToast("Re-scanning device specs", "refresh");
+  });
+
+  /* boot */
+  buildSections();
+  render();
+  runAsync();
+  const stats = render();
+  $("dsFoot").textContent = stats.visible + " parameters shown · measured on your device — zero upload";
+
+  /* keep live rows fresh on resize / orientation change */
+  let rzT = null;
+  window.addEventListener("resize", () => { clearTimeout(rzT); rzT = setTimeout(render, 250); });
 })();
 
 /* ── PWA ── */
