@@ -941,7 +941,7 @@ body {
 .view-rich-frame {
   display: block;
   width: 100%;
-  min-height: 160px;
+  min-height: 240px;
   border: none;
   background: transparent;
   color-scheme: inherit;
@@ -2546,12 +2546,29 @@ async function openMessageView(id) {
       frame.srcdoc = doc;
       richWrap.classList.remove('hidden');
       toggle.classList.remove('hidden');
+      // Fit the frame to its content. The first paint happens BEFORE the
+      // srcdoc document has loaded (scrollHeight == 0), so the real height
+      // must be applied on load — and re-applied when late assets (images)
+      // change the body height. Toggling Plain→Rich reuses the same fit.
+      const fitFrame = () => {
+        try {
+          const h = frame.contentDocument?.body?.scrollHeight || 0;
+          if (h) frame.style.height = Math.max(240, h) + 'px';
+        } catch (e) { /* sandboxed doc not ready yet */ }
+      };
+      frame.addEventListener('load', () => {
+        fitFrame();
+        try {
+          const body = frame.contentDocument?.body;
+          if (body && 'ResizeObserver' in window) new ResizeObserver(fitFrame).observe(body);
+        } catch (e) { /* older engines */ }
+      });
       const setFmt = (fmt) => {
         richWrap.classList.toggle('hidden', fmt !== 'rich');
         bodyEl.classList.toggle('hidden', fmt !== 'plain');
         $('#viewFmtRich')?.classList.toggle('active', fmt === 'rich');
         $('#viewFmtPlain')?.classList.toggle('active', fmt === 'plain');
-        if (fmt === 'rich' && frame) frame.style.height = Math.max(160, frame.contentDocument?.body?.scrollHeight || 160) + 'px';
+        if (fmt === 'rich') fitFrame();
       };
       $('#viewFmtRich').addEventListener('click', () => setFmt('rich'));
       $('#viewFmtPlain').addEventListener('click', () => setFmt('plain'));
