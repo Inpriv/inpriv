@@ -113,6 +113,7 @@ python server.py
 inpriv/
 ├── index.html          # Suite landing page (inpriv.xyz)
 ├── LICENSE             # MIT
+├── common/             # Shared worker modules — maintenance gate + branded error pages
 ├── .hush/              # E2E chat — web app + signaling server
 ├── .censor/            # Screenshot redactor (blur/pixelate + face/OCR auto-detect)
 ├── .wipe/              # Metadata sanitizer

@@ -13,6 +13,7 @@
 // (service id "status"). /api/health always passes for monitoring.
 
 import { maintenanceGate, maintenancePage } from "../../../common/gate.js";
+import { notFound } from "../../../common/errors.js";
 import { kvPut, kvGet, kvDeleteId, kvList } from "../../../common/drive.js";
 
 const HISTORY_DAYS = 7;
@@ -256,7 +257,9 @@ export default {
     }
 
     if (env.ASSETS) {
-      return env.ASSETS.fetch(request);
+      const res = await env.ASSETS.fetch(request);
+      if (res.status === 404) return notFound(request, "Inpriv Status");
+      return res;
     }
 
     return json({ error: "not found" }, 404);

@@ -7,6 +7,7 @@
 // Everything else falls through to assets (icon.png, assets/icons/*.svg, …).
 // Every request passes the admin kill-switch (global or "landing" service).
 import { maintenanceGate, maintenancePage } from "../../common/gate.js";
+import { notFound } from "../../common/errors.js";
 
 export default {
   async fetch(request, env, ctx) {
@@ -21,6 +22,8 @@ export default {
     }
 
     // Assets binding serves /, /icon.png, /assets/…, /robots.txt (if present).
-    return env.ASSETS.fetch(request);
+    const res = await env.ASSETS.fetch(request);
+    if (res.status === 404) return notFound(request, "Inpriv");
+    return res;
   },
 };

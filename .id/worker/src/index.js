@@ -2,6 +2,7 @@
 // See lib.js for crypto/CORS/mail helpers and schema.sql for the data model.
 
 import { maintenanceGate, maintenancePage } from "../../../common/gate.js";
+import { notFound } from "../../../common/errors.js";
 import {
   SESSION_TTL_MS, PASS_ITERS,
   b64, now, uuid, sha256hex, json, bad, corsFor,
@@ -232,7 +233,9 @@ export default {
 
     // ── static frontend (login page + panel) for non-API GETs/HEADs ──
     if ((request.method === "GET" || request.method === "HEAD") && !path.startsWith("/api/")) {
-      return env.ASSETS.fetch(request);
+      const res = await env.ASSETS.fetch(request);
+      if (res.status === 404) return notFound(request, "Inpriv ID");
+      return res;
     }
 
     if (path === "/api/health") {

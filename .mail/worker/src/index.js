@@ -2,6 +2,7 @@
 // Integrated with Inpriv ID (id.inpriv.xyz) & M3 Earthy Forest.
 
 import { maintenanceGate, maintenancePage } from "../../../common/gate.js";
+import { notFound } from "../../../common/errors.js";
 
 const DOMAIN = "inpriv.xyz";
 
@@ -467,7 +468,9 @@ export default {
     if (!path.startsWith("/api/")) {
       const gate = await maintenanceGate("mail");
       if (gate.locked) return maintenancePage("Inpriv Mail", gate.message);
-      return env.ASSETS.fetch(request);
+      const res = await env.ASSETS.fetch(request);
+      if (res.status === 404) return notFound(request, "Inpriv Mail");
+      return res;
     }
 
     const gate = await maintenanceGate("mail");

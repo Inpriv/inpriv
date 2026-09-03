@@ -3,6 +3,7 @@
 // Copyright (c) 2026 Inpriv Labs — MIT License
 
 import { maintenanceGate, maintenancePage } from "../../../common/gate.js";
+import { notFound } from "../../../common/errors.js";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -353,7 +354,9 @@ export default {
     }
 
     if (env.ASSETS) {
-      return env.ASSETS.fetch(request);
+      const res = await env.ASSETS.fetch(request);
+      if (res.status === 404) return notFound(request, "Inpriv QR");
+      return res;
     }
 
     return json({ error: "Not found" }, 404);

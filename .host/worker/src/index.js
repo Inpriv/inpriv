@@ -10,6 +10,7 @@
 // ═════════════════════════════════════════════════════════════════════════════
 
 import { maintenanceGate, maintenancePage } from "../../../common/gate.js";
+import { notFoundPage as brandedNotFoundPage } from "../../../common/errors.js";
 import {
   PASS_ITERS, SESSION_TTL_MS,
   b64, uuid, sha256hex, json, bad, corsFor,
@@ -1320,14 +1321,6 @@ function harden(res) {
   return r;
 }
 function notFoundPage() {
-  return new Response(
-    `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">` +
-    `<title>File not found — Inpriv Host</title><style>body{font-family:system-ui,sans-serif;background:#13140e;color:#e3e2d3;` +
-    `display:grid;place-items:center;min-height:100vh;margin:0}.box{max-width:420px;text-align:center;padding:44px 32px;` +
-    `background:rgba(26,28,23,.85);border:1px solid rgba(141,146,131,.25);border-radius:28px}h1{font-size:1.25rem;margin:0 0 10px}` +
-    `p{color:#c7c6b8;font-size:.92rem}a{color:#abd37a}</style></head><body><div class="box"><h1>File not found</h1>` +
-    `<p>This file does not exist, is private, or was blocked by the privacy shield.</p>` +
-    `<p style="margin-top:18px;font-size:.85rem"><a href="https://host.inpriv.xyz">&larr; back to Inpriv Host</a></p></div></body></html>`,
-    { status: 404, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff" } }
-  );
+  // Branded 404 page from the shared error-pages module (common/errors.js).
+  return brandedNotFoundPage("Inpriv Host");
 }

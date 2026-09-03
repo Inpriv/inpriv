@@ -9,6 +9,8 @@
 // Mailboxes are created on demand, live for 24 h, swept by hourly cron.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { notFound } from "../../../common/errors.js";
+
 const MAILBOX_TTL_MS = 24 * 60 * 60 * 1000; // 24 h, then cron sweeps it away
 const MAX_TEXT_CHARS = 100_000;
 const MAX_HTML_CHARS = 300_000;
@@ -174,7 +176,9 @@ async function handleFetch(request, env) {
   }
 
   // Everything else → static assets (the single-file frontend).
-  return env.ASSETS.fetch(request);
+  const res = await env.ASSETS.fetch(request);
+  if (res.status === 404) return notFound(request, "Inpriv Temp");
+  return res;
 }
 
 async function routeApi(request, env, url) {

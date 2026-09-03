@@ -13,6 +13,7 @@
 // All state is ephemeral. No logs, no analytics, no IPs stored.
 
 import { maintenanceGate, maintenancePage } from "../../../common/gate.js";
+import { notFound } from "../../../common/errors.js";
 import { kvPut, kvGet, kvDeleteId, kvList } from "../../../common/drive.js";
 
 const CORS = {
@@ -179,7 +180,9 @@ export default {
     if (path === "/api/health") return json({ ok: true });
 
     // ─── everything else: static frontend (single-file app) ───
-    return env.ASSETS.fetch(request);
+    const res = await env.ASSETS.fetch(request);
+    if (res.status === 404) return notFound(request, "Inpriv Share");
+    return res;
   },
 
   // cron fallback (when the account-wide slot frees up); primary: lazy sweep

@@ -16,6 +16,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { maintenanceGate, maintenancePage } from "../../../common/gate.js";
+import { notFound } from "../../../common/errors.js";
 
 const DOMAIN = "inpriv.xyz";
 const SESSION_TTL_MS = 7 * 24 * 3600 * 1000;
@@ -402,7 +403,9 @@ export default {
 
     // static frontend for non-API GETs/HEADs
     if ((request.method === "GET" || request.method === "HEAD") && !path.startsWith("/api/")) {
-      return env.ASSETS.fetch(request);
+      const res = await env.ASSETS.fetch(request);
+      if (res.status === 404) return notFound(request, "Inpriv Fake");
+      return res;
     }
 
     if (path === "/api/health") return json({ service: "inpriv-fake", status: "ok" });
