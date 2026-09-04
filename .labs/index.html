@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com fonts.gstatic.com; script-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.googleapis.com fonts.gstatic.com https://fonts.gstatic.com; img-src 'self' data: blob: https://hush.best https://qr.inpriv.xyz https://inpriv-qr-api.saloyek.workers.dev; media-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self' data:">
 <title>Inpriv Labs — Experiments &amp; Concepts</title>
-<meta name="description" content="Inpriv Labs is the public lab bench of the Inpriv suite: live experiments, UI concepts and prototypes under evaluation — glassmorphism themes, on-device machine learning, motion studies and more.">
+<meta name="description" content="Inpriv Labs is the public lab bench of the Inpriv suite: live experiments, UI concepts and prototypes under evaluation — the Google M3 baseline, legacy suite themes, on-device machine learning, motion studies and more.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Inpriv">
 <meta property="og:title" content="Inpriv Labs — Experiments &amp;amp; Concepts">
-<meta property="og:description" content="Inpriv Labs is the public lab bench of the Inpriv suite: live experiments, UI concepts and prototypes under evaluation — glassmorphism themes, on-device machine learning, motion studies and more.">
+<meta property="og:description" content="Inpriv Labs is the public lab bench of the Inpriv suite: live experiments, UI concepts and prototypes under evaluation — the Google M3 baseline, legacy suite themes, on-device machine learning, motion studies and more.">
 <meta property="og:url" content="https://labs.inpriv.xyz/">
 <meta property="og:image" content="https://inpriv.xyz/og/labs.png?v=2">
 <meta property="og:image:width" content="1200">
@@ -18,13 +18,12 @@
 <meta property="og:locale" content="en_US">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Inpriv Labs — Experiments &amp;amp; Concepts">
-<meta name="twitter:description" content="Inpriv Labs is the public lab bench of the Inpriv suite: live experiments, UI concepts and prototypes under evaluation — glassmorphism themes, on-device machine learning, motion studies and more.">
+<meta name="twitter:description" content="Inpriv Labs is the public lab bench of the Inpriv suite: live experiments, UI concepts and prototypes under evaluation — the Google M3 baseline, legacy suite themes, on-device machine learning, motion studies and more.">
 <meta name="twitter:image" content="https://inpriv.xyz/og/labs.png?v=2">
 <meta name="twitter:image:alt" content="Inpriv Labs — Experiments &amp;amp; Concepts">
 <link rel="canonical" href="https://labs.inpriv.xyz/">
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "WebApplication", "name": "Inpriv Labs — Experiments &amp; Concepts", "url": "https://labs.inpriv.xyz/", "description": "Inpriv Labs is the public lab bench of the Inpriv suite: live experiments, UI concepts and prototypes under evaluation — glassmorphism themes, on-device machine learning, motion studies and more.", "operatingSystem": "All", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "publisher": {"@type": "Organization", "name": "Inpriv Labs", "url": "https://inpriv.xyz/"}, "inLanguage": "en"}</script>
-<meta name="theme-color" content="#13140E" media="(prefers-color-scheme: dark)">
-<meta name="theme-color" content="#FAF9F0" media="(prefers-color-scheme: light)">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "WebApplication", "name": "Inpriv Labs — Experiments &amp; Concepts", "url": "https://labs.inpriv.xyz/", "description": "Inpriv Labs is the public lab bench of the Inpriv suite: live experiments, UI concepts and prototypes under evaluation — the Google M3 baseline, legacy suite themes, on-device machine learning, motion studies and more.", "operatingSystem": "All", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "publisher": {"@type": "Organization", "name": "Inpriv Labs", "url": "https://inpriv.xyz/"}, "inLanguage": "en"}</script>
+<meta name="theme-color" content="#FEFBFF">
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="/icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -32,45 +31,44 @@
 <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:ital,opsz,wght@0,8..144,300..800;1,8..144,300..800&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 <style>
+/* Google typography (m3.material.io baseline): Google Sans display + Google Sans Text */
+@font-face { font-family:'Google Sans'; font-style:normal; font-weight:475; font-display:swap; src:url(https://fonts.gstatic.com/s/googlesans/v70/4UaRrENHsxJlGDuGo1OIlJfC6mGS6vhAK1YobMu2vgCIhM907w.woff2) format('woff2'); }
+@font-face { font-family:'Google Sans Text'; font-style:normal; font-weight:400; font-display:swap; src:url(https://fonts.gstatic.com/s/googlesanstext/v25/5aUu9-KzpRiLCAt4Unrc-xIKmCU5qEp2i0VBuxM.woff2) format('woff2'); }
+@font-face { font-family:'Google Sans Text'; font-style:normal; font-weight:500; font-display:swap; src:url(https://fonts.gstatic.com/s/googlesanstext/v25/5aUp9-KzpRiLCAt4Unrc-xIKmCU5oLlVnmhjtjm4DZw.woff2) format('woff2'); }
+@font-face { font-family:'Google Sans Text'; font-style:normal; font-weight:700; font-display:swap; src:url(https://fonts.gstatic.com/s/googlesanstext/v25/5aUp9-KzpRiLCAt4Unrc-xIKmCU5oPFTnmhjtjm4DZw.woff2) format('woff2'); }
 [hidden] { display: none !important; }
 :root {
   --ease-standard: cubic-bezier(0.2, 0.0, 0.0, 1.0);
   --ease-spring: cubic-bezier(0.2, 1.3, 0.0, 1.0);
   --ease-spring-soft: cubic-bezier(0.34, 1.3, 0.64, 1.0);
-  --font-sans: 'Roboto Flex', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Google Sans Text', 'Roboto Flex', system-ui, -apple-system, sans-serif;
+  --font-display: 'Google Sans', 'Roboto Flex', system-ui, sans-serif;
   --font-icon: 'Material Symbols Rounded';
 }
 :root {
-  --md-primary: #466E47;
+  /* m3.material.io (get-started) baseline — light only */
+  --md-primary: #9F86FF;
   --md-on-primary: #FFFFFF;
-  --md-primary-container: #C7EFA0;
-  --md-on-primary-container: #173800;
-  --md-surface: #FAF9F0;
-  --md-surface-container-low: #F4F3E9;
-  --md-surface-container: #EEEDE2;
-  --md-surface-container-high: #E8E7DB;
-  --md-on-surface: #1A1C17;
-  --md-on-surface-variant: #44483D;
-  --md-outline: #75796B;
-  --md-outline-variant: #C5C8B8;
-  --md-error: #BA1A1A;
-  --md-shadow: rgba(26, 28, 23, 0.22);
-}
-[data-theme="dark"] {
-  --md-primary: #ABD37A;
-  --md-on-primary: #1D3701;
-  --md-primary-container: #2E4F2F;
-  --md-on-primary-container: #C7EFA0;
-  --md-surface: #13140E;
-  --md-surface-container-low: #1A1C17;
-  --md-surface-container: #1E201A;
-  --md-surface-container-high: #282A24;
-  --md-on-surface: #E3E2D3;
-  --md-on-surface-variant: #C5C8B8;
-  --md-outline: #8D9283;
-  --md-outline-variant: #44483D;
-  --md-error: #FFB4AB;
-  --md-shadow: rgba(0, 0, 0, 0.55);
+  --md-primary-container: #9F86FF;
+  --md-on-primary-container: #1E0060;
+  --md-secondary: #5D5D74;
+  --md-secondary-container: #DCDAF5;
+  --md-on-secondary-container: #21182B;
+  --md-tertiary: #E37402;
+  --md-tertiary-container: #F1D3F9;
+  --md-on-tertiary-container: #271430;
+  --md-surface: #FEFBFF;
+  --md-surface-container-low: #F8F1F6;
+  --md-surface-container: #F2ECEE;
+  --md-surface-container-high: #ECE7E9;
+  --md-surface-container-highest: #E6E1E3;
+  --md-on-surface: #1C1B1D;
+  --md-on-surface-variant: #4D4256;
+  --md-outline: #787579;
+  --md-outline-variant: #E6E1E3;
+  --md-error: #FF6240;
+  --md-shadow: rgba(0, 0, 0, 0.3);
+  --elev-1: 0px 1px 2px 0px rgb(0 0 0 / 30%), 0px 1px 3px 1px rgb(0 0 0 / 15%);
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
@@ -90,22 +88,6 @@ body {
   font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
   user-select: none;
 }
-.bg-dots {
-  position: fixed; inset: 0; z-index: 0; pointer-events: none;
-  background-image: radial-gradient(circle, var(--md-outline-variant) 1px, transparent 1px);
-  background-size: 24px 24px; opacity: 0.18;
-  -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, #000 30%, transparent 100%);
-  mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, #000 30%, transparent 100%);
-}
-.bg-blob {
-  position: fixed; z-index: 0; pointer-events: none;
-  width: 520px; height: 520px; border-radius: 50%;
-  top: -220px; right: -160px;
-  background: radial-gradient(circle, color-mix(in srgb, var(--md-primary) 26%, transparent), transparent 70%);
-  filter: blur(70px);
-  animation: drift 26s var(--ease-standard) infinite alternate;
-}
-@keyframes drift { to { transform: translate(-90px, 70px) scale(1.12); } }
 .top-header {
   position: relative; z-index: 5;
   display: flex; align-items: center; gap: 12px;
@@ -119,8 +101,8 @@ body {
   display: grid; place-items: center;
 }
 .brand-mark .ms { font-size: 20px; }
-.brand-name { font-size: 1.12rem; font-weight: 500; letter-spacing: -0.01em; white-space: nowrap; }
-.brand-name strong { font-weight: 800; color: var(--md-primary); }
+.brand-name { font-family: var(--font-display); font-size: 1.12rem; font-weight: 500; letter-spacing: -0.01em; white-space: nowrap; }
+.brand-name strong { font-weight: 700; color: var(--md-primary); }
 .bar-actions { margin-left: auto; display: flex; align-items: center; gap: 4px; }
 .icon-btn {
   width: 44px; height: 44px; border-radius: 9999px; border: none; cursor: pointer;
@@ -137,23 +119,24 @@ main { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; padding
   display: inline-flex; align-items: center; gap: 7px;
   padding: 7px 15px; border-radius: 9999px;
   background: color-mix(in srgb, var(--md-primary) 12%, transparent);
-  color: var(--md-primary); font-size: 0.8rem; font-weight: 700;
+  color: var(--md-primary); font-size: 0.8rem; font-weight: 500;
 }
 .hero-badge .ms { font-size: 16px; }
-.hero h1 { font-size: clamp(1.9rem, 6vw, 2.6rem); font-weight: 800; letter-spacing: -0.02em; margin-top: 18px; line-height: 1.12; }
+.hero h1 { font-family: var(--font-display); font-size: clamp(1.9rem, 6vw, 2.6rem); font-weight: 475; letter-spacing: -0.02em; margin-top: 18px; line-height: 1.12; }
 .hero h1 em { font-style: normal; color: var(--md-primary); }
 .hero p { margin: 12px auto 0; max-width: 480px; color: var(--md-on-surface-variant); font-size: 0.98rem; line-height: 1.55; }
 .card {
-  background: var(--md-surface-container-low);
-  border: 1px solid var(--md-outline-variant);
-  border-radius: 26px;
+  background: #FFFFFF;
+  border: none;
+  border-radius: 24px;
+  box-shadow: var(--elev-1);
   padding: 22px;
   animation: rise 0.55s var(--ease-spring) both;
   animation-delay: calc(var(--d, 0) * 1ms);
 }
 @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 .stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-top: 22px; }
-.panel-title { display: flex; align-items: center; gap: 10px; font-size: 1.02rem; font-weight: 700; }
+.panel-title { display: flex; align-items: center; gap: 10px; font-size: 1.02rem; font-weight: 500; }
 .panel-title .ms { color: var(--md-primary); font-size: 22px; }
 .hint { color: var(--md-on-surface-variant); font-size: 0.85rem; line-height: 1.5; margin-top: 6px; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
@@ -161,7 +144,7 @@ main { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; padding
   display: inline-flex; align-items: center; gap: 6px;
   padding: 7px 14px; border-radius: 9999px;
   background: var(--md-surface-container); border: 1px solid var(--md-outline-variant);
-  font-size: 0.8rem; font-weight: 600; color: var(--md-on-surface-variant);
+  font-size: 0.8rem; font-weight: 500; color: var(--md-on-surface-variant);
 }
 .chip .ms { font-size: 16px; }
 .chip.ok { color: var(--md-primary); border-color: color-mix(in srgb, var(--md-primary) 40%, transparent); }
@@ -170,9 +153,8 @@ main { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; padding
   display: inline-flex; align-items: center; justify-content: center; gap: 9px;
   border: none; cursor: pointer; text-decoration: none;
   border-radius: 9999px; padding: 0 24px; height: 48px;
-  font-family: var(--font-sans); font-size: 0.95rem; font-weight: 700;
+  font-family: var(--font-sans); font-size: 0.95rem; font-weight: 500;
   background: var(--md-primary); color: var(--md-on-primary);
-  box-shadow: 0 6px 20px -6px color-mix(in srgb, var(--md-primary) 60%, transparent);
   transition: transform 0.25s var(--ease-spring), box-shadow 0.25s var(--ease-standard);
 }
 .btn .ms { font-size: 20px; }
@@ -237,21 +219,21 @@ main { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; padding
 .demo-body { padding: 18px; display: grid; gap: 12px; }
 .demo-mini-card {
   border-radius: 16px; padding: 14px 16px;
-  font-size: 0.9rem; font-weight: 600;
+  font-size: 0.9rem; font-weight: 500;
   border: 1px solid var(--md-outline-variant);
   background: var(--md-surface-container-low);
 }
 .demo-mini-btn {
   display: inline-flex; align-items: center; gap: 7px;
   height: 40px; padding: 0 18px; border-radius: 9999px; border: none;
-  font-family: var(--font-sans); font-size: 0.85rem; font-weight: 700;
+  font-family: var(--font-sans); font-size: 0.85rem; font-weight: 500;
   background: var(--md-primary); color: var(--md-on-primary);
 }
 .pill-bar {
   display: inline-flex; padding: 5px; gap: 6px; border-radius: 9999px;
   background: var(--md-surface-container-high);
 }
-.pill-bar span { padding: 7px 16px; border-radius: 9999px; font-size: 0.8rem; font-weight: 600; color: var(--md-on-surface-variant); }
+.pill-bar span { padding: 7px 16px; border-radius: 9999px; font-size: 0.8rem; font-weight: 500; color: var(--md-on-surface-variant); }
 .pill-bar span.on { background: var(--md-primary); color: var(--md-on-primary); }
 /* ── experiment themes apply to a scoped subtree ── */
 [data-exp="glass"] { background: #EDF3F2; }
@@ -264,7 +246,7 @@ footer a { color: var(--md-primary); text-decoration: none; font-weight: 600; }
   display: flex; align-items: center; gap: 10px;
   background: var(--md-surface-container-high); color: var(--md-on-surface);
   border: 1px solid var(--md-outline-variant); border-radius: 9999px;
-  padding: 12px 22px; font-size: 0.9rem; font-weight: 600;
+  padding: 12px 22px; font-size: 0.9rem; font-weight: 500;
   box-shadow: 0 12px 40px -8px var(--md-shadow);
   opacity: 0; pointer-events: none;
   transition: opacity 0.3s var(--ease-standard), transform 0.35s var(--ease-spring);
@@ -303,13 +285,13 @@ footer a { color: var(--md-primary); text-decoration: none; font-weight: 600; }
 .nn-class input {
   flex: 1; min-width: 0; border: none; outline: none; background: transparent;
   color: var(--md-on-surface); font-family: var(--font-sans);
-  font-size: 16px; font-weight: 600;
+  font-size: 16px; font-weight: 500;
 }
 .nn-count {
   min-width: 26px; height: 26px; padding: 0 7px; border-radius: 9999px;
   display: grid; place-items: center;
   background: color-mix(in srgb, var(--md-primary) 16%, transparent);
-  color: var(--md-primary); font-size: 0.78rem; font-weight: 800;
+  color: var(--md-primary); font-size: 0.78rem; font-weight: 500;
 }
 .nn-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .nn-btns .btn { height: 42px; padding: 0 18px; font-size: 0.86rem; }
@@ -321,7 +303,7 @@ footer a { color: var(--md-primary); text-decoration: none; font-weight: 600; }
 }
 .nn-pred { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
 .nn-pred-bar { flex: 1; }
-.nn-pred-name { font-size: 0.84rem; font-weight: 700; }
+.nn-pred-name { font-size: 0.84rem; font-weight: 500; }
 .nn-pred-name b { color: var(--md-primary); }
 @media (max-width: 599px) {
   .nn-canvas { width: 208px; height: 208px; }
@@ -352,7 +334,7 @@ footer a { color: var(--md-primary); text-decoration: none; font-weight: 600; }
 .fp-input-wrap input {
   flex: 1; min-width: 0; border: none; outline: none; background: transparent;
   color: var(--md-on-surface); font-family: var(--font-sans);
-  font-size: 16px; font-weight: 600;
+  font-size: 16px; font-weight: 500;
 }
 .fp-controls .btn { height: 46px; padding: 0 20px; font-size: 0.88rem; }
 @media (max-width: 599px) {
@@ -362,7 +344,7 @@ footer a { color: var(--md-primary); text-decoration: none; font-weight: 600; }
 .ds-sec { display: grid; gap: 8px; }
 .ds-sec-h {
   display: flex; align-items: center; gap: 8px;
-  font-size: 0.78rem; font-weight: 800; letter-spacing: 0.07em;
+  font-size: 0.78rem; font-weight: 500; letter-spacing: 0.07em;
   text-transform: uppercase; color: var(--md-primary);
 }
 .ds-sec-h .ms { font-size: 17px; }
@@ -387,7 +369,7 @@ footer a { color: var(--md-primary); text-decoration: none; font-weight: 600; }
   border-radius: 9999px; padding: 8px 16px;
   border: 1px dashed var(--md-outline-variant);
   background: var(--md-surface-container-high); color: var(--md-on-surface-variant);
-  font-family: var(--font-sans); font-size: 0.84rem; font-weight: 700;
+  font-family: var(--font-sans); font-size: 0.84rem; font-weight: 500;
   transition: border-color 0.2s var(--ease-standard), color 0.2s var(--ease-standard), transform 0.25s var(--ease-spring);
 }
 .ds-ip:hover { border-color: var(--md-primary); color: var(--md-primary); }
@@ -400,7 +382,7 @@ footer a { color: var(--md-primary); text-decoration: none; font-weight: 600; }
   height: 40px; padding: 0 16px; border-radius: 9999px;
   border: 1px solid var(--md-outline-variant);
   background: var(--md-surface-container); color: var(--md-on-surface-variant);
-  font-family: var(--font-sans); font-size: 0.84rem; font-weight: 700; cursor: pointer;
+  font-family: var(--font-sans); font-size: 0.84rem; font-weight: 500; cursor: pointer;
   transition: transform 0.25s var(--ease-spring), border-color 0.2s var(--ease-standard), color 0.2s var(--ease-standard);
 }
 .ds-btn:hover { border-color: var(--md-primary); color: var(--md-primary); }
@@ -424,9 +406,6 @@ footer a { color: var(--md-primary); text-decoration: none; font-weight: 600; }
 </style>
 </head>
 <body>
-<div class="bg-dots" aria-hidden="true"></div>
-<div class="bg-blob" aria-hidden="true"></div>
-
 <header class="top-header">
   <a class="icon-btn" href="https://inpriv.xyz" aria-label="Back to Inpriv" style="text-decoration:none">
     <span class="ms">arrow_back</span>
@@ -436,7 +415,6 @@ footer a { color: var(--md-primary); text-decoration: none; font-weight: 600; }
     <div class="brand-name">Inpriv<strong>.Labs</strong></div>
   </div>
   <div class="bar-actions">
-    <button class="icon-btn" id="themeToggle" aria-label="Toggle theme"><span class="ms">dark_mode</span></button>
   </div>
 </header>
 
@@ -448,6 +426,71 @@ footer a { color: var(--md-primary); text-decoration: none; font-weight: 600; }
   </section>
 
   <div class="stack">
+    <!-- ══ EXPERIMENT 7: Google M3 baseline ══ -->
+    <div class="card" style="--d:30">
+      <div class="panel-title"><span class="ms">style</span><span>Google M3 — suite design baseline</span></div>
+      <p class="hint">The suite is moving to the Material 3 baseline from Google (m3.material.io/get-started): Google Sans display type, Google Sans Text for body, purple primary #9F86FF, tinted surfaces on #FEFBFF and elevated white cards. This bench already wears the style — the panel below is a live specimen.</p>
+      <div class="chips">
+        <span class="chip ok"><span class="ms">rocket_launch</span>Adopted bench-wide</span>
+        <span class="chip"><span class="ms">wb_sunny</span>Light only</span>
+        <span class="chip"><span class="ms">text_fields</span>Google Sans</span>
+      </div>
+      <div class="demo-shell">
+        <div class="demo-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span style="margin-left:6px">live preview — baseline components</span></div>
+        <div class="demo-body">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+            <button type="button" class="demo-mini-btn">Filled</button>
+            <button type="button" class="demo-mini-btn" style="background:var(--md-secondary-container);color:var(--md-on-secondary-container)">Tonal</button>
+            <button type="button" class="demo-mini-btn" style="background:none;color:var(--md-primary)">Text</button>
+            <button type="button" class="demo-mini-btn" style="background:none;color:var(--md-primary);border:1px solid var(--md-outline)">Outlined</button>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <span class="chip ok"><span class="ms">check</span>Assist</span>
+            <span class="chip"><span class="ms">filter_list</span>Filter</span>
+            <span class="chip testing"><span class="ms">warning</span>Caution</span>
+          </div>
+          <div class="demo-mini-card">Elevated card — white surface, elevation 1, radius 24</div>
+          <div style="display:grid;gap:6px">
+            <div style="height:44px;border-radius:12px;background:var(--md-surface-container-low);display:flex;align-items:center;padding:0 14px;font-size:0.8rem;color:var(--md-on-surface-variant)">surface-container-low &mdash; #F8F1F6</div>
+            <div style="height:44px;border-radius:12px;background:var(--md-surface-container);display:flex;align-items:center;padding:0 14px;font-size:0.8rem;color:var(--md-on-surface-variant)">surface-container &mdash; #F2ECEE</div>
+            <div style="height:44px;border-radius:12px;background:var(--md-surface-container-high);display:flex;align-items:center;padding:0 14px;font-size:0.8rem;color:var(--md-on-surface-variant)">surface-container-high &mdash; #ECE7E9</div>
+          </div>
+          <div class="progress-demo"><div class="p-fill" style="width:62%"></div></div>
+        </div>
+      </div>
+      <div class="chips" style="margin-top:14px">
+        <span class="chip"><span class="ms">palette</span>Primary #9F86FF</span>
+        <span class="chip"><span class="ms">format_size</span>Display 475 &middot; Text 400/500/700</span>
+        <span class="chip"><span class="ms">link</span>m3.material.io/get-started</span>
+      </div>
+    </div>
+    <!-- ══ EXPERIMENT 8: M3 Earthy Forest — legacy suite theme ══ -->
+    <div class="card" style="--d:35">
+      <div class="panel-title"><span class="ms">history</span><span>M3 Earthy Forest — previous suite theme,</span></div>
+      <p class="hint">The look the whole suite wore before this switch: forest-green primary on warm paper in light mode, near-black with soft green in dark mode, Roboto Flex everywhere, the dot-grid + drifting-blob backdrop and spring easing. Retired bench- and suite-wide in favor of the Google M3 baseline — kept for reference only, do not build on it.</p>
+      <div class="chips">
+        <span class="chip testing"><span class="ms">archive</span>Deprecated</span>
+        <span class="chip"><span class="ms">palette</span>Theme</span>
+        <span class="chip"><span class="ms">history</span>Retired 2026-09</span>
+      </div>
+      <div class="demo-shell">
+        <div class="demo-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span style="margin-left:6px">live preview — as the bench looked before</span></div>
+        <div class="demo-body" style="position:relative;overflow:hidden;background:#13140E;color:#E3E2D3">
+          <div aria-hidden="true" style="position:absolute;inset:0;background-image:radial-gradient(circle,#44483D 1px,transparent 1px);background-size:22px 22px;opacity:0.4;pointer-events:none"></div>
+          <div style="position:relative;border-radius:16px;padding:14px 16px;border:1px solid #44483D;background:#1A1C17;font-size:0.9rem;font-weight:500;color:#E3E2D3">Surface container &mdash; #1A1C17 on #13140E</div>
+          <div style="position:relative;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <span style="display:inline-flex;align-items:center;gap:7px;height:40px;padding:0 18px;border-radius:9999px;background:#ABD37A;color:#1D3701;font-size:0.85rem;font-weight:500">Primary #ABD37A</span>
+            <span class="pill-bar" style="background:#282A24"><span class="on" style="background:#ABD37A;color:#1D3701">Send</span><span style="color:#C5C8B8">Receive</span></span>
+          </div>
+          <div class="progress-demo" style="position:relative;background:#282A24"><div class="p-fill" style="background:#ABD37A"></div></div>
+        </div>
+      </div>
+      <div class="chips" style="margin-top:14px">
+        <span class="chip"><span class="ms">format_size</span>Roboto Flex</span>
+        <span class="chip"><span class="ms">grain</span>Dot grid + drift blob</span>
+        <span class="chip"><span class="ms">south</span>Spring easing 0.2, 1.4, 0, 1</span>
+      </div>
+    </div>
     <!-- ══ EXPERIMENT 1: Liquid Glass ══ -->
     <div class="card" style="--d:40">
       <div class="panel-title"><span class="ms">auto_awesome</span><span>Liquid Glass — theme experiment</span></div>
@@ -639,7 +682,7 @@ footer a { color: var(--md-primary); text-decoration: none; font-weight: 600; }
         <span class="chip"><span class="ms">visibility</span>Legibility — contrast on glass over moving backgrounds</span>
         <span class="chip"><span class="ms">battery_charging_full</span>GPU cost — backdrop-filter layers on mid-range phones</span>
         <span class="chip"><span class="ms">accessibility_new</span>Reduced motion — every animation collapses cleanly</span>
-        <span class="chip"><span class="ms">style</span>Brand fit — still unmistakably Inpriv M3</span>
+        <span class="chip"><span class="ms">style</span>Brand fit — Inpriv voice on Google M3</span>
       </div>
     </div>
   </div>
@@ -652,31 +695,9 @@ footer a { color: var(--md-primary); text-decoration: none; font-weight: 600; }
 <div class="toast" id="toast" role="status" aria-live="polite"><span class="ms" id="toastIcon">check_circle</span><span id="toastMsg"></span></div>
 <script>
 "use strict";
-/* Inpriv Labs — experiment bench. Theme toggle cycles dark/light for the
-   bench chrome itself; the glass experiments are live inline previews. */
+/* Inpriv Labs — experiment bench. Chrome wears the Google M3 baseline
+   (m3.material.io/get-started); the experiments are live inline previews. */
 const $ = (id) => document.getElementById(id);
-
-/* ── theme (bench chrome) ── */
-const THEME_KEY = "labs_theme";
-function applyTheme(t) {
-  document.documentElement.dataset.theme = t;
-  const metaDark = document.querySelector('meta[media="(prefers-color-scheme: dark)"]');
-  const metaLight = document.querySelector('meta[media="(prefers-color-scheme: light)"]');
-  const bar = t === "dark" ? "#13140E" : "#FAF9F0";
-  if (metaDark) metaDark.content = bar;
-  if (metaLight) metaLight.content = bar;
-  try { localStorage.setItem(THEME_KEY, t); } catch {}
-  const icon = document.querySelector("#themeToggle .ms");
-  if (icon) icon.textContent = t === "dark" ? "light_mode" : "dark_mode";
-}
-(function initTheme() {
-  let t = null;
-  try { t = localStorage.getItem(THEME_KEY); } catch {}
-  applyTheme(t === "light" ? "light" : "dark");
-})();
-$("themeToggle").addEventListener("click", () => {
-  applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
-});
 
 /* ── toast ── */
 let toastTimer = null;

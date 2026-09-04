@@ -1,5 +1,5 @@
 /* Inpriv Labs — service worker (PWA offline shell) */
-const VERSION = "labs-v1";
+const VERSION = "labs-v2";
 const STATIC_CACHE = `${VERSION}-static`;
 
 self.addEventListener("install", (event) => {
