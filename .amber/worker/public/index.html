@@ -5,11 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://id.inpriv.xyz; font-src 'self' https://fonts.googleapis.com fonts.gstatic.com https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' blob:; object-src 'none'; frame-src 'self'; base-uri 'self'; form-action 'self'; connect-src 'self' https://id.inpriv.xyz; worker-src 'none'; manifest-src 'self' data:">
 <title>Inpriv Amber — Personal Web Archive</title>
+<<<<<<< HEAD
 <meta name="description" content="Amber is a personal web archive. Capture any page, keep it on your own timeline and read it offline — snapshots are stored as ZIP archives on your Google Drive.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Inpriv">
 <meta property="og:title" content="Inpriv Amber — Personal Web Archive">
 <meta property="og:description" content="Capture any page, keep it on your own timeline and read it offline — snapshots are stored as ZIP archives on your Google Drive.">
+=======
+<meta name="description" content="Amber is a personal web archive. Capture any page, keep it on your own timeline and read it offline — snapshots are stored as ZIP archives in your Inpriv Cloud.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Inpriv">
+<meta property="og:title" content="Inpriv Amber — Personal Web Archive">
+<meta property="og:description" content="Capture any page, keep it on your own timeline and read it offline — snapshots are stored as ZIP archives in your Inpriv Cloud.">
+>>>>>>> 18bcd44 (feat(amber): rebuild Amber on Google Drive storage — no D1, live capture progress, fixed viewer)
 <meta property="og:url" content="https://amber.inpriv.xyz/">
 <meta property="og:image" content="https://inpriv.xyz/og/amber.png?v=1">
 <meta property="og:image:width" content="1200">
@@ -18,11 +26,19 @@
 <meta property="og:locale" content="en_US">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Inpriv Amber — Personal Web Archive">
+<<<<<<< HEAD
 <meta name="twitter:description" content="Capture any page, keep it on your own timeline and read it offline — snapshots are stored as ZIP archives on your Google Drive.">
 <meta name="twitter:image" content="https://inpriv.xyz/og/amber.png?v=1">
 <meta name="twitter:image:alt" content="Inpriv Amber — Personal Web Archive">
 <link rel="canonical" href="https://amber.inpriv.xyz/">
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "WebApplication", "name": "Inpriv Amber — Personal Web Archive", "url": "https://amber.inpriv.xyz/", "description": "Capture any page, keep it on your own timeline and read it offline — snapshots are stored as ZIP archives on your Google Drive.", "applicationCategory": "UtilitiesApplication", "operatingSystem": "All", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "publisher": {"@type": "Organization", "name": "Inpriv Labs", "url": "https://inpriv.xyz/"}, "inLanguage": "en"}</script>
+=======
+<meta name="twitter:description" content="Capture any page, keep it on your own timeline and read it offline — snapshots are stored as ZIP archives in your Inpriv Cloud.">
+<meta name="twitter:image" content="https://inpriv.xyz/og/amber.png?v=1">
+<meta name="twitter:image:alt" content="Inpriv Amber — Personal Web Archive">
+<link rel="canonical" href="https://amber.inpriv.xyz/">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "WebApplication", "name": "Inpriv Amber — Personal Web Archive", "url": "https://amber.inpriv.xyz/", "description": "Capture any page, keep it on your own timeline and read it offline — snapshots are stored as ZIP archives in your Inpriv Cloud.", "applicationCategory": "UtilitiesApplication", "operatingSystem": "All", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "publisher": {"@type": "Organization", "name": "Inpriv Labs", "url": "https://inpriv.xyz/"}, "inLanguage": "en"}</script>
+>>>>>>> 18bcd44 (feat(amber): rebuild Amber on Google Drive storage — no D1, live capture progress, fixed viewer)
 <meta name="theme-color" content="#141218" media="(prefers-color-scheme: dark)">
 <meta name="theme-color" content="#FEFBFF" media="(prefers-color-scheme: light)">
 <meta name="robots" content="index, follow">
@@ -74,7 +90,11 @@
   --md-outline: #948F99;
   --md-outline-variant: #47464F;
   --md-scrim: rgba(0,0,0,0.6);
+<<<<<<< HEAD
   --glass: rgba(31,33,27,0.72);
+=======
+  --glass: rgba(31,29,36,0.72);
+>>>>>>> 18bcd44 (feat(amber): rebuild Amber on Google Drive storage — no D1, live capture progress, fixed viewer)
 }
 [data-theme="light"] {
   --md-primary: #9F86FF;
@@ -210,7 +230,10 @@ main { max-width: 720px; margin: 0 auto; padding: 18px 16px calc(40px + env(safe
 .btn.tonal { background: var(--md-secondary-container); color: var(--md-on-secondary-container); }
 .btn.text { background: transparent; color: var(--md-primary); height: 44px; padding: 0 14px; }
 .btn.small { height: 40px; padding: 0 14px; font-size: 0.88rem; border-radius: 12px; }
+<<<<<<< HEAD
 .btn.danger { background: transparent; color: var(--md-tertiary); }
+=======
+>>>>>>> 18bcd44 (feat(amber): rebuild Amber on Google Drive storage — no D1, live capture progress, fixed viewer)
 
 /* usage bar */
 .usage { margin: 4px 2px 18px; display: flex; align-items: center; gap: 12px; color: var(--md-on-surface-variant); font-size: 0.85rem; }
@@ -263,6 +286,26 @@ main { max-width: 720px; margin: 0 auto; padding: 18px 16px calc(40px + env(safe
 .empty .chip:hover { border-color: var(--md-primary); color: var(--md-primary); }
 .empty .chip:active { transform: scale(0.96); }
 
+<<<<<<< HEAD
+=======
+/* ── capture progress card (mobile-first) ── */
+.cap-progress {
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 20px;
+  padding: 14px 16px;
+  margin: 0 0 14px;
+  animation: rise 0.45s var(--inpriv-ease) both;
+}
+.cap-progress .cp-top { display: flex; align-items: center; gap: 10px; }
+.cap-progress .cp-top .ms { color: var(--md-primary); font-size: 22px; animation: pulse 1.2s ease-in-out infinite; }
+.cap-progress .cp-title { flex: 1; min-width: 0; font-weight: 560; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cap-progress .cp-pct { font-weight: 560; font-size: 0.9rem; color: var(--md-primary); font-variant-numeric: tabular-nums; }
+.cap-progress .cp-track { height: 8px; border-radius: 4px; background: var(--md-surface-container-highest); overflow: hidden; margin: 10px 0 6px; }
+.cap-progress .cp-fill { height: 100%; width: 0%; border-radius: 4px; background: var(--md-primary); transition: width 0.5s var(--inpriv-ease); }
+.cap-progress .cp-stage { color: var(--md-on-surface-variant); font-size: 0.82rem; }
+
+>>>>>>> 18bcd44 (feat(amber): rebuild Amber on Google Drive storage — no D1, live capture progress, fixed viewer)
 /* ── site detail / timeline ── */
 .backrow { display: flex; align-items: center; gap: 6px; margin: 2px 0 10px; }
 .backrow button.back {
@@ -310,6 +353,13 @@ main { max-width: 720px; margin: 0 auto; padding: 18px 16px calc(40px + env(safe
 .snap .actions { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; }
 .snap .actions .spacer { flex: 1; }
 .snap .err { color: var(--md-tertiary); font-size: 0.84rem; margin-top: 6px; word-break: break-all; }
+<<<<<<< HEAD
+=======
+.snap .snap-progress { margin-top: 10px; }
+.snap .snap-progress .track { height: 7px; border-radius: 4px; background: var(--md-surface-container-highest); overflow: hidden; }
+.snap .snap-progress .fill { height: 100%; width: 0%; border-radius: 4px; background: var(--md-primary); transition: width 0.5s var(--inpriv-ease); }
+.snap .snap-progress .lbl { display: flex; justify-content: space-between; color: var(--md-on-surface-variant); font-size: 0.8rem; margin-top: 5px; }
+>>>>>>> 18bcd44 (feat(amber): rebuild Amber on Google Drive storage — no D1, live capture progress, fixed viewer)
 
 /* ── viewer overlay ── */
 #viewer { position: fixed; inset: 0; z-index: 100; background: var(--md-surface); display: flex; flex-direction: column; }
@@ -449,7 +499,11 @@ main { max-width: 720px; margin: 0 auto; padding: 18px 16px calc(40px + env(safe
       <button class="btn" id="login-btn" type="submit"><span class="ms" aria-hidden="true">login</span>Sign in</button>
     </form>
     <div class="auth-alt">No account? <a href="https://id.inpriv.xyz" target="_blank" rel="noopener noreferrer">Create one on Inpriv ID</a></div>
+<<<<<<< HEAD
     <div class="brand-foot"><a href="https://inpriv.xyz" target="_blank" rel="noopener noreferrer">inpriv.xyz</a> · snapshots stay on your Drive</div>
+=======
+    <div class="brand-foot"><a href="https://inpriv.xyz" target="_blank" rel="noopener noreferrer">inpriv.xyz</a> · snapshots stay in your Inpriv Cloud</div>
+>>>>>>> 18bcd44 (feat(amber): rebuild Amber on Google Drive storage — no D1, live capture progress, fixed viewer)
   </div>
 </div>
 
@@ -480,6 +534,19 @@ main { max-width: 720px; margin: 0 auto; padding: 18px 16px calc(40px + env(safe
       </div>
     </section>
 
+<<<<<<< HEAD
+=======
+    <div id="cap-progress" class="cap-progress" hidden>
+      <div class="cp-top">
+        <span class="ms" aria-hidden="true">downloading</span>
+        <span class="cp-title" id="cp-title">Capturing…</span>
+        <span class="cp-pct" id="cp-pct">0%</span>
+      </div>
+      <div class="cp-track"><div class="cp-fill" id="cp-fill"></div></div>
+      <div class="cp-stage" id="cp-stage">Starting…</div>
+    </div>
+
+>>>>>>> 18bcd44 (feat(amber): rebuild Amber on Google Drive storage — no D1, live capture progress, fixed viewer)
     <div class="usage">
       <span class="track"><span class="fillbar" id="usage-fill"></span></span>
       <span id="usage-text">—</span>
@@ -522,7 +589,11 @@ main { max-width: 720px; margin: 0 auto; padding: 18px 16px calc(40px + env(safe
 <div id="dialog-scrim">
   <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-title">
     <h3 id="dlg-title">Sign out?</h3>
+<<<<<<< HEAD
     <p id="dlg-body">Your snapshots stay on your Drive.</p>
+=======
+    <p id="dlg-body">Your snapshots stay in your Inpriv Cloud.</p>
+>>>>>>> 18bcd44 (feat(amber): rebuild Amber on Google Drive storage — no D1, live capture progress, fixed viewer)
     <div class="drow">
       <button class="btn text" id="dlg-cancel" type="button">Cancel</button>
       <button class="btn tonal" id="dlg-ok" type="button">Sign out</button>
@@ -620,6 +691,38 @@ function showApp() {
   if (!location.hash || location.hash === '#/') renderList();
 }
 
+<<<<<<< HEAD
+=======
+// ── capture progress card ──
+const STAGE_LABEL = {
+  queued: 'Queued…', fetch: 'Fetching page…', pages: 'Reading pages…',
+  assets: 'Downloading images & styles…', pack: 'Packing archive…', upload: 'Saving to your cloud…', done: 'Done'
+};
+function paintProgressCard(p, host) {
+  const card = $('cap-progress');
+  if (!p) { card.hidden = true; return; }
+  card.hidden = false;
+  $('cp-title').textContent = host || 'Capturing…';
+  $('cp-pct').textContent = Math.max(0, Math.min(99, p.pct)) + '%';
+  $('cp-fill').style.width = Math.max(3, Math.min(99, p.pct)) + '%';
+  $('cp-stage').textContent = STAGE_LABEL[p.stage] || 'Working…';
+}
+let activeCaptures = {};   // snapId → host (progress card + polling)
+function pollTick() {
+  const ids = Object.keys(activeCaptures);
+  if (!ids.length) { paintProgressCard(null); return; }
+  const anyQueued = state.view === 'list';
+  // fetch lightweight progress via list/detail payloads
+  const pr = state.progress || {};
+  let best = null, bestHost = '';
+  for (const id of ids) {
+    const p = pr[id];
+    if (p && (!best || p.pct > best.pct)) { best = p; bestHost = activeCaptures[id]; }
+  }
+  if (best) paintProgressCard(best, bestHost);
+}
+
+>>>>>>> 18bcd44 (feat(amber): rebuild Amber on Google Drive storage — no D1, live capture progress, fixed viewer)
 // ── auth: password + 2FA ──
 $('loginForm').addEventListener('submit', async function (e) {
   e.preventDefault();
@@ -700,6 +803,12 @@ function paintUsage() {
   $('usage-fill').style.width = pct + '%';
   $('usage-text').textContent = fmtBytes(u.used_bytes) + ' / ' + fmtBytes(u.quota_bytes) + ' · ' + u.snapshots + ' snapshots';
 }
+<<<<<<< HEAD
+=======
+async function refreshUsageQuiet() {
+  try { const d = await api('/api/me'); state.usage = d.usage; paintUsage(); } catch (e) {}
+}
+>>>>>>> 18bcd44 (feat(amber): rebuild Amber on Google Drive storage — no D1, live capture progress, fixed viewer)
 
 // ── list ──
 function siteCard(s) {
@@ -711,14 +820,24 @@ function siteCard(s) {
     '<span class="s">' + sub + ' · latest ' + esc(ago(s.last_at)) + '</span></span>' +
     '<span class="ms chev" aria-hidden="true">chevron_right</span></a>';
 }
+<<<<<<< HEAD
 async function renderList() {
+=======
+async function renderList(silent) {
+>>>>>>> 18bcd44 (feat(amber): rebuild Amber on Google Drive storage — no D1, live capture progress, fixed viewer)
   state.view = 'list';
   if (state.poll) { clearTimeout(state.poll); state.poll = null; }
   closeViewer();
   const listEl = $('site-list'), emptyEl = $('list-empty');
   try {
     const d = await api('/api/sites' + (state.q ? '?q=' + encodeURIComponent(state.q) : ''));
+<<<<<<< HEAD
     const sites = d.sites || [];
+=======
+    state.progress = d.progress || {};
+    const sites = d.sites || [];
+    // newest site first feels natural on mobile
+>>>>>>> 18bcd44 (feat(amber): rebuild Amber on Google Drive storage — no D1, live capture progress, fixed viewer)
     listEl.innerHTML = sites.map(siteCard).join('');
     const isEmpty = sites.length === 0;
     emptyEl.hidden = !isEmpty;
@@ -733,6 +852,7 @@ async function renderList() {
         $('empty-chips').hidden = false;
       }
     }
+<<<<<<< HEAD
     refreshUsageQuiet();
   } catch (e) {
     if (e.status === 401) return showAuth();
@@ -742,6 +862,24 @@ async function renderList() {
 async function refreshUsageQuiet() {
   try { const d = await api('/api/me'); state.usage = d.usage; paintUsage(); } catch (e) {}
 }
+=======
+    pollTick();
+    // keep polling while a capture is running
+    const running = Object.keys(d.progress || {});
+    if (running.length) {
+      for (const id of running) activeCaptures[id] = activeCaptures[id] || 'Capturing…';
+      state.poll = setTimeout(function () { if (state.view === 'list') renderList(true); }, 3000);
+    } else if (Object.keys(activeCaptures).length) {
+      activeCaptures = {};
+      paintProgressCard(null);
+    }
+    if (!silent) refreshUsageQuiet();
+  } catch (e) {
+    if (e.status === 401) return showAuth();
+    if (!silent) toast(e.message, true);
+  }
+}
+>>>>>>> 18bcd44 (feat(amber): rebuild Amber on Google Drive storage — no D1, live capture progress, fixed viewer)
 
 // example chips on the empty state
 (function () {
@@ -766,8 +904,17 @@ function snapHtml(s) {
       '<span class="spacer"></span>' +
       '<button class="iconbtn" data-act="del" data-snap="' + esc(s.id) + '" aria-label="Delete snapshot"><span class="ms" aria-hidden="true">delete</span></button>';
   } else if (s.status === 'queued') {
+<<<<<<< HEAD
     actions = '<span class="spin" aria-hidden="true"></span><span style="font-size:0.88rem;color:var(--md-on-surface-variant);align-self:center">Capturing…</span>' +
       '<span class="spacer"></span><button class="iconbtn" data-act="del" data-snap="' + esc(s.id) + '" aria-label="Cancel and delete"><span class="ms" aria-hidden="true">delete</span></button>';
+=======
+    const pct = Math.max(0, Math.min(99, s.progress || 0));
+    const stage = STAGE_LABEL[s.stage] || 'Capturing…';
+    actions = '<div class="snap-progress" style="flex:1">' +
+      '<div class="track"><div class="fill" style="width:' + Math.max(4, pct) + '%"></div></div>' +
+      '<div class="lbl"><span>' + esc(stage) + '</span><span>' + pct + '%</span></div></div>' +
+      '<button class="iconbtn" data-act="del" data-snap="' + esc(s.id) + '" aria-label="Cancel and delete"><span class="ms" aria-hidden="true">delete</span></button>';
+>>>>>>> 18bcd44 (feat(amber): rebuild Amber on Google Drive storage — no D1, live capture progress, fixed viewer)
   } else {
     actions = '<button class="btn small tonal" data-act="recap" data-snap="' + esc(s.id) + '"><span class="ms" aria-hidden="true">refresh</span>Try again</button>' +
       '<span class="spacer"></span><button class="iconbtn" data-act="del" data-snap="' + esc(s.id) + '" aria-label="Delete snapshot"><span class="ms" aria-hidden="true">delete</span></button>';
@@ -792,6 +939,10 @@ async function renderSiteDetail(id, silent) {
   const listEl = $('site-list'), emptyEl = $('list-empty');
   try {
     const d = await api('/api/site/' + id);
+<<<<<<< HEAD
+=======
+    state.progress = d.progress || {};
+>>>>>>> 18bcd44 (feat(amber): rebuild Amber on Google Drive storage — no D1, live capture progress, fixed viewer)
     snapCtx = { host: d.site.host, url: d.site.url };
     listEl.innerHTML =
       '<div class="backrow"><button class="back" id="back-btn" type="button"><span class="ms" aria-hidden="true">arrow_back</span>Archive</button></div>' +
@@ -801,18 +952,32 @@ async function renderSiteDetail(id, silent) {
     emptyEl.hidden = true;
     const back = $('back-btn');
     if (back) back.addEventListener('click', function () { location.hash = '#/'; });
+<<<<<<< HEAD
     // poll while something is in flight
     if (state.poll) clearTimeout(state.poll);
     if ((d.snapshots || []).some(function (s) { return s.status === 'queued'; })) {
       state.poll = setTimeout(function () {
         if (state.view === 'detail' && state.detailId === id) renderSiteDetail(id, true);
       }, 4000);
+=======
+    // poll while something is in flight (keeps progress bars alive)
+    if (state.poll) clearTimeout(state.poll);
+    const queued = (d.snapshots || []).some(function (s) { return s.status === 'queued'; });
+    if (queued) {
+      state.poll = setTimeout(function () {
+        if (state.view === 'detail' && state.detailId === id) renderSiteDetail(id, true);
+      }, 2500);
+>>>>>>> 18bcd44 (feat(amber): rebuild Amber on Google Drive storage — no D1, live capture progress, fixed viewer)
     }
     if (!silent) window.scrollTo({ top: 0 });
   } catch (e) {
     if (e.status === 401) return showAuth();
     if (e.status === 404) { location.hash = '#/'; return; }
+<<<<<<< HEAD
     toast(e.message, true);
+=======
+    if (!silent) toast(e.message, true);
+>>>>>>> 18bcd44 (feat(amber): rebuild Amber on Google Drive storage — no D1, live capture progress, fixed viewer)
   }
 }
 
@@ -835,6 +1000,7 @@ document.addEventListener('click', async function (e) {
     try {
       await api('/api/snap/recapture', { method: 'POST', body: JSON.stringify({ id: snapId }) });
       toast('Capturing a fresh copy…');
+<<<<<<< HEAD
       renderSiteDetail(state.detailId, true);
     } catch (err) { toast(err.message, true); el.disabled = false; }
   } else if (act === 'del') {
@@ -842,6 +1008,17 @@ document.addEventListener('click', async function (e) {
       try {
         await api('/api/snap/' + snapId, { method: 'DELETE' });
         toast('Snapshot deleted');
+=======
+      activeCaptures[snapId] = snapCtx.host;
+      renderSiteDetail(state.detailId, true);
+    } catch (err) { toast(err.message, true); el.disabled = false; }
+  } else if (act === 'del') {
+    openDialog('Delete snapshot?', 'This removes the snapshot and its copy in your Inpriv Cloud. This cannot be undone.', 'Delete', async function () {
+      try {
+        await api('/api/snap/' + snapId, { method: 'DELETE' });
+        toast('Snapshot deleted');
+        delete activeCaptures[snapId];
+>>>>>>> 18bcd44 (feat(amber): rebuild Amber on Google Drive storage — no D1, live capture progress, fixed viewer)
         if (state.view === 'detail') renderSiteDetail(state.detailId, true); else renderList();
       } catch (err) { toast(err.message, true); }
     });
@@ -860,6 +1037,13 @@ async function submitCapture() {
     const d = await api('/api/capture', { method: 'POST', body: JSON.stringify({ url: url }) });
     $('cap-url').value = '';
     toast('Capturing — watch it appear on the timeline');
+<<<<<<< HEAD
+=======
+    let host = 'Capturing…';
+    try { host = new URL(/^https?:\/\//i.test(url) ? url : 'https://' + url).hostname; } catch (e) {}
+    activeCaptures[d.id] = host;
+    paintProgressCard({ stage: 'queued', pct: 2 }, host);
+>>>>>>> 18bcd44 (feat(amber): rebuild Amber on Google Drive storage — no D1, live capture progress, fixed viewer)
     if (d.site_id) location.hash = '#/site/' + d.site_id;
     else renderList();
   } catch (e) {
@@ -899,7 +1083,11 @@ document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { cl
 
 // ── account ──
 $('userBtn').addEventListener('click', function () {
+<<<<<<< HEAD
   openDialog('Sign out?', 'Your snapshots stay safe on your Drive.', 'Sign out', async function () {
+=======
+  openDialog('Sign out?', 'Your snapshots stay safe in your Inpriv Cloud.', 'Sign out', async function () {
+>>>>>>> 18bcd44 (feat(amber): rebuild Amber on Google Drive storage — no D1, live capture progress, fixed viewer)
     try { await api('/api/auth/logout', { method: 'POST' }); } catch (e) {}
     showAuth();
   });
@@ -913,6 +1101,13 @@ function route() {
   if (m) renderSiteDetail(m[1]); else renderList();
 }
 window.addEventListener('hashchange', route);
+<<<<<<< HEAD
+=======
+window.addEventListener('pageshow', function (ev) {
+  // browser back/forward or mobile pull-to-refresh restore — always resync
+  if (ev.persisted && state.token) route();
+});
+>>>>>>> 18bcd44 (feat(amber): rebuild Amber on Google Drive storage — no D1, live capture progress, fixed viewer)
 
 // ── boot ──
 (function boot() {
