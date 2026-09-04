@@ -1363,7 +1363,8 @@ const I18N = {
     't-nomsg-t': 'No hidden message found', 't-nomsg-s': 'Make sure this is the original PNG — re-uploads and screenshots destroy the hidden bits.', 't-nomsg-s2': 'The image does not contain a valid Stego payload.',
     't-pwreq-t': 'Password required', 't-pwreq-s': 'This message is encrypted. Enter the password and try again.',
     't-badpw-t': 'Wrong password', 't-badpw-s': 'Decryption failed — check the password.',
-    't-hidden-t': 'Hidden & downloaded', 't-hidden-s': 'The message is inside the pixels. Share the PNG as a file.'
+    't-hidden-t': 'Hidden & downloaded', 't-hidden-s': 'The message is inside the pixels. Share the PNG as a file.',
+    't-toobig-s': 'Needs {need} of data but only {cap} fits. Use a bigger image or a shorter message.'
   },
   pl: {
     'hero1': 'Ukryj na', 'hero2': 'oczach wszystkich.',
@@ -1404,7 +1405,8 @@ const I18N = {
     't-nomsg-t': 'Nie znaleziono ukrytej wiadomości', 't-nomsg-s': 'Upewnij się, że to oryginalny PNG — przesłania i screenshooty niszczą ukryte bity.', 't-nomsg-s2': 'Obraz nie zawiera poprawnego payloadu Stego.',
     't-pwreq-t': 'Wymagane hasło', 't-pwreq-s': 'Ta wiadomość jest zaszyfrowana. Wpisz hasło i spróbuj ponownie.',
     't-badpw-t': 'Złe hasło', 't-badpw-s': 'Deszyfracja nie udała się — sprawdź hasło.',
-    't-hidden-t': 'Ukryto i pobrano', 't-hidden-s': 'Wiadomość jest w pikselach. Przekaż PNG jako plik.'
+    't-hidden-t': 'Ukryto i pobrano', 't-hidden-s': 'Wiadomość jest w pikselach. Przekaż PNG jako plik.',
+    't-toobig-s': 'Potrzeba {need}, a mieści się tylko {cap}. Użyj większego obrazu lub krótszej wiadomości.'
   }
 };
 const t = (k) => (I18N[document.documentElement.lang === 'pl' ? 'pl' : 'en'][k] !== undefined
@@ -1790,7 +1792,7 @@ async function acceptFile(file, target) {
       // Probe whether this image already carries a payload (friendly warning)
       const probe = await stegoReveal(loaded.imageData, '');
       if (probe.error === 'needs-password' || probe.ok) {
-        showToast('t-overwrite-t', 't-overwrite-s', false);
+        showToast(t('t-overwrite-t'), t('t-overwrite-s'), false);
       }
       updateCapacity();
     } else {
@@ -1810,11 +1812,11 @@ async function acceptFile(file, target) {
     updateFab();
   } catch (err) {
     if (err && err.message === 'too-large') {
-      showToast('t-toolarge-t', 't-toolarge-s', true);
+      showToast(t('t-toolarge-t'), t('t-toolarge-s'), true);
     } else if (err instanceof DOMException || (err && err.message !== 'too-large')) {
-      showToast('t-readfail-t', 't-readfail-s', true);
+      showToast(t('t-readfail-t'), t('t-readfail-s'), true);
     } else {
-      showToast('t-corrupt-t', 't-corrupt-s', true);
+      showToast(t('t-corrupt-t'), t('t-corrupt-s'), true);
     }
   }
 }
@@ -1895,9 +1897,9 @@ function setBusy(busy) {
 els.copyBtn.addEventListener('click', async () => {
   try {
     await navigator.clipboard.writeText(els.resultMessage.textContent);
-    showToast('t-copied-t', 't-copied-s');
+    showToast(t('t-copied-t'), t('t-copied-s'));
   } catch (e) {
-    showToast('t-copyfail-t', 't-copyfail-s', true);
+    showToast(t('t-copyfail-t'), t('t-copyfail-s'), true);
   }
 });
 
@@ -1919,8 +1921,8 @@ async function doHide() {
     const fresh = new ImageData(new Uint8ClampedArray(img.imageData.data), img.width, img.height);
     const res = await stegoHide(fresh, message, els.passwordHide.value || null);
     if (!res.ok) {
-      showToast('t-toobig-t',
-        'Needs ' + fmtBytes(res.need) + ' of data but only ' + fmtBytes(res.cap) + ' fits. Use a bigger image or a shorter message.', true);
+      showToast(t('t-toobig-t'),
+        t('t-toobig-s').replace('{need}', fmtBytes(res.need)).replace('{cap}', fmtBytes(res.cap)), true);
       return;
     }
     const outCanvas = document.createElement('canvas');
@@ -1940,10 +1942,9 @@ async function doHide() {
     els.fab.classList.add('success');
     els.fabLabel.textContent = t('fab-saved');
     setTimeout(() => { els.fab.classList.remove('success'); updateFab(); }, 2000);
-    showToast('t-hidden-t',
-      res.encrypted ? 'AES-256 encrypted message embedded. Send the PNG as a file.' : 'Message embedded. Send the PNG as a file.', false);
+    showToast(t('t-hidden-t'), t('t-hidden-s'), false);
   } catch (err) {
-    showToast('t-wentwrong-t', 't-wentwrong-s', true);
+    showToast(t('t-wentwrong-t'), t('t-wentwrong-s'), true);
   } finally {
     setBusy(false);
   }
@@ -1960,21 +1961,21 @@ async function doReveal() {
       els.resultChipLabel.textContent = res.encrypted ? 'Encrypted' : 'Not encrypted';
       els.resultCard.hidden = false;
       els.resultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      showToast('t-revealed-t', res.encrypted ? 't-revealed-enc' : 't-revealed-plain', false);
+      showToast(t('t-revealed-t'), t(res.encrypted ? 't-revealed-enc' : 't-revealed-plain'), false);
     } else if (res.error === 'no-message') {
-      showToast('t-nomsg-t', 't-nomsg-s', true);
+      showToast(t('t-nomsg-t'), t('t-nomsg-s'), true);
     } else if (res.error === 'needs-password') {
       state.needsPassword = true;
       els.revealPwField.hidden = false;
       els.passwordReveal.focus();
-      showToast('t-pwreq-t', 't-pwreq-s', true);
+      showToast(t('t-pwreq-t'), t('t-pwreq-s'), true);
     } else if (res.error === 'bad-password') {
-      showToast('t-badpw-t', 't-badpw-s', true);
+      showToast(t('t-badpw-t'), t('t-badpw-s'), true);
     } else {
-      showToast('t-nomsg-t', 't-nomsg-s2', true);
+      showToast(t('t-nomsg-t'), t('t-nomsg-s2'), true);
     }
   } catch (err) {
-    showToast('t-wentwrong-t', 't-wentwrong-s', true);
+    showToast(t('t-wentwrong-t'), t('t-wentwrong-s'), true);
   } finally {
     setBusy(false);
   }
