@@ -581,7 +581,7 @@
     .featured-card {
       display: block;
       text-decoration: none; color: inherit;
-      background: transparent));
+      background: var(--md-surface-container-low);
       border: 1.5px solid color-mix(in srgb, var(--md-primary) 55%, var(--md-outline-variant));
       border-radius: 22px;
       padding: 16px 16px;
@@ -593,7 +593,7 @@
 
     .featured-card::before {
       content: ''; position: absolute; inset: 0;
-      background: transparent 70%);
+
       opacity: 0; transition: opacity 0.4s var(--md-easing-standard);
       pointer-events: none;
     }
@@ -697,7 +697,7 @@
       display: inline-flex; align-items: center; justify-content: center; gap: 8px;
       width: 100%;
       height: 44px; border-radius: 9999px;
-      background: black) 100%);
+      background: var(--md-primary);
       color: var(--md-on-primary);
       font-size: 14px; font-weight: 800; letter-spacing: 0.01em;
       border: 1px solid color-mix(in srgb, var(--md-primary) 62%, black);

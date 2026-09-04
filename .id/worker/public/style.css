@@ -79,7 +79,7 @@ html, body {
 .blob {
   position: fixed; top: -120px; right: -120px; z-index: 0; pointer-events: none;
   width: 420px; height: 420px; border-radius: 50%;
-  background: transparent 70%);
+
   filter: blur(60px);
   animation: drift 22s ease-in-out infinite;
 }
