@@ -195,17 +195,6 @@
         }
         .skip-link:focus { top: calc(16px + var(--safe-top)); }
 
-        .bg-layer {
-            position: fixed;
-            inset: 0;
-            z-index: -1;
-            pointer-events: none;
-            background:
-                radial-gradient(ellipse 90% 60% at 100% 0%, color-mix(in srgb, var(--md-primary-container) 35%, transparent) 0%, transparent 55%),
-                radial-gradient(ellipse 70% 50% at 0% 100%, color-mix(in srgb, var(--md-tertiary-container) 25%, transparent) 0%, transparent 65%),
-                var(--md-surface);
-        }
-
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: var(--md-outline-variant); border-radius: 9999px; }
@@ -628,7 +617,7 @@
             border-radius: 20px 20px 6px 20px;
             align-self: flex-end;
             color: var(--md-on-primary-container);
-            box-shadow: 0 1px 2px color-mix(in srgb, var(--md-primary) 15%, transparent);
+            
         }
         .msg.blurred { opacity: 0.55; user-select: none; pointer-events: none; filter: blur(3px); }
         .sender {
@@ -840,7 +829,7 @@
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            background: linear-gradient(135deg, var(--md-primary-container), var(--md-secondary-container));
+            background: var(--md-secondary-container));
             display: flex;
             align-items: center;
             justify-content: center;

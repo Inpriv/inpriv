@@ -109,10 +109,7 @@ html { scroll-behavior:smooth; -webkit-text-size-adjust:100%; }
 body {
   font-family:var(--font-sans);
   font-optical-sizing:auto;
-  background:
-    radial-gradient(ellipse 80% 60% at 85% 0%, color-mix(in srgb, var(--md-primary-container) 50%, transparent) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 50% at 0% 100%, color-mix(in srgb, var(--md-tertiary-container) 40%, transparent) 0%, transparent 70%),
-    var(--md-surface);
+  background: var(--md-surface);
   background-attachment:fixed;
   color:var(--md-on-surface);
   min-height:100dvh;
@@ -125,15 +122,6 @@ body {
 a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible { outline:2px solid var(--md-primary); outline-offset:2px; }
 button { font-family:inherit; }
 a, button, input, textarea { touch-action:manipulation; }
-
-.dot-grid {
-  position:fixed; inset:0; pointer-events:none; z-index:0;
-  background-image:radial-gradient(circle at 1px 1px, var(--md-outline-variant) 1px, transparent 0);
-  background-size:28px 28px;
-  opacity:0.18;
-  mask-image:radial-gradient(ellipse at center, black 30%, transparent 80%);
-  -webkit-mask-image:radial-gradient(ellipse at center, black 30%, transparent 80%);
-}
 
 .icon {
   font-family:var(--font-icon);
@@ -464,7 +452,7 @@ textarea.text-input { min-height:64px; resize:vertical; font-family:var(--font-m
 </head>
 <body>
 
-<div class="dot-grid" aria-hidden="true"></div>
+
 
 <div class="container">
 <!-- ── HEADER ─────────────────────────────────────────────────────── -->

@@ -130,43 +130,6 @@
       }
     }
 
-    body::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      background:
-        radial-gradient(ellipse 80% 60% at 85% 0%, color-mix(in srgb, var(--md-primary-container) 55%, transparent) 0%, transparent 60%),
-        radial-gradient(ellipse 60% 50% at 0% 100%, color-mix(in srgb, var(--md-tertiary-container) 45%, transparent) 0%, transparent 70%);
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .bg-grid {
-      position: fixed;
-      inset: 0;
-      background-image: radial-gradient(circle at 1px 1px, var(--md-outline-variant) 1px, transparent 0);
-      background-size: 28px 28px;
-      opacity: 0.18;
-      mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
-      -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .bg-blob {
-      position: fixed;
-      top: -100px;
-      right: -100px;
-      width: 420px;
-      height: 420px;
-      border-radius: 50%;
-      background: radial-gradient(circle, color-mix(in srgb, var(--md-tertiary) 22%, transparent), transparent 70%);
-      filter: blur(60px);
-      animation: drift 22s ease-in-out infinite;
-      pointer-events: none;
-      z-index: 0;
-    }
-
     .app-wrapper {
       max-width: 1080px;
       margin: 0 auto;
@@ -195,8 +158,8 @@
       to { opacity: 1; transform: translateY(0); }
     }
     @keyframes pulse {
-      0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--md-primary) 35%, transparent); }
-      50% { box-shadow: 0 0 0 18px color-mix(in srgb, var(--md-primary) 0%, transparent); }
+      0%, 100% {  }
+      50% {  }
     }
     @keyframes drift {
       0%, 100% { transform: translate(0, 0) scale(1); }
@@ -963,8 +926,8 @@
 </head>
 <body>
 
-  <div class="bg-grid"></div>
-  <div class="bg-blob"></div>
+  
+  
 
   <div class="app-wrapper">
 

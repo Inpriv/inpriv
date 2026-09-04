@@ -186,29 +186,8 @@ body {
   transition: background-color 0.5s var(--md-easing-standard), color 0.5s var(--md-easing-standard);
 
   /* Layer 1: Ambient Gradients */
-  background-image:
-    radial-gradient(ellipse 80% 60% at 85% 0%, color-mix(in srgb, var(--md-primary-container) 55%, transparent) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 50% at 0% 100%, color-mix(in srgb, var(--md-tertiary-container) 45%, transparent) 0%, transparent 70%);
+  
   background-attachment: fixed;
-}
-
-/* Layer 2: Dot Grid Pattern */
-.bg-dot-grid {
-  position: fixed; inset: 0; pointer-events: none; z-index: 0;
-  background-image: radial-gradient(circle at 1px 1px, var(--bg-grid-dot) 1px, transparent 0);
-  background-size: 28px 28px;
-  opacity: 0.15;
-  mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
-  -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
-}
-
-/* Layer 3: Animated Blur Blob */
-.bg-blur-blob {
-  position: fixed; top: -100px; right: -100px; width: 420px; height: 420px; border-radius: 50%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--md-tertiary) 22%, transparent), transparent 70%);
-  filter: blur(60px);
-  animation: drift 22s ease-in-out infinite;
-  pointer-events: none; z-index: 0;
 }
 
 @keyframes drift {
@@ -438,8 +417,8 @@ p.hero-subtitle { font-size: 14px; color: var(--md-on-surface-variant); margin-b
 }
 
 @keyframes pulse {
-  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--md-primary) 30%, transparent); }
-  50% { box-shadow: 0 0 0 16px color-mix(in srgb, var(--md-primary) 0%, transparent); }
+  0%, 100% {  }
+  50% {  }
 }
 
 .dropzone-title { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; color: var(--md-on-surface); margin-bottom: 6px; }
@@ -699,8 +678,8 @@ p.hero-subtitle { font-size: 14px; color: var(--md-on-surface-variant); margin-b
 </head>
 <body>
 
-<div class="bg-dot-grid"></div>
-<div class="bg-blur-blob"></div>
+
+
 
 <!-- Mobile Floating App Bar -->
 <header class="mobile-header">

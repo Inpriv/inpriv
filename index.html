@@ -411,10 +411,7 @@
     body {
       font-family: var(--font-sans);
       font-optical-sizing: auto;
-      background:
-        radial-gradient(ellipse 80% 60% at 85% 0%, color-mix(in srgb, var(--md-primary-container) 55%, transparent) 0%, transparent 60%),
-        radial-gradient(ellipse 60% 50% at 0% 100%, color-mix(in srgb, var(--md-tertiary-container) 45%, transparent) 0%, transparent 70%),
-        var(--md-surface);
+      background: var(--md-surface);
       background-attachment: fixed;
       color: var(--md-on-surface);
       min-height: 100dvh;
@@ -428,24 +425,6 @@
     a:focus-visible, button:focus-visible, input:focus-visible {
       outline: 2px solid var(--md-primary);
       outline-offset: 3px;
-    }
-
-    .dot-grid {
-      position: fixed; inset: 0; pointer-events: none; z-index: 0;
-      background-image: radial-gradient(circle at 1px 1px, var(--md-outline-variant) 1px, transparent 0);
-      background-size: 28px 28px;
-      opacity: 0.18;
-      mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
-      -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
-    }
-
-    .blur-blob {
-      position: fixed; top: -100px; right: -100px;
-      width: 420px; height: 420px; border-radius: 50%;
-      background: radial-gradient(circle, color-mix(in srgb, var(--md-tertiary) 22%, transparent), transparent 70%);
-      filter: blur(60px);
-      animation: drift 22s ease-in-out infinite;
-      pointer-events: none; z-index: 0;
     }
 
     .icon {
@@ -520,7 +499,7 @@
 
     .app-bar-id-chip:hover {
       transform: translateY(-1px) scale(1.03);
-      box-shadow: 0 4px 14px -2px color-mix(in srgb, var(--md-primary) 35%, transparent);
+      
     }
 
     .app-bar-id-chip:active {
@@ -602,13 +581,11 @@
     .featured-card {
       display: block;
       text-decoration: none; color: inherit;
-      background:
-        radial-gradient(circle at 95% 10%, color-mix(in srgb, var(--md-primary) 18%, transparent), transparent 60%),
-        linear-gradient(135deg, color-mix(in srgb, var(--md-surface-container-high) 95%, transparent), color-mix(in srgb, var(--md-surface-container) 90%, transparent));
+      background: transparent));
       border: 1.5px solid color-mix(in srgb, var(--md-primary) 55%, var(--md-outline-variant));
       border-radius: 22px;
       padding: 16px 16px;
-      box-shadow: 0 10px 30px -6px color-mix(in srgb, var(--md-primary) 15%, var(--md-shadow-color));
+      
       position: relative;
       overflow: hidden;
       transition: transform 0.35s var(--md-easing-spring), border-color 0.3s var(--md-easing-standard), box-shadow 0.35s var(--md-easing-spring);
@@ -616,7 +593,7 @@
 
     .featured-card::before {
       content: ''; position: absolute; inset: 0;
-      background: linear-gradient(120deg, transparent 30%, color-mix(in srgb, var(--md-primary) 12%, transparent) 50%, transparent 70%);
+      background: transparent 70%);
       opacity: 0; transition: opacity 0.4s var(--md-easing-standard);
       pointer-events: none;
     }
@@ -624,7 +601,7 @@
     .featured-card:hover {
       transform: translateY(-3px);
       border-color: var(--md-primary);
-      box-shadow: 0 16px 36px -8px color-mix(in srgb, var(--md-primary) 28%, var(--md-shadow-color-strong));
+      
     }
 
     .featured-card:hover::before { opacity: 1; }
@@ -641,7 +618,7 @@
       background: var(--md-primary); color: var(--md-on-primary);
       font-size: 11px; font-weight: 800; letter-spacing: 0.05em;
       text-transform: uppercase;
-      box-shadow: 0 2px 8px -2px color-mix(in srgb, var(--md-primary) 50%, transparent);
+      
     }
 
     .featured-pill .icon { font-size: 14px; }
@@ -659,7 +636,7 @@
       background: var(--md-primary-container); color: var(--md-on-primary-container);
       display: flex; align-items: center; justify-content: center;
       flex-shrink: 0;
-      box-shadow: 0 4px 12px -2px color-mix(in srgb, var(--md-primary) 25%, transparent);
+      
       transition: transform 0.3s var(--md-easing-spring);
     }
 
@@ -720,27 +697,18 @@
       display: inline-flex; align-items: center; justify-content: center; gap: 8px;
       width: 100%;
       height: 44px; border-radius: 9999px;
-      background: linear-gradient(180deg,
-        color-mix(in srgb, var(--md-primary) 86%, white) 0%,
-        var(--md-primary) 48%,
-        color-mix(in srgb, var(--md-primary) 84%, black) 100%);
+      background: black) 100%);
       color: var(--md-on-primary);
       font-size: 14px; font-weight: 800; letter-spacing: 0.01em;
       border: 1px solid color-mix(in srgb, var(--md-primary) 62%, black);
-      box-shadow:
-        0 6px 18px -6px color-mix(in srgb, var(--md-primary) 60%, transparent),
-        0 2px 5px color-mix(in srgb, black 30%, transparent),
-        inset 0 1px 0 color-mix(in srgb, white 45%, transparent);
+      
       transition: transform 0.25s var(--md-easing-spring), box-shadow 0.25s var(--md-easing-standard), filter 0.25s var(--md-easing-standard);
     }
 
     .featured-card:hover .featured-btn {
       transform: translateY(-2px);
       filter: saturate(1.08) brightness(1.04);
-      box-shadow:
-        0 10px 26px -8px color-mix(in srgb, var(--md-primary) 70%, transparent),
-        0 4px 8px color-mix(in srgb, black 30%, transparent),
-        inset 0 1px 0 color-mix(in srgb, white 50%, transparent);
+      
     }
 
     .featured-btn:active { transform: translateY(0) scale(0.97); }
@@ -1182,8 +1150,8 @@
 </head>
 <body>
 
-<div class="dot-grid" aria-hidden="true"></div>
-<div class="blur-blob" aria-hidden="true"></div>
+
+
 
 <div class="container">
 <nav class="top-header" aria-label="Main Navigation">

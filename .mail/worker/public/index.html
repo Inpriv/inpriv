@@ -142,14 +142,11 @@ body {
 /* ---------- Background Atmosphere ---------- */
 .bg-layer { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
 .bg-ambient {
-  background:
-    radial-gradient(ellipse 90% 60% at 85% 0%, color-mix(in srgb, var(--md-primary-container) 45%, transparent) 0%, transparent 60%),
-    radial-gradient(ellipse 70% 50% at 0% 100%, color-mix(in srgb, var(--md-tertiary-container) 35%, transparent) 0%, transparent 70%),
-    var(--md-surface);
+  background: var(--md-surface);
   background-attachment: fixed;
 }
 .bg-dots {
-  background-image: radial-gradient(circle at 1px 1px, var(--md-outline-variant) 1px, transparent 0);
+  
   background-size: 28px 28px;
   opacity: 0.18;
   mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
@@ -375,11 +372,11 @@ body {
 .btn-primary {
   background: var(--md-primary);
   color: var(--md-on-primary);
-  box-shadow: 0 4px 14px -4px color-mix(in srgb, var(--md-primary) 50%, transparent);
+  
 }
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 18px -4px color-mix(in srgb, var(--md-primary) 65%, transparent);
+  
 }
 .btn-primary:active { transform: scale(0.97); }
 
@@ -1050,7 +1047,7 @@ body {
   align-items: center;
   gap: 8px;
   cursor: pointer;
-  box-shadow: 0 8px 24px -4px color-mix(in srgb, var(--md-primary) 60%, transparent);
+  
   transition: all 0.2s cubic-bezier(0.2, 1.4, 0, 1);
 }
 .fab:hover { transform: translateY(-2px) scale(1.02); }
@@ -1348,7 +1345,7 @@ body {
 </head>
 <body>
 <div class="bg-layer bg-ambient"></div>
-<div class="bg-layer bg-dots"></div>
+
 
 <div id="app"></div>
 <div id="toasts"></div>

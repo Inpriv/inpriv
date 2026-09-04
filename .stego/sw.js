@@ -1,6 +1,6 @@
 // Inpriv Stego — service worker
 // Cache-first for the app shell (single-file tool, fully offline-capable).
-const VERSION = 'stego-v2';
+const VERSION = 'stego-v3';
 const SHELL = ['/', '/manifest.webmanifest'];
 
 self.addEventListener('install', (e) => {

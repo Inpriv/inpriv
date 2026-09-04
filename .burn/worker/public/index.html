@@ -113,10 +113,7 @@ body {
   font-optical-sizing:auto;
   text-size-adjust:100%;
   -webkit-text-size-adjust:100%;
-  background:
-    radial-gradient(ellipse 80% 60% at 85% 0%, color-mix(in srgb, var(--md-tertiary-container) 45%, transparent) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 50% at 0% 100%, color-mix(in srgb, var(--md-primary-container) 45%, transparent) 0%, transparent 70%),
-    var(--md-surface);
+  background: var(--md-surface);
   background-attachment:fixed;
   color:var(--md-on-surface);
   min-height:100dvh;
@@ -129,15 +126,6 @@ body {
 a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline:2px solid var(--md-primary); outline-offset:2px; }
 button, select { font-family:inherit; }
 a, button, input, textarea, select { touch-action:manipulation; }
-
-.dot-grid {
-  position:fixed; inset:0; pointer-events:none; z-index:0;
-  background-image:radial-gradient(circle at 1px 1px, var(--md-outline-variant) 1px, transparent 0);
-  background-size:28px 28px;
-  opacity:0.18;
-  mask-image:radial-gradient(ellipse at center, black 30%, transparent 80%);
-  -webkit-mask-image:radial-gradient(ellipse at center, black 30%, transparent 80%);
-}
 
 .icon {
   font-family:var(--font-icon);
@@ -450,7 +438,7 @@ a, button, input, textarea, select { touch-action:manipulation; }
 </head>
 <body>
 
-<div class="dot-grid" aria-hidden="true"></div>
+
 
 <div class="container">
 <!-- ── HEADER ─────────────────────────────────────────────────────── -->

@@ -131,28 +131,6 @@ body {
   transition: background-color 0.5s var(--md-easing-standard), color 0.5s var(--md-easing-standard);
   -webkit-font-smoothing: antialiased;
 }
-
-.bg-ambient {
-  position: fixed; inset: 0; z-index: 0;
-  background: radial-gradient(ellipse 80% 60% at 85% 0%, color-mix(in srgb, var(--md-primary-container) 55%, transparent) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 50% at 0% 100%, color-mix(in srgb, var(--md-tertiary-container) 45%, transparent) 0%, transparent 70%),
-    var(--md-surface);
-  background-attachment: fixed; pointer-events: none;
-}
-.bg-grid {
-  position: fixed; inset: 0; z-index: 0;
-  background-image: radial-gradient(circle at 1px 1px, var(--md-outline-variant) 1px, transparent 0);
-  background-size: 28px 28px; opacity: 0.18;
-  mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
-  -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
-  pointer-events: none;
-}
-.bg-blob {
-  position: fixed; width: 420px; height: 420px; border-radius: 50%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--md-tertiary) 22%, transparent), transparent 70%);
-  filter: blur(60px); top: -100px; right: -100px; z-index: 0; pointer-events: none;
-  animation: drift 22s ease-in-out infinite;
-}
 @keyframes drift {
   0%, 100% { transform: translate(0,0) scale(1); }
   50% { transform: translate(-60px,40px) scale(1.1); }
@@ -219,7 +197,7 @@ body {
 .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px -4px var(--md-shadow-color); }
 .btn:active { transform: scale(0.96); }
 .btn:active::before { opacity: 0.12; }
-.btn-primary { background: var(--md-primary); color: var(--md-on-primary); box-shadow: 0 4px 16px -4px color-mix(in srgb, var(--md-primary) 40%, transparent); }
+.btn-primary { background: var(--md-primary); color: var(--md-on-primary);  }
 .btn-secondary { background: var(--md-secondary-container); color: var(--md-on-secondary-container); }
 .btn-tertiary { background: transparent; color: var(--md-primary); border: 1px solid var(--md-outline); }
 .btn-fluid { width: 100%; }
@@ -273,8 +251,8 @@ textarea.input-field { height: auto; min-height: 100px; padding: 16px; resize: v
 .status-detected { background: color-mix(in srgb, var(--md-primary-container) 80%, transparent); color: var(--md-on-primary-container); animation: pulse-blue 2s ease-in-out infinite; }
 .status-confirmed { background: var(--md-primary); color: var(--md-on-primary); }
 .status-expired { background: var(--md-surface-container-highest); color: var(--md-outline); }
-@keyframes pulse-amber { 0%,100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--md-tertiary) 30%, transparent); } 50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--md-tertiary) 0%, transparent); } }
-@keyframes pulse-blue { 0%,100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--md-primary) 30%, transparent); } 50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--md-primary) 0%, transparent); } }
+@keyframes pulse-amber { 0%,100% {  } 50% {  } }
+@keyframes pulse-blue { 0%,100% {  } 50% {  } }
 
 .send-card { max-width: 480px; margin: 80px auto 0; background: var(--md-surface-container-low); border: 1px solid var(--md-outline-variant); border-radius: 24px; padding: 28px; animation: editorIn 0.6s var(--md-easing-spring) both; }
 @media(min-width:600px){ .send-card { margin-top: 100px; border-radius: 28px; padding: 36px; } }
@@ -410,8 +388,8 @@ textarea.input-field { height: auto; min-height: 100px; padding: 16px; resize: v
 <body>
 
 <div class="bg-ambient"></div>
-<div class="bg-grid"></div>
-<div class="bg-blob"></div>
+
+
 
 <div class="toast-container" id="toastContainer"></div>
 

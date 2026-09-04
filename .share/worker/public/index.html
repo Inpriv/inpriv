@@ -133,23 +133,6 @@ body {
   font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
   user-select: none;
 }
-/* ── ambient background ─────────────────────────────────────── */
-.bg-dots {
-  position: fixed; inset: 0; z-index: 0; pointer-events: none;
-  background-image: radial-gradient(circle, var(--md-outline-variant) 1px, transparent 1px);
-  background-size: 24px 24px;
-  opacity: 0.18;
-  -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, #000 30%, transparent 100%);
-  mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, #000 30%, transparent 100%);
-}
-.bg-blob {
-  position: fixed; z-index: 0; pointer-events: none;
-  width: 520px; height: 520px; border-radius: 50%;
-  top: -220px; right: -160px;
-  background: radial-gradient(circle, color-mix(in srgb, var(--md-primary) 26%, transparent), transparent 70%);
-  filter: blur(70px);
-  animation: drift 26s var(--ease-standard) infinite alternate;
-}
 @keyframes drift {
   from { transform: translate(0, 0) scale(1); }
   to { transform: translate(-90px, 70px) scale(1.12); }
@@ -229,11 +212,11 @@ main { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; padding
   border-radius: 9999px; padding: 0 24px; height: 48px;
   font-family: var(--font-sans); font-size: 0.95rem; font-weight: 700; letter-spacing: 0.01em;
   background: var(--md-primary); color: var(--md-on-primary);
-  box-shadow: 0 6px 20px -6px color-mix(in srgb, var(--md-primary) 60%, transparent);
+  
   transition: transform 0.25s var(--ease-spring), box-shadow 0.25s var(--ease-standard), background 0.25s var(--ease-standard), opacity 0.25s;
 }
 .btn .ms { font-size: 20px; }
-.btn:hover { transform: translateY(-2px); box-shadow: 0 10px 26px -6px color-mix(in srgb, var(--md-primary) 70%, transparent); }
+.btn:hover { transform: translateY(-2px);  }
 .btn:active { transform: translateY(0) scale(0.985); }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
 .btn-secondary {
@@ -257,7 +240,7 @@ main { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; padding
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   transition: background 0.3s var(--ease-standard), color 0.3s var(--ease-standard), box-shadow 0.3s var(--ease-standard);
 }
-.seg button[aria-pressed="true"] { background: var(--md-primary); color: var(--md-on-primary); box-shadow: 0 4px 14px -4px color-mix(in srgb, var(--md-primary) 60%, transparent); }
+.seg button[aria-pressed="true"] { background: var(--md-primary); color: var(--md-on-primary);  }
 .seg button .ms { font-size: 19px; }
 /* ── send flow ──────────────────────────────────────────────── */
 .dropzone {
@@ -324,10 +307,7 @@ main { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; padding
 .scanner video { display: block; width: 100%; max-height: 62vh; object-fit: cover; }
 .scan-frame {
   position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(to right, transparent 12%, color-mix(in srgb, var(--md-primary) 85%, transparent) 12%, color-mix(in srgb, var(--md-primary) 85%, transparent) calc(12% + 2px), transparent calc(12% + 2px)),
-              linear-gradient(to left, transparent 12%, color-mix(in srgb, var(--md-primary) 85%, transparent) 12%, color-mix(in srgb, var(--md-primary) 85%, transparent) calc(12% + 2px), transparent calc(12% + 2px)),
-              linear-gradient(to bottom, transparent 18%, color-mix(in srgb, var(--md-primary) 85%, transparent) 18%, color-mix(in srgb, var(--md-primary) 85%, transparent) calc(18% + 2px), transparent calc(18% + 2px)),
-              linear-gradient(to top, transparent 18%, color-mix(in srgb, var(--md-primary) 85%, transparent) 18%, color-mix(in srgb, var(--md-primary) 85%, transparent) calc(18% + 2px), transparent calc(18% + 2px));
+  background: transparent calc(18% + 2px));
 }
 .scan-actions { position: absolute; left: 0; right: 0; bottom: 12px; display: flex; justify-content: center; }
 .input {
@@ -393,7 +373,7 @@ footer a { color: var(--md-primary); text-decoration: none; font-weight: 600; }
   .progress .p-bar { position: relative; overflow: hidden; }
   .progress .p-fill::after {
     content: ""; position: absolute; inset: 0;
-    background: linear-gradient(100deg, transparent 20%, rgba(255,255,255,0.55) 50%, transparent 80%);
+    background: transparent 80%);
     transform: translateX(-100%);
     animation: shine 1.6s var(--ease-standard) infinite;
   }
@@ -408,8 +388,8 @@ footer a { color: var(--md-primary); text-decoration: none; font-weight: 600; }
 </style>
 </head>
 <body>
-<div class="bg-dots" aria-hidden="true"></div>
-<div class="bg-blob" aria-hidden="true"></div>
+
+
 
 <header class="top-header">
   <a class="back-btn" href="https://inpriv.xyz" aria-label="Back to Inpriv">

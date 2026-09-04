@@ -196,16 +196,14 @@ body {
 .bg-radials {
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(60% 50% at 100% 0%, var(--blob-a) 0%, transparent 60%),
-    radial-gradient(55% 45% at 0% 100%, var(--blob-b) 0%, transparent 62%);
+  background: transparent 62%);
   opacity: 0.9;
   transition: opacity 0.6s cubic-bezier(0.2, 0, 0, 1);
 }
 .bg-dotgrid {
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(circle, var(--dot-color) 1px, transparent 1.4px);
+  
   background-size: 22px 22px;
   -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
   mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
@@ -217,7 +215,7 @@ body {
   top: 20%;
   left: 55%;
   border-radius: 50%;
-  background: radial-gradient(circle at 40% 40%, var(--md-primary-container), transparent 70%);
+  background: transparent 70%);
   filter: blur(60px);
   opacity: 0.5;
   animation: drift 22s ease-in-out infinite;
@@ -419,9 +417,7 @@ body {
   margin-inline: auto;
   border-radius: 16px;
   overflow: hidden;
-  background:
-    conic-gradient(#0000 25%, color-mix(in srgb, var(--md-on-surface) 9%, transparent) 0 50%, #0000 0 75%, color-mix(in srgb, var(--md-on-surface) 9%, transparent) 0) 0 0 / 22px 22px,
-    var(--md-surface-container-lowest);
+  background: var(--md-surface-container-lowest);
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
@@ -597,10 +593,7 @@ body {
 .range:focus-visible { outline: none; }
 .range::-webkit-slider-runnable-track {
   height: 6px; border-radius: 9999px;
-  background: linear-gradient(to right,
-    var(--md-primary) 0%, var(--md-primary) var(--fill, 80%),
-    color-mix(in srgb, var(--md-on-surface) 14%, transparent) var(--fill, 80%),
-    color-mix(in srgb, var(--md-on-surface) 14%, transparent) 100%);
+  background: transparent) 100%);
 }
 .range::-moz-range-track {
   height: 6px; border-radius: 9999px;
@@ -758,7 +751,7 @@ body {
 @keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes editorIn { from { opacity: 0; transform: translateY(14px) scale(0.99); } to { opacity: 1; transform: translateY(0) scale(1); } }
 @keyframes toolbarIn { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes pulse { 0%,100% { transform: scale(1); box-shadow: 0 0 0 0 color-mix(in srgb, var(--md-primary) 35%, transparent); } 50% { transform: scale(1.04); box-shadow: 0 0 0 14px transparent; } }
+@keyframes pulse { 0%,100% { transform: scale(1);  } 50% { transform: scale(1.04); box-shadow: 0 0 0 14px transparent; } }
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes rippleAnim { to { transform: scale(2.6); opacity: 0; } }
 @keyframes fabPop { 0% { transform: scale(1); } 40% { transform: scale(1.12); } 100% { transform: scale(1); } }
@@ -878,7 +871,7 @@ body {
   <div class="bg-effects" aria-hidden="true">
     <div class="bg-radials"></div>
     <div class="bg-dotgrid"></div>
-    <div class="bg-blob"></div>
+    
   </div>
 
   <!-- App Bar -->

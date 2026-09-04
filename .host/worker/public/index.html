@@ -132,14 +132,6 @@
       line-height: 1.55;
       -webkit-font-smoothing: antialiased;
     }
-    body::before {
-      content: "";
-      position: fixed; inset: 0; z-index: -1; pointer-events: none;
-      background:
-        radial-gradient(ellipse 60% 40% at 85% -10%, color-mix(in srgb, var(--md-primary) 14%, transparent), transparent 70%),
-        radial-gradient(ellipse 50% 35% at 0% 100%, color-mix(in srgb, var(--md-tertiary) 9%, transparent), transparent 70%);
-      opacity: 0.9;
-    }
     .ms, .icon { font-family: 'Material Symbols Rounded'; font-weight: normal; font-style: normal; font-size: 22px; line-height: 1; letter-spacing: normal; text-transform: none; display: inline-block; white-space: nowrap; word-wrap: normal; direction: ltr; -webkit-font-feature-settings: 'liga'; -webkit-font-smoothing: antialiased; font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; user-select: none; }
     .icon-filled { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
     a { color: var(--md-primary); text-decoration: none; }
@@ -215,7 +207,7 @@
       width: 68px; height: 68px; border-radius: 22px; margin: 0 auto 18px;
       background: var(--md-primary-container); color: var(--md-on-primary-container);
       display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 8px 24px color-mix(in srgb, var(--md-primary) 25%, transparent);
+      
     }
     .login-logo .icon { font-size: 34px; }
     .login-card h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 6px; }
@@ -246,9 +238,9 @@
       font-size: 0.95rem; font-weight: 600; letter-spacing: 0.01em;
       background: var(--md-primary); color: var(--md-on-primary);
       transition: transform 0.15s var(--md-easing-spring), box-shadow 0.2s, opacity 0.2s, background-color 0.2s;
-      box-shadow: 0 2px 10px color-mix(in srgb, var(--md-primary) 30%, transparent);
+      
     }
-    .btn:hover { box-shadow: 0 4px 18px color-mix(in srgb, var(--md-primary) 40%, transparent); }
+    .btn:hover {  }
     .btn:active { transform: scale(0.97); }
     .btn:disabled { opacity: 0.55; cursor: wait; }
     .btn .icon { font-size: 19px; }
@@ -288,7 +280,7 @@
     .stat-value { font-size: 1.18rem; font-weight: 700; letter-spacing: -0.01em; }
     .stat-sub { font-size: 0.78rem; color: var(--md-on-surface-variant); }
     .quota-bar { height: 8px; border-radius: 9999px; background: color-mix(in srgb, var(--md-outline-variant) 55%, transparent); overflow: hidden; margin-top: 8px; }
-    .quota-fill { height: 100%; border-radius: 9999px; background: linear-gradient(90deg, var(--md-primary), color-mix(in srgb, var(--md-primary) 65%, var(--md-tertiary))); transition: width 0.8s var(--md-easing-emphasized); }
+    .quota-fill { height: 100%; border-radius: 9999px; background: var(--md-tertiary))); transition: width 0.8s var(--md-easing-emphasized); }
 
     /* ===== 7. UPLOAD ===== */
     .dropzone {

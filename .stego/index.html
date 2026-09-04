@@ -124,10 +124,7 @@ html { -webkit-text-size-adjust: 100%; }
 body {
   font-family: var(--font-sans);
   font-optical-sizing: auto;
-  background:
-    radial-gradient(ellipse 80% 60% at 85% 0%, color-mix(in srgb, var(--md-primary-container) 55%, transparent) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 50% at 0% 100%, color-mix(in srgb, var(--md-tertiary-container) 45%, transparent) 0%, transparent 70%),
-    var(--md-surface);
+  background: var(--md-surface);
   background-attachment: fixed;
   color: var(--md-on-surface);
   min-height: 100dvh;
@@ -156,34 +153,6 @@ a:focus-visible, button:focus-visible, textarea:focus-visible, input:focus-visib
   -webkit-font-smoothing: antialiased;
   font-variation-settings: 'wght' 500, 'GRAD' 200, 'opsz' 24;
   user-select: none;
-}
-
-/* ─── Background effects ─────────────────────────────── */
-
-.dot-grid {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  background-image: radial-gradient(circle at 1px 1px, var(--md-outline-variant) 1px, transparent 0);
-  background-size: 28px 28px;
-  opacity: 0.18;
-  mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
-  -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
-}
-
-.blur-blob {
-  position: fixed;
-  top: -120px;
-  right: -120px;
-  width: 420px;
-  height: 420px;
-  border-radius: 50%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--md-tertiary) 22%, transparent), transparent 70%);
-  filter: blur(60px);
-  animation: drift 22s ease-in-out infinite;
-  pointer-events: none;
-  z-index: 0;
 }
 
 @keyframes drift {
@@ -457,8 +426,8 @@ a:focus-visible, button:focus-visible, textarea:focus-visible, input:focus-visib
 }
 
 @keyframes pulse {
-  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--md-primary) 30%, transparent); }
-  50% { box-shadow: 0 0 0 16px color-mix(in srgb, var(--md-primary) 0%, transparent); }
+  0%, 100% {  }
+  50% {  }
 }
 
 .dropzone h3 {
@@ -517,8 +486,7 @@ a:focus-visible, button:focus-visible, textarea:focus-visible, input:focus-visib
 .preview-frame {
   border-radius: 16px;
   overflow: hidden;
-  background:
-    repeating-conic-gradient(color-mix(in srgb, var(--md-outline-variant) 30%, transparent) 0% 25%, transparent 0% 50%)
+  background: transparent 0% 50%)
     50% / 20px 20px;
   border: 1px solid var(--md-outline-variant);
   display: flex;
@@ -1095,8 +1063,8 @@ textarea::placeholder, .text-input::placeholder { color: color-mix(in srgb, var(
 </head>
 <body>
 
-<div class="dot-grid" aria-hidden="true"></div>
-<div class="blur-blob" aria-hidden="true"></div>
+
+
 
 <div class="container">
 <!-- ── HEADER ─────────────────────────────────────────────────────── -->
