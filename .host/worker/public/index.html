@@ -42,6 +42,12 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap">
 
   <style>
+  /* Google typography (m3.material.io baseline) */
+  @font-face { font-family:'Google Sans'; font-style:normal; font-weight:475; font-display:swap; src:url(https://fonts.gstatic.com/s/googlesans/v70/4UaRrENHsxJlGDuGo1OIlJfC6mGS6vhAK1YobMu2vgCIhM907w.woff2) format('woff2'); }
+  @font-face { font-family:'Google Sans Text'; font-style:normal; font-weight:400; font-display:swap; src:url(https://fonts.gstatic.com/s/googlesanstext/v25/5aUu9-KzpRiLCAt4Unrc-xIKmCU5qEp2i0VBuxM.woff2) format('woff2'); }
+  @font-face { font-family:'Google Sans Text'; font-style:normal; font-weight:500; font-display:swap; src:url(https://fonts.gstatic.com/s/googlesanstext/v25/5aUp9-KzpRiLCAt4Unrc-xIKmCU5oLlVnmhjtjm4DZw.woff2) format('woff2'); }
+  @font-face { font-family:'Google Sans Text'; font-style:normal; font-weight:700; font-display:swap; src:url(https://fonts.gstatic.com/s/googlesanstext/v25/5aUp9-KzpRiLCAt4Unrc-xIKmCU5oPFTnmhjtjm4DZw.woff2) format('woff2'); }
+
     /* ===== 1. DESIGN TOKENS (Inpriv Labs M3 Earthy Forest) ===== */
     :root {
       --md-easing-standard: cubic-bezier(0.2, 0.0, 0.0, 1.0);
@@ -54,63 +60,63 @@
       --md-sys-shape-corner-full: 9999px;
     }
     html[data-theme="light"] {
-      --md-primary: #466E47;
+      --md-primary: #9F86FF;
       --md-on-primary: #FFFFFF;
-      --md-primary-container: #C7EFA0;
-      --md-on-primary-container: #32110A;
-      --md-secondary-container: #DEE8C8;
-      --md-on-secondary-container: #25361F;
-      --md-tertiary: #8B6032;
-      --md-tertiary-container: #FFDCC2;
-      --md-on-tertiary-container: #2F1600;
-      --md-error: #BA1A1A;
-      --md-error-container: #FFDAD6;
-      --md-on-error-container: #93000A;
-      --md-surface: #FAF9F0;
-      --md-surface-dim: #DBD9CB;
-      --md-surface-container: #F0EFE4;
-      --md-surface-container-high: #EAE9DD;
-      --md-surface-container-highest: #E4E3D7;
-      --md-on-surface: #1B1C16;
-      --md-on-surface-variant: #45483D;
-      --md-outline: #75786C;
-      --md-outline-variant: #C5C8BA;
-      --md-success: #3E6B3F;
-      --md-success-container: #C4EFB4;
-      --md-warning: #7A5900;
-      --md-warning-container: #FFDF9A;
+      --md-primary-container: #9F86FF;
+      --md-on-primary-container: #1E0060;
+      --md-secondary-container: #E6DEFF;
+      --md-on-secondary-container: #21182B;
+      --md-tertiary: #E37402;
+      --md-tertiary-container: #F1D3F9;
+      --md-on-tertiary-container: #271430;
+      --md-error: #FF6240;
+      --md-error-container: #F9DEDC;
+      --md-on-error-container: #490909;
+      --md-surface: #FEFBFF;
+      --md-surface-dim: #DBD9DD;
+      --md-surface-container: #F2ECEE;
+      --md-surface-container-high: #ECE7E9;
+      --md-surface-container-highest: #E6E1E3;
+      --md-on-surface: #1C1B1D;
+      --md-on-surface-variant: #47464F;
+      --md-outline: #787579;
+      --md-outline-variant: #E6E1E3;
+      --md-success: #34BE4D;
+      --md-success-container: #D7F0DC;
+      --md-warning: #E37402;
+      --md-warning-container: #FFE5C4;
       --md-shadow: 0 2px 6px -1px rgb(0 0 0 / 0.08), 0 8px 24px -4px rgb(0 0 0 / 0.10);
-      --md-glass: rgba(250, 249, 240, 0.72);
+      --md-glass: rgba(254, 251, 255, 0.78);
       color-scheme: light;
     }
     html[data-theme="dark"] {
-      --md-primary: #ABD37A;
-      --md-on-primary: #1B2E12;
-      --md-primary-container: #2E4F2F;
-      --md-on-primary-container: #C7EFA0;
-      --md-secondary-container: #3D4B34;
-      --md-on-secondary-container: #D5E7BC;
-      --md-tertiary: #FFB77C;
-      --md-tertiary-container: #6D431F;
-      --md-on-tertiary-container: #FFDCC2;
-      --md-error: #FFB4AB;
+      --md-primary: #CBBEFF;
+      --md-on-primary: #340098;
+      --md-primary-container: #4B21BD;
+      --md-on-primary-container: #E6DEFF;
+      --md-secondary-container: #45425C;
+      --md-on-secondary-container: #E2E0F1;
+      --md-tertiary: #FFB868;
+      --md-tertiary-container: #4E3655;
+      --md-on-tertiary-container: #F5D9FC;
+      --md-error: #FF8670;
       --md-error-container: #93000A;
-      --md-on-error-container: #FFDAD6;
-      --md-surface: #13140E;
-      --md-surface-dim: #13140E;
-      --md-surface-container: #1B1C15;
-      --md-surface-container-high: #25271F;
-      --md-surface-container-highest: #303227;
-      --md-on-surface: #E3E2D3;
-      --md-on-surface-variant: #C5C8BA;
-      --md-outline: #8F9285;
-      --md-outline-variant: #45483D;
-      --md-success: #ABD37A;
-      --md-success-container: #2E4F2F;
-      --md-warning: #FFDF9A;
-      --md-warning-container: #55410A;
+      --md-on-error-container: #FFDAD3;
+      --md-surface: #141218;
+      --md-surface-dim: #141218;
+      --md-surface-container: #242229;
+      --md-surface-container-high: #2F2C33;
+      --md-surface-container-highest: #3A373F;
+      --md-on-surface: #E6E1E3;
+      --md-on-surface-variant: #CBC4D4;
+      --md-outline: #948F99;
+      --md-outline-variant: #47464F;
+      --md-success: #6DD58C;
+      --md-success-container: #1E5B31;
+      --md-warning: #FFB950;
+      --md-warning-container: #5C4300;
       --md-shadow: 0 2px 6px -1px rgb(0 0 0 / 0.25), 0 10px 32px -4px rgb(0 0 0 / 0.4);
-      --md-glass: rgba(19, 20, 14, 0.72);
+      --md-glass: rgba(20, 18, 24, 0.72);
       color-scheme: dark;
     }
 
@@ -366,7 +372,7 @@
     .file-row .fname .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
     .badge { font-size: 0.68rem; font-weight: 700; padding: 2px 9px; border-radius: 9999px; letter-spacing: 0.03em; }
     .badge-public { background: var(--md-success-container); color: var(--md-on-primary-container); }
-    html[data-theme="dark"] .badge-public { color: #C7EFA0; }
+    html[data-theme="dark"] .badge-public { color: #E6DEFF; }
     .badge-private { background: var(--md-warning-container); color: var(--md-on-warning-container, #7A5900); }
     .file-row .furl { font-size: 0.76rem; color: var(--md-on-surface-variant); margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, 'Cascadia Code', monospace; }
     .file-row .fmeta2 { font-size: 0.73rem; color: var(--md-on-surface-variant); margin-top: 3px; display: flex; gap: 10px; flex-wrap: wrap; }
@@ -735,10 +741,10 @@
     max-width: none; width: auto; margin: 12px 12px 22px; padding: 6px 6px 6px 14px;
     gap: 8px; align-items: center;
     border-radius: 9999px;
-    background: color-mix(in srgb, var(--md-surface-container, #1F211B) 80%, transparent);
+    background: color-mix(in srgb, var(--md-surface-container, #242229) 80%, transparent);
     -webkit-backdrop-filter: blur(24px) saturate(180%);
     backdrop-filter: blur(24px) saturate(180%);
-    border: 1px solid color-mix(in srgb, var(--md-outline-variant, #43483D) 50%, transparent);
+    border: 1px solid color-mix(in srgb, var(--md-outline-variant, #47464F) 50%, transparent);
     box-shadow: 0 4px 20px -4px rgba(0,0,0,.4);
     animation: thBarIn .7s cubic-bezier(.2,1.4,0,1) both;
   }
@@ -749,7 +755,7 @@
   
   .top-header .brand-icon:empty {
     width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
-    background: var(--md-primary-container, #2E4F2F); color: var(--md-on-primary-container, #C7EFA0);
+    background: var(--md-primary-container, #4B21BD); color: var(--md-on-primary-container, #E6DEFF);
     display: grid; place-items: center;
   }
   .top-header .brand-icon:empty::before { content: 'theater_comedy'; font-family: 'Material Symbols Rounded'; font-size: 19px; }

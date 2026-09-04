@@ -66,8 +66,8 @@ export function maintenancePage(serviceName, message) {
 *{margin:0;padding:0;box-sizing:border-box}
 body{min-height:100vh;display:grid;place-items:center;
      font:16px/1.6 'Roboto Flex',system-ui,-apple-system,sans-serif;
-     background:radial-gradient(ellipse 80% 50% at 50% -10%,#1e2416,transparent),#13140e;
-     color:#e3e2d3;padding:20px;-webkit-font-smoothing:antialiased}
+     background:radial-gradient(ellipse 80% 50% at 50% -10%,#242229,transparent),#141218;
+     color:#E6E1E3;padding:20px;-webkit-font-smoothing:antialiased}
 .box{max-width:460px;width:100%;padding:52px 40px;text-align:center;
      background:rgba(26,28,23,0.85);backdrop-filter:blur(28px) saturate(180%);-webkit-backdrop-filter:blur(28px) saturate(180%);
      border:1px solid rgba(141,146,131,0.25);border-radius:28px;
@@ -75,24 +75,24 @@ body{min-height:100vh;display:grid;place-items:center;
      animation:rise .5s cubic-bezier(0.2,1.4,0,1) both}
 @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.box{animation:none}}
-.icon{width:68px;height:68px;border-radius:20px;background:#2E4F2F;color:#C7EFA0;
+.icon{width:68px;height:68px;border-radius:20px;background:#4B21BD;color:#E6DEFF;
       display:grid;place-items:center;margin:0 auto 22px;box-shadow:0 8px 24px rgba(0,0,0,0.35)}
-.icon svg{width:32px;height:32px;stroke:#C7EFA0}
-h1{font-size:1.4rem;font-weight:700;letter-spacing:-0.01em;margin-bottom:10px;color:#e3e2d3}
-p{color:#c7c6b8;font-size:.92rem;line-height:1.55}
+.icon svg{width:32px;height:32px;stroke:#E6DEFF}
+h1{font-size:1.4rem;font-weight:700;letter-spacing:-0.01em;margin-bottom:10px;color:#E6E1E3}
+p{color:#CBC4D4;font-size:.92rem;line-height:1.55}
 .msg{margin:18px auto 0;padding:12px 18px;border-radius:14px;background:#1E2416;
-     border:1px solid #3D4B34;color:#ABD37A;font-weight:500;display:inline-block;word-break:break-word;max-width:100%}
+     border:1px solid #47464F;color:#CBBEFF;font-weight:500;display:inline-block;word-break:break-word;max-width:100%}
 .status{display:inline-flex;align-items:center;gap:8px;margin-top:20px;padding:6px 14px;
-        border-radius:9999px;background:#34362F;color:#dde0d0;font-size:.8rem;font-weight:600;letter-spacing:.03em}
+        border-radius:9999px;background:#3A373F;color:#E6E1E3;font-size:.8rem;font-weight:600;letter-spacing:.03em}
 .btn{display:inline-flex;align-items:center;gap:8px;margin-top:28px;padding:12px 26px;
-     border-radius:9999px;background:#ABD37A;color:#173800;font-weight:700;font-size:.92rem;
+     border-radius:9999px;background:#CBBEFF;color:#340098;font-weight:700;font-size:.92rem;
      text-decoration:none;transition:transform .2s cubic-bezier(0.2,1.4,0,1),box-shadow .2s;
      box-shadow:0 6px 20px -4px rgba(171,211,122,0.45)}
 .btn:hover{transform:translateY(-2px);box-shadow:0 10px 26px -4px rgba(171,211,122,0.55)}
 .btn:active{transform:translateY(0)}
-.btn svg{width:17px;height:17px;stroke:#173800}
-.home{display:inline-block;margin-top:16px;color:#8d9283;text-decoration:none;font-size:.85rem;transition:color .2s}
-.home:hover{color:#c7efa0}
+.btn svg{width:17px;height:17px;stroke:#340098}
+.home{display:inline-block;margin-top:16px;color:#948F99;text-decoration:none;font-size:.85rem;transition:color .2s}
+.home:hover{color:#E6DEFF}
 </style></head><body>
 <div class="box">
   <div class="icon">

@@ -23,20 +23,26 @@
 <meta name="twitter:image:alt" content="Inpriv Amber — Personal Web Archive">
 <link rel="canonical" href="https://amber.inpriv.xyz/">
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "WebApplication", "name": "Inpriv Amber — Personal Web Archive", "url": "https://amber.inpriv.xyz/", "description": "Capture any page, keep it on your own timeline and read it offline — snapshots are stored as ZIP archives on your Google Drive.", "applicationCategory": "UtilitiesApplication", "operatingSystem": "All", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "publisher": {"@type": "Organization", "name": "Inpriv Labs", "url": "https://inpriv.xyz/"}, "inLanguage": "en"}</script>
-<meta name="theme-color" content="#13140E" media="(prefers-color-scheme: dark)">
-<meta name="theme-color" content="#FAF9F0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141218" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#FEFBFF" media="(prefers-color-scheme: light)">
 <meta name="robots" content="index, follow">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Inpriv Amber">
 <link rel="apple-touch-icon" href="/icon.png">
-<link rel="manifest" href="data:application/json,{&quot;name&quot;:&quot;Inpriv Amber&quot;,&quot;short_name&quot;:&quot;Amber&quot;,&quot;start_url&quot;:&quot;https://amber.inpriv.xyz&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;background_color&quot;:&quot;#13140E&quot;,&quot;theme_color&quot;:&quot;#13140E&quot;,&quot;icons&quot;:[{&quot;src&quot;:&quot;/icon.png&quot;,&quot;sizes&quot;:&quot;512x512&quot;,&quot;type&quot;:&quot;image/png&quot;}]}">
+<link rel="manifest" href="data:application/json,{&quot;name&quot;:&quot;Inpriv Amber&quot;,&quot;short_name&quot;:&quot;Amber&quot;,&quot;start_url&quot;:&quot;https://amber.inpriv.xyz&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;background_color&quot;:&quot;#141218&quot;,&quot;theme_color&quot;:&quot;#141218&quot;,&quot;icons&quot;:[{&quot;src&quot;:&quot;/icon.png&quot;,&quot;sizes&quot;:&quot;512x512&quot;,&quot;type&quot;:&quot;image/png&quot;}]}">
 <link rel="icon" href="/icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:ital,opsz,wght@0,8..144,300..800;1,8..144,300..800&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 <style>
+  /* Google typography (m3.material.io baseline) */
+  @font-face { font-family:'Google Sans'; font-style:normal; font-weight:475; font-display:swap; src:url(https://fonts.gstatic.com/s/googlesans/v70/4UaRrENHsxJlGDuGo1OIlJfC6mGS6vhAK1YobMu2vgCIhM907w.woff2) format('woff2'); }
+  @font-face { font-family:'Google Sans Text'; font-style:normal; font-weight:400; font-display:swap; src:url(https://fonts.gstatic.com/s/googlesanstext/v25/5aUu9-KzpRiLCAt4Unrc-xIKmCU5qEp2i0VBuxM.woff2) format('woff2'); }
+  @font-face { font-family:'Google Sans Text'; font-style:normal; font-weight:500; font-display:swap; src:url(https://fonts.gstatic.com/s/googlesanstext/v25/5aUp9-KzpRiLCAt4Unrc-xIKmCU5oLlVnmhjtjm4DZw.woff2) format('woff2'); }
+  @font-face { font-family:'Google Sans Text'; font-style:normal; font-weight:700; font-display:swap; src:url(https://fonts.gstatic.com/s/googlesanstext/v25/5aUp9-KzpRiLCAt4Unrc-xIKmCU5oPFTnmhjtjm4DZw.woff2) format('woff2'); }
+
 [hidden] { display: none !important; }
 
 :root {
@@ -44,50 +50,50 @@
   --ease-spring: cubic-bezier(0.2, 1.3, 0.0, 1.0);
   --ease-spring-soft: cubic-bezier(0.34, 1.3, 0.64, 1.0);
   --inpriv-ease: cubic-bezier(0.2, 1.4, 0, 1);
-  --font-sans: 'Roboto Flex', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Google Sans Text', 'Roboto Flex', system-ui, -apple-system, sans-serif;
   --font-icon: 'Material Symbols Rounded';
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 [data-theme="dark"], :root {
-  --md-primary: #ABD37A;
-  --md-on-primary: #173800;
-  --md-primary-container: #2E4F2F;
-  --md-on-primary-container: #C7EFA0;
-  --md-secondary: #BCCBAF;
-  --md-secondary-container: #3D4B34;
-  --md-on-secondary-container: #D8E7CB;
-  --md-tertiary: #FFB4A5;
-  --md-error: #FFB4AB;
-  --md-surface: #13140E;
-  --md-surface-container: #1F211B;
-  --md-surface-container-high: #292B25;
-  --md-surface-container-highest: #33362E;
-  --md-on-surface: #E3E2D3;
-  --md-on-surface-variant: #C3C8B6;
-  --md-outline: #8D9283;
-  --md-outline-variant: #43483D;
+  --md-primary: #CBBEFF;
+  --md-on-primary: #340098;
+  --md-primary-container: #4B21BD;
+  --md-on-primary-container: #E6DEFF;
+  --md-secondary: #C6C4DE;
+  --md-secondary-container: #45425C;
+  --md-on-secondary-container: #E2E0F1;
+  --md-tertiary: #FFB868;
+  --md-error: #FF8670;
+  --md-surface: #141218;
+  --md-surface-container: #242229;
+  --md-surface-container-high: #2F2C33;
+  --md-surface-container-highest: #3A373F;
+  --md-on-surface: #E6E1E3;
+  --md-on-surface-variant: #CBC4D4;
+  --md-outline: #948F99;
+  --md-outline-variant: #47464F;
   --md-scrim: rgba(0,0,0,0.6);
   --glass: rgba(31,33,27,0.72);
 }
 [data-theme="light"] {
-  --md-primary: #466E47;
+  --md-primary: #9F86FF;
   --md-on-primary: #FFFFFF;
-  --md-primary-container: #C7EFA0;
-  --md-on-primary-container: #0C2000;
-  --md-secondary: #55624C;
-  --md-secondary-container: #D8E7CB;
-  --md-on-secondary-container: #131F10;
-  --md-tertiary: #7E2D1E;
-  --md-error: #BA1A1A;
-  --md-surface: #FAF9F0;
-  --md-surface-container: #EEEDDE;
-  --md-surface-container-high: #E6E4D4;
-  --md-surface-container-highest: #E0DED0;
-  --md-on-surface: #1A1C17;
-  --md-on-surface-variant: #43483D;
-  --md-outline: #74796C;
-  --md-outline-variant: #C3C8B6;
+  --md-primary-container: #9F86FF;
+  --md-on-primary-container: #1E0060;
+  --md-secondary: #5D5D74;
+  --md-secondary-container: #E6DEFF;
+  --md-on-secondary-container: #21182B;
+  --md-tertiary: #E37402;
+  --md-error: #FF6240;
+  --md-surface: #FEFBFF;
+  --md-surface-container: #F2ECEE;
+  --md-surface-container-high: #ECE7E9;
+  --md-surface-container-highest: #E6E1E3;
+  --md-on-surface: #1C1B1D;
+  --md-on-surface-variant: #47464F;
+  --md-outline: #787579;
+  --md-outline-variant: #E6E1E3;
   --md-scrim: rgba(0,0,0,0.35);
   --glass: rgba(250,249,240,0.78);
 }

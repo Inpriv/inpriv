@@ -23,8 +23,8 @@
 <meta name="twitter:image:alt" content="Inpriv ID — Account">
 <link rel="canonical" href="https://id.inpriv.xyz/">
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "SecurityApplication", "name": "Inpriv ID — Account", "url": "https://id.inpriv.xyz/", "description": "One account for every Inpriv service. Private, secure, yours.", "applicationCategory": "SecurityApplication", "operatingSystem": "All", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "publisher": {"@type": "Organization", "name": "Inpriv Labs", "url": "https://inpriv.xyz/"}, "inLanguage": "en"}</script>
-<meta name="theme-color" content="#13140E" media="(prefers-color-scheme: dark)">
-<meta name="theme-color" content="#FAF9F0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141218" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#FEFBFF" media="(prefers-color-scheme: light)">
 <link rel="icon" href="https://inpriv.xyz/icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -32,6 +32,12 @@
 <link rel="stylesheet" href="/style.css">
 
 <style data-inpriv-header-center>
+  /* Google typography (m3.material.io baseline) */
+  @font-face { font-family:'Google Sans'; font-style:normal; font-weight:475; font-display:swap; src:url(https://fonts.gstatic.com/s/googlesans/v70/4UaRrENHsxJlGDuGo1OIlJfC6mGS6vhAK1YobMu2vgCIhM907w.woff2) format('woff2'); }
+  @font-face { font-family:'Google Sans Text'; font-style:normal; font-weight:400; font-display:swap; src:url(https://fonts.gstatic.com/s/googlesanstext/v25/5aUu9-KzpRiLCAt4Unrc-xIKmCU5qEp2i0VBuxM.woff2) format('woff2'); }
+  @font-face { font-family:'Google Sans Text'; font-style:normal; font-weight:500; font-display:swap; src:url(https://fonts.gstatic.com/s/googlesanstext/v25/5aUp9-KzpRiLCAt4Unrc-xIKmCU5oLlVnmhjtjm4DZw.woff2) format('woff2'); }
+  @font-face { font-family:'Google Sans Text'; font-style:normal; font-weight:700; font-display:swap; src:url(https://fonts.gstatic.com/s/googlesanstext/v25/5aUp9-KzpRiLCAt4Unrc-xIKmCU5oPFTnmhjtjm4DZw.woff2) format('woff2'); }
+
 /* header sits in the centered content column (like trace) */
 .top-header {
   max-width: 1100px;
@@ -53,10 +59,10 @@
     max-width: none; width: auto; margin: 12px 12px 22px; padding: 6px 6px 6px 14px;
     gap: 8px; align-items: center;
     border-radius: 9999px;
-    background: color-mix(in srgb, var(--md-surface-container, #1F211B) 80%, transparent);
+    background: color-mix(in srgb, var(--md-surface-container, #242229) 80%, transparent);
     -webkit-backdrop-filter: blur(24px) saturate(180%);
     backdrop-filter: blur(24px) saturate(180%);
-    border: 1px solid color-mix(in srgb, var(--md-outline-variant, #43483D) 50%, transparent);
+    border: 1px solid color-mix(in srgb, var(--md-outline-variant, #47464F) 50%, transparent);
     box-shadow: 0 4px 20px -4px rgba(0,0,0,.4);
     animation: thBarIn .7s cubic-bezier(.2,1.4,0,1) both;
   }
@@ -66,7 +72,7 @@
   .top-header .brand-tagline { display: none; }
   .top-header .brand-icon {
     width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
-    background: var(--md-primary-container, #2E4F2F); color: var(--md-on-primary-container, #C7EFA0);
+    background: var(--md-primary-container, #4B21BD); color: var(--md-on-primary-container, #E6DEFF);
     display: grid; place-items: center;
   }
   .top-header .brand-icon .material-symbols-rounded { font-size: 19px; }
@@ -108,10 +114,10 @@
     max-width: none; width: auto; margin: 12px 12px 22px; padding: 6px 6px 6px 14px;
     gap: 8px; align-items: center;
     border-radius: 9999px;
-    background: color-mix(in srgb, var(--md-surface-container, #1F211B) 80%, transparent);
+    background: color-mix(in srgb, var(--md-surface-container, #242229) 80%, transparent);
     -webkit-backdrop-filter: blur(24px) saturate(180%);
     backdrop-filter: blur(24px) saturate(180%);
-    border: 1px solid color-mix(in srgb, var(--md-outline-variant, #43483D) 50%, transparent);
+    border: 1px solid color-mix(in srgb, var(--md-outline-variant, #47464F) 50%, transparent);
     box-shadow: 0 4px 20px -4px rgba(0,0,0,.4);
     animation: thBarIn .7s cubic-bezier(.2,1.4,0,1) both;
   }
@@ -122,7 +128,7 @@
   
   .top-header .brand-icon {
     width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
-    background: var(--md-primary-container, #2E4F2F); color: var(--md-on-primary-container, #C7EFA0);
+    background: var(--md-primary-container, #4B21BD); color: var(--md-on-primary-container, #E6DEFF);
     display: grid; place-items: center;
   }
   .top-header .brand-icon .material-symbols-rounded { font-size: 19px; }

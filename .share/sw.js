@@ -2,7 +2,7 @@
    Versioned cache; network-first for navigation (fresh HTML matters),
    cache-first for same-origin statics. Never caches cross-origin. */
 
-const VERSION = "share-v1";
+const VERSION = "share-vshare-v2";
 const STATIC_CACHE = `${VERSION}-static`;
 
 self.addEventListener("install", (event) => {

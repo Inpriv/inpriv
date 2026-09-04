@@ -12,7 +12,7 @@ No trackers. No remote logs. No compromises — everything runs in your browser.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Website](https://img.shields.io/badge/website-inpriv.xyz-466E47)](https://inpriv.xyz)
-[![Tools](https://img.shields.io/badge/tools-22%20live%20%2B%204%20in%20dev-ABD37A)](https://inpriv.xyz)
+[![Tools](https://img.shields.io/badge/tools-22%20live%20%2B%204%20in%20dev-9F86FF)](https://inpriv.xyz)
 [![Zero-Knowledge](https://img.shields.io/badge/zero--knowledge-%E2%9C%93-C7EFA0)]()
 [![By Inpriv Labs](https://img.shields.io/badge/by-Inpriv%20Labs-9C4231)]()
 
@@ -76,7 +76,7 @@ Inpriv is an ecosystem of **zero-knowledge, fully client-side web utilities** �
 
 ## <img src="assets/icons/wrench.svg" width="18" height="18" align="center" alt=""> Tech Stack
 
-- **Frontend** — vanilla HTML/CSS/JS, Material Design 3 (earthy forest)
+- **Frontend** — vanilla HTML/CSS/JS, Material Design 3 (Google baseline)
 - **Crypto** — Web Crypto API, Curve25519
 - **Hush signaling** — Python WebSocket server
 - **Swift editor** — Rust
@@ -169,7 +169,7 @@ See **[CONTRIBUTING.md](CONTRIBUTING.md)** for full guidelines.
 1. **No malicious features** — modules enabling unauthorized access will be rejected
 2. **Privacy by design** — nothing may ever phone home
 3. Open an issue first for big changes
-4. Follow the existing M3 design tokens
+4. Follow the existing M3 design tokens (Google baseline, see .inpriv-labs/inpriv-labs.md)
 
 Found a security issue? See **[SECURITY.md](SECURITY.md)**.
 

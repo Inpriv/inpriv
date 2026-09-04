@@ -42,7 +42,7 @@
   var CSS = [
     ".inpriv-id-chip{position:fixed;top:14px;right:14px;z-index:2147483000;display:flex;align-items:center;gap:8px;",
     "height:40px;padding:0 14px 0 6px;border-radius:9999px;cursor:pointer;border:1px solid rgba(128,134,115,.5);",
-    "background:color-mix(in srgb,#1F211B 88%,transparent);color:#E3E2D3;",
+    "background:color-mix(in srgb,#1F211B 88%,transparent);color:#E6E1E3;",
     "backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);",
     "font:600 13px 'Roboto Flex',system-ui,sans-serif;letter-spacing:.01em;",
     "box-shadow:0 4px 20px -4px rgba(0,0,0,.4);opacity:0;transform:translateY(-12px) scale(.95);",
@@ -50,13 +50,13 @@
     ".inpriv-id-chip.in{opacity:1;transform:translateY(0) scale(1)}",
     ".inpriv-id-chip:hover{transform:translateY(-2px);box-shadow:0 8px 26px -6px rgba(0,0,0,.5)}",
     ".inpriv-id-chip:active{transform:scale(.95)}",
-    ".inpriv-id-av{width:30px;height:30px;border-radius:50%;background:#2E4F2F;color:#C7EFA0;",
+    ".inpriv-id-av{width:30px;height:30px;border-radius:50%;background:#2E4F2F;color:#E6DEFF;",
     "display:grid;place-items:center;font:800 13px 'Roboto Flex',sans-serif;flex-shrink:0}",
     ".inpriv-id-chip .x{font-size:15px;line-height:1;opacity:.6;cursor:pointer;padding:4px;border-radius:50%}",
     ".inpriv-id-chip .x:hover{opacity:1}",
     ".inpriv-id-card{position:fixed;top:64px;right:14px;z-index:2147483000;width:300px;padding:20px;",
     "border-radius:24px;border:1px solid rgba(128,134,115,.5);",
-    "background:color-mix(in srgb,#1F211B 92%,transparent);color:#E3E2D3;",
+    "background:color-mix(in srgb,#1F211B 92%,transparent);color:#E6E1E3;",
     "backdrop-filter:blur(28px) saturate(180%);-webkit-backdrop-filter:blur(28px) saturate(180%);",
     "box-shadow:0 16px 48px -8px rgba(0,0,0,.6);font-family:'Roboto Flex',system-ui,sans-serif;",
     "opacity:0;transform:translateY(-16px) scale(.96);pointer-events:none;",
@@ -66,14 +66,14 @@
     ".inpriv-id-card p{font-size:12.5px;color:#C3C8B6;line-height:1.5;margin:0 0 14px}",
     ".inpriv-id-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;height:44px;",
     "border:none;border-radius:9999px;cursor:pointer;font:600 14px 'Roboto Flex',sans-serif;",
-    "background:#ABD37A;color:#173800;transition:transform .2s cubic-bezier(.2,1.4,0,1)}",
+    "background:#CBBEFF;color:#173800;transition:transform .2s cubic-bezier(.2,1.4,0,1)}",
     ".inpriv-id-btn:hover{transform:translateY(-2px)}",
     ".inpriv-id-btn:active{transform:scale(.96)}",
-    ".inpriv-id-btn.ghost{background:transparent;color:#E3E2D3;border:1px solid rgba(128,134,115,.6);margin-top:8px}",
+    ".inpriv-id-btn.ghost{background:transparent;color:#E6E1E3;border:1px solid rgba(128,134,115,.6);margin-top:8px}",
     ".inpriv-id-row{display:flex;gap:8px}",
     ".inpriv-id-prompt{position:fixed;top:14px;right:14px;z-index:2147483000;display:flex;align-items:center;gap:10px;",
     "height:48px;padding:0 8px 0 6px;border-radius:9999px;cursor:pointer;",
-    "border:1px solid rgba(128,134,115,.5);background:color-mix(in srgb,#1F211B 88%,transparent);color:#E3E2D3;",
+    "border:1px solid rgba(128,134,115,.5);background:color-mix(in srgb,#1F211B 88%,transparent);color:#E6E1E3;",
     "backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);",
     "font:600 13px 'Roboto Flex',system-ui,sans-serif;box-shadow:0 4px 20px -4px rgba(0,0,0,.4);",
     "opacity:0;transform:translateY(-12px) scale(.95);transition:all .5s cubic-bezier(.2,1.4,0,1)}",
@@ -179,7 +179,7 @@
       var c = el("div", "inpriv-id-card");
       c.id = "inpriv-id-card";
       c.innerHTML =
-        '<div style="width:44px;height:44px;border-radius:14px;background:#2E4F2F;color:#C7EFA0;display:grid;place-items:center;margin-bottom:12px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg></div>' +
+        '<div style="width:44px;height:44px;border-radius:14px;background:#2E4F2F;color:#E6DEFF;display:grid;place-items:center;margin-bottom:12px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg></div>' +
         "<h4>One account, every Inpriv tool</h4>" +
         "<p>Sign in to sync your nickname and preferences across services. No tracking — your data stays encrypted.</p>" +
         '<div class="inpriv-id-row"><button class="inpriv-id-btn" data-a="signin">Sign in</button></div>' +

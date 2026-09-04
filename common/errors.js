@@ -33,28 +33,28 @@ function errorPage({ status, title, heading, intro, extra, primary, noteHtml }) 
 <style>
 :root{color-scheme:dark}
 *{margin:0;padding:0;box-sizing:border-box}
-body{min-height:100svh;display:grid;place-items:center;background:#13140E;color:#E3E2D3;
+body{min-height:100svh;display:grid;place-items:center;background:#141218;color:#E6E1E3;
      font:16px/1.6 'Roboto Flex',system-ui,-apple-system,sans-serif;padding:24px;
      -webkit-font-smoothing:antialiased}
 main{max-width:420px;width:100%;animation:fade .4s cubic-bezier(.2,1.4,0,1) both}
 @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){main{animation:none}}
-.code{font-size:88px;font-weight:200;line-height:1;letter-spacing:-.04em;color:#43483D;
+.code{font-size:88px;font-weight:200;line-height:1;letter-spacing:-.04em;color:#47464F;
       margin-bottom:20px;font-variant-numeric:tabular-nums}
-h1{font-size:1.15rem;font-weight:600;letter-spacing:-.01em;margin-bottom:8px;color:#E3E2D3}
-p{color:#8D9283;font-size:.9rem;line-height:1.6}
-p a{color:#ABD37A;text-decoration:none}
+h1{font-size:1.15rem;font-weight:600;letter-spacing:-.01em;margin-bottom:8px;color:#E6E1E3}
+p{color:#948F99;font-size:.9rem;line-height:1.6}
+p a{color:#CBBEFF;text-decoration:none}
 p a:hover{text-decoration:underline}
-.msg{margin-top:16px;padding:10px 14px;border-left:2px solid #ABD37A;background:#1A1C17;
-     border-radius:0 10px 10px 0;color:#C7C6B8;font-size:.85rem;word-break:break-word}
+.msg{margin-top:16px;padding:10px 14px;border-left:2px solid #CBBEFF;background:#1F1D24;
+     border-radius:0 10px 10px 0;color:#CBC4D4;font-size:.85rem;word-break:break-word}
 .actions{margin-top:28px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
 .btn{display:inline-flex;align-items:center;padding:10px 22px;border-radius:9999px;
-     border:1px solid #43483D;color:#E3E2D3;text-decoration:none;font-size:.88rem;font-weight:600;
+     border:1px solid #47464F;color:#E6E1E3;text-decoration:none;font-size:.88rem;font-weight:600;
      transition:border-color .2s,color .2s,transform .2s cubic-bezier(.2,1.4,0,1)}
-.btn:hover{border-color:#ABD37A;color:#C7EFA0;transform:translateY(-1px)}
+.btn:hover{border-color:#CBBEFF;color:#E6DEFF;transform:translateY(-1px)}
 .btn:active{transform:translateY(0)}
-.home{color:#8D9283;font-size:.85rem;text-decoration:none;transition:color .2s}
-.home:hover{color:#C7EFA0}
+.home{color:#948F99;font-size:.85rem;text-decoration:none;transition:color .2s}
+.home:hover{color:#E6DEFF}
 </style></head><body>
 <main>
   <div class="code">${status}</div>

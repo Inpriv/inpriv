@@ -12,7 +12,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com fonts.gstatic.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.googleapis.com fonts.gstatic.com https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob:; media-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; connect-src 'self'; worker-src 'none'; manifest-src 'self'">
-<meta name="theme-color" content="#13140E">
+<meta name="theme-color" content="#141218">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="description" content="wipe — Inpriv Labs zero-knowledge metadata inspector and sanitizer. See every EXIF, GPS, XMP tag before you wipe it. 100% client-side. No data leaves your device.">
@@ -41,98 +41,104 @@
 <script src="https://cdn.jsdelivr.net/npm/piexifjs@1.0.6/piexif.min.js" integrity="sha384-pQscxfezjt6vZacoDAQEvU7OYak0dB/9o/VoBbzD8SrYGu63hWctWY25MxxIXSAX" crossorigin="anonymous"></script>
 
 <style>
+  /* Google typography (m3.material.io baseline) */
+  @font-face { font-family:'Google Sans'; font-style:normal; font-weight:475; font-display:swap; src:url(https://fonts.gstatic.com/s/googlesans/v70/4UaRrENHsxJlGDuGo1OIlJfC6mGS6vhAK1YobMu2vgCIhM907w.woff2) format('woff2'); }
+  @font-face { font-family:'Google Sans Text'; font-style:normal; font-weight:400; font-display:swap; src:url(https://fonts.gstatic.com/s/googlesanstext/v25/5aUu9-KzpRiLCAt4Unrc-xIKmCU5qEp2i0VBuxM.woff2) format('woff2'); }
+  @font-face { font-family:'Google Sans Text'; font-style:normal; font-weight:500; font-display:swap; src:url(https://fonts.gstatic.com/s/googlesanstext/v25/5aUp9-KzpRiLCAt4Unrc-xIKmCU5oLlVnmhjtjm4DZw.woff2) format('woff2'); }
+  @font-face { font-family:'Google Sans Text'; font-style:normal; font-weight:700; font-display:swap; src:url(https://fonts.gstatic.com/s/googlesanstext/v25/5aUp9-KzpRiLCAt4Unrc-xIKmCU5oPFTnmhjtjm4DZw.woff2) format('woff2'); }
+
 /* ==========================================================================
    INPRIV LABS DESIGN SYSTEM — MATERIAL DESIGN 3 (EARTHY FOREST)
    ========================================================================== */
 
 :root, [data-theme="dark"] {
   /* Dark Theme Tokens (Default) */
-  --md-primary: #ABD37A;
-  --md-on-primary: #173800;
-  --md-primary-container: #2E4F2F;
-  --md-on-primary-container: #C7EFA0;
+  --md-primary: #CBBEFF;
+  --md-on-primary: #340098;
+  --md-primary-container: #4B21BD;
+  --md-on-primary-container: #E6DEFF;
 
-  --md-secondary: #BCCBAF;
-  --md-on-secondary: #27341F;
-  --md-secondary-container: #3D4B34;
-  --md-on-secondary-container: #D8E7CB;
+  --md-secondary: #C6C4DE;
+  --md-on-secondary: #313049;
+  --md-secondary-container: #45425C;
+  --md-on-secondary-container: #E2E0F1;
 
-  --md-tertiary: #FFB4A5;
-  --md-on-tertiary: #5E1709;
-  --md-tertiary-container: #7E2D1E;
-  --md-on-tertiary-container: #FFDAD3;
+  --md-tertiary: #FFB868;
+  --md-on-tertiary: #4E2800;
+  --md-tertiary-container: #4E3655;
+  --md-on-tertiary-container: #F5D9FC;
 
-  --md-error: #FFB4AB;
+  --md-error: #FF8670;
   --md-error-container: #93000A;
-  --md-on-error: #690005;
+  --md-on-error: #490909;
 
-  --md-surface: #13140E;
-  --md-on-surface: #E3E2D3;
-  --md-on-surface-variant: #C3C8B6;
-  --md-surface-dim: #1A1C17;
+  --md-surface: #141218;
+  --md-on-surface: #E6E1E3;
+  --md-on-surface-variant: #CBC4D4;
+  --md-surface-dim: #141218;
 
-  --md-surface-container-lowest: #0D0F09;
-  --md-surface-container-low: #1A1C17;
-  --md-surface-container: #1F211B;
-  --md-surface-container-high: #292B25;
-  --md-surface-container-highest: #34362F;
+  --md-surface-container-lowest: #0F0E13;
+  --md-surface-container-low: #1F1D24;
+  --md-surface-container: #242229;
+  --md-surface-container-high: #2F2C33;
+  --md-surface-container-highest: #3A373F;
 
-  --md-outline: #8D9283;
-  --md-outline-variant: #43483D;
+  --md-outline: #948F99;
+  --md-outline-variant: #47464F;
 
-  --md-inverse-surface: #E3E2D3;
-  --md-inverse-on-surface: #2F312C;
-  --md-inverse-primary: #466E47;
+  --md-inverse-surface: #E6E1E3;
+  --md-inverse-on-surface: #303030;
+  --md-inverse-primary: #CBBDFF;
 
   --md-shadow-color: rgba(0, 0, 0, 0.4);
   --md-shadow-color-strong: rgba(0, 0, 0, 0.65);
 
-  --bg-grid-dot: #8D9283;
+  --bg-grid-dot: #948F99;
 }
 
 [data-theme="light"] {
   /* Light Theme Tokens */
-  --md-primary: #466E47;
+  --md-primary: #9F86FF;
   --md-on-primary: #FFFFFF;
-  --md-primary-container: #C7EFA0;
-  --md-on-primary-container: #0C2000;
+  --md-primary-container: #9F86FF;
+  --md-on-primary-container: #1E0060;
 
-  --md-secondary: #55624C;
+  --md-secondary: #5D5D74;
   --md-on-secondary: #FFFFFF;
-  --md-secondary-container: #D8E7CB;
-  --md-on-secondary-container: #131F0C;
+  --md-secondary-container: #E6DEFF;
+  --md-on-secondary-container: #21182B;
 
-  --md-tertiary: #9C4231;
+  --md-tertiary: #E37402;
   --md-on-tertiary: #FFFFFF;
-  --md-tertiary-container: #FFDAD3;
-  --md-on-tertiary-container: #3D0A03;
+  --md-tertiary-container: #F1D3F9;
+  --md-on-tertiary-container: #271430;
 
-  --md-error: #BA1A1A;
-  --md-error-container: #FFDAD6;
+  --md-error: #FF6240;
+  --md-error-container: #F9DEDC;
   --md-on-error: #FFFFFF;
 
-  --md-surface: #FAF9F0;
-  --md-on-surface: #1A1C17;
-  --md-on-surface-variant: #43483D;
-  --md-surface-dim: #DBDAD0;
+  --md-surface: #FEFBFF;
+  --md-on-surface: #1C1B1D;
+  --md-on-surface-variant: #47464F;
+  --md-surface-dim: #DBD9DD;
 
   --md-surface-container-lowest: #FFFFFF;
-  --md-surface-container-low: #F4F3E7;
-  --md-surface-container: #EEEDDE;
-  --md-surface-container-high: #E9E7D9;
-  --md-surface-container-highest: #E3E2D3;
+  --md-surface-container-low: #F8F1F6;
+  --md-surface-container: #F2ECEE;
+  --md-surface-container-high: #ECE7E9;
+  --md-surface-container-highest: #E6E1E3;
 
-  --md-outline: #74796C;
-  --md-outline-variant: #C3C8B6;
+  --md-outline: #787579;
+  --md-outline-variant: #E6E1E3;
 
-  --md-inverse-surface: #2F312C;
-  --md-inverse-on-surface: #F0EFE7;
-  --md-inverse-primary: #ABD37A;
+  --md-inverse-surface: #303030;
+  --md-inverse-on-surface: #F5EFF1;
+  --md-inverse-primary: #4B21BD;
 
   --md-shadow-color: rgba(20, 25, 15, 0.15);
   --md-shadow-color-strong: rgba(20, 25, 15, 0.28);
 
-  --bg-grid-dot: #74796C;
+  --bg-grid-dot: #787579;
 }
 
 :root {
