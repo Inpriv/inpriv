@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -23,7 +23,7 @@
 <meta name="twitter:image:alt" content="Inpriv Labs — Experiments &amp;amp; Concepts">
 <link rel="canonical" href="https://labs.inpriv.xyz/">
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "WebApplication", "name": "Inpriv Labs — Experiments &amp; Concepts", "url": "https://labs.inpriv.xyz/", "description": "Inpriv Labs is the public lab bench of the Inpriv suite: live experiments, UI concepts and prototypes under evaluation — the Google M3 baseline, legacy suite themes, on-device machine learning, motion studies and more.", "operatingSystem": "All", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "publisher": {"@type": "Organization", "name": "Inpriv Labs", "url": "https://inpriv.xyz/"}, "inLanguage": "en"}</script>
-<meta name="theme-color" content="#FEFBFF">
+<meta name="theme-color" content="#141218">
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="/icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -68,7 +68,33 @@
   --md-outline-variant: #E6E1E3;
   --md-error: #FF6240;
   --md-shadow: rgba(0, 0, 0, 0.3);
+  --md-card: #FFFFFF;
   --elev-1: 0px 1px 2px 0px rgb(0 0 0 / 30%), 0px 1px 3px 1px rgb(0 0 0 / 15%);
+}
+[data-theme="dark"] {
+  /* dark variant derived from m3.material.io reference tones */
+  --md-primary: #CBBEFF;
+  --md-on-primary: #340098;
+  --md-primary-container: #4B21BD;
+  --md-on-primary-container: #E6DEFF;
+  --md-secondary: #C6C4DE;
+  --md-secondary-container: #45425C;
+  --md-on-secondary-container: #E2E0F1;
+  --md-tertiary: #FFB868;
+  --md-tertiary-container: #4E3655;
+  --md-on-tertiary-container: #F5D9FC;
+  --md-surface: #141218;
+  --md-surface-container-low: #1F1D24;
+  --md-surface-container: #242229;
+  --md-surface-container-high: #2F2C33;
+  --md-surface-container-highest: #3A373F;
+  --md-on-surface: #E6E1E3;
+  --md-on-surface-variant: #CBC4D4;
+  --md-outline: #948F99;
+  --md-outline-variant: #47464F;
+  --md-error: #FF8670;
+  --md-shadow: rgba(0, 0, 0, 0.6);
+  --md-card: #211F26;
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
@@ -126,7 +152,7 @@ main { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; padding
 .hero h1 em { font-style: normal; color: var(--md-primary); }
 .hero p { margin: 12px auto 0; max-width: 480px; color: var(--md-on-surface-variant); font-size: 0.98rem; line-height: 1.55; }
 .card {
-  background: #FFFFFF;
+  background: var(--md-card);
   border: none;
   border-radius: 24px;
   box-shadow: var(--elev-1);
@@ -415,6 +441,7 @@ footer a { color: var(--md-primary); text-decoration: none; font-weight: 600; }
     <div class="brand-name">Inpriv<strong>.Labs</strong></div>
   </div>
   <div class="bar-actions">
+    <button class="icon-btn" id="themeToggle" aria-label="Toggle theme"><span class="ms">light_mode</span></button>
   </div>
 </header>
 
@@ -429,10 +456,11 @@ footer a { color: var(--md-primary); text-decoration: none; font-weight: 600; }
     <!-- ══ EXPERIMENT 7: Google M3 baseline ══ -->
     <div class="card" style="--d:30">
       <div class="panel-title"><span class="ms">style</span><span>Google M3 — suite design baseline</span></div>
-      <p class="hint">The suite is moving to the Material 3 baseline from Google (m3.material.io/get-started): Google Sans display type, Google Sans Text for body, purple primary #9F86FF, tinted surfaces on #FEFBFF and elevated white cards. This bench already wears the style — the panel below is a live specimen.</p>
+      <p class="hint">The suite is moving to the Material 3 baseline from Google (m3.material.io/get-started): Google Sans display type, Google Sans Text for body, purple primary #9F86FF, tinted surfaces on #FEFBFF and elevated white cards. This bench wears the style in dark (default) and light — the panel below is a live specimen.</p>
       <div class="chips">
         <span class="chip ok"><span class="ms">rocket_launch</span>Adopted bench-wide</span>
-        <span class="chip"><span class="ms">wb_sunny</span>Light only</span>
+        <span class="chip"><span class="ms">dark_mode</span>Dark default</span>
+        <span class="chip"><span class="ms">light_mode</span>Light toggle</span>
         <span class="chip"><span class="ms">text_fields</span>Google Sans</span>
       </div>
       <div class="demo-shell">
@@ -451,9 +479,9 @@ footer a { color: var(--md-primary); text-decoration: none; font-weight: 600; }
           </div>
           <div class="demo-mini-card">Elevated card — white surface, elevation 1, radius 24</div>
           <div style="display:grid;gap:6px">
-            <div style="height:44px;border-radius:12px;background:var(--md-surface-container-low);display:flex;align-items:center;padding:0 14px;font-size:0.8rem;color:var(--md-on-surface-variant)">surface-container-low &mdash; #F8F1F6</div>
-            <div style="height:44px;border-radius:12px;background:var(--md-surface-container);display:flex;align-items:center;padding:0 14px;font-size:0.8rem;color:var(--md-on-surface-variant)">surface-container &mdash; #F2ECEE</div>
-            <div style="height:44px;border-radius:12px;background:var(--md-surface-container-high);display:flex;align-items:center;padding:0 14px;font-size:0.8rem;color:var(--md-on-surface-variant)">surface-container-high &mdash; #ECE7E9</div>
+            <div style="height:44px;border-radius:12px;background:var(--md-surface-container-low);display:flex;align-items:center;padding:0 14px;font-size:0.8rem;color:var(--md-on-surface-variant)">surface-container-low</div>
+            <div style="height:44px;border-radius:12px;background:var(--md-surface-container);display:flex;align-items:center;padding:0 14px;font-size:0.8rem;color:var(--md-on-surface-variant)">surface-container</div>
+            <div style="height:44px;border-radius:12px;background:var(--md-surface-container-high);display:flex;align-items:center;padding:0 14px;font-size:0.8rem;color:var(--md-on-surface-variant)">surface-container-high</div>
           </div>
           <div class="progress-demo"><div class="p-fill" style="width:62%"></div></div>
         </div>
@@ -467,7 +495,7 @@ footer a { color: var(--md-primary); text-decoration: none; font-weight: 600; }
     <!-- ══ EXPERIMENT 8: M3 Earthy Forest — legacy suite theme ══ -->
     <div class="card" style="--d:35">
       <div class="panel-title"><span class="ms">history</span><span>M3 Earthy Forest — previous suite theme,</span></div>
-      <p class="hint">The look the whole suite wore before this switch: forest-green primary on warm paper in light mode, near-black with soft green in dark mode, Roboto Flex everywhere, the dot-grid + drifting-blob backdrop and spring easing. Retired bench- and suite-wide in favor of the Google M3 baseline — kept for reference only, do not build on it.</p>
+      <p class="hint">The look the whole suite wore before this switch: forest-green primary on warm paper in light mode, near-black with soft green in dark mode, Roboto Flex everywhere, the dot-grid + drifting-blob backdrop and spring easing. Retired bench- and suite-wide in favor of the Google M3 baseline — kept for reference only, do not build on it. (The bench chrome above now follows the baseline in dark and light.)</p>
       <div class="chips">
         <span class="chip testing"><span class="ms">archive</span>Deprecated</span>
         <span class="chip"><span class="ms">palette</span>Theme</span>
@@ -698,6 +726,25 @@ footer a { color: var(--md-primary); text-decoration: none; font-weight: 600; }
 /* Inpriv Labs — experiment bench. Chrome wears the Google M3 baseline
    (m3.material.io/get-started); the experiments are live inline previews. */
 const $ = (id) => document.getElementById(id);
+
+/* ── theme (bench chrome): Google M3 in dark (default) and light ── */
+const THEME_KEY = "inpriv_theme";
+function applyTheme(t) {
+  document.documentElement.dataset.theme = t;
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.content = t === "dark" ? "#141218" : "#FEFBFF";
+  const icon = document.querySelector("#themeToggle .ms");
+  if (icon) icon.textContent = t === "dark" ? "light_mode" : "dark_mode";
+  try { localStorage.setItem(THEME_KEY, t); } catch {}
+}
+(function initTheme() {
+  let t = null;
+  try { t = localStorage.getItem(THEME_KEY); } catch {}
+  applyTheme(t === "light" ? "light" : "dark");
+})();
+$("themeToggle").addEventListener("click", () => {
+  applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
+});
 
 /* ── toast ── */
 let toastTimer = null;
