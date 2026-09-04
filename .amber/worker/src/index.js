@@ -436,8 +436,11 @@ function cssRewrite(text, snapId, absBase) {
 
 // Rewrite an HTML document: strip scripts, map asset/page refs onto the
 // archive namespace, rewrite inline <style> blocks and srcset candidates.
+// Returns { html, refs, assetRefs } — refs = page navigations, assetRefs =
+// asset URLs (stylesheets, images, icons — whatever gets an /a/…/ path).
 function rewriteHtml(text, snapId, pagePath, pageAbs) {
   const refs = new Set();
+  const assetRefs = new Set();
   let src = text
     .replace(/<script[\s\S]*?<\/script\s*>/gi, "")
     .replace(/ on[a-z]+\s*=\s*(".*?"|'.*?'|[^\s>]+)/gi, ""); // inline handlers are dead without scripts
@@ -464,6 +467,7 @@ function rewriteHtml(text, snapId, pagePath, pageAbs) {
       const u = resolveAbs(pageAbs, raw);
       if (!u) return hm;
       refs.add(u.toString());
+      assetRefs.add(u.toString());
       const quote = dq2 !== undefined ? '"' : (sq2 !== undefined ? "'" : '"');
       return `href=${quote}${archiveRef(snapId, pathKey(u.toString(), true))}${quote}`;
     });
@@ -481,6 +485,7 @@ function rewriteHtml(text, snapId, pagePath, pageAbs) {
       // page navigation — resolved against snap_pages at view time
       return ` ${attr}=${quote}${archiveRef(snapId, pathKey(u.toString()))}${quote} data-orig="${u.origin + u.pathname}"`;
     }
+    assetRefs.add(u.toString());
     return ` ${attr}=${quote}${archiveRef(snapId, pathKey(u.toString(), true))}${quote}`;
   });
 
@@ -490,11 +495,12 @@ function rewriteHtml(text, snapId, pagePath, pageAbs) {
       const u = resolveAbs(pageAbs, seg[0] || "");
       if (!u) return cand;
       refs.add(u.toString());
-      return `${archiveRef(snapId, pathKey(u.toString()))}${seg[1] ? " " + seg.slice(1).join(" ") : ""}`;
+      assetRefs.add(u.toString());
+      return `${archiveRef(snapId, pathKey(u.toString(), true))}${seg[1] ? " " + seg.slice(1).join(" ") : ""}`;
     });
     return ` srcset="${parts.join(", ")}"`;
   });
-  return { html: src, refs };
+  return { html: src, refs, assetRefs };
 }
 
 // Capture startAbs (+ up to MAX_SUBPAGES same-origin subpages + assets).
@@ -519,7 +525,10 @@ async function captureSite(snap, startAbs) {
       total += buf.length;
       if (total > MAX_ZIP) throw new Error("too-big");
       const fin = res.url || absUrl;
-      const finPath = pathKey(fin, true);
+      // extension-less stylesheets (Google's /_/ss/…, fonts css2!) must keep a
+      // .css name — the viewer serves by extension, octet-stream CSS is dead
+      let finPath = pathKey(fin, true);
+      if (/css/i.test(ct) && !/\.[a-z0-9]{1,5}$/i.test(finPath)) finPath += ".css";
       if (/css/i.test(ct) || /\.css($|\?)/i.test(new URL(fin).pathname)) {
         const txt = new TextDecoder("utf-8").decode(buf);
         const { text: rw, absUrls } = cssRewrite(txt, snap.id, fin);
@@ -566,21 +575,17 @@ async function captureSite(snap, startAbs) {
     let html = new TextDecoder("utf-8").decode(mainBuf);
     title = titleFrom(html);
     const mainPath = pathKey(mainFinal);
-    const { html: mainRw, refs: mainRefs } = rewriteHtml(html, snap.id, mainPath, mainFinal);
+    const { html: mainRw, refs: mainRefsSet, assetRefs: mainAssetRefs } = rewriteHtml(html, snap.id, mainPath, mainFinal);
     addFile(mainPath, new TextEncoder().encode(mainRw));
     pageRows.push({ url: urlKey(new URL(mainFinal)), path: mainPath, title, text: extractText(html) });
 
-    // stylesheets + icons discovered on the main page go FIRST — the 40-asset
-    // cap must never eat the CSS in favour of images
-    const considerAssetFirst = (absStr) => {
-      try {
-        const u = new URL(absStr);
-        if (isForbiddenHost(u.hostname)) return;
-        if (/\.css($|\?)/i.test(u.pathname + u.search) || /fonts\.googleapis\./i.test(u.host) ||
-            /\.(png|jpe?g|gif|webp|svg|ico|avif)$/i.test(u.pathname)) queueAsset(u.toString());
-      } catch {}
-    };
-    for (const r of mainRefs) considerAssetFirst(r);
+    // assets discovered by the rewriter go FIRST (it knows exactly which refs
+    // are assets — no extension guessing) — the 40-asset cap can never drop
+    // stylesheets in favour of images
+    for (const r of mainAssetRefs) {
+      const u = new URL(r);
+      if (!isForbiddenHost(u.hostname)) queueAsset(u.toString());
+    }
 
     // breadth-first subpage walk (same-host only, capped)
     const pageQueue = [];
@@ -595,7 +600,7 @@ async function captureSite(snap, startAbs) {
       pageQueued.add(k);
       pageQueue.push(u.toString());
     };
-    for (const r of mainRefs) consider(r);
+    for (const r of mainRefsSet) consider(r);
 
     while (pageQueue.length && pageRows.length < 1 + MAX_SUBPAGES) {
       const abs = pageQueue.shift();
@@ -617,9 +622,10 @@ async function captureSite(snap, startAbs) {
       } catch {}
       if (subHtml == null) continue;
       const subPath = pathKey(subFin);
-      const { html: subRw, refs } = rewriteHtml(subHtml, snap.id, subPath, subFin);
+      const { html: subRw, refs, assetRefs: subAssets } = rewriteHtml(subHtml, snap.id, subPath, subFin);
       addFile(subPath, new TextEncoder().encode(subRw));
       pageRows.push({ url: key, path: subPath, title: titleFrom(subHtml), text: extractText(subHtml) });
+      for (const a of subAssets) queueAsset(a);
       for (const r of refs) consider(r);
     }
   } else {
@@ -743,10 +749,17 @@ async function serveArchive(request, env, snapId, innerPath) {
   if (!res) return new Response("Snapshot data missing from storage", { status: 410, headers: { "Content-Type": "text/plain" } });
   const zipBuf = new Uint8Array(await res.arrayBuffer());
   let data = zipExtractEntry(zipBuf, inner);
+  // extension-less assets are stored with a ".css" suffix (added at capture
+  // time when the content-type said stylesheet) — retry with the suffix
+  let cssSuffixed = false;
+  if (!data && !/\.[a-z0-9]{1,5}$/i.test(inner)) {
+    data = zipExtractEntry(zipBuf, inner + ".css");
+    if (data) cssSuffixed = true;
+  }
   // pages captured without a file extension (e.g. "example.com/index") must
   // render as HTML — snap_pages is the authority on what is a page
   let forceHtml = false;
-  if (!/\.[a-z0-9]{1,5}$/i.test(inner)) {
+  if (!cssSuffixed && !/\.[a-z0-9]{1,5}$/i.test(inner)) {
     forceHtml = !!(await env.DB.prepare("SELECT 1 AS x FROM snap_pages WHERE snap_id = ? AND path = ?")
       .bind(snapId, inner).first());
   }
@@ -763,8 +776,9 @@ async function serveArchive(request, env, snapId, innerPath) {
     );
   }
   const isHtml = forceHtml || /\.html?$/i.test(inner) || ctFor(inner).startsWith("text/html");
+  const finalCt = cssSuffixed ? "text/css; charset=utf-8" : (isHtml ? "text/html; charset=utf-8" : ctFor(inner));
   const headers = {
-    "Content-Type": isHtml ? "text/html; charset=utf-8" : ctFor(inner),
+    "Content-Type": finalCt,
     "X-Content-Type-Options": "nosniff",
     "X-Robots-Tag": "noindex",
     "Cache-Control": "private, max-age=300",
