@@ -38,6 +38,7 @@ DOMAIN = "inpriv.xyz"
 
 # Secrets:
 #   MAIL_ENC_KEY          — 32 bytes (openssl rand -base64 32) message sealing
+#   ID_ENC_KEY            — SAME value as on inpriv-id (unseals ID TOTP secrets)
 #   RESEND_API_KEY        — send-only key
 #   RESEND_WEBHOOK_SECRET — whsec_… from the Resend dashboard webhook
 #   RESEND_READ_API_KEY   — optional full-access key for inbound bodies

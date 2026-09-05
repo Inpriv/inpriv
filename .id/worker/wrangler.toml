@@ -20,6 +20,13 @@ binding = "TEMP_DB"
 database_name = "inpriv-temp"
 database_id = "4fd698d2-c51e-4390-8f6b-9968f5da902d"
 
+# Cross-check: new IDs must not shadow a mailbox that already exists on
+# Inpriv Mail (the mail DB is the source of truth for @inpriv.xyz delivery)
+[[d1_databases]]
+binding = "MAIL_DB"
+database_name = "inpriv-mail"
+database_id = "d5c75cf0-46ba-4721-99fc-da18d2ccbabe"
+
 # Static frontend (login/register + account panel) and the One Tap widget
 # (id.js) served to every *.inpriv.xyz service.
 # run_worker_first: the worker must intercept every request for the

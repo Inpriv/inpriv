@@ -292,6 +292,17 @@ export default {
         ).bind(username, inprivEmail, recoveryEmail || "__none__").first();
         if (dup) return bad("an account with this Inpriv ID or recovery email already exists", 409);
 
+        // Never issue an ID whose @inpriv.xyz address is already delivered by
+        // Inpriv Mail (mailboxes registered without an ID first).
+        if (env.MAIL_DB) {
+          const mailDup = await env.MAIL_DB.prepare(
+            "SELECT 1 FROM users WHERE username = ? OR address = ?"
+          ).bind(username, inprivEmail).first();
+          if (mailDup) {
+            return bad("this address is already an active mailbox — sign in on Inpriv Mail with your ID or pick another ID", 409);
+          }
+        }
+
         // Never issue an address that a live Inpriv Temp mailbox could intercept.
         if (env.TEMP_DB) {
           const shadow = await env.TEMP_DB

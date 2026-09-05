@@ -2037,6 +2037,13 @@ async function handleLogin(username, password) {
       return;
     }
 
+    if (res.status === 'totp_required') {
+      // 2FA on the Inpriv ID account — ask for the authenticator code now,
+      // then continue straight into key init with the proof ticket.
+      await promptTwoFactor(res.username, res.nick || res.username, password);
+      return;
+    }
+
     state.token = res.token;
     state.user = res.user;
     localStorage.setItem('inpriv_token', res.token);
@@ -2060,8 +2067,65 @@ async function handleLogin(username, password) {
   }
 }
 
+/* ---------- Two-Factor prompt for Inpriv ID key init ----------
+   2FA-protected IDs must always present the second factor before the
+   mailbox keys can be created. Verifies password+code in one call
+   (/api/v1/id-init), which mints a single-use init ticket, then runs the
+   regular key-init flow with that ticket attached. */
+async function promptTwoFactor(username, nick, password) {
+  const area = $('#authFormArea');
+  if (!area) { renderAuth('login'); return; }
+  area.innerHTML = `
+    <form id="mfaForm">
+      <div class="field">
+        <label>Two-Factor Code</label>
+        <div class="input-wrap">
+          <input type="text" id="mfaCode" inputmode="numeric" pattern="[0-9]*" maxlength="6"
+                 placeholder="6-digit code" autocomplete="one-time-code" required autofocus>
+        </div>
+        <div class="field-hint">Signed in as ${escapeHtml(nick)} — enter the code from your authenticator app.</div>
+      </div>
+      <div class="sec-badge">
+        ${mkIcon('shield_locked')}
+        <span>Two-factor authentication is required for this Inpriv ID</span>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" id="mfaSubmitBtn">
+        <span>Verify & Continue</span> ${mkIcon('arrow_forward')}
+      </button>
+      <div style="text-align:center;margin-top:14px">
+        <button type="button" class="btn btn-text" id="mfaRecoveryLink">Use a recovery code</button>
+      </div>
+    </form>
+  `;
+  toast('Two-factor required', 'Enter your authenticator code to continue.');
+  $('#mfaRecoveryLink').addEventListener('click', () => {
+    const inp = $('#mfaCode');
+    if (inp) { inp.removeAttribute('maxlength'); inp.removeAttribute('pattern'); inp.placeholder = 'Recovery code'; inp.focus(); }
+  });
+  $('#mfaForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = $('#mfaSubmitBtn');
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner"></span> <span>Verifying…</span>`;
+    try {
+      // SSO path (no password in memory): send only the code — the server
+      // accepts it when it already issued a totp_sso ticket for this user.
+      // Password path: password+code verified together (id-init).
+      const payload = password
+        ? { username, password, code: $('#mfaCode').value.trim() }
+        : { username, code: $('#mfaCode').value.trim(), sso_ticket: state.ssoRedeemToken };
+      const r = await api('/id-init', { method: 'POST', body: JSON.stringify(payload) });
+      await initializeInprivIdKeys(r.username, password, r.id_init_ticket);
+    } catch (ex) {
+      toast('Verification failed', ex.message, 'error');
+      btn.disabled = false;
+      btn.innerHTML = `<span>Verify & Continue</span> ${mkIcon('arrow_forward')}`;
+    }
+  });
+}
+
 /* ---------- Initialize Inpriv ID User Keys ---------- */
-async function initializeInprivIdKeys(username, password) {
+async function initializeInprivIdKeys(username, password, initTicket) {
   try {
     const kp = await generateKeyPair();
     const salt = crypto.getRandomValues(new Uint8Array(16));
@@ -2080,7 +2144,8 @@ async function initializeInprivIdKeys(username, password) {
         encrypted_private_key: wrapped,
         priv_iv: iv,
         priv_salt: saltB64,
-        priv_iter: PASS_ITERS
+        priv_iter: PASS_ITERS,
+        id_init_ticket: initTicket || undefined
       })
     });
 
@@ -3061,7 +3126,12 @@ async function bootstrap() {
         return;
       }
       if (d.status === 'totp_required') {
-        toast('Two-factor required', 'Quick sign-in is disabled for 2FA accounts — sign in with your password.');
+        toast('Two-factor required', 'Enter your authenticator code to continue.');
+        // password is NOT in memory here — the SSO redeem just proved the
+        // password; keep its proof so /id-init can accept the code alone
+        state.ssoRedeemToken = d.sso_ticket || null;
+        state.ssoTotpUser = d.username;
+        await promptTwoFactor(d.username, d.nick || d.username, null);
         return;
       }
       if (!d.token) return;

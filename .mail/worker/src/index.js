@@ -454,6 +454,115 @@ async function ensureDeviceKeys(env) {
   _dkReady = true;
 }
 
+// ── Inpriv ID cross-database verification (shared D1) ─────────────────────
+// Mail and ID share the same D1 database, so password verification and the
+// one-time init ticket happen directly against the ID tables — no network
+// hop, no extra secret. The ID backend owns minting/consuming tickets.
+async function verifyIdLogin(env, idUserId, password) {
+  const u = await env.ID_DB.prepare(
+    "SELECT pass_hash, pass_salt, pass_iters FROM users WHERE id = ?"
+  ).bind(idUserId).first();
+  if (!u || !password) return false;
+  const ph = await passHash(password, u.pass_salt, u.pass_iters || PASS_ITERS);
+  return constantTimeEq(ph, u.pass_hash);
+}
+
+// ── Inpriv ID one-time init tickets (anti-2FA-bypass) ──────────────────────
+// /api/v1/id-init (password + TOTP) or the SSO redeem mint a single-use
+// ticket; /api/v1/init-keys consumes it. Keeps the second factor mandatory
+// even though the mailbox itself has no 2FA concept. Table ships lazily.
+let _iitReady = false;
+async function ensureIdInitTickets(env) {
+  if (_iitReady) return;
+  await env.ID_DB.batch([
+    env.ID_DB.prepare(
+      "CREATE TABLE IF NOT EXISTS id_init_tickets (id TEXT PRIMARY KEY, username TEXT NOT NULL, created_at INTEGER NOT NULL, expires_at INTEGER NOT NULL, used_at INTEGER)"
+    ),
+    env.ID_DB.prepare("CREATE INDEX IF NOT EXISTS idx_iit_username ON id_init_tickets(username, created_at)"),
+  ]);
+  _iitReady = true;
+}
+
+async function consumeIdInitTicket(env, ticket, username) {
+  if (!ticket || !username) return false;
+  const id = await sha256hex(ticket);
+  const row = await env.ID_DB.prepare(
+    "SELECT username, expires_at, used_at FROM id_init_tickets WHERE id = ?"
+  ).bind(id).first();
+  if (!row || row.used_at || row.expires_at < now()) return false;
+  if (row.username !== username) return false;
+  await env.ID_DB.prepare("UPDATE id_init_tickets SET used_at = ? WHERE id = ?").bind(now(), id).run();
+  return true;
+}
+
+// ── TOTP verification against the Inpriv ID database (RFC 6238, SHA-1) ────
+// Mail re-implements the tiny verify-only TOTP core so the second factor is
+// enforced even for ID-only accounts. Secrets stay sealed with the ID
+// worker's ID_ENC_KEY — Mail only reads what that key can open.
+const ID_B32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+function idBase32Decode(s) {
+  let bits = 0, val = 0;
+  const out = [];
+  for (const ch of String(s).toUpperCase().replace(/=+$/, "").replace(/\s/g, "")) {
+    const i = ID_B32.indexOf(ch);
+    if (i < 0) continue;
+    val = (val << 5) | i;
+    bits += 5;
+    if (bits >= 8) { bits -= 8; out.push((val >>> bits) & 0xff); }
+  }
+  return new Uint8Array(out);
+}
+async function idHotp(secretBytes, counter) {
+  const buf = new ArrayBuffer(8);
+  const view = new DataView(buf);
+  view.setUint32(0, Math.floor(counter / 0x100000000));
+  view.setUint32(4, counter >>> 0);
+  const key = await crypto.subtle.importKey("raw", secretBytes, { name: "HMAC", hash: "SHA-1" }, false, ["sign"]);
+  const mac = await crypto.subtle.sign("HMAC", key, new Uint8Array(buf));
+  const b = new Uint8Array(mac);
+  const off = b[19] & 0xf;
+  const code = ((b[off] & 0x7f) << 24) | (b[off + 1] << 16) | (b[off + 2] << 8) | b[off + 3];
+  return String(code % 1_000_000).padStart(6, "0");
+}
+async function idVerifyTOTP(code, secretBytes, atMs) {
+  const step = Math.floor(atMs / 30_000);
+  for (let w = -1; w <= 1; w++) {
+    if (constantTimeEq(await idHotp(secretBytes, step + w), code)) return true;
+  }
+  return false;
+}
+async function openIdSecret(env, envelopeJson) {
+  try {
+    const { iv, ct } = JSON.parse(envelopeJson);
+    const raw = enc.encode(env.ID_ENC_KEY);
+    let keyBytes = raw;
+    if (keyBytes.length !== 32 && keyBytes.length === 44) {
+      try { keyBytes = b64d(env.ID_ENC_KEY); } catch { /* fallthrough */ }
+    }
+    if (keyBytes.length !== 32) return null;
+    const key = await crypto.subtle.importKey("raw", keyBytes, "AES-GCM", false, ["decrypt"]);
+    const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64d(iv) }, key, b64d(ct));
+    return dec.decode(pt);
+  } catch {
+    return null;
+  }
+}
+
+// ── Quick Sign-In TOTP tickets ─────────────────────────────────────────────
+// grant/redeem mints one for 2FA accounts (password verified by the ID
+// backend); /api/v1/id-init consumes it so the TOTP code alone can complete
+// the SSO + key-init flow. Short-lived, single-use.
+async function consumeSsoTotpTicket(env, ticket, username) {
+  if (!ticket || !username) return false;
+  const id = await sha256hex(ticket);
+  const row = await env.ID_DB.prepare(
+    "SELECT username, expires_at, used_at FROM id_init_tickets WHERE id = ?"
+  ).bind(id).first();
+  if (!row || row.used_at || row.expires_at < now() || row.username !== username) return false;
+  await env.ID_DB.prepare("UPDATE id_init_tickets SET used_at = ? WHERE id = ?").bind(now(), id).run();
+  return true;
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -570,8 +679,22 @@ export default {
         if (!r.ok || !d.ok) return bad((d && d.error) || "sign-in grant rejected", 401, cors);
         if (state && d.state && state !== d.state) return bad("grant state mismatch", 401, cors);
 
-        // TOTP accounts: quick sign-in must not bypass the second factor
-        if (d.totp_enabled) return json({ status: "totp_required", username: d.user.username, nick: d.user.nick }, 200, cors);
+        // TOTP accounts: quick sign-in must not bypass the second factor.
+        // Mint a single-use totp_sso ticket — the mailbox flow (/api/v1/id-init)
+        // consumes it after the user enters the authenticator code.
+        if (d.totp_enabled) {
+          const tkt = b64(crypto.getRandomValues(new Uint8Array(32)));
+          await ensureIdInitTickets(env);
+          await env.ID_DB.prepare(
+            "INSERT INTO id_init_tickets (id, username, created_at, expires_at) VALUES (?,?,?,?)"
+          ).bind(await sha256hex(tkt), d.user.username, now(), now() + 10 * 60_000).run();
+          return json({
+            status: "totp_required",
+            username: d.user.username,
+            nick: d.user.nick,
+            sso_ticket: tkt,
+          }, 200, cors);
+        }
 
         const idUser = d.user;
         const existing = await env.DB.prepare("SELECT * FROM users WHERE username = ?").bind(idUser.username).first();
@@ -630,7 +753,7 @@ export default {
         // 2. Not in Inpriv Mail, check Inpriv ID DB (SSO sync)
         if (env.ID_DB) {
           const idUser = await env.ID_DB.prepare(
-            `SELECT id, username, email, nick, pass_hash, pass_salt, pass_iters
+            `SELECT id, username, email, nick, pass_hash, pass_salt, pass_iters, totp_enabled
              FROM users
              WHERE username = ? OR email = ? OR recovery_email = ?`
           ).bind(username, `${username}@${DOMAIN}`, username).first();
@@ -638,6 +761,18 @@ export default {
           if (idUser) {
             const ph = await passHash(password, idUser.pass_salt, idUser.pass_iters || PASS_ITERS);
             if (constantTimeEq(ph, idUser.pass_hash)) {
+              // TOTP accounts must present the second factor before the
+              // one-time mailbox key init (same rule as Quick Sign-In).
+              if (idUser.totp_enabled) {
+                return json({
+                  status: "totp_required",
+                  inpriv_id: true,
+                  username: idUser.username,
+                  email: idUser.email,
+                  nick: idUser.nick || idUser.username,
+                  message: "This Inpriv ID has two-factor authentication. Enter your authenticator code.",
+                }, 200, cors);
+              }
               // Valid Inpriv ID user, needs to initialize RSA keys in Mail
               return json({
                 status: "needs_init",
@@ -655,11 +790,93 @@ export default {
       }
 
       // ── Initialize Keys for Inpriv ID User ────────────────────────────────
+      // Step 1: verify ID password (+ TOTP when enabled) and mint a one-time
+      // init ticket. The client then calls /api/v1/init-keys with that ticket
+      // alongside the freshly generated mailbox keys. SSO variant: the Quick
+      // Sign-In redeem already verified the password — the client proves that
+      // with a short-lived sso ticket and only submits the TOTP code here.
+      if (path === "/api/v1/id-init" && request.method === "POST") {
+        if (env.ID_DB && !(await rateLimit(env.DB, `idinit:${ipKey(request)}`, 10, 15 * 60_000))) {
+          return bad("too many attempts — wait 15 minutes", 429, cors);
+        }
+        const body = await request.json();
+        let username = String(body.username || body.login || body.address || "").toLowerCase().trim();
+        if (username.endsWith("@inpriv.xyz")) username = username.slice(0, -"@inpriv.xyz".length).trim();
+        const password = String(body.password || "");
+        const code = String(body.code || "").trim();
+        const recovery = String(body.recovery || "").toLowerCase().trim();
+        const ssoTicket = String(body.sso_ticket || "");
+        if (!env.ID_DB) return bad("Inpriv ID database unavailable", 500, cors);
+        if (!username || (!password && !ssoTicket)) return bad("username and credentials required", 400, cors);
+
+        const idUser = await env.ID_DB.prepare(
+          `SELECT id, username, email, nick, pass_hash, pass_salt, pass_iters, totp_enabled
+           FROM users
+           WHERE username = ? OR email = ? OR recovery_email = ?`
+        ).bind(username, `${username}@${DOMAIN}`, username).first();
+        if (!idUser) return bad("invalid credentials", 401, cors);
+
+        // Proof of "password factor already passed":
+        //  - SSO variant: a live totp_sso ticket minted by grant/redeem
+        //  - password variant: verify the password right here
+        if (ssoTicket) {
+          const ok = await consumeSsoTotpTicket(env, ssoTicket, idUser.username);
+          if (!ok) return bad("sign-in proof expired — sign in again", 401, cors);
+        } else {
+          const ph = await passHash(password, idUser.pass_salt, idUser.pass_iters || PASS_ITERS);
+          if (!constantTimeEq(ph, idUser.pass_hash)) return bad("invalid credentials", 401, cors);
+        }
+
+        // TOTP second factor (required whenever enabled — no bypass path)
+        if (idUser.totp_enabled) {
+          if (recovery) {
+            const hash = await sha256hex(recovery);
+            const rc = await env.ID_DB.prepare(
+              "SELECT id FROM recovery_codes WHERE user_id = ? AND code_hash = ? AND used_at IS NULL"
+            ).bind(idUser.id, hash).first();
+            if (!rc) return bad("invalid recovery code", 401, cors);
+            await env.ID_DB.prepare("UPDATE recovery_codes SET used_at = ? WHERE id = ?").bind(now(), rc.id).run();
+          } else {
+            if (!/^\d{6}$/.test(code)) return json({ status: "totp_required", username: idUser.username, nick: idUser.nick || idUser.username }, 200, cors);
+            const trow = await env.ID_DB.prepare(
+              "SELECT secret_enc FROM totp_secrets WHERE user_id = ? AND confirmed = 1"
+            ).bind(idUser.id).first();
+            const secret = trow ? await openIdSecret(env, trow.secret_enc) : null;
+            if (!secret || !(await idVerifyTOTP(code, idBase32Decode(secret), now()))) {
+              return bad("invalid two-factor code", 401, cors);
+            }
+          }
+        }
+
+        // single-use, 10-minute ticket proves "password (+2FA) just passed"
+        const ticket = b64(crypto.getRandomValues(new Uint8Array(32)));
+        await ensureIdInitTickets(env);
+        await env.ID_DB.prepare(
+          "INSERT INTO id_init_tickets (id, username, created_at, expires_at) VALUES (?,?,?,?)"
+        ).bind(await sha256hex(ticket), idUser.username, now(), now() + 10 * 60_000).run();
+
+        return json({
+          status: "ok",
+          id_init_ticket: ticket,
+          username: idUser.username,
+          email: idUser.email,
+          nick: idUser.nick || idUser.username,
+          totp_verified: !!idUser.totp_enabled,
+        }, 200, cors);
+      }
+
+      // ── Initialize Keys for Inpriv ID User ────────────────────────────────
+      // One-time mailbox activation for an existing Inpriv ID account. The
+      // request must carry the ID server's proof (ID_INIT_TICKET) that this
+      // exact user just passed password + (if enabled) TOTP — the ticket is
+      // single-use and short-lived, so the second factor can never be
+      // bypassed by replaying a captured password alone.
       if (path === "/api/v1/init-keys" && request.method === "POST") {
         const body = await request.json();
         let username = String(body.username || "").toLowerCase().trim();
         if (username.endsWith("@inpriv.xyz")) username = username.slice(0, -"@inpriv.xyz".length).trim();
         const password = String(body.password || "");
+        const initTicket = String(body.id_init_ticket || "");
 
         const pubkey = String(body.public_key || "");
         const epk = String(body.encrypted_private_key || "");
@@ -674,12 +891,22 @@ export default {
         // Verify with Inpriv ID database
         if (!env.ID_DB) return bad("Inpriv ID database unavailable", 500, cors);
         const idUser = await env.ID_DB.prepare(
-          "SELECT id, username, email, pass_hash, pass_salt, pass_iters FROM users WHERE username = ? OR email = ?"
+          "SELECT id, username, email, totp_enabled FROM users WHERE username = ? OR email = ?"
         ).bind(username, `${username}@${DOMAIN}`).first();
 
         if (!idUser) return bad("Inpriv ID account not found", 404, cors);
-        const ph = await passHash(password, idUser.pass_salt, idUser.pass_iters || PASS_ITERS);
-        if (!constantTimeEq(ph, idUser.pass_hash)) return bad("invalid Inpriv ID password", 401, cors);
+
+        // Anti-enumeration: burn a dummy PBKDF2 run when the account does not
+        // exist, mirroring the cost of the real password check below.
+        const verified = await verifyIdLogin(env, idUser.id, password);
+        if (!verified) return bad("invalid Inpriv ID credentials", 401, cors);
+
+        // TOTP: the ID backend must have just verified the second factor
+        // (password+code in one request) and minted the one-time ticket.
+        if (idUser.totp_enabled) {
+          const v = await consumeIdInitTicket(env, initTicket, idUser.username);
+          if (!v) return bad("two-factor verification required — sign in again and enter your authenticator code", 401, cors);
+        }
 
         // Check if already in Mail DB
         const existing = await env.DB.prepare("SELECT * FROM users WHERE username = ?").bind(idUser.username).first();
