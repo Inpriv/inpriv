@@ -29,11 +29,17 @@ async function api(path, body, method = "POST") {
     token = rotated;
     localStorage.setItem("inpriv_id_token", rotated);
   }
-  if (res.status === 401 && token) {
-    token = null;
-    localStorage.removeItem("inpriv_id_token");
+  // 401 always throws (auth failure = an error the caller must show);
+  // deleting the token happens only when the server confirms the session
+  // is really gone, never as a side effect of a wrong-password attempt.
+  if (res.status === 401) {
+    if (token && data && data.error === "unauthorized") {
+      token = null;
+      localStorage.removeItem("inpriv_id_token");
+    }
+    throw new Error(data.error || "unauthorized");
   }
-  if (!res.ok && res.status !== 401) throw new Error(data.error || "request failed");
+  if (!res.ok) throw new Error(data.error || "request failed");
   if (data.token) {
     token = data.token;
     localStorage.setItem("inpriv_id_token", data.token);
