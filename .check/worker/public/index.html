@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com fonts.gstatic.com; font-src 'self' https://fonts.googleapis.com fonts.gstatic.com; img-src 'self' data: blob: https://hush.best; media-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self'; worker-src 'none'; manifest-src 'self'">
+  <title>Inpriv Check — Code &amp; File Security Scanner</title>
+  <meta name="robots" content="index, follow">
+  <meta name="description" content="Paste code, upload a file or point at a GitHub repo — Inpriv Check scans it for malware, trojans, backdoors, exfiltration and obfuscation. Heuristic engine plus VirusTotal, on the edge." />
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Inpriv">
+  <meta property="og:title" content="Inpriv Check — Code &amp; File Security Scanner">
+  <meta property="og:description" content="Paste code, upload a file or scan a GitHub repo for malware, trojans, backdoors and obfuscation. Heuristic engine + VirusTotal, nothing stored.">
+  <meta property="og:url" content="https://check.inpriv.xyz/">
+  <meta property="og:image" content="https://inpriv.xyz/og/check.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Inpriv Check — Code &amp; File Security Scanner">
+  <meta property="og:locale" content="en_US">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Inpriv Check — Code &amp; File Security Scanner">
+  <meta name="twitter:description" content="Scan code, files and GitHub repos for malware, trojans, backdoors and obfuscation. Heuristic engine + VirusTotal, nothing stored.">
+  <meta name="twitter:image" content="https://inpriv.xyz/og/check.png">
+  <meta name="twitter:image:alt" content="Inpriv Check — Code &amp; File Security Scanner">
+  <link rel="canonical" href="https://check.inpriv.xyz/">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Inpriv Check — Code & File Security Scanner","url":"https://check.inpriv.xyz/","description":"Scan code, files and GitHub repositories for malware, trojans, backdoors and obfuscation. Heuristic engine plus VirusTotal integration.","applicationCategory":"SecurityApplication","operatingSystem":"All","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"publisher":{"@type":"Organization","name":"Inpriv Labs","url":"https://inpriv.xyz"},"inLanguage":"en"}</script>
+
+  <link rel="icon" type="image/png" href="/icon.png" />
+  <link rel="apple-touch-icon" href="/icon.png" />
+  <link rel="shortcut icon" href="/icon.png" />
+
+  <meta name="theme-color" content="#141218" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#FEFBFF" media="(prefers-color-scheme: light)" >
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:ital,opsz,wght@0,8..144,100..1000;1,8..144,100..1000&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+
+  <style>
+  /* Google typography (m3.material.io baseline) */
+  @font-face { font-family:'Google Sans'; font-style:normal; font-weight:475; font-display:swap; src:url(https://fonts.gstatic.com/s/googlesans/v70/4UaRrENHsxJlGDuGo1OIlJfC6mGS6vhAK1YobMu2vgCIhM907w.woff2) format('woff2'); }
+  @font-face { font-family:'Google Sans Text'; font-style:normal; font-weight:400; font-display:swap; src:url(https://fonts.gstatic.com/s/googlesanstext/v25/5aUu9-KzpRiLCAt4Unrc-xIKmCU5qEp2i0VBuxM.woff2) format('woff2'); }
+  @font-face { font-family:'Google Sans Text'; font-style:normal; font-weight:500; font-display:swap; src:url(https://fonts.gstatic.com/s/googlesanstext/v25/5aUp9-KzpRiLCAt4Unrc-xIKmCU5oLlVnmhjtjm4DZw.woff2) format('woff2'); }
+  @font-face { font-family:'Google Sans Text'; font-style:normal; font-weight:700; font-display:swap; src:url(https://fonts.gstatic.com/s/googlesanstext/v25/5aUp9-KzpRiLCAt4Unrc-xIKmCU5oPFTnmhjtjm4DZw.woff2) format('woff2'); }
+
+    /* ===== Tokens — Google M3 baseline ===== */
+    :root {
+      --md-easing-standard: cubic-bezier(0.2, 0.0, 0.0, 1.0);
+      --md-easing-emphasized: cubic-bezier(0.3, 0.0, 0.0, 1.0);
+      --md-easing-spring: cubic-bezier(0.2, 1.4, 0.0, 1.0);
+      --md-easing-spring-soft: cubic-bezier(0.34, 1.3, 0.64, 1.0);
+      --font-sans: 'Google Sans Text', 'Roboto Flex', system-ui, -apple-system, sans-serif;
+      --font-display: 'Google Sans', 'Google Sans Text', 'Roboto Flex', system-ui, sans-serif;
+    }
+    [data-theme="light"] {
+      --md-primary: #9F86FF; --md-on-primary: #FFFFFF; --md-primary-container: #E6DEFF; --md-on-primary-container: #1E0060;
+      --md-secondary: #5D5D74; --md-on-secondary: #FFFFFF; --md-secondary-container: #DCDAF5; --md-on-secondary-container: #21182B;
+      --md-tertiary: #E37402; --md-on-tertiary: #FFFFFF; --md-tertiary-container: #F1D3F9; --md-on-tertiary-container: #271430;
+      --md-error: #B3261E; --md-error-container: #F9DEDC; --md-on-error-container: #490909;
+      --md-surface: #FEFBFF; --md-on-surface: #1C1B1D; --md-on-surface-variant: #4D4256;
+      --md-surface-dim: #DBD9DD;
+      --md-surface-container-lowest: #FFFFFF; --md-surface-container-low: #F8F1F6;
+      --md-surface-container: #F2ECEE; --md-surface-container-high: #ECE7E9; --md-surface-container-highest: #E6E1E3;
+      --md-outline: #787579; --md-outline-variant: #E6E1E3;
+      --md-inverse-surface: #303030; --md-inverse-on-surface: #F5EFF1; --md-inverse-primary: #4B21BD;
+      --md-shadow-color: rgba(75, 33, 189, 0.08); --md-shadow-color-strong: rgba(30, 25, 40, 0.22);
+      --ok-color: #1B7F47; --ok-bg: #DDF3E4; --ok-on: #0A3D20;
+      --warn-color: #7A5900; --warn-bg: #FDEEC2; --warn-on: #4A3500;
+    }
+    [data-theme="dark"] {
+      --md-primary: #CBBEFF; --md-on-primary: #340098; --md-primary-container: #4B21BD; --md-on-primary-container: #E6DEFF;
+      --md-secondary: #C6C4DE; --md-on-secondary: #313049; --md-secondary-container: #45425C; --md-on-secondary-container: #E2E0F1;
+      --md-tertiary: #FFB868; --md-on-tertiary: #4E2800; --md-tertiary-container: #4E3655; --md-on-tertiary-container: #F5D9FC;
+      --md-error: #FF8670; --md-error-container: #93000A; --md-on-error-container: #FFDAD3;
+      --md-surface: #141218; --md-on-surface: #E6E1E3; --md-on-surface-variant: #CBC4D4;
+      --md-surface-dim: #141218;
+      --md-surface-container-lowest: #0F0E13; --md-surface-container-low: #1F1D24;
+      --md-surface-container: #242229; --md-surface-container-high: #2F2C33; --md-surface-container-highest: #3A373F;
+      --md-outline: #948F99; --md-outline-variant: #47464F;
+      --md-inverse-surface: #E6E1E3; --md-inverse-on-surface: #303030; --md-inverse-primary: #CBBDFF;
+      --md-shadow-color: rgba(0, 0, 0, 0.4); --md-shadow-color-strong: rgba(0, 0, 0, 0.65);
+      --ok-color: #63D68C; --ok-bg: #14371F; --ok-on: #B8F5C8;
+      --warn-color: #FFD28A; --warn-bg: #4A3300; --warn-on: #FFE5B8;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    [hidden] { display: none !important; }
+    html { background: var(--md-surface); }
+    body { font-family: var(--font-sans); background: var(--md-surface); color: var(--md-on-surface); min-height: 100vh; padding: 24px 16px 120px 16px; position: relative; overflow-x: hidden; transition: background-color 0.4s var(--md-easing-standard), color 0.4s var(--md-easing-standard); font-optical-sizing: auto; -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
+    @media (min-width: 600px) { body { padding: 32px 24px 140px 24px; } }
+    .app-wrapper { max-width: 920px; margin: 0 auto; position: relative; z-index: 1; }
+    .material-symbols-rounded { font-family: 'Material Symbols Rounded'; font-weight: normal; font-style: normal; font-size: 24px; line-height: 1; display: inline-block; white-space: nowrap; word-wrap: normal; direction: ltr; -webkit-font-smoothing: antialiased; font-variation-settings: 'wght' 500, 'GRAD' 0, 'opsz' 24; -webkit-font-feature-settings: 'liga'; font-feature-settings: 'liga'; }
+    @keyframes barIn { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulseGlow { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
+
+    /* ── app bar ── */
+    .app-bar { display: flex; align-items: center; justify-content: space-between; height: 54px; padding: 6px 8px 6px 18px; border-radius: 9999px; background: color-mix(in srgb, var(--md-surface-container) 78%, transparent); backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%); border: 1px solid color-mix(in srgb, var(--md-outline-variant) 55%, transparent); box-shadow: 0 4px 20px -4px var(--md-shadow-color); animation: barIn 0.7s var(--md-easing-spring); margin-bottom: 28px; position: sticky; top: 12px; z-index: 50; }
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .brand-icon { width: 36px; height: 36px; border-radius: 50%; background: var(--md-primary-container); color: var(--md-on-primary-container); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .brand-icon .material-symbols-rounded { font-size: 20px; }
+    .brand-text { min-width: 0; overflow: hidden; }
+    .brand-h1 { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.1; color: var(--md-on-surface); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .brand-h1 span { color: var(--md-primary); }
+    .open-source-badge { font-size: 9px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; background: var(--md-surface-container-high); color: var(--md-on-surface-variant); border: 1px solid var(--md-outline-variant); }
+    .app-bar-actions { display: flex; align-items: center; gap: 4px; }
+    .icon-btn { width: 40px; height: 40px; border-radius: 50%; border: none; background: transparent; color: var(--md-on-surface); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background-color 0.2s var(--md-easing-standard), transform 0.15s var(--md-easing-spring); }
+    .icon-btn:hover { background-color: color-mix(in srgb, var(--md-on-surface) 8%, transparent); }
+    .icon-btn:active { transform: scale(0.92); }
+
+    /* ── hero ── */
+    .hero { text-align: center; margin-bottom: 28px; animation: fadeUp 0.8s var(--md-easing-spring); }
+    .hero-h2 { font-family: var(--font-display); font-size: clamp(30px, 6.5vw, 50px); font-weight: 475; letter-spacing: -0.025em; line-height: 1.08; margin-bottom: 12px; }
+    .hero-h2 .accent { font-style: italic; font-weight: 400; color: var(--md-primary); }
+    .hero-desc { font-size: clamp(14px, 2vw, 15.5px); color: var(--md-on-surface-variant); max-width: 660px; margin: 0 auto; line-height: 1.55; }
+    .privacy-pill { display: inline-flex; align-items: center; gap: 6px; margin-top: 16px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 6px 12px; border-radius: 9999px; background: var(--md-primary-container); color: var(--md-on-primary-container); }
+    .privacy-pill .material-symbols-rounded { font-size: 14px; }
+
+    /* ── engine selector ── */
+    .engine-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 20px; }
+    @media (min-width: 720px) { .engine-grid { grid-template-columns: repeat(3, 1fr); } }
+    .engine-card { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 18px 18px 16px; border-radius: 24px; border: 2px solid var(--md-outline-variant); background: var(--md-surface-container-low); cursor: pointer; text-align: left; font-family: inherit; color: var(--md-on-surface); transition: border-color 0.25s var(--md-easing-standard), background-color 0.25s var(--md-easing-standard), transform 0.15s var(--md-easing-spring); animation: fadeUp 0.7s var(--md-easing-spring) backwards; }
+    .engine-card:nth-child(1) { animation-delay: 0.05s; } .engine-card:nth-child(2) { animation-delay: 0.1s; } .engine-card:nth-child(3) { animation-delay: 0.15s; }
+    .engine-card:hover { background: var(--md-surface-container); }
+    .engine-card:active { transform: scale(0.985); }
+    .engine-card.active { border-color: var(--md-primary); background: color-mix(in srgb, var(--md-primary-container) 22%, var(--md-surface-container-low)); }
+    .engine-card .ec-head { display: flex; align-items: center; gap: 10px; }
+    .engine-card .ec-icon { width: 40px; height: 40px; border-radius: 14px; background: var(--md-surface-container-high); color: var(--md-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .engine-card .ec-icon .material-symbols-rounded { font-size: 22px; }
+    .engine-card h3 { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+    .engine-card p { font-size: 12.5px; line-height: 1.5; color: var(--md-on-surface-variant); }
+    .engine-card .ec-badge { position: absolute; top: 12px; right: 12px; font-size: 9px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; padding: 3px 8px; border-radius: 9999px; }
+    .engine-card .ec-badge.live { background: var(--ok-bg); color: var(--ok-on); }
+    .engine-card .ec-badge.soon { background: var(--md-surface-container-high); color: var(--md-on-surface-variant); border: 1px solid var(--md-outline-variant); }
+    .engine-card.disabled { cursor: not-allowed; opacity: 0.72; }
+
+    /* ── input card ── */
+    .card { background: var(--md-surface-container-low); border: 1px solid var(--md-outline-variant); border-radius: 24px; padding: 20px 18px; margin-bottom: 16px; animation: fadeUp 0.7s var(--md-easing-spring) 0.1s backwards; }
+    .card-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--md-on-surface-variant); display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
+    .card-label .material-symbols-rounded { font-size: 16px; }
+    .seg-bar { display: flex; gap: 4px; padding: 4px; border-radius: 9999px; background: var(--md-surface-container-high); margin-bottom: 16px; flex-wrap: wrap; }
+    .seg-btn { flex: 1; min-width: 88px; height: 40px; border: none; border-radius: 9999px; background: transparent; color: var(--md-on-surface-variant); cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600; letter-spacing: 0.02em; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.25s var(--md-easing-spring-soft); }
+    .seg-btn .material-symbols-rounded { font-size: 18px; }
+    .seg-btn.active { background: var(--md-secondary-container); color: var(--md-on-secondary-container); }
+    .seg-btn:active { transform: scale(0.96); }
+    .text-input, .select-input { width: 100%; font-family: inherit; font-size: 14px; color: var(--md-on-surface); background: var(--md-surface-container); border: 1px solid var(--md-outline-variant); border-radius: 14px; padding: 12px 14px; outline: none; transition: border-color 0.2s var(--md-easing-standard), box-shadow 0.2s var(--md-easing-standard); }
+    .text-input:focus { border-color: var(--md-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-primary) 18%, transparent); }
+    textarea.text-input { min-height: 200px; resize: vertical; line-height: 1.5; font-family: 'Roboto Flex', ui-monospace, 'Cascadia Code', Consolas, monospace; font-size: 13px; }
+    @media (min-width: 720px) { textarea.text-input { min-height: 260px; } }
+    .text-input::placeholder { color: var(--md-on-surface-variant); opacity: 0.7; }
+    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .field-label { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--md-on-surface-variant); }
+    .field-hint { font-size: 11.5px; color: var(--md-on-surface-variant); opacity: 0.85; line-height: 1.45; }
+    .dropzone { border: 2px dashed var(--md-outline); border-radius: 18px; padding: 26px 18px; text-align: center; cursor: pointer; transition: border-color 0.2s var(--md-easing-standard), background-color 0.2s var(--md-easing-standard); }
+    .dropzone:hover, .dropzone.drag { border-color: var(--md-primary); background: color-mix(in srgb, var(--md-primary) 6%, transparent); }
+    .dropzone .dz-icon { font-size: 36px; color: var(--md-primary); margin-bottom: 8px; }
+    .dropzone .dz-title { font-size: 14px; font-weight: 600; }
+    .dropzone .dz-sub { font-size: 12px; color: var(--md-on-surface-variant); margin-top: 3px; }
+    .file-chip { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding: 10px 14px; border-radius: 14px; background: var(--md-surface-container); border: 1px solid var(--md-outline-variant); font-size: 13px; }
+    .file-chip .fc-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-chip .fc-size { color: var(--md-on-surface-variant); font-size: 12px; white-space: nowrap; }
+    .file-chip button { background: transparent; border: none; color: var(--md-on-surface-variant); cursor: pointer; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+    .file-chip button:hover { background: color-mix(in srgb, var(--md-on-surface) 8%, transparent); }
+
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 48px; padding: 0 26px; border: none; border-radius: 9999px; font-family: inherit; font-size: 14.5px; font-weight: 700; letter-spacing: 0.01em; cursor: pointer; transition: transform 0.15s var(--md-easing-spring), box-shadow 0.2s var(--md-easing-standard), background-color 0.2s var(--md-easing-standard); }
+    .btn-primary { background: var(--md-primary); color: var(--md-on-primary); box-shadow: 0 4px 14px -2px var(--md-shadow-color-strong); }
+    .btn-primary:hover { box-shadow: 0 6px 20px -2px var(--md-shadow-color-strong); }
+    .btn-primary:active { transform: scale(0.97); }
+    .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
+    .btn .material-symbols-rounded { font-size: 19px; }
+    .btn-block { width: 100%; margin-top: 4px; }
+    .btn-spin .material-symbols-rounded { animation: spin 0.9s linear infinite; }
+
+    /* ── status strip ── */
+    .status-strip { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: 16px; background: var(--md-surface-container); border: 1px solid var(--md-outline-variant); font-size: 13px; line-height: 1.5; margin-bottom: 14px; display: none; }
+    .status-strip.show { display: flex; animation: fadeUp 0.4s var(--md-easing-spring-soft); }
+    .status-strip .ms { flex-shrink: 0; margin-top: 1px; }
+    .status-strip.error { border-color: color-mix(in srgb, var(--md-error) 55%, transparent); color: var(--md-error); }
+    .status-strip.error .ms { color: var(--md-error); }
+
+    /* ── results ── */
+    .result-wrap { display: none; }
+    .result-wrap.show { display: block; animation: fadeUp 0.6s var(--md-easing-spring-soft); }
+    .verdict-hero { display: flex; align-items: center; gap: 18px; padding: 22px 20px; border-radius: 24px; border: 1px solid var(--md-outline-variant); background: var(--md-surface-container-low); margin-bottom: 16px; }
+    .verdict-icon { width: 64px; height: 64px; border-radius: 22px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .verdict-icon .material-symbols-rounded { font-size: 34px; }
+    .verdict-info h3 { font-size: 19px; font-weight: 700; letter-spacing: -0.015em; }
+    .verdict-info p { font-size: 13px; color: var(--md-on-surface-variant); line-height: 1.5; margin-top: 3px; }
+    .verdict-stats { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    .stat-chip { font-size: 11.5px; font-weight: 600; padding: 4px 10px; border-radius: 9999px; background: var(--md-surface-container-high); color: var(--md-on-surface-variant); }
+    .v-clean .verdict-icon { background: var(--ok-bg); color: var(--ok-color); }
+    .v-low .verdict-icon { background: var(--warn-bg); color: var(--warn-color); }
+    .v-medium .verdict-icon { background: color-mix(in srgb, var(--md-tertiary-container) 60%, transparent); color: var(--md-tertiary); }
+    .v-high .verdict-icon { background: color-mix(in srgb, var(--md-error-container) 60%, var(--md-surface)); color: var(--md-error); }
+    .v-critical .verdict-icon { background: var(--md-error-container); color: var(--md-on-error-container); }
+    .v-malicious .verdict-icon { background: var(--md-error-container); color: var(--md-on-error-container); }
+    .v-suspicious .verdict-icon { background: var(--warn-bg); color: var(--warn-color); }
+    .v-queued .verdict-icon { background: var(--md-surface-container-high); color: var(--md-on-surface-variant); }
+
+    .section-title { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--md-on-surface-variant); margin: 18px 0 10px; display: flex; align-items: center; gap: 6px; }
+    .section-title .material-symbols-rounded { font-size: 16px; }
+    .finding { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: 16px; background: var(--md-surface-container); border: 1px solid var(--md-outline-variant); margin-bottom: 8px; }
+    .finding .sev-pill { flex-shrink: 0; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 9999px; margin-top: 2px; }
+    .sev-critical { background: var(--md-error-container); color: var(--md-on-error-container); }
+    .sev-high { background: color-mix(in srgb, var(--md-error-container) 55%, var(--md-surface)); color: var(--md-error); }
+    .sev-medium { background: color-mix(in srgb, var(--md-tertiary-container) 55%, var(--md-surface)); color: var(--md-tertiary); }
+    .sev-low { background: var(--warn-bg); color: var(--warn-on); }
+    .sev-info { background: var(--md-surface-container-high); color: var(--md-on-surface-variant); }
+    .finding .f-body { flex: 1; min-width: 0; }
+    .finding .f-name { font-size: 13.5px; font-weight: 700; }
+    .finding .f-msg { font-size: 12.5px; color: var(--md-on-surface-variant); line-height: 1.5; margin-top: 2px; }
+    .finding .f-loc { font-size: 11.5px; color: var(--md-on-surface-variant); opacity: 0.85; margin-top: 6px; font-family: 'Roboto Flex', ui-monospace, Consolas, monospace; background: var(--md-surface-container-high); border-radius: 8px; padding: 6px 10px; white-space: pre-wrap; word-break: break-word; }
+
+    .vt-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin-bottom: 12px; }
+    .vt-stat { padding: 10px; border-radius: 16px; background: var(--md-surface-container); border: 1px solid var(--md-outline-variant); text-align: center; }
+    .vt-stat .vs-num { font-size: 22px; font-weight: 700; line-height: 1.1; }
+    .vt-stat .vs-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--md-on-surface-variant); margin-top: 2px; }
+    .vt-stat.bad .vs-num { color: var(--md-error); }
+    .vt-stat.warn .vs-num { color: var(--md-tertiary); }
+    .vt-stat.good .vs-num { color: var(--ok-color); }
+    .engine-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 12px; background: var(--md-surface-container); margin-bottom: 6px; font-size: 12.5px; }
+    .engine-row .er-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+    .engine-row .er-result { font-size: 11.5px; padding: 2px 8px; border-radius: 9999px; font-weight: 700; }
+    .er-malicious { background: var(--md-error-container); color: var(--md-on-error-container); }
+    .er-suspicious { background: var(--warn-bg); color: var(--warn-on); }
+    .er-type-unsupported { background: var(--md-surface-container-high); color: var(--md-on-surface-variant); }
+
+    .ai-placeholder { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; padding: 34px 18px; border-radius: 24px; border: 1px dashed var(--md-outline); }
+    .ai-placeholder .material-symbols-rounded { font-size: 40px; color: var(--md-on-surface-variant); }
+    .ai-placeholder h3 { font-size: 16px; font-weight: 700; }
+    .ai-placeholder p { font-size: 13px; color: var(--md-on-surface-variant); max-width: 440px; line-height: 1.55; }
+
+    .spinner-line { height: 4px; border-radius: 9999px; background: var(--md-surface-container-high); overflow: hidden; margin-bottom: 14px; }
+    .spinner-line > div { height: 100%; width: 40%; border-radius: 9999px; background: var(--md-primary); animation: slideX 1.1s ease-in-out infinite; }
+    @keyframes slideX { 0% { transform: translateX(-110%); } 100% { transform: translateX(280%); } }
+
+    .footer { text-align: center; margin-top: 40px; font-size: 12px; color: var(--md-on-surface-variant); }
+    .footer a { color: var(--md-on-surface-variant); }
+    .footer a:hover { color: var(--md-primary); }
+
+    @media (max-width: 560px) {
+      .verdict-hero { flex-direction: column; text-align: center; gap: 10px; }
+      .verdict-stats { justify-content: center; }
+      .engine-card .ec-badge { position: static; align-self: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-wrapper">
+
+    <div class="app-bar">
+      <div class="brand">
+        <a class="brand-icon" href="https://inpriv.xyz" aria-label="Inpriv home"><span class="material-symbols-rounded" aria-hidden="true">fact_check</span></a>
+        <div class="brand-text">
+          <div class="brand-h1">Inpriv <span>Check</span></div>
+          <div class="open-source-badge">Open source</div>
+        </div>
+      </div>
+      <div class="app-bar-actions">
+        <button type="button" id="themeBtn" class="icon-btn" aria-label="Toggle theme"><span class="material-symbols-rounded" id="themeIcon" aria-hidden="true">light_mode</span></button>
+      </div>
+    </div>
+
+    <div class="hero">
+      <h2 class="hero-h2">Scan code for <span class="accent">malware</span> &amp; threats</h2>
+      <p class="hero-desc">Paste code, upload a file or link a GitHub repository — Check runs a heuristic analysis for viruses, trojans, backdoors, exfiltration and obfuscation, then enriches it with VirusTotal. Nothing is stored.</p>
+      <div class="privacy-pill"><span class="material-symbols-rounded" aria-hidden="true">verified_user</span> Nothing stored · No logs</div>
+    </div>
+
+    <!-- engine selector -->
+    <div class="engine-grid" role="tablist" aria-label="Scanning engine">
+      <button type="button" class="engine-card active" data-engine="static" role="tab" aria-selected="true">
+        <span class="ec-badge live">Live</span>
+        <div class="ec-head">
+          <div class="ec-icon"><span class="material-symbols-rounded" aria-hidden="true">rule</span></div>
+          <h3>Heuristic scan</h3>
+        </div>
+        <p>Built-in analyzer — no external services. Detects reverse shells, droppers, stealers, miners, ransomware patterns and 50+ more signals.</p>
+      </button>
+      <button type="button" class="engine-card" data-engine="vt" role="tab" aria-selected="false">
+        <span class="ec-badge live">Live</span>
+        <div class="ec-head">
+          <div class="ec-icon"><span class="material-symbols-rounded" aria-hidden="true">shield</span></div>
+          <h3>VirusTotal</h3>
+        </div>
+        <p>Cross-checks file hashes (and uploads unknown files) against 70+ antivirus engines directly from the edge.</p>
+      </button>
+      <button type="button" class="engine-card disabled" data-engine="ai" role="tab" aria-selected="false" id="aiCard">
+        <span class="ec-badge soon">Soon</span>
+        <div class="ec-head">
+          <div class="ec-icon"><span class="material-symbols-rounded" aria-hidden="true">neurology</span></div>
+          <h3>AI review</h3>
+        </div>
+        <p>An LLM reads the code and writes a security review in plain language. Engine is prepared — key &amp; model are being wired in.</p>
+      </button>
+    </div>
+
+    <!-- input card -->
+    <div class="card">
+      <div class="card-label"><span class="material-symbols-rounded" aria-hidden="true">code</span> Input</div>
+      <div class="seg-bar" id="inputSeg" role="tablist" aria-label="Input type">
+        <button type="button" class="seg-btn active" data-input="paste" role="tab" aria-selected="true"><span class="material-symbols-rounded" aria-hidden="true">content_paste</span> Paste</button>
+        <button type="button" class="seg-btn" data-input="file" role="tab" aria-selected="false"><span class="material-symbols-rounded" aria-hidden="true">upload_file</span> File</button>
+        <button type="button" class="seg-btn" data-input="github" role="tab" aria-selected="false"><span class="material-symbols-rounded" aria-hidden="true">code_blocks</span> GitHub</button>
+      </div>
+
+      <!-- paste -->
+      <div class="input-pane" data-pane="paste">
+        <div class="field">
+          <label class="field-label" for="codeArea">Code or script</label>
+          <textarea id="codeArea" class="text-input" placeholder="Paste JavaScript, Python, PowerShell, shell, batch, PHP, VBA…&#10;Example: a reverse-shell one-liner, a dropper, an obfuscated payload"></textarea>
+          <div class="field-hint" id="charCount">0 / 1,500,000 chars</div>
+        </div>
+        <div class="field">
+          <label class="field-label" for="pasteName">File name (for language detection)</label>
+          <input id="pasteName" class="text-input" type="text" placeholder="payload.js" />
+        </div>
+      </div>
+
+      <!-- file -->
+      <div class="input-pane" data-pane="file" hidden>
+        <div class="field">
+          <label class="field-label" for="fileInput">File</label>
+          <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="Choose a file">
+            <div class="dz-icon"><span class="material-symbols-rounded" aria-hidden="true">upload_file</span></div>
+            <div class="dz-title">Drop a file here or click to browse</div>
+            <div class="dz-sub">Up to 24 MB — scripts, binaries, archives, documents</div>
+          </div>
+          <input type="file" id="fileInput" hidden>
+          <div class="file-chip" id="fileChip" hidden>
+            <span class="material-symbols-rounded" aria-hidden="true">description</span>
+            <span class="fc-name" id="fileName">file</span>
+            <span class="fc-size" id="fileSize"></span>
+            <button type="button" id="fileClear" aria-label="Remove file"><span class="material-symbols-rounded" aria-hidden="true">close</span></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- github -->
+      <div class="input-pane" data-pane="github" hidden>
+        <div class="field">
+          <label class="field-label" for="repoInput">Repository</label>
+          <input id="repoInput" class="text-input" type="text" placeholder="owner/repo — or a full github.com URL" />
+          <div class="field-hint">Public repositories only. The worker walks the repo tree and scans up to ~60 text files (1.5 MB each).</div>
+        </div>
+      </div>
+
+      <button type="button" id="scanBtn" class="btn btn-primary btn-block">
+        <span class="material-symbols-rounded" aria-hidden="true">radar</span>
+        <span id="scanBtnLabel">Run scan</span>
+      </button>
+
+      <div class="status-strip" id="statusStrip" role="status"></div>
+    </div>
+
+    <div class="spinner-line" id="spinner" hidden><div></div></div>
+
+    <!-- results -->
+    <div class="result-wrap" id="resultWrap">
+      <div id="resultStatic"></div>
+      <div id="resultVt"></div>
+      <div id="resultAi"></div>
+    </div>
+
+    <div class="footer">
+      <span>Inpriv Check — part of <a href="https://inpriv.xyz">inpriv.xyz</a>, a zero-knowledge privacy suite.</span>
+      <br>
+      <a href="https://github.com/Inpriv/inpriv">Open source</a> · <a href="https://status.inpriv.xyz">Service status</a>
+    </div>
+  </div>
+
+  <script>
+  "use strict";
+  // ── theme ──────────────────────────────────────────────────────────────
+  function applyTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    document.getElementById('themeIcon').textContent = t === 'dark' ? 'light_mode' : 'dark_mode';
+    try { localStorage.setItem('inpriv_theme', t); } catch (e) {}
+  }
+  applyTheme((function () { try { return localStorage.getItem('inpriv_theme') || 'dark'; } catch (e) { return 'dark'; } })());
+  document.getElementById('themeBtn').addEventListener('click', function () {
+    applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+  });
+
+  // ── state ──────────────────────────────────────────────────────────────
+  var engine = 'static';   // static | vt | ai
+  var inputMode = 'paste'; // paste | file | github
+  var selectedFile = null;
+  var scanning = false;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var el = { code: $('codeArea'), pasteName: $('pasteName'), repo: $('repoInput'), fileInput: $('fileInput'),
+             chip: $('fileChip'), fileName: $('fileName'), fileSize: $('fileSize'), status: $('statusStrip'),
+             spinner: $('spinner'), resultWrap: $('resultWrap'), scanBtn: $('scanBtn'), scanBtnLabel: $('scanBtnLabel'),
+             charCount: $('charCount'), dropzone: $('dropzone'), aiCard: $('aiCard') };
+
+  // ── engine + input tabs ────────────────────────────────────────────────
+  document.querySelectorAll('.engine-card').forEach(function (c) {
+    c.addEventListener('click', function () {
+      if (c.classList.contains('disabled')) { showStatus("AI review is coming soon — an API key and model are being wired in.", false); return; }
+      engine = c.dataset.engine;
+      if (engine === 'vt' && inputMode === 'github') {
+        // VirusTotal works on single files/hashes — repos need the heuristic engine.
+        inputMode = 'paste';
+        syncInputSeg();
+        showStatus("VirusTotal scans files and hashes — repositories use the heuristic engine.", false);
+      }
+      document.querySelectorAll('.engine-card').forEach(function (x) {
+        x.classList.toggle('active', x === c);
+        if (x !== c) x.setAttribute('aria-selected', 'false'); else x.setAttribute('aria-selected', 'true');
+      });
+      updateScanLabel();
+    });
+  });
+  function syncInputSeg() {
+    document.querySelectorAll('#inputSeg .seg-btn').forEach(function (x) {
+      x.classList.toggle('active', x.dataset.input === inputMode);
+      x.setAttribute('aria-selected', x.dataset.input === inputMode ? 'true' : 'false');
+    });
+    document.querySelectorAll('.input-pane').forEach(function (p) { p.hidden = p.dataset.pane !== inputMode; });
+  }
+  document.querySelectorAll('#inputSeg .seg-btn').forEach(function (b) {
+    b.addEventListener('click', function () {
+      inputMode = b.dataset.input;
+      if (inputMode === 'github' && engine === 'vt') {
+        engine = 'static';
+        document.querySelectorAll('.engine-card').forEach(function (x) {
+          x.classList.toggle('active', x.dataset.engine === 'static');
+          x.setAttribute('aria-selected', x.dataset.engine === 'static' ? 'true' : 'false');
+        });
+        showStatus("Repositories are scanned with the heuristic engine — VirusTotal needs a single file.", false);
+      }
+      syncInputSeg();
+      updateScanLabel();
+    });
+  });
+
+  function updateScanLabel() {
+    var labels = { static: 'Run scan', vt: 'Check with VirusTotal', ai: 'AI review' };
+    el.scanBtnLabel.textContent = labels[engine];
+  }
+
+  // ── char counter ───────────────────────────────────────────────────────
+  el.code.addEventListener('input', function () {
+    el.charCount.textContent = el.code.value.length.toLocaleString() + ' / 1,500,000 chars';
+  });
+
+  // ── file dropzone ──────────────────────────────────────────────────────
+  function setFile(f) {
+    selectedFile = f;
+    if (!f) { el.chip.hidden = true; return; }
+    el.chip.hidden = false;
+    el.fileName.textContent = f.name;
+    var kb = f.size / 1024;
+    el.fileSize.textContent = kb >= 1024 ? (kb / 1024).toFixed(2) + ' MB' : Math.round(kb) + ' KB';
+  }
+  el.dropzone.addEventListener('click', function () { el.fileInput.click(); });
+  el.dropzone.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.fileInput.click(); } });
+  ['dragenter', 'dragover'].forEach(function (ev) { el.dropzone.addEventListener(ev, function () { el.dropzone.classList.add('drag'); }); });
+  ['dragleave', 'drop'].forEach(function (ev) { el.dropzone.addEventListener(ev, function () { el.dropzone.classList.remove('drag'); }); });
+  el.dropzone.addEventListener('drop', function (e) { e.preventDefault(); if (e.dataTransfer.files.length) setFile(e.dataTransfer.files[0]); });
+  el.fileInput.addEventListener('change', function () { if (el.fileInput.files.length) setFile(el.fileInput.files[0]); });
+  $('fileClear').addEventListener('click', function (e) { e.stopPropagation(); setFile(null); el.fileInput.value = ''; });
+
+  // ── toast/status ───────────────────────────────────────────────────────
+  var statusTimer = null;
+  function showStatus(msg, isErr) {
+    el.status.textContent = msg;
+    el.status.className = 'status-strip show' + (isErr ? ' error' : '');
+    clearTimeout(statusTimer);
+    if (!isErr) statusTimer = setTimeout(function () { el.status.className = 'status-strip'; }, 6000);
+  }
+  function clearStatus() { el.status.className = 'status-strip'; }
+
+  // ── scan flow ──────────────────────────────────────────────────────────
+  function sha256hex(buf) {
+    return crypto.subtle.digest('SHA-256', buf).then(function (d) {
+      return Array.prototype.map.call(new Uint8Array(d), function (b) { return b.toString(16).padStart(2, '0'); }).join('');
+    });
+  }
+  function bytesToB64(bytes) {
+    var chunks = [], CH = 0x8000;
+    for (var i = 0; i < bytes.length; i += CH) chunks.push(String.fromCharCode.apply(null, bytes.subarray(i, i + CH)));
+    return btoa(chunks.join(''));
+  }
+
+  async function collectPayload() {
+    if (engine === 'vt') return collectVtPayload();
+    var body = { engines: [engine], mode: inputMode };
+    if (inputMode === 'paste') {
+      var code = el.code.value.trim();
+      if (!code) throw new Error('Paste some code first.');
+      body.code = code;
+      body.filename = el.pasteName.value.trim() || 'paste.txt';
+    } else if (inputMode === 'file') {
+      if (!selectedFile) throw new Error('Choose a file first.');
+      var buf = await selectedFile.arrayBuffer();
+      if (buf.byteLength > 24 * 1024 * 1024) throw new Error('File too large — max 24 MB.');
+      // text-ish files go as text, everything else as base64 (static engine works on text)
+      var ext = (selectedFile.name.split('.').pop() || '').toLowerCase();
+      var TEXT_HINTS = ['js','mjs','cjs','ts','tsx','jsx','py','sh','bash','zsh','ps1','bat','cmd','vbs','vba','php','rb','pl','java','c','h','cpp','go','rs','html','htm','css','sql','json','yml','yaml','toml','md','txt','cfg','conf','ini','env','csv','xml','log','lock'];
+      var bytes = new Uint8Array(buf);
+      if (TEXT_HINTS.includes(ext) || bytes.length < 200000) {
+        body.files = [{ name: selectedFile.name, code: new TextDecoder('utf-8').decode(bytes) }];
+      } else {
+        body.files = [{ name: selectedFile.name, b64: bytesToB64(bytes) }];
+      }
+    } else if (inputMode === 'github') {
+      var repo = el.repo.value.trim();
+      if (!repo) throw new Error('Enter a repository, e.g. owner/repo.');
+      body.repo = repo;
+    }
+    return body;
+  }
+
+  async function collectVtPayload() {
+    var body = { engines: ['vt'], mode: inputMode };
+    if (inputMode === 'paste') {
+      var code = el.code.value.trim();
+      if (!code) throw new Error('Paste some code first.');
+      var bytes = new TextEncoder().encode(code);
+      body.sha256 = await sha256hex(bytes);
+      body.fileB64 = bytesToB64(bytes);
+      body.filename = el.pasteName.value.trim() || 'paste.txt';
+    } else if (inputMode === 'file') {
+      if (!selectedFile) throw new Error('Choose a file first.');
+      var buf = await selectedFile.arrayBuffer();
+      if (buf.byteLength > 24 * 1024 * 1024) throw new Error('File too large for VirusTotal — max 24 MB.');
+      var bytes2 = new Uint8Array(buf);
+      body.sha256 = await sha256hex(bytes2);
+      body.fileB64 = bytesToB64(bytes2);
+      body.filename = selectedFile.name;
+    } else if (inputMode === 'github') {
+      var repo2 = el.repo.value.trim();
+      if (!repo2) throw new Error('Enter a repository, e.g. owner/repo.');
+      body.repo = repo2;
+      body.sha256 = null; // repo files are hashed server-side text-first
+    }
+    return body;
+  }
+
+  async function doScan() {
+    if (scanning) return;
+    var payload;
+    try { payload = await collectPayload(); }
+    catch (e) { showStatus(e.message, true); return; }
+
+    scanning = true;
+    el.scanBtn.disabled = true;
+    el.scanBtn.classList.add('btn-spin');
+    clearStatus();
+    el.spinner.hidden = false;
+    $('resultWrap').classList.remove('show');
+    var started = Date.now();
+    try {
+      var res = await fetch('/api/scan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      var data = await res.json();
+      if (!res.ok) {
+        var msg = (data && data.error) ? (data.message || data.error) : ('Scan failed (HTTP ' + res.status + ')');
+        if (data && data.error === 'rate_limited') msg = 'Rate limit reached — wait a minute and try again.';
+        showStatus(msg, true);
+        return;
+      }
+      var elapsed = ((Date.now() - started) / 1000).toFixed(1);
+      renderResults(data, elapsed);
+    } catch (e) {
+      showStatus('Network error: ' + (e && e.message ? e.message : e), true);
+    } finally {
+      scanning = false;
+      el.scanBtn.disabled = false;
+      el.scanBtn.classList.remove('btn-spin');
+      el.spinner.hidden = true;
+    }
+  }
+  el.scanBtn.addEventListener('click', doScan);
+  document.addEventListener('keydown', function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') doScan();
+  });
+
+  // ── rendering ──────────────────────────────────────────────────────────
+  var VERDICT_META = {
+    clean:      { cls: 'v-clean',  label: 'No threats detected', icon: 'verified',        msg: 'Nothing suspicious was found by the heuristic engine.' },
+    low:        { cls: 'v-low',    label: 'Low risk',             icon: 'info',           msg: 'A few minor signals — review the notes below if you can.' },
+    medium:     { cls: 'v-medium', label: 'Medium risk',          icon: 'warning',        msg: 'Several suspicious patterns were found. Inspect before running.' },
+    high:       { cls: 'v-high',   label: 'High risk',            icon: 'gpp_maybe',      msg: 'Strong malware indicators. Do not run this code.' },
+    critical:   { cls: 'v-critical', label: 'Critical risk',       icon: 'gpp_bad',        msg: 'Very strong malware indicators — treat as dangerous.' },
+    malicious:  { cls: 'v-malicious', label: 'Malicious',          icon: 'gpp_bad',        msg: 'VirusTotal engines flagged this file as malicious.' },
+    suspicious: { cls: 'v-suspicious', label: 'Suspicious',        icon: 'gpp_maybe',      msg: 'VirusTotal engines raised suspicions about this file.' },
+    queued:     { cls: 'v-queued', label: 'Analysis queued',      icon: 'hourglass_top',  msg: 'VirusTotal is still scanning — this page can refresh the result.' },
+  };
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function fmtBytes(n) {
+    if (!n && n !== 0) return '';
+    if (n < 1024) return n + ' B';
+    if (n < 1048576) return (n / 1024).toFixed(1) + ' KB';
+    return (n / 1048576).toFixed(2) + ' MB';
+  }
+
+  function verdictHero(v, statsHtml) {
+    var m = VERDICT_META[v] || VERDICT_META.medium;
+    return '<div class="verdict-hero ' + m.cls + '">' +
+      '<div class="verdict-icon"><span class="material-symbols-rounded" aria-hidden="true">' + m.icon + '</span></div>' +
+      '<div class="verdict-info"><h3>' + m.label + '</h3><p>' + m.msg + '</p>' +
+      '<div class="verdict-stats">' + statsHtml + '</div></div></div>';
+  }
+
+  function findingsHtml(findings) {
+    if (!findings.length) return '';
+    var out = '<div class="section-title"><span class="material-symbols-rounded" aria-hidden="true">report</span> Signals (' + findings.length + ')</div>';
+    findings.slice(0, 40).forEach(function (f) {
+      out += '<div class="finding">' +
+        '<span class="sev-pill sev-' + esc(f.severity) + '">' + esc(f.severity) + '</span>' +
+        '<div class="f-body">' +
+        '<div class="f-name">' + esc(f.name) + '</div>' +
+        '<div class="f-msg">' + esc(f.message) + '</div>' +
+        '<div class="f-loc">' + esc((f.path || '') + ':' + f.line) + (f.snippet ? ' — ' + esc(f.snippet) : '') + '</div>' +
+        '</div></div>';
+    });
+    if (findings.length > 40) out += '<p style="font-size:12px;color:var(--md-on-surface-variant);text-align:center">… and ' + (findings.length - 40) + ' more</p>';
+    return out;
+  }
+
+  function renderStatic(staticRes, elapsed) {
+    var r = staticRes.report;
+    var s = r.summary;
+    var stats =
+      '<span class="stat-chip">Verdict score ' + r.score + '</span>' +
+      '<span class="stat-chip">' + s.files + ' file' + (s.files !== 1 ? 's' : '') + '</span>' +
+      '<span class="stat-chip">' + s.lines.toLocaleString() + ' lines</span>' +
+      '<span class="stat-chip">' + s.findings + ' signal' + (s.findings !== 1 ? 's' : '') + '</span>' +
+      '<span class="stat-chip">' + (s.durationMs || 0) + ' ms</span>';
+    var html = verdictHero(r.verdict, stats);
+    var rm = staticRes.repoMeta;
+    if (rm) {
+      html += '<div class="section-title"><span class="material-symbols-rounded" aria-hidden="true">code_blocks</span> Repository</div>' +
+        '<div style="background:var(--md-surface-container);border:1px solid var(--md-outline-variant);border-radius:16px;padding:12px 14px;font-size:13px;margin-bottom:4px">' +
+        '<strong>' + esc(rm.repo) + '</strong>' + (rm.archived ? ' <span class="stat-chip">archived</span>' : '') +
+        '<div style="color:var(--md-on-surface-variant);margin-top:4px">branch <code>' + esc(rm.branch) + '</code> · ' + rm.fileCount + ' files walked · ' + rm.scanned + ' scanned</div></div>';
+    }
+    html += findingsHtml(r.findings);
+    return html;
+  }
+
+  function renderVt(vt, elapsed) {
+    var out = '<div class="section-title"><span class="material-symbols-rounded" aria-hidden="true">shield</span> VirusTotal</div>';
+    if (vt.error) {
+      out += '<div class="finding"><span class="sev-pill sev-info">info</span><div class="f-body"><div class="f-name">' + esc(vt.message || vt.error) + '</div></div></div>';
+      return out;
+    }
+    if (vt.found && vt.found.report) {
+      var rp = vt.found.report;
+      var stats = rp.stats;
+      var grid =
+        '<div class="vt-grid">' +
+        '<div class="vt-stat bad"><div class="vs-num">' + (stats.malicious || 0) + '</div><div class="vs-label">Malicious</div></div>' +
+        '<div class="vt-stat warn"><div class="vs-num">' + (stats.suspicious || 0) + '</div><div class="vs-label">Suspicious</div></div>' +
+        '<div class="vt-stat good"><div class="vs-num">' + (stats.harmless || 0) + '</div><div class="vs-label">Clean</div></div>' +
+        '<div class="vt-stat"><div class="vs-num">' + (stats.undetected || 0) + '</div><div class="vs-label">Undetected</div></div>' +
+        '</div>';
+      out += verdictHero(rp.verdict, '<span class="stat-chip">VT ' + (stats.malicious || 0) + '/' + rp.total + ' flagged</span>');
+      out += grid;
+      if (rp.meaningful_name) out += '<p style="font-size:13px;color:var(--md-on-surface-variant);margin-bottom:8px">File: <strong>' + esc(rp.meaningful_name) + '</strong></p>';
+      out += '<p style="font-size:12px;color:var(--md-on-surface-variant);word-break:break-all;margin-bottom:12px">SHA-256: <code>' + esc(rp.sha256) + '</code></p>';
+      if (rp.engines.length) {
+        out += '<div class="section-title"><span class="material-symbols-rounded" aria-hidden="true">dataset</span> Flagging engines</div>';
+        rp.engines.forEach(function (e) {
+          out += '<div class="engine-row"><span class="er-name">' + esc(e.engine) + '</span>' +
+            '<span class="er-result er-' + esc(e.category) + '">' + esc(e.result) + '</span></div>';
+        });
+      } else if (rp.verdict === 'clean') {
+        out += '<p style="font-size:13px;color:var(--md-on-surface-variant)">All engines reported clean or undetected.</p>';
+      }
+    } else if (vt.analysisId) {
+      out += '<div class="ai-placeholder"><span class="material-symbols-rounded" aria-hidden="true">hourglass_top</span>' +
+        '<h3>Analysis submitted</h3><p>VirusTotal did not know this hash, so the file was uploaded for a fresh scan. The analysis is running — open <a href="https://www.virustotal.com/gui/file/' + esc(vt.hash || '') + '" target="_blank" rel="noopener">VirusTotal</a> to watch it, or rescan in a minute.</p></div>';
+    } else {
+      out += '<div class="finding"><span class="sev-pill sev-info">info</span><div class="f-body"><div class="f-name">No prior report</div><div class="f-msg">VirusTotal has no record for this hash, and the file was not uploaded (beyond the upload cap). Try the static engine for code or upload a smaller file.</div></div></div>';
+    }
+    return out;
+  }
+
+  function renderAi(ai, elapsed) {
+    var out = '<div class="section-title"><span class="material-symbols-rounded" aria-hidden="true">neurology</span> AI review</div>';
+    if (ai && ai.error) {
+      out += '<div class="ai-placeholder"><span class="material-symbols-rounded" aria-hidden="true">neurology</span>' +
+        '<h3>AI review is being prepared</h3><p>' + esc(ai.message || 'This engine is not enabled yet.') + '</p></div>';
+    } else if (ai && ai.ok && ai.content) {
+      var md = esc(ai.content);
+      var htmlMd = md.replace(/^### (.*)$/gm, '<h4 style="margin:14px 0 6px;font-size:14px">$1</h4>')
+        .replace(/^## (.*)$/gm, '<h4 style="margin:14px 0 6px;font-size:14px">$1</h4>')
+        .replace(/^\s*[-*] (.*)$/gm, '<li>$1</li>')
+        .replace(/\n{2,}/g, '<br><br>');
+      out += '<div style="background:var(--md-surface-container);border:1px solid var(--md-outline-variant);border-radius:16px;padding:16px;font-size:13.5px;line-height:1.6">' + htmlMd + '</div>';
+    }
+    return out;
+  }
+
+  function renderResults(data, elapsed) {
+    var htmlParts = [];
+    if (data.static) htmlParts.push(renderStatic(data.static, elapsed));
+    if (data.vt) htmlParts.push(renderVt(data.vt, elapsed));
+    if (data.ai) htmlParts.push(renderAi(data.ai, elapsed));
+    $('resultStatic').innerHTML = htmlParts[0] || '';
+    $('resultVt').innerHTML = htmlParts[1] || '';
+    $('resultAi').innerHTML = htmlParts[2] || '';
+    $('resultWrap').classList.add('show');
+    $('resultWrap').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  </script>
+</body>
+</html>

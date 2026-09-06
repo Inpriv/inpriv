@@ -1,0 +1,24 @@
+name = "inpriv-check"
+main = "src/index.js"
+compatibility_date = "2025-08-01"
+workers_dev = true
+
+# Custom domain — Inpriv Check on check.inpriv.xyz
+routes = [
+  { pattern = "check.inpriv.xyz", custom_domain = true }
+]
+
+# Static frontend served from ./public (the single-file Check app)
+# run_worker_first: the worker MUST run on every request so the kill-switch
+# can replace the page with a maintenance screen and /api/* routes work.
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = true
+
+# Secrets (set via `npx wrangler secret put <NAME>`):
+#   VT_API_KEY   — VirusTotal v3 API key (hash lookup + file upload)
+#   GITHUB_TOKEN — optional GitHub PAT for higher API rate limits (public repos)
+#   AI_API_KEY   — AI provider key (AI engine; disabled until provided)
+#   AI_BASE_URL  — OpenAI-compatible base URL, e.g. https://api.openai.com/v1
+#   AI_MODEL     — model id, e.g. gpt-4o-mini
