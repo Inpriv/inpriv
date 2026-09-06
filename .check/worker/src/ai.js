@@ -2,14 +2,14 @@
 // Inpriv Check — AI review module (OpenAI-compatible API)
 // Copyright (c) 2026 Inpriv Labs — MIT License
 //
-// NOTE: the AI engine is PREPARED but not yet enabled. Once the user supplies
-// an API key + provider + model (expected soon), set the worker secret
-//   AI_API_KEY, AI_BASE_URL, AI_MODEL
-// and flip `export const AI_ENABLED = true` below. The design keeps the AI as
-// a separate provider so the rest of the suite (and the UI) never changes.
+// NOTE: the AI engine is armed; it only activates once the worker secrets
+//   AI_API_KEY (provider key), AI_BASE_URL (OpenAI-compatible base, e.g.
+//   https://api.openai.com/v1) and AI_MODEL (model id) are set and
+//   a redeploy happened. Until then every call degrades to a friendly
+//   "not configured" response — the rest of the suite never changes.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const AI_ENABLED = false; // ← flip to true once AI_API_KEY etc. are set
+export const AI_ENABLED = true;
 
 const DEFAULT_MODEL = "gpt-4o-mini";
 const MAX_INPUT_CHARS = 60_000;
