@@ -100,12 +100,12 @@
     /* ── app bar ── */
     .app-bar { display: flex; align-items: center; justify-content: space-between; height: 54px; padding: 6px 8px 6px 18px; border-radius: 9999px; background: color-mix(in srgb, var(--md-surface-container) 78%, transparent); backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%); border: 1px solid color-mix(in srgb, var(--md-outline-variant) 55%, transparent); box-shadow: 0 4px 20px -4px var(--md-shadow-color); animation: barIn 0.7s var(--md-easing-spring); margin-bottom: 28px; position: sticky; top: 12px; z-index: 50; }
     .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
-    .brand-icon { width: 36px; height: 36px; border-radius: 50%; background: var(--md-primary-container); color: var(--md-on-primary-container); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .brand-icon .material-symbols-rounded { font-size: 20px; }
+    .brand-icon { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; }
+    .brand-logo { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; display: block; }
     .brand-text { min-width: 0; overflow: hidden; }
     .brand-h1 { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.1; color: var(--md-on-surface); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .brand-h1 span { color: var(--md-primary); }
-    .open-source-badge { font-size: 9px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; background: var(--md-surface-container-high); color: var(--md-on-surface-variant); border: 1px solid var(--md-outline-variant); }
+
     .app-bar-actions { display: flex; align-items: center; gap: 4px; }
     .icon-btn { width: 40px; height: 40px; border-radius: 50%; border: none; background: transparent; color: var(--md-on-surface); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background-color 0.2s var(--md-easing-standard), transform 0.15s var(--md-easing-spring); }
     .icon-btn:hover { background-color: color-mix(in srgb, var(--md-on-surface) 8%, transparent); }
@@ -253,10 +253,9 @@
 
     <div class="app-bar">
       <div class="brand">
-        <a class="brand-icon" href="https://inpriv.xyz" aria-label="Inpriv home"><span class="material-symbols-rounded" aria-hidden="true">fact_check</span></a>
+        <a class="brand-icon" href="https://inpriv.xyz" aria-label="Inpriv home"><img src="/icon.png" alt="Inpriv" width="36" height="36" class="brand-logo"></a>
         <div class="brand-text">
           <div class="brand-h1">Inpriv <span>Check</span></div>
-          <div class="open-source-badge">Open source</div>
         </div>
       </div>
       <div class="app-bar-actions">
