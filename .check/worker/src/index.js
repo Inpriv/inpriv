@@ -28,11 +28,11 @@ const CORS = {
 };
 
 const MAX_PASTE_BYTES = 1_500_000;      // 1.5 MB of pasted text
-const MAX_UPLOAD_BYTES = 24_000_000;    // 24 MB for VT upload path (CF limit)
+const MAX_UPLOAD_BYTES = 60_000_000;    // 60 MB — base64 JSON must stay under CF free 100 MB body cap
 const MAX_FILES_PER_REQUEST = 40;
-const MAX_B64_BYTES = 24_000_000;       // 24 MB decoded from base64 JSON
+const MAX_B64_BYTES = 60_000_000;       // 60 MB decoded from base64 JSON
 
-const STATIC_ONLY_HASH_BYTES = 2_000_000; // above this, VT mode = hash only
+const STATIC_ONLY_HASH_BYTES = 60_000_000; // hash-first, then upload when VT doesn't know it (≤ cap)
 
 // in-memory rate limit: {ip → [timestamps]}
 const RL_WINDOW_MS = 60_000;

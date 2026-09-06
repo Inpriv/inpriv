@@ -19,7 +19,7 @@ Check runs **static heuristic analysis** on source code and files, looking for t
 ## Inputs
 
 - **Paste** — any script: JavaScript, Python, PowerShell, shell, batch, VBA, PHP, Ruby, Perl…
-- **File** — up to 24 MB; text files are scanned directly, binaries get hashed / uploaded to VirusTotal
+- **File** — up to 60 MB (Cloudflare free-plan body cap; VirusTotal itself accepts 650 MB); text files are scanned directly, binaries get hashed / uploaded to VirusTotal
 - **GitHub repo** — a public `owner/repo` (or full URL). The worker walks the tree via the GitHub REST API and scans up to ~60 text files (1.5 MB each), skipping `node_modules`, build dirs and lockfiles.
 
 ## API

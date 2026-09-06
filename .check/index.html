@@ -326,7 +326,7 @@
           <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="Choose a file">
             <div class="dz-icon"><span class="material-symbols-rounded" aria-hidden="true">upload_file</span></div>
             <div class="dz-title">Drop a file here or click to browse</div>
-            <div class="dz-sub">Up to 24 MB — scripts, binaries, archives, documents</div>
+            <div class="dz-sub">Up to 60 MB — scripts, binaries, archives, documents</div>
           </div>
           <input type="file" id="fileInput" hidden>
           <div class="file-chip" id="fileChip" hidden>
@@ -497,7 +497,7 @@
     } else if (inputMode === 'file') {
       if (!selectedFile) throw new Error('Choose a file first.');
       var buf = await selectedFile.arrayBuffer();
-      if (buf.byteLength > 24 * 1024 * 1024) throw new Error('File too large — max 24 MB.');
+      if (buf.byteLength > 60 * 1024 * 1024) throw new Error('File too large — max 60 MB (Cloudflare free-plan body cap).');
       // text-ish files go as text, everything else as base64 (static engine works on text)
       var ext = (selectedFile.name.split('.').pop() || '').toLowerCase();
       var TEXT_HINTS = ['js','mjs','cjs','ts','tsx','jsx','py','sh','bash','zsh','ps1','bat','cmd','vbs','vba','php','rb','pl','java','c','h','cpp','go','rs','html','htm','css','sql','json','yml','yaml','toml','md','txt','cfg','conf','ini','env','csv','xml','log','lock'];
@@ -527,7 +527,7 @@
     } else if (inputMode === 'file') {
       if (!selectedFile) throw new Error('Choose a file first.');
       var buf = await selectedFile.arrayBuffer();
-      if (buf.byteLength > 24 * 1024 * 1024) throw new Error('File too large for VirusTotal — max 24 MB.');
+      if (buf.byteLength > 60 * 1024 * 1024) throw new Error('File too large for VirusTotal — max 60 MB (Cloudflare free-plan body cap).');
       var bytes2 = new Uint8Array(buf);
       body.sha256 = await sha256hex(bytes2);
       body.fileB64 = bytesToB64(bytes2);
