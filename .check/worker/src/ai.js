@@ -102,7 +102,10 @@ export async function runAiReview({ files, report, env, model }) {
   }
 
   let usedModel = primaryModel;
-  if (!attempt.ok && fallbackModel && fallbackModel !== primaryModel) {
+  // Fallback on model/provider errors (4xx other than 429, 5xx, network).
+  // 429 = account rate limit — switching models would hit the same wall;
+  // report it straight away instead of burning a second request.
+  if (!attempt.ok && fallbackModel && fallbackModel !== primaryModel && attempt.status !== 429) {
     try {
       const fb = await callChat(fallbackModel);
       if (fb.ok) {
