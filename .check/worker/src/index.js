@@ -192,7 +192,7 @@ export default {
 
       // AI status (prepared engine)
       if (path === "/api/ai/status") {
-        return json({ enabled: AI_ENABLED, configured: !!(env.AI_API_KEY && env.AI_MODEL) });
+        return json({ enabled: AI_ENABLED, configured: !!env.AI_API_KEY });
       }
 
       // status/info for the UI

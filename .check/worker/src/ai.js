@@ -1,17 +1,21 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Inpriv Check — AI review module (OpenAI-compatible API)
+// Inpriv Check — AI review module (OpenAI-compatible API, Mistral)
 // Copyright (c) 2026 Inpriv Labs — MIT License
 //
-// NOTE: the AI engine is armed; it only activates once the worker secrets
-//   AI_API_KEY (provider key), AI_BASE_URL (OpenAI-compatible base, e.g.
-//   https://api.openai.com/v1) and AI_MODEL (model id) are set and
-//   a redeploy happened. Until then every call degrades to a friendly
-//   "not configured" response — the rest of the suite never changes.
+// NOTE: the AI engine is armed; it only activates once the worker secret
+//   AI_API_KEY (Mistral API key) is set and a redeploy happened. Base URL
+//   defaults to https://api.mistral.ai/v1 and the model to devstral-2512
+//   (fallback devstral-latest) — the optional secrets AI_BASE_URL,
+//   AI_MODEL and AI_MODEL_FALLBACK can override them per deployment.
+//   Until the key is set every call degrades to a friendly "not
+//   configured" response — the rest of the suite never changes.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const AI_ENABLED = true;
 
-const DEFAULT_MODEL = "gpt-4o-mini";
+const DEFAULT_BASE_URL = "https://api.mistral.ai/v1";
+const DEFAULT_MODEL = "devstral-2512";
+const FALLBACK_MODEL = "devstral-latest";
 const MAX_INPUT_CHARS = 60_000;
 const MAX_OUTPUT_CHARS = 12_000;
 
@@ -37,15 +41,16 @@ export function buildContext(report) {
   return lines.join("\n");
 }
 
-// Calls the OpenAI-compatible chat completions endpoint. `files` is an array of
-// {name, code} already trimmed by the caller.
+// Calls the OpenAI-compatible chat completions endpoint (Mistral by default).
+// `files` is an array of {name, code} already trimmed by the caller.
 export async function runAiReview({ files, report, env, model }) {
   const cfg = checkConfig(env);
   if (!cfg.ok) return { ok: false, ...cfg };
 
-  const base = (env.AI_BASE_URL || "").replace(/\/+$/, "");
-  const endpoint = `${base || "https://api.openai.com/v1"}/chat/completions`;
-  const chosenModel = model || env.AI_MODEL || DEFAULT_MODEL;
+  const base = (env.AI_BASE_URL || DEFAULT_BASE_URL).replace(/\/+$/, "");
+  const endpoint = `${base}/chat/completions`;
+  const primaryModel = model || env.AI_MODEL || DEFAULT_MODEL;
+  const fallbackModel = env.AI_MODEL_FALLBACK || FALLBACK_MODEL;
 
   // trim code to budget
   let budget = MAX_INPUT_CHARS;
@@ -62,29 +67,55 @@ export async function runAiReview({ files, report, env, model }) {
     trimmed.map((f) => `### FILE: ${f.name}\n${f.code}`).join("\n\n") +
     "\n--- CODE END ---\n\nRespond with a structured markdown report: **Risk** (low/medium/high/critical), **Findings** (bullets with file:line), **Recommendations** (bullets).";
 
-  const res = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${env.AI_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: chosenModel,
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: user },
-      ],
-      temperature: 0.2,
-      max_tokens: 4000,
-    }),
-  });
+  const callChat = async (chosenModel) => {
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${env.AI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: chosenModel,
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: user },
+        ],
+        temperature: 0.2,
+        max_tokens: 4000,
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.text().catch(() => "");
+      return { ok: false, status: res.status, detail: err.slice(0, 300) };
+    }
+    const data = await res.json();
+    const text = (data?.choices?.[0]?.message?.content || "").slice(0, MAX_OUTPUT_CHARS);
+    return { ok: true, status: 200, detail: "", text };
+  };
 
-  if (!res.ok) {
-    const err = await res.text().catch(() => "");
-    const detail = err.slice(0, 300);
-    return { ok: false, code: "ai_error", message: `AI provider error (HTTP ${res.status})`, detail };
+  // Primary model first; on any failure retry once with the fallback model.
+  let attempt;
+  try {
+    attempt = await callChat(primaryModel);
+  } catch (e) {
+    attempt = { ok: false, status: 0, detail: String(e).slice(0, 300) };
   }
-  const data = await res.json();
-  const text = (data?.choices?.[0]?.message?.content || "").slice(0, MAX_OUTPUT_CHARS);
-  return { ok: true, model: chosenModel, provider: base || "openai", content: text };
+
+  let usedModel = primaryModel;
+  if (!attempt.ok && fallbackModel && fallbackModel !== primaryModel) {
+    try {
+      const fb = await callChat(fallbackModel);
+      if (fb.ok) {
+        attempt = fb;
+        usedModel = fallbackModel;
+      }
+    } catch (e) {
+      attempt = { ok: false, status: 0, detail: String(e).slice(0, 300) };
+    }
+  }
+
+  if (!attempt.ok) {
+    return { ok: false, code: "ai_error", message: `AI provider error (HTTP ${attempt.status})`, detail: attempt.detail };
+  }
+  return { ok: true, model: usedModel, provider: base, content: attempt.text };
 }

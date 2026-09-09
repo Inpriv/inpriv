@@ -14,7 +14,7 @@ Check runs **static heuristic analysis** on source code and files, looking for t
 |---|---|---|
 | **Heuristic** | Live | ~60 built-in rules + combo detectors, zero external calls. Works on paste, file upload and GitHub repos. Fast, private, free. |
 | **VirusTotal** | Live | SHA-256 lookup (instant when VT already knows the hash) or file upload → 70+ engine report. Requires the worker secret `VT_API_KEY`; free-tier rate limits apply. |
-| **AI review** | Soon | An LLM reads the code and writes a plain-language security review. The engine and UI are prepared and armed — once the `AI_API_KEY` / `AI_BASE_URL` / `AI_MODEL` secrets are set and the worker redeployed, the AI card goes live. |
+| **AI review** | Soon | An LLM reads the code and writes a plain-language security review. The engine and UI are prepared and armed (Mistral, model `devstral-2512`, fallback `devstral-latest`) — once the `AI_API_KEY` secret is set and the worker redeployed, the AI card goes live. Optional overrides: `AI_BASE_URL`, `AI_MODEL`, `AI_MODEL_FALLBACK`. |
 
 ## Inputs
 

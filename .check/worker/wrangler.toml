@@ -19,6 +19,7 @@ run_worker_first = true
 # Secrets (set via `npx wrangler secret put <NAME>`):
 #   VT_API_KEY   — VirusTotal v3 API key (hash lookup + file upload)
 #   GITHUB_TOKEN — optional GitHub PAT for higher API rate limits (public repos)
-#   AI_API_KEY   — AI provider key (AI engine; disabled until provided)
-#   AI_BASE_URL  — OpenAI-compatible base URL, e.g. https://api.openai.com/v1
-#   AI_MODEL     — model id, e.g. gpt-4o-mini
+#   AI_API_KEY           — Mistral API key (AI engine; disabled until provided)
+#   AI_BASE_URL          — (optional) OpenAI-compatible base URL; defaults to https://api.mistral.ai/v1
+#   AI_MODEL             — (optional) primary model; defaults to devstral-2512
+#   AI_MODEL_FALLBACK    — (optional) fallback model used on provider/model errors; defaults to devstral-latest
