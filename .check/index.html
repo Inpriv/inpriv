@@ -396,6 +396,26 @@
              spinner: $('spinner'), resultWrap: $('resultWrap'), scanBtn: $('scanBtn'), scanBtnLabel: $('scanBtnLabel'),
              charCount: $('charCount'), dropzone: $('dropzone'), aiCard: $('aiCard') };
 
+  // ── AI card live status ────────────────────────────────────────────────
+  // The AI card ships disabled ("Soon") so the page works even before a key
+  // is wired in; once the worker reports ai configured, flip it to Live.
+  function refreshAiStatus() {
+    var card = el.aiCard;
+    if (!card) return;
+    fetch('/api/ai/status', { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (s) {
+        if (!s || !s.configured) return;
+        card.classList.remove('disabled');
+        var badge = card.querySelector('.ec-badge');
+        if (badge) { badge.className = 'ec-badge live'; badge.textContent = 'Live'; }
+        var desc = card.querySelector('p');
+        if (desc) desc.textContent = 'An LLM reads the code and writes a security review in plain language (Mistral).';
+      })
+      .catch(function () { /* keep the "Soon" state on any error */ });
+  }
+  refreshAiStatus();
+
   // ── engine + input tabs ────────────────────────────────────────────────
   document.querySelectorAll('.engine-card').forEach(function (c) {
     c.addEventListener('click', function () {
