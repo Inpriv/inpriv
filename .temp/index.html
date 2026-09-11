@@ -152,11 +152,11 @@ body {
 }
 .icon-btn:hover { background: var(--md-surface-container-high); color: var(--md-on-surface); }
 .suite-link {
-  font-size: 13px; color: var(--md-on-surface-variant);
-  text-decoration: none; padding: 0 14px; border-radius: 999px;
+  font-size: 14px; color: var(--md-on-surface-variant);
+  text-decoration: none; padding: 0 16px; border-radius: 999px;
   border: 1px solid var(--md-outline-variant); white-space: nowrap;
   transition: background 0.15s, color 0.15s;
-  display: inline-flex; align-items: center; height: 34px;
+  display: inline-flex; align-items: center; height: 40px;
 }
 .suite-link:hover { background: var(--md-surface-container-high); color: var(--md-on-surface); }
 
@@ -415,9 +415,9 @@ footer a { color: var(--md-on-surface-variant); }
   font-weight: 500; letter-spacing: 0.4px; text-transform: uppercase;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.header-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 .top-header .icon-btn {
-  width: 34px; height: 34px; border-radius: 9999px;
+  width: 40px; height: 40px; border-radius: 9999px;
   border: 1px solid var(--md-glass-border, color-mix(in srgb, var(--md-outline-variant) 50%, transparent));
   background: var(--md-glass, color-mix(in srgb, var(--md-surface-container) 75%, transparent));
   backdrop-filter: blur(24px) saturate(180%);
@@ -427,22 +427,23 @@ footer a { color: var(--md-on-surface-variant); }
   padding: 0; font: inherit; text-decoration: none;
   transition: transform 0.3s var(--inpriv-ease, cubic-bezier(0.2, 1.4, 0, 1)), border-color 0.2s ease;
 }
+.top-header .icon-btn .ms { font-size: 20px; }
 .top-header .icon-btn:hover { transform: translateY(-1px); border-color: var(--md-primary); }
 .top-header .icon-btn:active { transform: scale(0.94); }
 .privacy-pill {
   display: inline-flex; align-items: center; gap: 6px;
-  padding: 7px 14px; border-radius: 9999px;
+  padding: 8px 16px; border-radius: 9999px;
   border: 1px solid var(--md-glass-border, color-mix(in srgb, var(--md-outline-variant) 50%, transparent));
   background: var(--md-glass, color-mix(in srgb, var(--md-surface-container) 75%, transparent));
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
-  font-size: 12px; font-weight: 600; color: var(--md-on-surface-variant);
+  font-size: 13px; font-weight: 600; color: var(--md-on-surface-variant);
   white-space: nowrap;
-  height: 34px;
+  height: 40px;
 }
 .privacy-pill .material-symbols-rounded,
 .privacy-pill .ms,
-.privacy-pill .icon { font-size: 16px; color: var(--md-primary); }
+.privacy-pill .icon { font-size: 17px; color: var(--md-primary); }
 .privacy-pill svg { color: var(--md-primary); }
 
 /* icon ligature safety inside header chrome */
