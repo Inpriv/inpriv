@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; script-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self' data:">
+<title>air — Wi-Fi 802.11 resilience auditor</title>
+<meta name="description" content="air is an authorized 802.11 deauthentication auditor. Verify whether your WPA3 / PMF deployment actually protects management frames.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Inpriv">
+<meta property="og:title" content="air — Wi-Fi 802.11 resilience auditor">
+<meta property="og:description" content="Authorized 802.11 deauthentication auditor. Verify whether your WPA3 / PMF deployment actually protects management frames.">
+<meta property="og:url" content="https://air.inpriv.xyz/">
+<meta property="og:image" content="https://inpriv.xyz/og/air.png?v=1">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="air — Wi-Fi 802.11 resilience auditor">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="air — Wi-Fi 802.11 resilience auditor">
+<meta name="twitter:description" content="Authorized 802.11 deauthentication auditor. Verify whether your WPA3 / PMF deployment actually protects management frames.">
+<meta name="twitter:image" content="https://inpriv.xyz/og/air.png?v=1">
+<meta name="twitter:image:alt" content="air — Wi-Fi 802.11 resilience auditor">
+<link rel="canonical" href="https://air.inpriv.xyz/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:ital,opsz,wght@0,8..144,300..800;1,8..144,300..800&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+<script>document.addEventListener('DOMContentLoaded',()=>{try{const t=localStorage.getItem('inpriv_theme');if(t==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}});</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"air","alternateName":"air — Wi-Fi 802.11 resilience auditor","url":"https://air.inpriv.xyz/","description":"Authorized 802.11 deauthentication auditor. Verify whether your WPA3 / PMF deployment actually protects management frames.","operatingSystem":"Linux","applicationCategory":"SecurityApplication","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"publisher":{"@type":"Organization","name":"Inpriv Labs","url":"https://inpriv.xyz/"},"inLanguage":"en"}</script>
+<meta name="theme-color" content="#141218">
+<meta name="robots" content="index, follow">
+<link rel="icon" href="/icon.png">
+<style>
+:root {
+  --ease-standard: cubic-bezier(0.2, 0.0, 0.0, 1.0);
+  --font-sans: 'Google Sans Text', 'Roboto Flex', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display: 'Google Sans', 'Roboto Flex', system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+:root {
+  --md-primary: #9F86FF;
+  --md-on-primary: #FFFFFF;
+  --md-primary-container: #9F86FF;
+  --md-on-primary-container: #1E0060;
+  --md-surface: #FEFBFF;
+  --md-surface-container-low: #F8F1F6;
+  --md-surface-container: #F2ECEE;
+  --md-surface-container-high: #ECE7E9;
+  --md-surface-container-highest: #E6E1E3;
+  --md-on-surface: #1C1B1D;
+  --md-on-surface-variant: #47464F;
+  --md-outline: #787579;
+  --md-outline-variant: #E6E1E3;
+  --md-error: #FF6240;
+  --md-card: #FFFFFF;
+}
+[data-theme="dark"] {
+  --md-primary: #CBBEFF;
+  --md-on-primary: #340098;
+  --md-primary-container: #4B21BD;
+  --md-on-primary-container: #E6DEFF;
+  --md-surface: #141218;
+  --md-surface-container-low: #1F1D24;
+  --md-surface-container: #242229;
+  --md-surface-container-high: #2F2C33;
+  --md-surface-container-highest: #3A373F;
+  --md-on-surface: #E6E1E3;
+  --md-on-surface-variant: #CBC4D4;
+  --md-outline: #948F99;
+  --md-outline-variant: #47464F;
+  --md-error: #FF8670;
+  --md-card: #1F1D24;
+}
+[hidden] { display: none !important; }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--md-surface);
+  color: var(--md-on-surface);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-font-feature-settings: 'liga';
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+.wrap {
+  max-width: 880px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 3rem 1.5rem 4rem;
+  flex: 1 0 auto;
+}
+header.hero { margin-bottom: 2.5rem; }
+header.hero h1 {
+  font-family: var(--font-display);
+  font-weight: 475;
+  font-size: 2.5rem;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.5rem;
+  color: var(--md-on-surface);
+}
+header.hero p {
+  color: var(--md-on-surface-variant);
+  margin: 0;
+  font-size: 1.05rem;
+}
+.card {
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 24px;
+  padding: 2rem;
+}
+.card header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.card h2 {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--md-on-surface);
+}
+.tagline {
+  color: var(--md-primary);
+  margin: 0.25rem 0 1.25rem;
+  font-weight: 500;
+}
+.description {
+  color: var(--md-on-surface);
+  margin: 0 0 1.5rem;
+}
+.card h3 {
+  margin: 1.75rem 0 0.75rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--md-on-surface-variant);
+  font-weight: 500;
+}
+pre {
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 16px;
+  padding: 1rem 1.25rem;
+  overflow-x: auto;
+  margin: 0;
+}
+pre code {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  color: var(--md-on-surface);
+  line-height: 1.5;
+}
+ul.reqs {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+  color: var(--md-on-surface-variant);
+}
+ul.reqs li { margin: 0.25rem 0; }
+.links {
+  margin-top: 1.5rem;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.links a {
+  color: var(--md-primary);
+  text-decoration: none;
+  font-weight: 500;
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid var(--md-outline-variant);
+  font-size: 0.9rem;
+  transition: background-color 180ms var(--ease-standard), border-color 180ms var(--ease-standard);
+}
+.links a:hover {
+  background: var(--md-surface-container);
+  border-color: var(--md-outline);
+}
+.status {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--md-outline-variant);
+  color: var(--md-on-surface-variant);
+  font-weight: 500;
+}
+.status-experimental {
+  color: var(--md-error);
+  border-color: var(--md-error);
+}
+.legal {
+  color: var(--md-error);
+  font-size: 0.9rem;
+  margin: 1.75rem 0 0;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--md-outline-variant);
+  line-height: 1.55;
+}
+footer {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--md-outline-variant);
+  color: var(--md-on-surface-variant);
+  font-size: 0.85rem;
+  text-align: center;
+}
+footer a {
+  color: var(--md-on-surface-variant);
+  text-decoration: none;
+}
+footer a:hover { color: var(--md-primary); }
+@media (max-width: 600px) {
+  .wrap { padding: 2rem 1rem 3rem; }
+  header.hero h1 { font-size: 2rem; }
+  .card { padding: 1.5rem; border-radius: 20px; }
+  pre { border-radius: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <h1>air</h1>
+    <p>Wi-Fi 802.11 resilience auditor. Authorized testing only.</p>
+  </header>
+
+  <section class="labs">
+    <article class="card" id="air">
+      <header>
+        <h2>air</h2>
+        <span class="status status-experimental">experimental</span>
+      </header>
+      <p class="tagline">Wi-Fi 802.11 frame injector &amp; PMF/WPA3 resilience auditor</p>
+      <p class="description">Interactive Python CLI for authorized 802.11 deauthentication testing. Switches the wireless adapter into monitor mode (airmon-ng / iw), discovers APs and connected clients, and loops deauth frames with configurable reason codes. Use it to verify whether your WPA3 / PMF deployment actually protects management frames.</p>
+
+      <h3>Quick install</h3>
+      <pre><code>git clone https://github.com/Inpriv/labs.git
+cd labs/tools/air
+sudo ./install.sh
+sudo python air.py -i wlan0</code></pre>
+
+      <h3>Requirements</h3>
+      <ul class="reqs">
+        <li>Linux</li><li>monitor-mode-capable adapter</li><li>Scapy</li><li>airmon-ng</li>
+      </ul>
+
+      <p class="links">
+        <a href="https://github.com/Inpriv/labs/tree/main/tools/air">Source</a>
+        <a href="https://github.com/Inpriv/labs/blob/main/tools/air/README.md">Docs</a>
+      </p>
+
+      <p class="legal">Authorized use only. Deauthentication against networks you do not own or have explicit written permission to test is illegal in most jurisdictions.</p>
+    </article>
+  </section>
+
+  <footer>
+    <p>
+      <a href="https://inpriv.xyz">inpriv.xyz</a>
+      &nbsp;&middot;&nbsp;
+      <a href="https://github.com/Inpriv">github.com/Inpriv</a>
+    </p>
+    <p>MIT licensed unless otherwise noted.</p>
+  </footer>
+</div>
+</body>
+</html>

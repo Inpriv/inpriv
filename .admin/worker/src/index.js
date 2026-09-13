@@ -36,6 +36,7 @@ const SERVICES = [
   "status",
   "amber",
   "check",
+  "air",
 ];
 const SERVICES_META = {
   landing:  { name: "Landing (inpriv.xyz)", url: "https://inpriv.xyz", icon: "home" },
@@ -61,6 +62,7 @@ const SERVICES_META = {
   status:   { name: "Status (service health)", url: "https://status.inpriv.xyz", icon: "monitor_heart" },
   amber:    { name: "Amber (web archive)", url: "https://amber.inpriv.xyz", icon: "history_edu" },
   check:    { name: "Check (code security)", url: "https://check.inpriv.xyz", icon: "fact_check" },
+  air:      { name: "air (Wi-Fi auditor)", url: "https://air.inpriv.xyz", icon: "wifi_tethering" },
 };
 const SESSION_TTL = 7 * 24 * 3600; // seconds
 const COOKIE = "inpriv_admin";
