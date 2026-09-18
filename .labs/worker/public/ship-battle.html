@@ -401,6 +401,13 @@ document.addEventListener('DOMContentLoaded',()=>{try{const t=localStorage.getIt
 <script>
 (() => {
   'use strict';
+  // Surface any future runtime errors instead of dying silently.
+  window.addEventListener('error', (e) => {
+    try { console.error('[ship-battle] runtime error:', e.error || e.message); } catch (_) {}
+  });
+  window.addEventListener('unhandledrejection', (e) => {
+    try { console.error('[ship-battle] unhandled rejection:', e.reason); } catch (_) {}
+  });
 
   // ---- Setup -------------------------------------------------------------
   const canvas = document.getElementById('game');
@@ -460,7 +467,7 @@ document.addEventListener('DOMContentLoaded',()=>{try{const t=localStorage.getIt
   }
   window.addEventListener('resize', fit);
   window.addEventListener('orientationchange', () => setTimeout(fit, 100));
-  fit();
+  // First fit() is called at the very end of the IIFE, after `state` is initialized.
 
   // ---- Theme toggle (M3 standard) ----------------------------------------
   function syncThemeButton() { /* placeholder hook for future toggle */ }
@@ -1194,6 +1201,8 @@ document.addEventListener('DOMContentLoaded',()=>{try{const t=localStorage.getIt
   spawnStars();
   draw();
   syncThemeButton();
+  // First fit() — `state` is now defined, reflow is safe.
+  try { fit(); } catch (e) { console.error('initial fit failed', e); }
 })();
 </script>
 </body>
