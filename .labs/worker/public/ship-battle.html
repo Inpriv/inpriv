@@ -238,10 +238,13 @@ body {
   inset: 0;
   display: grid;
   place-items: center;
+  background: var(--md-surface);
   background: color-mix(in srgb, var(--md-surface) 78%, transparent);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   padding: 16px;
+  pointer-events: auto;
+  z-index: 50;
 }
 .overlay.hidden { display: none; }
 .card {
@@ -1123,9 +1126,23 @@ document.addEventListener('DOMContentLoaded',()=>{try{const t=localStorage.getIt
       overlayPause.classList.add('hidden');
     }
   }
-  document.getElementById('btn-start').addEventListener('click', startGame);
-  document.getElementById('btn-restart').addEventListener('click', startGame);
-  document.getElementById('btn-resume').addEventListener('click', togglePause);
+  document.getElementById('btn-start').addEventListener('click', (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    startGame();
+  });
+  document.getElementById('btn-start').addEventListener('pointerdown', (ev) => {
+    ev.preventDefault();
+  });
+  document.getElementById('btn-restart').addEventListener('click', (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    startGame();
+  });
+  document.getElementById('btn-resume').addEventListener('click', (ev) => {
+    ev.preventDefault();
+    togglePause();
+  });
 
   // ---- Fullscreen toggle -------------------------------------------------
   const btnFullscreen = document.getElementById('btn-fullscreen');
