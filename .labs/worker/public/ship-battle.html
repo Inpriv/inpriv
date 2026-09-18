@@ -101,9 +101,24 @@ body {
 .stage {
   position: fixed;
   inset: 0;
-  display: grid;
-  place-items: center;
-  padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding:
+    calc(env(safe-area-inset-top, 0) + 14px)
+    14px
+    calc(env(safe-area-inset-bottom, 0) + 14px);
+  background: var(--md-surface);
+}
+.canvas-wrap {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
 }
 #game {
   display: block;
@@ -116,51 +131,56 @@ body {
   image-rendering: pixelated;
 }
 .hud {
-  position: absolute;
-  inset: 0;
+  position: relative;
   pointer-events: none;
-  padding: calc(env(safe-area-inset-top, 0) + 12px) 14px calc(env(safe-area-inset-bottom, 0) + 12px);
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  max-width: 480px;
+  flex: 0 0 auto;
   font-family: var(--font-mono);
 }
 .hud .row {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
 }
 .chip {
   background: var(--md-surface-container);
   border: 1px solid var(--md-outline-variant);
   border-radius: 12px;
-  padding: 8px 12px;
-  font-size: 13px;
+  padding: 6px 10px;
+  font-size: 12px;
   line-height: 1.2;
   min-width: 0;
+  text-align: left;
 }
 .chip .label {
-  font-size: 10px;
+  font-size: 9px;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   color: var(--md-on-surface-variant);
   margin-bottom: 2px;
 }
 .chip .value {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 500;
   color: var(--md-on-surface);
   font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.chip.right { text-align: right; }
-.chip .lives { color: var(--md-error); letter-spacing: 2px; }
+.chip .value.lives {
+  color: var(--md-error);
+  letter-spacing: 1px;
+}
 .controls {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 8px;
   pointer-events: auto;
-  margin-top: 8px;
 }
 .btn {
   appearance: none;
@@ -170,7 +190,7 @@ body {
   font-family: var(--font-sans);
   font-size: 14px;
   font-weight: 500;
-  padding: 14px 16px;
+  padding: 12px 14px;
   border-radius: 999px;
   min-height: 48px;
   cursor: pointer;
@@ -195,8 +215,8 @@ body {
   text-align: center;
   font-size: 11px;
   color: var(--md-on-surface-variant);
-  margin-top: 4px;
   pointer-events: none;
+  line-height: 1.4;
 }
 .overlay {
   position: absolute;
@@ -285,32 +305,34 @@ document.addEventListener('DOMContentLoaded',()=>{try{const t=localStorage.getIt
 </head>
 <body>
 <div class="stage">
-  <canvas id="game" width="400" height="640" aria-label="Ship Battle game canvas"></canvas>
-
   <div class="hud" aria-hidden="true">
     <div class="row">
       <div class="chip">
         <div class="label">Score</div>
         <div class="value" id="hud-score">0</div>
       </div>
-      <div class="chip right">
+      <div class="chip">
         <div class="label">Wave</div>
         <div class="value" id="hud-wave">1</div>
       </div>
-      <div class="chip right">
+      <div class="chip">
         <div class="label">Lives</div>
-        <div class="value lives" id="hud-lives">***</div>
+        <div class="value lives" id="hud-lives"><svg viewBox="0 0 16 14" width="18" height="16" aria-hidden="true" style="display:inline-block;vertical-align:-2px;"><path fill="currentColor" d="M8 13.5s-6-4.35-6-8.2C2 3.1 3.5 1.7 5.4 1.7c1.1 0 2.1.55 2.6 1.45C8.5 2.25 9.5 1.7 10.6 1.7 12.5 1.7 14 3.1 14 5.3c0 3.85-6 8.2-6 8.2z"/></svg><svg viewBox="0 0 16 14" width="18" height="16" aria-hidden="true" style="display:inline-block;vertical-align:-2px;"><path fill="currentColor" d="M8 13.5s-6-4.35-6-8.2C2 3.1 3.5 1.7 5.4 1.7c1.1 0 2.1.55 2.6 1.45C8.5 2.25 9.5 1.7 10.6 1.7 12.5 1.7 14 3.1 14 5.3c0 3.85-6 8.2-6 8.2z"/></svg><svg viewBox="0 0 16 14" width="18" height="16" aria-hidden="true" style="display:inline-block;vertical-align:-2px;"><path fill="currentColor" d="M8 13.5s-6-4.35-6-8.2C2 3.1 3.5 1.7 5.4 1.7c1.1 0 2.1.55 2.6 1.45C8.5 2.25 9.5 1.7 10.6 1.7 12.5 1.7 14 3.1 14 5.3c0 3.85-6 8.2-6 8.2z"/></svg></div>
       </div>
     </div>
+  </div>
 
-    <div>
-      <div class="controls">
-        <button class="btn secondary" id="btn-left" type="button" aria-label="Move left">Left</button>
-        <button class="btn secondary" id="btn-right" type="button" aria-label="Move right">Right</button>
-      </div>
-      <button class="btn primary" id="btn-fire" type="button" style="pointer-events:auto;width:100%;margin-top:10px;" aria-label="Fire">Fire</button>
-      <p class="hint">Drag to move. Tap anywhere to shoot. P pause, M mute.</p>
+  <div class="canvas-wrap">
+    <canvas id="game" width="400" height="640" aria-label="Ship Battle game canvas"></canvas>
+  </div>
+
+  <div class="hud" style="pointer-events:none;">
+    <div class="controls">
+      <button class="btn secondary" id="btn-left" type="button" aria-label="Move left">Left</button>
+      <button class="btn secondary" id="btn-right" type="button" aria-label="Move right">Right</button>
     </div>
+    <button class="btn primary" id="btn-fire" type="button" style="pointer-events:auto;width:100%;" aria-label="Fire">Fire</button>
+    <p class="hint">Drag to move. Tap anywhere to shoot. P pause, M mute.</p>
   </div>
 
   <div class="overlay" id="overlay-start" role="dialog" aria-labelledby="start-title">
@@ -825,9 +847,16 @@ document.addEventListener('DOMContentLoaded',()=>{try{const t=localStorage.getIt
   function updateHud() {
     hudScore.textContent = state.score;
     hudWave.textContent  = state.wave;
-    const filled = Math.max(0, state.lives);
-    const empty  = Math.max(0, 3 - state.lives);
-    hudLives.textContent = (filled > 0 ? 'x'.repeat(filled) : '-') + (empty > 0 ? '.'.repeat(empty) : '');
+    const lives = Math.max(0, state.lives);
+    const total = 3;
+    let html = '';
+    for (let i = 0; i < total; i++) {
+      const filled = i < lives;
+      const op = filled ? '1' : '0.25';
+      const stroke = filled ? '' : 'stroke="currentColor" stroke-width="1.5" fill="none"';
+      html += '<svg viewBox="0 0 16 14" width="18" height="16" aria-hidden="true" style="display:inline-block;vertical-align:-2px;opacity:' + op + ';"><path fill="currentColor" d="M8 13.5s-6-4.35-6-8.2C2 3.1 3.5 1.7 5.4 1.7c1.1 0 2.1.55 2.6 1.45C8.5 2.25 9.5 1.7 10.6 1.7 12.5 1.7 14 3.1 14 5.3c0 3.85-6 8.2-6 8.2z"/></svg>';
+    }
+    hudLives.innerHTML = html;
   }
 
   // ---- Render ------------------------------------------------------------
