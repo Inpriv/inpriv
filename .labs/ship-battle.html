@@ -559,18 +559,18 @@ document.addEventListener('DOMContentLoaded',()=>{try{const t=localStorage.getIt
   // ---- Waves -------------------------------------------------------------
   function spawnWave() {
     const cols = 5;
-    const rows = Math.min(3 + Math.floor(state.wave / 2), 6);
-    const startX = 60;
-    const startY = 80;
-    const gapX = 70;
-    const gapY = 46;
+    const rows = Math.min(3 + Math.floor(state.wave / 2), 5);
+    const gapX = 56;
+    const gapY = 42;
+    const startX = Math.round((W - (cols - 1) * gapX) / 2);
+    const startY = 70;
     const type = state.wave >= 4 && state.wave % 2 === 0 ? 'heavy' : 'basic';
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
         state.enemies.push({
           x: startX + c * gapX,
           y: startY + r * gapY,
-          r: 16,
+          r: 14,
           hp: type === 'heavy' ? 2 : 1,
           maxHp: type === 'heavy' ? 2 : 1,
           type,
@@ -696,15 +696,21 @@ document.addEventListener('DOMContentLoaded',()=>{try{const t=localStorage.getIt
     for (const b of state.eBullets) { b.x += b.vx; b.y += b.vy; b.life -= dt; }
     state.eBullets = state.eBullets.filter(b => b.life > 0 && b.y < H + 10);
 
-    // Enemies — gentle horizontal drift with edge bounce
-    let edgeHit = false;
+    // Enemies — slow horizontal march, per-enemy bounce at walls.
+    // The whole formation drops ONE row only when both walls are touched by
+    // any enemy on the same tick (classic Galaga squeeze), not on every edge hit.
+    let leftEdgeTouched = false;
+    let rightEdgeTouched = false;
+    const speed = 0.45 + Math.min(state.wave - 1, 8) * 0.08;
     for (const e of state.enemies) {
       if (e.dead) continue;
-      e.phase += 0.05;
-      e.x += Math.sin(e.phase) * 0.6 + e.dir * (0.4 + state.wave * 0.12);
-      if (e.x < 24 || e.x > W - 24) edgeHit = true;
+      e.phase += 0.04;
+      const wobble = Math.sin(e.phase) * 0.25;
+      e.x += e.dir * speed + wobble;
+      if (e.x < 18) { e.x = 18; leftEdgeTouched  = true; }
+      if (e.x > W - 18) { e.x = W - 18; rightEdgeTouched = true; }
       e.cooldown -= dt;
-      if (e.cooldown <= 0 && e.y < H * 0.7 && Math.random() < 0.009 + state.wave * 0.002) {
+      if (e.cooldown <= 0 && e.y < H * 0.7 && Math.random() < 0.008 + state.wave * 0.0015) {
         e.cooldown = 60 + Math.random() * 70;
         const dx = p.x - e.x, dy = (p.y - 20) - e.y;
         const m = Math.hypot(dx, dy) || 1;
@@ -717,11 +723,20 @@ document.addEventListener('DOMContentLoaded',()=>{try{const t=localStorage.getIt
         beep(220, 0.04, 'sawtooth', 0.025);
       }
     }
-    if (edgeHit) {
+    // Bounce + drop once per side-tick. Flip direction for every alive enemy.
+    if (leftEdgeTouched || rightEdgeTouched) {
       for (const e of state.enemies) {
         if (e.dead) continue;
         e.dir = -e.dir;
-        e.y += 14;
+      }
+    }
+    // Squeeze down: only when BOTH edges were touched this tick (formation
+    // reached a wall), drop one row. This gives the player real breathing
+    // room before the next drop.
+    if (leftEdgeTouched && rightEdgeTouched) {
+      for (const e of state.enemies) {
+        if (e.dead) continue;
+        e.y += 16;
       }
     }
 
