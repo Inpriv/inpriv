@@ -107,10 +107,11 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
   padding:
-    calc(env(safe-area-inset-top, 0) + 14px)
-    14px
-    calc(env(safe-area-inset-bottom, 0) + 14px);
+    calc(env(safe-area-inset-top, 0) + 10px)
+    12px
+    calc(env(safe-area-inset-bottom, 0) + 10px);
   background: var(--md-surface);
 }
 .canvas-wrap {
@@ -137,7 +138,7 @@ body {
   pointer-events: none;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
   max-width: 480px;
   flex: 0 0 auto;
@@ -146,12 +147,14 @@ body {
 .hud .row {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr auto;
-  gap: 8px;
-  align-items: center;
+  gap: 6px;
+  align-items: stretch;
 }
 .icon-btn {
-  min-height: 36px;
-  min-width: 36px;
+  min-height: 0;
+  min-width: 0;
+  width: 44px;
+  height: 44px;
   padding: 0;
   display: inline-flex;
   align-items: center;
@@ -159,38 +162,50 @@ body {
   border-radius: 12px;
   background: var(--md-surface-container);
   pointer-events: auto;
+  border: 1px solid var(--md-outline-variant);
 }
 .icon-btn:hover { background: var(--md-surface-container-high); }
+.icon-btn svg { display: block; }
 .chip {
   background: var(--md-surface-container);
   border: 1px solid var(--md-outline-variant);
   border-radius: 12px;
-  padding: 6px 10px;
-  font-size: 12px;
-  line-height: 1.2;
+  padding: 4px 8px;
+  font-size: 11px;
+  line-height: 1.15;
   min-width: 0;
   text-align: left;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 .chip .label {
   font-size: 9px;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
   color: var(--md-on-surface-variant);
-  margin-bottom: 2px;
+  margin-bottom: 1px;
+  font-weight: 500;
 }
 .chip .value {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 500;
   color: var(--md-on-surface);
   font-variant-numeric: tabular-nums;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1;
 }
 .chip .value.lives {
   color: var(--md-error);
   letter-spacing: 1px;
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  font-size: 0;
 }
+.chip .value.lives svg { font-size: 15px; }
 .controls {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -203,13 +218,17 @@ body {
   background: var(--md-surface-container-high);
   color: var(--md-on-surface);
   font-family: var(--font-sans);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
-  padding: 12px 14px;
-  border-radius: 999px;
-  min-height: 48px;
+  padding: 0 14px;
+  border-radius: 14px;
+  height: 52px;
   cursor: pointer;
   letter-spacing: 0.02em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   transition: background-color 160ms var(--ease-standard), border-color 160ms var(--ease-standard), transform 80ms var(--ease-standard);
 }
 .btn:active { transform: translateY(1px); }
@@ -228,10 +247,12 @@ body {
 .btn-row .btn { flex: 1; }
 .hint {
   text-align: center;
-  font-size: 11px;
+  font-size: 10.5px;
   color: var(--md-on-surface-variant);
   pointer-events: none;
-  line-height: 1.4;
+  line-height: 1.35;
+  margin: 0;
+  letter-spacing: 0.02em;
 }
 .overlay {
   position: absolute;
@@ -363,7 +384,7 @@ document.addEventListener('DOMContentLoaded',()=>{try{const t=localStorage.getIt
       <button class="btn secondary" id="btn-right" type="button" aria-label="Move right">Right</button>
     </div>
     <button class="btn primary" id="btn-fire" type="button" style="pointer-events:auto;width:100%;" aria-label="Fire">Fire</button>
-    <p class="hint">Drag to move. Tap to shoot. P pause · M mute · F fullscreen.</p>
+    <p class="hint">Drag to steer · Tap to shoot · P pause · M mute · F fullscreen</p>
   </div>
 
   <div class="overlay" id="overlay-start" role="dialog" aria-labelledby="start-title">
