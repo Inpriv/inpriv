@@ -179,8 +179,10 @@
     .reader-frame { position: absolute; top: 50%; left: 50%; width: 68%; height: 68%; transform: translate(-50%, -50%); border: 2px solid color-mix(in srgb, var(--md-primary) 80%, transparent); border-radius: 16px; box-shadow: 0 0 0 9999px rgba(0,0,0,0.35); }
     .reader-scanline { position: absolute; left: 16%; right: 16%; height: 2px; background: var(--md-primary);  animation: scanline 2.4s ease-in-out infinite; border-radius: 2px; display: none; }
     .reader-stage.scanning .reader-scanline { display: block; }
-    .reader-empty { color: #CBC4D4; font-size: 13px; text-align: center; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
-    .reader-empty .material-symbols-rounded { font-size: 44px; opacity: 0.6; }
+    .reader-empty { position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 16px; color: #CBC4D4; font-size: 12px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 4px; pointer-events: none; background: linear-gradient(180deg, transparent, rgba(0,0,0,0.55)); z-index: 2; }
+    .reader-empty .material-symbols-rounded { font-size: 36px; opacity: 0.7; margin-bottom: 2px; }
+    .reader-empty-main { font-weight: 700; font-size: 13px; color: #E6E1E3; letter-spacing: 0.01em; }
+    .reader-empty-sub { font-size: 11px; opacity: 0.75; line-height: 1.4; max-width: 260px; }
 
     .reader-controls { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
     .reader-btn { flex: 1; min-width: 120px; height: 44px; border-radius: 9999px; border: 1px solid var(--md-outline-variant); background: var(--md-surface-container-high); color: var(--md-on-surface); font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s var(--md-easing-standard); }
@@ -235,6 +237,12 @@
           body { padding: 12px 12px calc(140px + env(safe-area-inset-bottom, 0px)) 12px; }
           .app-bar { padding: 6px 8px 6px 12px; margin-bottom: 18px; }
           .brand { gap: 8px; } .brand-h1 { font-size: 15px; } .open-source-badge { display: none; }
+          .top-header { margin-bottom: 14px; min-height: 38px; gap: 8px; }
+          .top-header .brand-title { font-size: 18px; }
+          .top-header .brand-tagline { font-size: 10px; letter-spacing: 0.2px; }
+          .top-header .icon-btn { width: 38px; height: 38px; }
+          .top-header .privacy-pill { display: none; }
+          .header-actions { gap: 4px; }
           .hero { margin-bottom: 18px; }
           .hero-h2 { font-size: clamp(28px, 9vw, 36px); }
           .card { padding: 16px 14px; border-radius: 20px; }
@@ -357,16 +365,18 @@
 /* ── open top header (censor-style, unified Inpriv chrome) ───────────────── */
 .top-header {
   display: flex; align-items: center; justify-content: space-between;
-  gap: 12px; margin-bottom: 22px;
+  gap: 10px; margin-bottom: 18px;
+  min-height: 44px;
 }
-.top-header .brand { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.top-header .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .top-header .brand-title {
-  font-size: 26px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.1;
+  font-size: 20px; font-weight: 700; letter-spacing: -0.4px; line-height: 1.1;
+  display: flex; align-items: center;
 }
 .top-header .brand-title .accent { color: var(--md-primary); }
 .top-header .brand-tagline {
-  font-size: 12px; color: var(--md-on-surface-variant);
-  font-weight: 500; letter-spacing: 0.4px; text-transform: uppercase;
+  font-size: 11px; color: var(--md-on-surface-variant);
+  font-weight: 500; letter-spacing: 0.3px; text-transform: uppercase;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
@@ -540,7 +550,11 @@
                 <div class="reader-frame"></div>
                 <div class="reader-scanline"></div>
               </div>
-              <div class="reader-empty" id="readerEmpty"><span class="material-symbols-rounded">camera_alt</span><span>Camera is off. Start scanning or upload an image.</span></div>
+              <div class="reader-empty" id="readerEmpty">
+                <span class="material-symbols-rounded">camera_alt</span>
+                <span class="reader-empty-main">Camera is off</span>
+                <span class="reader-empty-sub">Tap Start camera, or paste/drop a QR image</span>
+              </div>
             </div>
             <div class="reader-controls">
               <button class="reader-btn primary" id="startCamBtn" type="button"><span class="material-symbols-rounded">videocam</span> Start camera</button>
