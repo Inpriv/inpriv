@@ -230,19 +230,126 @@
 
     .note { font-size: 12px; color: var(--md-on-surface-variant); line-height: 1.45; margin-top: 10px; opacity: 0.85; }
 
-    @media (max-width: 600px) {
-      body { padding: 16px 12px 140px 12px; }
-      .app-bar { padding: 6px 8px 6px 12px; margin-bottom: 22px; }
-      .brand { gap: 8px; } .brand-h1 { font-size: 15px; } .open-source-badge { display: none; }
-      .hero { margin-bottom: 20px; }
-      .card { padding: 18px 16px; border-radius: 20px; }
-      .toast-container { bottom: calc(96px + env(safe-area-inset-bottom, 0px)); width: calc(100% - 24px); }
-      .toast { padding: 10px 16px; justify-content: center; text-align: center; }
-      .toast-text { font-size: 13px; }
-      .floating-toolbar { padding: 6px 8px; gap: 8px; } .fab-btn { font-size: 13px; }
-    }
-    @media (max-width: 380px) { .fab-btn span:last-child { display: none; } .fab-btn { padding: 0; } }
-    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; } }
+    /* ===== Mobile-first: large touch targets, safe-area, dense controls ===== */
+        @media (max-width: 600px) {
+          body { padding: 12px 12px calc(140px + env(safe-area-inset-bottom, 0px)) 12px; }
+          .app-bar { padding: 6px 8px 6px 12px; margin-bottom: 18px; }
+          .brand { gap: 8px; } .brand-h1 { font-size: 15px; } .open-source-badge { display: none; }
+          .hero { margin-bottom: 18px; }
+          .hero-h2 { font-size: clamp(28px, 9vw, 36px); }
+          .card { padding: 16px 14px; border-radius: 20px; }
+          .seg-btn { height: 46px; font-size: 14px; }
+          .seg-btn .material-symbols-rounded { font-size: 20px; }
+          .text-input, .select-input { font-size: 16px; padding: 14px; min-height: 48px; }
+          textarea.text-input { min-height: 100px; }
+          .preset-chip { padding: 9px 14px; font-size: 13px; }
+          .mini-seg button { padding: 8px 12px; min-height: 36px; }
+          .reader-btn { height: 52px; font-size: 14px; min-width: 0; flex: 1 1 calc(50% - 4px); }
+          .reader-controls { gap: 6px; }
+          .floating-toolbar { padding: 8px 10px; gap: 8px; width: calc(100% - 24px); }
+          .fab-btn { height: 52px; font-size: 14px; }
+          .fab-btn span:last-child { font-size: 13px; }
+          .toast-container { bottom: calc(100px + env(safe-area-inset-bottom, 0px)); width: calc(100% - 24px); }
+          .toast { padding: 12px 16px; justify-content: center; text-align: center; }
+          .toast-text { font-size: 13px; }
+          .dropzone { padding: 22px 14px; }
+          .dz-title { font-size: 14px; }
+          .paste-overlay { padding: 24px 20px; }
+          .paste-overlay-title { font-size: 16px; }
+          .quick-action { padding: 16px 14px; }
+          .quick-action-title { font-size: 14px; }
+          .result-text { font-size: 13px; }
+        }
+        @media (max-width: 380px) { .fab-btn span:last-child { display: none; } .fab-btn { padding: 0 16px; } }
+        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; } }
+
+        /* ===== Paste overlay (Cmd/Ctrl+V anywhere) ===== */
+        .paste-overlay {
+          position: fixed; inset: 0; z-index: 200;
+          background: color-mix(in srgb, var(--md-surface) 92%, transparent);
+          backdrop-filter: blur(20px) saturate(160%);
+          -webkit-backdrop-filter: blur(20px) saturate(160%);
+          display: none; align-items: center; justify-content: center;
+          padding: 40px 24px; animation: fadeUp 0.25s var(--md-easing-spring-soft);
+        }
+        .paste-overlay.show { display: flex; }
+        .paste-overlay-inner {
+          background: var(--md-surface-container-low); border: 2px solid var(--md-primary);
+          border-radius: 24px; padding: 32px 28px; max-width: 420px; width: 100%;
+          text-align: center; box-shadow: 0 24px 60px var(--md-shadow-color-strong);
+          display: flex; flex-direction: column; align-items: center; gap: 14px;
+        }
+        .paste-overlay-inner .material-symbols-rounded { font-size: 48px; color: var(--md-primary); }
+        .paste-overlay-title { font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+        .paste-overlay-sub { font-size: 13px; color: var(--md-on-surface-variant); line-height: 1.5; }
+        .paste-overlay-kbd {
+          display: inline-flex; align-items: center; gap: 6px; font-family: 'Roboto Flex', monospace;
+          font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 6px;
+          background: var(--md-surface-container-high); border: 1px solid var(--md-outline-variant);
+          color: var(--md-on-surface-variant);
+        }
+        .paste-overlay-hint { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; align-items: center; }
+
+        /* ===== Page-wide drag overlay (whole window accepts image drops) ===== */
+        body.drag-active::after {
+          content: ''; position: fixed; inset: 0; z-index: 90;
+          background: color-mix(in srgb, var(--md-primary) 14%, transparent);
+          border: 3px dashed var(--md-primary); pointer-events: none;
+          animation: fadeUp 0.18s var(--md-easing-spring-soft);
+        }
+        body.drag-active .drag-banner { display: flex; }
+
+        .drag-banner {
+          display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+          z-index: 95; background: var(--md-primary); color: var(--md-on-primary);
+          border-radius: 9999px; padding: 14px 22px; align-items: center; gap: 10px;
+          font-size: 14px; font-weight: 600; box-shadow: 0 12px 32px var(--md-shadow-color-strong);
+          pointer-events: none;
+        }
+        .drag-banner .material-symbols-rounded { font-size: 20px; }
+
+        /* ===== Quick-action cards (Read tab – mobile-first big buttons) ===== */
+        .quick-actions { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 14px; }
+        @media (min-width: 600px) { .quick-actions { grid-template-columns: 1fr 1fr; gap: 12px; } }
+        .quick-action {
+          display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
+          padding: 14px; border-radius: 18px; border: 1px solid var(--md-outline-variant);
+          background: var(--md-surface-container); cursor: pointer; text-align: left;
+          font-family: inherit; color: var(--md-on-surface);
+          transition: transform 0.2s var(--md-easing-spring-soft), border-color 0.2s, background 0.2s;
+        }
+        .quick-action:hover { border-color: var(--md-primary); background: var(--md-surface-container-high); }
+        .quick-action:active { transform: scale(0.97); }
+        .quick-action.primary { background: var(--md-primary); color: var(--md-on-primary); border-color: var(--md-primary); }
+        .quick-action.primary .quick-action-sub { color: var(--md-on-primary); opacity: 0.85; }
+        .quick-action-row { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; letter-spacing: 0.02em; }
+        .quick-action-row .material-symbols-rounded { font-size: 20px; }
+        .quick-action-title { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.2; }
+        .quick-action-sub { font-size: 11px; color: var(--md-on-surface-variant); font-weight: 500; }
+        .quick-action-hint { font-size: 10px; font-family: 'Roboto Flex', monospace; opacity: 0.75; margin-top: 2px; }
+
+        /* ===== History strip ===== */
+        .history-row { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 8px 2px; margin: -4px -2px 12px -2px; scrollbar-width: thin; }
+        .history-row::-webkit-scrollbar { height: 4px; }
+        .history-row::-webkit-scrollbar-thumb { background: var(--md-outline-variant); border-radius: 4px; }
+        .history-chip {
+          flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px;
+          max-width: 220px; padding: 6px 12px; border-radius: 9999px;
+          background: var(--md-surface-container-high); border: 1px solid var(--md-outline-variant);
+          color: var(--md-on-surface); font-size: 12px; font-weight: 600;
+          cursor: pointer; transition: all 0.2s; white-space: nowrap;
+          overflow: hidden; text-overflow: ellipsis;
+        }
+        .history-chip:hover { border-color: var(--md-primary); }
+        .history-chip .material-symbols-rounded { font-size: 14px; color: var(--md-primary); flex-shrink: 0; }
+        .history-empty { font-size: 11px; color: var(--md-on-surface-variant); padding: 6px 2px; font-style: italic; }
+
+        /* ===== Multi-QR list under result box ===== */
+        .multi-results { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+        .multi-item { padding: 10px 12px; background: var(--md-surface-container-high); border: 1px solid var(--md-outline-variant); border-radius: 12px; display: flex; align-items: center; gap: 10px; }
+        .multi-item-num { font-size: 10px; font-weight: 700; color: var(--md-on-surface-variant); flex-shrink: 0; padding: 2px 6px; background: var(--md-surface-container); border-radius: 4px; }
+        .multi-item-text { font-size: 12px; font-family: 'Roboto Flex', monospace; color: var(--md-on-surface); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .multi-item-open { font-size: 11px; color: var(--md-primary); text-decoration: none; font-weight: 600; flex-shrink: 0; }
   
 </style>
 
@@ -423,42 +530,57 @@
     </div>
 
     <!-- ===== READ ===== -->
-    <div id="readPanel" class="work-grid" style="display:none;">
-      <div class="card">
-        <div class="card-header"><span class="card-label"><span class="material-symbols-rounded">photo_camera</span> Camera scan</span></div>
-        <div class="reader-stage" id="readerStage">
-          <video id="video" playsinline muted style="display:none;"></video>
-          <img id="snapImg" style="display:none;" alt="" />
-          <div class="reader-overlay">
-            <div class="reader-frame"></div>
-            <div class="reader-scanline"></div>
+        <div id="readPanel" class="work-grid" style="display:none;">
+          <div class="card">
+            <div class="card-header"><span class="card-label"><span class="material-symbols-rounded">photo_camera</span> Camera scan</span></div>
+            <div class="reader-stage" id="readerStage">
+              <video id="video" playsinline muted style="display:none;"></video>
+              <img id="snapImg" style="display:none;" alt="" />
+              <div class="reader-overlay">
+                <div class="reader-frame"></div>
+                <div class="reader-scanline"></div>
+              </div>
+              <div class="reader-empty" id="readerEmpty"><span class="material-symbols-rounded">camera_alt</span><span>Camera is off. Start scanning or upload an image.</span></div>
+            </div>
+            <div class="reader-controls">
+              <button class="reader-btn primary" id="startCamBtn" type="button"><span class="material-symbols-rounded">videocam</span> Start camera</button>
+              <button class="reader-btn" id="stopCamBtn" type="button" disabled><span class="material-symbols-rounded">stop</span> Stop</button>
+              <button class="reader-btn" id="switchCamBtn" type="button" disabled><span class="material-symbols-rounded">cameraswitch</span> Flip</button>
+            </div>
+            <p class="note">Point your camera at a QR code. Decoding runs locally on each frame. If your device has no camera or denies access, use the image upload below.</p>
           </div>
-          <div class="reader-empty" id="readerEmpty"><span class="material-symbols-rounded">camera_alt</span><span>Camera is off. Start scanning or upload an image.</span></div>
-        </div>
-        <div class="reader-controls">
-          <button class="reader-btn primary" id="startCamBtn" type="button"><span class="material-symbols-rounded">videocam</span> Start camera</button>
-          <button class="reader-btn" id="stopCamBtn" type="button" disabled><span class="material-symbols-rounded">stop</span> Stop</button>
-          <button class="reader-btn" id="switchCamBtn" type="button" disabled><span class="material-symbols-rounded">cameraswitch</span> Flip</button>
-        </div>
-        <p class="note">Point your camera at a QR code. Decoding runs locally on each frame. If your device has no camera or denies access, use the image upload below.</p>
-      </div>
 
-      <div class="card">
-        <div class="card-header"><span class="card-label"><span class="material-symbols-rounded">image</span> From image</span></div>
-        <label class="dropzone" id="imgDrop" for="imgInput" tabindex="0" aria-label="Upload a QR image">
-          <span class="material-symbols-rounded">upload</span>
-          <span class="dz-title">Drop or browse a QR image</span>
-          <span class="dz-sub">PNG, JPG, WebP, GIF, BMP — decoded locally.</span>
-          <input type="file" id="imgInput" accept="image/*" style="display:none;" />
-        </label>
-        <div id="resultBox" class="result-box" style="display:none;">
-          <div class="result-label"><span class="material-symbols-rounded" style="font-size:16px;">check_circle</span> Decoded</div>
-          <div class="result-text" id="resultText"></div>
-          <div class="result-actions" id="resultActions"></div>
+          <div class="card">
+            <div class="card-header"><span class="card-label"><span class="material-symbols-rounded">image</span> From image</span></div>
+
+            <div class="quick-actions">
+              <button class="quick-action primary" id="qaUpload" type="button">
+                <span class="quick-action-row"><span class="material-symbols-rounded">upload_file</span> Choose image</span>
+                <span class="quick-action-title">Pick from gallery</span>
+                <span class="quick-action-sub">PNG, JPG, WebP, GIF, BMP</span>
+              </button>
+              <button class="quick-action" id="qaPaste" type="button">
+                <span class="quick-action-row"><span class="material-symbols-rounded">content_paste</span> Paste</span>
+                <span class="quick-action-title">Paste from clipboard</span>
+                <span class="quick-action-sub">Press <span class="quick-action-hint" id="qaPasteHint">Ctrl+V</span> anywhere</span>
+              </button>
+            </div>
+
+            <label class="dropzone" id="imgDrop" for="imgInput" tabindex="0" aria-label="Upload a QR image">
+              <span class="material-symbols-rounded">upload</span>
+              <span class="dz-title">Drop or browse a QR image</span>
+              <span class="dz-sub">PNG, JPG, WebP, GIF, BMP — decoded locally.</span>
+              <input type="file" id="imgInput" accept="image/*" style="display:none;" />
+            </label>
+            <div id="resultBox" class="result-box" style="display:none;">
+              <div class="result-label"><span class="material-symbols-rounded" style="font-size:16px;">check_circle</span> Decoded</div>
+              <div class="result-text" id="resultText"></div>
+              <div class="multi-results" id="multiResults"></div>
+              <div class="result-actions" id="resultActions"></div>
+            </div>
+            <div id="readStatus" class="note" style="display:none;"></div>
+          </div>
         </div>
-        <div id="readStatus" class="note" style="display:none;"></div>
-      </div>
-    </div>
 
     <footer class="app-footer">
       <div>Inpriv QR · Open Source Privacy Suite</div>
@@ -470,6 +592,33 @@
         <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener">MIT License</a>
       </div>
     </footer>
+  </div>
+
+  <!-- History strip (recently decoded) -->
+  <div class="history-row" id="historyRow" hidden>
+    <span class="history-empty" id="historyEmpty">No history yet</span>
+  </div>
+
+  <!-- Paste overlay (shown when user presses Ctrl/Cmd+V with image in clipboard) -->
+  <div class="paste-overlay" id="pasteOverlay" role="dialog" aria-modal="true" aria-labelledby="pasteOverlayTitle">
+    <div class="paste-overlay-inner">
+      <span class="material-symbols-rounded">content_paste</span>
+      <div class="paste-overlay-title" id="pasteOverlayTitle">Paste image to scan</div>
+      <div class="paste-overlay-sub" id="pasteOverlaySub">Release to decode the QR code from your clipboard.</div>
+      <div class="paste-overlay-hint">
+        <span class="paste-overlay-kbd"><span class="material-symbols-rounded" style="font-size:14px;">content_paste</span> paste</span>
+        <span style="font-size:11px;color:var(--md-on-surface-variant);">anywhere on this page</span>
+      </div>
+      <button class="quick-action" id="pasteOverlayClose" type="button" style="margin-top:8px;">
+        <span class="quick-action-title">Cancel</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Page-wide drop banner -->
+  <div class="drag-banner" id="dragBanner">
+    <span class="material-symbols-rounded">file_download</span>
+    <span>Drop image to scan</span>
   </div>
 
   <div class="floating-toolbar">
@@ -821,16 +970,16 @@
       let isScanning = false;
 
       // --- Theme ---
-      function getPreferredTheme() {
-        const stored = localStorage.getItem('inpriv-theme');
-        if (stored) return stored;
-        return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-      }
-      function applyTheme(theme) {
-        document.documentElement.setAttribute('data-theme', theme);
-        themeIcon.textContent = theme === 'dark' ? 'light_mode' : 'dark_mode';
-        localStorage.setItem('inpriv-theme', theme);
-      }
+            function getPreferredTheme() {
+              const stored = localStorage.getItem('inpriv_theme');
+              if (stored) return stored;
+              return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+            }
+            function applyTheme(theme) {
+              document.documentElement.setAttribute('data-theme', theme);
+              themeIcon.textContent = theme === 'dark' ? 'light_mode' : 'dark_mode';
+              try { localStorage.setItem('inpriv_theme', theme); } catch(e) {}
+            }
       let currentTheme = getPreferredTheme();
       applyTheme(currentTheme);
       themeToggle.addEventListener('click', function() {
@@ -1223,50 +1372,20 @@
         }
       }
 
-      // Handle file upload
+      // Handle file upload (delegated to handleImageFile)
       imgInput.addEventListener('change', function(e) {
-        if (this.files && this.files[0]) {
-          const file = this.files[0];
-          const reader = new FileReader();
-          reader.onload = function(ev) {
-            const img = new Image();
-            img.onload = function() {
-              const canvas = document.createElement('canvas');
-              canvas.width = img.width;
-              canvas.height = img.height;
-              const ctx = canvas.getContext('2d');
-              ctx.drawImage(img, 0, 0);
-              const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-              decodeImage(imageData);
-              // Show image in reader stage?
-              snapImg.src = ev.target.result;
-              snapImg.style.display = 'block';
-              video.style.display = 'none';
-              readerEmpty.style.display = 'none';
-              readerStage.classList.remove('scanning');
-            };
-            img.src = ev.target.result;
-          };
-          reader.readAsDataURL(this.files[0]);
-        }
+        if (this.files && this.files[0]) handleImageFile(this.files[0]);
+        // Reset so the same file can be re-selected
+        this.value = '';
       });
 
-      // Drag and drop
-      imgDrop.addEventListener('dragover', function(e) {
-        e.preventDefault();
-        this.classList.add('dragover');
-      });
-      imgDrop.addEventListener('dragleave', function(e) {
-        e.preventDefault();
-        this.classList.remove('dragover');
-      });
+      // Drop zone visual feedback (page-wide drop catches the file too)
+      imgDrop.addEventListener('dragover', function(e) { e.preventDefault(); this.classList.add('dragover'); });
+      imgDrop.addEventListener('dragleave', function(e) { e.preventDefault(); this.classList.remove('dragover'); });
       imgDrop.addEventListener('drop', function(e) {
         e.preventDefault();
         this.classList.remove('dragover');
-        if (e.dataTransfer.files.length) {
-          imgInput.files = e.dataTransfer.files;
-          imgInput.dispatchEvent(new Event('change'));
-        }
+        if (e.dataTransfer.files.length) handleImageFile(e.dataTransfer.files[0]);
       });
 
       // --- Camera ---
@@ -1378,8 +1497,317 @@
         }
       });
 
+      // --- Multi-QR: try multiple crop regions + full image, collect all decoded payloads ---
+      function decodeMulti(canvasData) {
+        const w = canvasData.width, h = canvasData.height;
+        const out = [];
+        const seen = new Set();
+        function addResult(text) {
+          if (!text || seen.has(text)) return false;
+          seen.add(text);
+          out.push(text);
+          return true;
+        }
+        // Full frame first
+        try {
+          const c = jsQR(canvasData.data, w, h, { inversionAttempts: 'attemptBoth' });
+          if (c && c.data) addResult(c.data);
+        } catch(e) {}
+        // Grid sweep: 2x2 + 3x3 to catch multiple QRs in same image
+        if (out.length < 8) {
+          for (const n of [2, 3]) {
+            const stepX = w / n, stepY = h / n;
+            for (let gy = 0; gy < n; gy++) {
+              for (let gx = 0; gx < n; gx++) {
+                if (out.length >= 8) break;
+                const pad = 0.05;
+                const sx = Math.max(0, Math.floor(gx * stepX - stepX * pad));
+                const sy = Math.max(0, Math.floor(gy * stepY - stepY * pad));
+                const sw = Math.min(w - sx, Math.floor(stepX * (1 + 2 * pad)));
+                const sh = Math.min(h - sy, Math.floor(stepY * (1 + 2 * pad)));
+                if (sw < 40 || sh < 40) continue;
+                const sub = new Uint8ClampedArray(sw * sh * 4);
+                for (let y = 0; y < sh; y++) {
+                  const srcRow = (sy + y) * w * 4 + sx * 4;
+                  const dstRow = y * sw * 4;
+                  for (let i = 0; i < sw * 4; i++) sub[dstRow + i] = canvasData.data[srcRow + i];
+                }
+                try {
+                  const c = jsQR(sub, sw, sh, { inversionAttempts: 'attemptBoth' });
+                  if (c && c.data) addResult(c.data);
+                } catch(e) {}
+              }
+              if (out.length >= 8) break;
+            }
+          }
+        }
+        return out;
+      }
+
+      // --- History (last decoded QR payloads, localStorage) ---
+      const HISTORY_KEY = 'inpriv_qr_history';
+      const MAX_HISTORY = 12;
+      let history = [];
+      function loadHistory() {
+        try {
+          const raw = localStorage.getItem(HISTORY_KEY);
+          if (raw) history = JSON.parse(raw) || [];
+        } catch(e) { history = []; }
+        if (!Array.isArray(history)) history = [];
+        renderHistory();
+      }
+      function saveHistory() {
+        try { localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, MAX_HISTORY))); } catch(e) {}
+      }
+      function pushHistory(payload) {
+        if (!payload) return;
+        const idx = history.indexOf(payload);
+        if (idx >= 0) history.splice(idx, 1);
+        history.unshift(payload);
+        if (history.length > MAX_HISTORY) history.length = MAX_HISTORY;
+        saveHistory();
+        renderHistory();
+      }
+      function renderHistory() {
+        const row = document.getElementById('historyRow');
+        if (!row) return;
+        row.innerHTML = '';
+        if (!history.length) {
+          const empty = document.createElement('span');
+          empty.className = 'history-empty';
+          empty.textContent = 'No history yet';
+          row.appendChild(empty);
+          row.hidden = false;
+          return;
+        }
+        history.forEach(function(h) {
+          const chip = document.createElement('button');
+          chip.type = 'button';
+          chip.className = 'history-chip';
+          chip.title = h;
+          const icon = document.createElement('span');
+          icon.className = 'material-symbols-rounded';
+          icon.textContent = 'history';
+          const txt = document.createElement('span');
+          txt.textContent = h.length > 28 ? h.slice(0, 28) + '...' : h;
+          chip.appendChild(icon);
+          chip.appendChild(txt);
+          chip.addEventListener('click', function() {
+            switchTab('gen');
+            setPreset('text');
+            basicInput.value = h;
+            basicInput.dispatchEvent(new Event('input'));
+            try { basicInput.focus(); basicInput.setSelectionRange(0, 0); } catch(e) {}
+            showToast('Loaded into editor', 'arrow_back');
+          });
+          row.appendChild(chip);
+        });
+        row.hidden = false;
+      }
+
+      // --- Centralized image-handler (used by file, drop, paste, qaUpload) ---
+      function handleImageFile(file) {
+        if (!file) return;
+        if (!file.type || !file.type.startsWith('image/')) {
+          showToast('Not an image file', 'error');
+          return;
+        }
+        switchTab('read');
+        stopCamera();
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+          const img = new Image();
+          img.onload = function() {
+            const canvas = document.createElement('canvas');
+            let cw = img.naturalWidth || img.width;
+            let ch = img.naturalHeight || img.height;
+            const maxSide = 2000;
+            if (Math.max(cw, ch) > maxSide) {
+              const r = maxSide / Math.max(cw, ch);
+              cw = Math.round(cw * r); ch = Math.round(ch * r);
+            }
+            canvas.width = cw; canvas.height = ch;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, cw, ch);
+            snapImg.src = ev.target.result;
+            snapImg.style.display = 'block';
+            video.style.display = 'none';
+            readerEmpty.style.display = 'none';
+            readerStage.classList.remove('scanning');
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const payloads = decodeMulti(imageData);
+            if (payloads.length === 0) {
+              resultBox.style.display = 'none';
+              readStatus.textContent = 'No QR code found in image.';
+              readStatus.style.display = 'block';
+              showToast('No QR code found', 'search_off');
+              return;
+            }
+            payloads.forEach(pushHistory);
+            const primary = payloads[0];
+            resultBox.style.display = 'block';
+            resultText.textContent = primary;
+            const multi = document.getElementById('multiResults');
+            if (multi) {
+              multi.innerHTML = '';
+              if (payloads.length > 1) {
+                payloads.forEach(function(p, i) {
+                  const row = document.createElement('div');
+                  row.className = 'multi-item';
+                  const num = document.createElement('span');
+                  num.className = 'multi-item-num';
+                  num.textContent = '#' + (i + 1);
+                  const t = document.createElement('span');
+                  t.className = 'multi-item-text';
+                  t.textContent = p;
+                  t.title = p;
+                  row.appendChild(num); row.appendChild(t);
+                  if (/^https?:\/\//i.test(p)) {
+                    const a = document.createElement('a');
+                    a.className = 'multi-item-open';
+                    a.href = p; a.target = '_blank'; a.rel = 'noopener';
+                    a.textContent = 'Open';
+                    row.appendChild(a);
+                  }
+                  multi.appendChild(row);
+                });
+              }
+            }
+            resultActions.innerHTML = '';
+            if (/^https?:\/\//i.test(primary)) {
+              const a = document.createElement('a');
+              a.href = primary; a.target = '_blank'; a.rel = 'noopener';
+              a.className = 'result-link';
+              a.textContent = 'Open link';
+              resultActions.appendChild(a);
+            }
+            if (navigator.share && /^(https?:\/\/|[\w.+-]+@)/i.test(primary)) {
+              const sh = document.createElement('button');
+              sh.className = 'result-link';
+              sh.type = 'button';
+              sh.style.background = 'transparent';
+              sh.style.cursor = 'pointer';
+              sh.innerHTML = '<span class="material-symbols-rounded" style="font-size:14px;">share</span> Share';
+              sh.addEventListener('click', function() {
+                navigator.share({ title: 'QR payload', text: primary, url: /^https?:\/\//i.test(primary) ? primary : undefined }).catch(function(){});
+              });
+              resultActions.appendChild(sh);
+            }
+            const copyRes = document.createElement('button');
+            copyRes.className = 'copy-btn';
+            copyRes.innerHTML = '<span class="material-symbols-rounded">content_copy</span>';
+            copyRes.title = 'Copy result';
+            copyRes.addEventListener('click', function() {
+              navigator.clipboard.writeText(primary).then(function(){ showToast('Result copied', 'content_copy'); }).catch(function(){
+                const ta = document.createElement('textarea'); ta.value = primary; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+                showToast('Result copied', 'content_copy');
+              });
+            });
+            resultActions.appendChild(copyRes);
+            readStatus.textContent = payloads.length > 1
+              ? 'Decoded ' + payloads.length + ' QR codes from image.'
+              : 'Decoded from image.';
+            readStatus.style.display = 'block';
+            hidePasteOverlay();
+            showToast(payloads.length > 1 ? ('Found ' + payloads.length + ' QR codes') : 'QR code decoded', 'check_circle');
+          };
+          img.onerror = function() { showToast('Could not load image', 'error'); };
+          img.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+
+      // --- Global paste handler (Ctrl/Cmd+V anywhere on page) ---
+      let pasteOverlayEl = null;
+      function showPasteOverlay() {
+        if (!pasteOverlayEl) pasteOverlayEl = document.getElementById('pasteOverlay');
+        if (pasteOverlayEl) pasteOverlayEl.classList.add('show');
+      }
+      function hidePasteOverlay() {
+        if (!pasteOverlayEl) pasteOverlayEl = document.getElementById('pasteOverlay');
+        if (pasteOverlayEl) pasteOverlayEl.classList.remove('show');
+      }
+      const pasteOverlayClose = document.getElementById('pasteOverlayClose');
+      if (pasteOverlayClose) pasteOverlayClose.addEventListener('click', hidePasteOverlay);
+      document.addEventListener('paste', function(e) {
+        if (!e.clipboardData) return;
+        let imgItem = null;
+        for (let i = 0; i < e.clipboardData.items.length; i++) {
+          const it = e.clipboardData.items[i];
+          if (it.kind === 'file' && it.type && it.type.startsWith('image/')) { imgItem = it; break; }
+        }
+        if (!imgItem) return;
+        e.preventDefault();
+        const file = imgItem.getAsFile();
+        if (file) handleImageFile(file);
+      });
+      document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'V') &&
+            !(document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName))) {
+          showPasteOverlay();
+        }
+      });
+
+      // --- Page-wide drag (whole window accepts image drops) ---
+      let dragDepth = 0;
+      window.addEventListener('dragenter', function(e) {
+        if (!e.dataTransfer || !e.dataTransfer.types || !Array.from(e.dataTransfer.types).includes('Files')) return;
+        dragDepth++;
+        document.body.classList.add('drag-active');
+      });
+      window.addEventListener('dragleave', function(e) {
+        dragDepth = Math.max(0, dragDepth - 1);
+        if (dragDepth === 0) document.body.classList.remove('drag-active');
+      });
+      window.addEventListener('dragover', function(e) {
+        if (e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files')) e.preventDefault();
+      });
+      window.addEventListener('drop', function(e) {
+        e.preventDefault();
+        dragDepth = 0;
+        document.body.classList.remove('drag-active');
+        const files = e.dataTransfer && e.dataTransfer.files;
+        if (files && files.length) handleImageFile(files[0]);
+      });
+
+      // --- Quick action buttons ---
+      const qaUpload = document.getElementById('qaUpload');
+      if (qaUpload) qaUpload.addEventListener('click', function() { imgInput.click(); });
+      const qaPaste = document.getElementById('qaPaste');
+      if (qaPaste) qaPaste.addEventListener('click', function() {
+        if (navigator.clipboard && navigator.clipboard.read) {
+          navigator.clipboard.read().then(function(items) {
+            let handled = false;
+            for (const it of items) {
+              for (const t of it.types) {
+                if (t.startsWith('image/')) {
+                  it.getType(t).then(function(blob) {
+                    const file = new File([blob], 'pasted-' + Date.now() + '.png', { type: t });
+                    handleImageFile(file);
+                  }).catch(function(){});
+                  handled = true;
+                  return;
+                }
+              }
+            }
+            if (!handled) {
+              showToast('No image in clipboard', 'content_paste_off');
+              showPasteOverlay();
+            }
+          }).catch(function() { showPasteOverlay(); });
+        } else {
+          showPasteOverlay();
+        }
+      });
+      const isMac = /Mac|iPhone|iPad/.test(navigator.platform) || /Mac/.test(navigator.userAgent);
+      const hintEl = document.getElementById('qaPasteHint');
+      if (hintEl) hintEl.textContent = isMac ? 'Cmd+V' : 'Ctrl+V';
+      const kbdEl = document.querySelector('.paste-overlay-kbd');
+      if (kbdEl) kbdEl.textContent = isMac ? 'Cmd + V' : 'Ctrl + V';
+
       // --- Init ---
       setPreset('text');
+
       // Set initial content from basicInput (already has "https://inpriv.xyz")
       updateQR();
 
