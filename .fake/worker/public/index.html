@@ -689,10 +689,14 @@ function showResult(idn) {
      (idn.ttl_minutes >= 1440 ? (idn.ttl_minutes / 1440) + " day(s)" : (idn.ttl_minutes / 60) + " hour(s)"));
   $("#resAddr").textContent = idn.address;
   const passEl = $("#resPass");
-  passEl.textContent = "••••-••••-••••-••••";
-  passEl.classList.add("pass-hidden");
+  // Show the password right away — the user just generated it and is about to
+  // paste it into mail.inpriv.xyz. Hiding it behind an eye toggle only invites
+  // typos when re-typing a 19-char random string.
+  passEl.textContent = idn.password;
+  passEl.classList.remove("pass-hidden");
   passEl.dataset.real = idn.password;
-  $("#revealBtn").dataset.shown = "0";
+  $("#revealBtn").dataset.shown = "1";
+  $("#revealBtn").querySelector(".material-symbols-rounded").textContent = "visibility_off";
   $("#cdVal").textContent = forever ? "∞" : fmtCountdown(idn.expires_at - Date.now());
   if (forever) $("#cdVal").classList.add("forever"); else $("#cdVal").classList.remove("forever");
   startCountdown(idn.expires_at);
