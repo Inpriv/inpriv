@@ -244,6 +244,17 @@ main { position: relative; z-index: 1; max-width: 720px; margin: 0 auto; padding
 .cred-row .c-info { min-width: 0; flex: 1; }
 .cred-row .c-label { font-size: 9.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--md-on-surface-var); }
 .cred-row .c-val { font-size: 14px; font-weight: 600; word-break: break-all; line-height: 1.35; }
+.pwd-input {
+  font-family: 'Roboto Mono', 'SF Mono', ui-monospace, monospace;
+  font-size: 14px; font-weight: 700;
+  letter-spacing: 0.04em;
+  background: transparent; border: 0; outline: none;
+  padding: 2px 0; width: 100%;
+  color: inherit; cursor: text;
+  user-select: all; -webkit-user-select: all;
+  caret-color: transparent;
+}
+.pwd-input.pwd-hidden { letter-spacing: 0.25em; -webkit-text-security: disc; text-security: disc; }
 .copy-btn {
   flex-shrink: 0; border: none; background: transparent; color: var(--md-primary);
   cursor: pointer; width: 40px; height: 40px; border-radius: 50%;
@@ -419,9 +430,11 @@ dialog::backdrop { background: rgba(0,0,0,0.55); backdrop-filter: blur(6px); }
           <button class="copy-btn" data-copy="resAddr" title="Copy address" aria-label="Copy address"><span class="material-symbols-rounded">content_copy</span></button>
         </div>
         <div class="cred-row">
-          <div class="c-info"><div class="c-label">Password</div><div class="c-val" id="resPass">—</div></div>
-          <button class="copy-btn eye-btn" id="revealBtn" title="Show / hide password" aria-label="Show or hide password"><span class="material-symbols-rounded">visibility</span></button>
-          <button class="copy-btn" data-copy="resPass" title="Copy password" aria-label="Copy password"><span class="material-symbols-rounded">content_copy</span></button>
+          <div class="c-info"><div class="c-label">Password</div>
+            <input class="c-val pwd-input" id="resPass" type="text" readonly aria-label="Generated password">
+          </div>
+          <button class="copy-btn eye-btn" id="revealBtn" title="Hide / show password" aria-label="Hide or show password"><span class="material-symbols-rounded">visibility_off</span></button>
+          <button class="copy-btn" id="copyPassBtn" title="Copy password" aria-label="Copy password"><span class="material-symbols-rounded">content_copy</span></button>
         </div>
       </div>
       <div class="countdown">
@@ -689,11 +702,11 @@ function showResult(idn) {
      (idn.ttl_minutes >= 1440 ? (idn.ttl_minutes / 1440) + " day(s)" : (idn.ttl_minutes / 60) + " hour(s)"));
   $("#resAddr").textContent = idn.address;
   const passEl = $("#resPass");
-  // Show the password right away — the user just generated it and is about to
-  // paste it into mail.inpriv.xyz. Hiding it behind an eye toggle only invites
-  // typos when re-typing a 19-char random string.
-  passEl.textContent = idn.password;
-  passEl.classList.remove("pass-hidden");
+  // Show the password right away in a readonly <input> so the user can
+  // long-press → Copy (mobile) or click → select-all → Ctrl+C (desktop).
+  // Hiding it behind an eye toggle invites typos when re-typing 19 random chars.
+  passEl.value = idn.password;
+  passEl.classList.remove("pwd-hidden");
   passEl.dataset.real = idn.password;
   $("#revealBtn").dataset.shown = "1";
   $("#revealBtn").querySelector(".material-symbols-rounded").textContent = "visibility_off";
@@ -706,21 +719,59 @@ function showResult(idn) {
 $("#revealBtn").addEventListener("click", () => {
   const passEl = $("#resPass"), btn = $("#revealBtn");
   const shown = btn.dataset.shown === "1";
-  if (shown) { passEl.textContent = "••••-••••-••••-••••"; passEl.classList.add("pass-hidden"); btn.dataset.shown = "0"; btn.querySelector(".material-symbols-rounded").textContent = "visibility"; }
-  else { passEl.textContent = passEl.dataset.real; passEl.classList.remove("pass-hidden"); btn.dataset.shown = "1"; btn.querySelector(".material-symbols-rounded").textContent = "visibility_off"; }
+  if (shown) {
+    passEl.value = "•••••••••••••••••••";
+    passEl.classList.add("pwd-hidden");
+    btn.dataset.shown = "0";
+    btn.querySelector(".material-symbols-rounded").textContent = "visibility";
+  } else {
+    passEl.value = passEl.dataset.real;
+    passEl.classList.remove("pwd-hidden");
+    btn.dataset.shown = "1";
+    btn.querySelector(".material-symbols-rounded").textContent = "visibility_off";
+  }
+});
+
+// Tap the password field itself → select all (mobile: triggers native copy sheet).
+$("#resPass").addEventListener("focus", (e) => e.target.select());
+$("#resPass").addEventListener("click", (e) => e.target.select());
+
+// Explicit copy button — uses the readonly input's native .select() so the
+// clipboard receives exactly the field value (no extra whitespace / newline).
+$("#copyPassBtn").addEventListener("click", () => {
+  const passEl = $("#resPass");
+  passEl.focus(); passEl.select();
+  let ok = false;
+  try { ok = document.execCommand("copy"); } catch {}
+  if (!ok && navigator.clipboard) {
+    navigator.clipboard.writeText(passEl.value).then(
+      () => snack("Password copied"),
+      () => snack("Copy failed — long-press the password field")
+    );
+  } else {
+    snack("Password copied");
+  }
 });
 
 // When opening the mailbox, copy the password to clipboard so the user only
 // has to paste it on mail.inpriv.xyz — avoids typo'ing a 19-char random string.
+// Navigate in the SAME tab so the user lands directly on the login form with
+// the clipboard still focused; opening in a new tab on iOS sometimes drops the
+// clipboard focus and the paste ends up on the previous tab.
 $("#openMailBtn").addEventListener("click", (ev) => {
   const passEl = $("#resPass");
   const pwd = passEl?.dataset.real;
   if (!pwd) return;
   ev.preventDefault();
-  const go = () => window.open("https://mail.inpriv.xyz", "_blank", "noopener");
+  const go = () => { window.location.href = "https://mail.inpriv.xyz"; };
   (navigator.clipboard ? navigator.clipboard.writeText(pwd) : Promise.reject())
-    .then(() => { snack("Password copied — paste it on mail.inpriv.xyz"); go(); },
-          () => { snack("Open the eye first, then copy with the clipboard button"); go(); });
+    .then(() => { snack("Password copied — paste it on Mail and sign in"); go(); },
+          () => {
+            // Fallback: select the password field so the user can copy manually.
+            passEl.focus(); passEl.select();
+            snack("Copy failed — long-press the password, then open Mail");
+            setTimeout(go, 2200);
+          });
 });
 
 /* copy buttons */
