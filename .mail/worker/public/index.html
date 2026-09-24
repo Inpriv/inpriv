@@ -2048,19 +2048,42 @@ async function handleLogin(username, password) {
     state.user = res.user;
     localStorage.setItem('inpriv_token', res.token);
 
-    // Derive AES key & unwrap private RSA key
-    const aesKey = await deriveAesFromPassword(password, res.user.priv_salt, res.user.priv_iter);
-    state.dek = aesKey; // kept for Quick Unlock re-enrolment from settings
-    state.privKey = await unwrapPrivateKey(res.user.encrypted_private_key, res.user.priv_iv, aesKey);
-    state.pubKey = await crypto.subtle.importKey('spki', b64.dec(res.user.public_key), { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['encrypt']);
-    state.unlocked = true;
+    // Derive AES key & unwrap private RSA key. The unwrap is best-effort:
+    // some accounts (notably Fake identities created on fake.inpriv.xyz before
+    // a Mail-side compatibility fix lands) may have an envelope that fails to
+    // decrypt even when the password is correct — usually because the account
+    // was created by a different client whose envelope format we don't yet
+    // fully match. The API session is valid either way, so log the user in and
+    // let them read messages; they'll only see a warning when they try to
+    // send (no private key → can't sign/encrypt outbound mail).
+    let unwrapFailed = false;
+    try {
+      const aesKey = await deriveAesFromPassword(password, res.user.priv_salt, res.user.priv_iter);
+      state.dek = aesKey; // kept for Quick Unlock re-enrolment from settings
+      state.privKey = await unwrapPrivateKey(res.user.encrypted_private_key, res.user.priv_iv, aesKey);
+      state.pubKey = await crypto.subtle.importKey('spki', b64.dec(res.user.public_key), { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['encrypt']);
+      state.unlocked = true;
+    } catch (e) {
+      unwrapFailed = true;
+      console.warn('Key unwrap failed — inbox will be read-only:', e);
+    }
 
-    // Quick Unlock enrolment: wrap the freshly derived DEK under this
-    // device's key so future visits skip the master password (the account
-    // setting is checked inside the helper).
-    try { await enrolQuickUnlock(aesKey); } catch (e) { /* best-effort; password login still works */ }
-    toast('Mailbox unlocked', `Signed in as ${res.user.email}`);
+    if (state.unlocked) {
+      // Quick Unlock enrolment: wrap the freshly derived DEK under this
+      // device's key so future visits skip the master password (the account
+      // setting is checked inside the helper).
+      try { await enrolQuickUnlock(state.dek); } catch (e) { /* best-effort; password login still works */ }
+      toast('Mailbox unlocked', `Signed in as ${res.user.email}`);
+    } else {
+      state.token = res.token;
+      toast('Signed in', `Read-only — couldn't unlock encryption keys. You can view messages but can't send.`);
+    }
     renderDashboard();
+    if (unwrapFailed) {
+      // Persistent reminder at the top of the inbox so the user knows why
+      // some actions (reply, compose) may fail.
+      setTimeout(() => toast('Keys unavailable', 'Inbox is in read-only mode until the next sign-in', 'error'), 400);
+    }
   } catch (e) {
     toast('Login failed', e.message, 'error');
     if (btn) { btn.disabled = false; btn.innerHTML = `<span>Unlock Mailbox</span> ${mkIcon('lock_open')}`; }
