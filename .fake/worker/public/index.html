@@ -207,7 +207,9 @@ main { position: relative; z-index: 1; max-width: 720px; margin: 0 auto; padding
 
 /* ── lifetime picker ─────────────────────────────────────── */
 .ttl-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-@media (min-width: 480px) { .ttl-grid { grid-template-columns: repeat(5, 1fr); } }
+@media (min-width: 480px) { .ttl-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 720px) { .ttl-grid { grid-template-columns: repeat(6, 1fr); } }
+.ttl-never .ttl-val { font-size: 26px; line-height: 1; }
 .ttl {
   border: 1.5px solid var(--md-outline-var); border-radius: 18px;
   background: var(--md-surface-container); color: var(--md-on-surface);
@@ -253,6 +255,7 @@ main { position: relative; z-index: 1; max-width: 720px; margin: 0 auto; padding
 .pass-hidden { letter-spacing: 0.25em; }
 .countdown { text-align: center; margin: 4px 0 16px; }
 .countdown .cd-val { font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--md-primary); }
+.countdown .cd-val.forever { font-weight: 400; opacity: 0.85; }
 .countdown .cd-lbl { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--md-on-surface-var); }
 .row-btns { display: flex; gap: 10px; flex-wrap: wrap; }
 .row-btns .btn { flex: 1; min-width: 140px; width: auto; }
@@ -350,7 +353,7 @@ dialog::backdrop { background: rgba(0,0,0,0.55); backdrop-filter: blur(6px); }
     <p>Generate a time-limited identity with a consistent name, strong password and a real
        <strong>@inpriv.xyz</strong> mailbox. When time runs out — or you burn it — everything is gone for good.</p>
     <div class="badge-row">
-      <span class="badge"><span class="material-symbols-rounded">timer</span>1 h – 30 days</span>
+      <span class="badge"><span class="material-symbols-rounded">timer</span>1 h – 30 days · or forever</span>
       <span class="badge"><span class="material-symbols-rounded">mark_email_read</span>Real inbox</span>
       <span class="badge"><span class="material-symbols-rounded">local_fire_department</span>One-click burn</span>
     </div>
@@ -384,7 +387,7 @@ dialog::backdrop { background: rgba(0,0,0,0.55); backdrop-filter: blur(6px); }
   <div id="appView" class="hidden">
     <section class="card" id="createQuery">
       <h2>New identity</h2>
-      <p class="sub">Pick how long it should live. The mailbox and its address stop existing the moment it expires.</p>
+      <p class="sub">Pick how long it should live. The mailbox and its address stop existing the moment it expires — unless you choose <strong>Never</strong>, in which case it lives until you burn it.</p>
       <span class="label">Lifetime</span>
       <div class="ttl-grid" role="radiogroup" aria-label="Identity lifetime">
         <button class="ttl" data-min="60"    role="radio" aria-checked="false"><span class="ttl-val">1</span><span class="ttl-unit">hour</span></button>
@@ -392,6 +395,7 @@ dialog::backdrop { background: rgba(0,0,0,0.55); backdrop-filter: blur(6px); }
         <button class="ttl selected" data-min="1440" role="radio" aria-checked="true"><span class="ttl-val">24</span><span class="ttl-unit">hours</span></button>
         <button class="ttl" data-min="10080" role="radio" aria-checked="false"><span class="ttl-val">7</span><span class="ttl-unit">days</span></button>
         <button class="ttl" data-min="43200" role="radio" aria-checked="false"><span class="ttl-val">30</span><span class="ttl-unit">days</span></button>
+        <button class="ttl ttl-never" data-min="0" role="radio" aria-checked="false" title="Lives until you burn it"><span class="ttl-val">&infin;</span><span class="ttl-unit">never</span></button>
       </div>
       <div style="margin-top:20px">
         <button class="btn" id="createBtn">
@@ -639,7 +643,7 @@ $("#createBtn").addEventListener("click", async () => {
     const d = await api("/api/identities", { method: "POST", body: JSON.stringify({ ttl_minutes: ttlMinutes, client }) });
     current = d.identity;
     showResult(current);
-    snack("Identity created — it dies automatically at 0:00");
+    snack(ttlMinutes === 0 ? "Permanent identity created — burns only on request" : "Identity created — it dies automatically at 0:00");
     refreshList();
   } catch (e) { err.textContent = e.message; }
   finally { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-rounded">auto_awesome</span> Generate identity'; }
@@ -653,8 +657,13 @@ function fmtCountdown(ms) {
   if (h > 0) return `${h}h ${m}m ${String(sec).padStart(2,"0")}s`;
   return `${m}m ${String(sec).padStart(2,"0")}s`;
 }
+function isForever(idn) { return idn && (idn.ttl_minutes === 0 || idn.expires_at == null); }
 function startCountdown(expiresAt) {
   clearInterval(currentTimer);
+  if (expiresAt == null) {
+    // Permanent identity — no countdown, no death. cdVal already rendered as "∞".
+    return;
+  }
   const tick = () => {
     const left = expiresAt - Date.now();
     $("#cdVal").textContent = fmtCountdown(left);
@@ -674,14 +683,18 @@ function showResult(idn) {
   $("#resultCard").classList.remove("hidden");
   $("#resAvatar").textContent = initials(idn.nick);
   $("#resNick").textContent = idn.nick;
-  $("#resName").textContent = idn.first_name + " " + idn.last_name + " · lives " +
-    (idn.ttl_minutes >= 1440 ? (idn.ttl_minutes / 1440) + " day(s)" : (idn.ttl_minutes / 60) + " hour(s)");
+  const forever = isForever(idn);
+  $("#resName").textContent = idn.first_name + " " + idn.last_name + " · " +
+    (forever ? "lives until you burn it" :
+     (idn.ttl_minutes >= 1440 ? (idn.ttl_minutes / 1440) + " day(s)" : (idn.ttl_minutes / 60) + " hour(s)"));
   $("#resAddr").textContent = idn.address;
   const passEl = $("#resPass");
   passEl.textContent = "••••-••••-••••-••••";
   passEl.classList.add("pass-hidden");
   passEl.dataset.real = idn.password;
   $("#revealBtn").dataset.shown = "0";
+  $("#cdVal").textContent = forever ? "∞" : fmtCountdown(idn.expires_at - Date.now());
+  if (forever) $("#cdVal").classList.add("forever"); else $("#cdVal").classList.remove("forever");
   startCountdown(idn.expires_at);
   $("#resultCard").scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
@@ -734,7 +747,7 @@ function renderList() {
     item.innerHTML =
       `<div class="i-av">${esc(initials(idn.nick))}</div>` +
       `<div class="i-info"><div class="i-nick">${esc(idn.nick)}</div><div class="i-addr">${esc(idn.address)}</div></div>` +
-      `<span class="chip ${esc(idn.status)}">${idn.status === "active" ? fmtCountdown(idn.expires_at - Date.now()) : esc(idn.status)}</span>`;
+      `<span class="chip ${esc(idn.status)}">${idn.status === "active" ? (isForever(idn) ? "permanent" : fmtCountdown(idn.expires_at - Date.now())) : esc(idn.status)}</span>`;
     if (alive) item.addEventListener("click", () => openReveal(idn));
     list.appendChild(item);
   }
@@ -751,7 +764,10 @@ async function openReveal(idn) {
   $("#dlgAddr").textContent = idn.address;
   $("#dlgPass").textContent = "…";
   $("#dlgErr").textContent = "";
-  const tick = () => { $("#dlgTtl").textContent = fmtCountdown(idn.expires_at - Date.now()) + " remaining"; };
+  const tick = () => {
+    if (isForever(idn)) { $("#dlgTtl").textContent = "permanent — burns only on request"; clearInterval(dlgTimer); return; }
+    $("#dlgTtl").textContent = fmtCountdown(idn.expires_at - Date.now()) + " remaining";
+  };
   tick();
   clearInterval(dlgTimer);
   dlgTimer = setInterval(tick, 1000);

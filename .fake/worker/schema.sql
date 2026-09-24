@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS identities (
   pass_sealed  TEXT NOT NULL,             -- AES-GCM envelope JSON of the password
   ttl_minutes  INTEGER NOT NULL,          -- chosen lifetime
   created_at   INTEGER NOT NULL,
-  expires_at   INTEGER NOT NULL,
+  expires_at   INTEGER,                   -- NULL = permanent identity (manual burn only)
   burned_at    INTEGER                    -- set on manual burn (purge lag ok)
 );
 

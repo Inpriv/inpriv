@@ -23,6 +23,7 @@ const SESSION_TTL_MS = 7 * 24 * 3600 * 1000;
 const PASS_ITERS = 300_000;
 const PBKDF2_CAP = 100_000;
 const MAX_IDENTITIES_PER_USER = 5;
+const MAX_PERMANENT_IDENTITIES = 2; // separate cap so @inpriv.xyz mailboxes can't be hoarded forever
 const TOMBSTONE_KEEP_MS = 48 * 3600 * 1000; // purge metadata 48 h after death
 
 const enc = new TextEncoder();
@@ -296,14 +297,27 @@ async function createIdentity(request, env, cors, me) {
   const body = await request.json().catch(() => ({}));
   const ttlMinutes = Number(body.ttl_minutes);
 
-  const ALLOWED = { 60: 1, 360: 1, 1440: 1, 10080: 1, 43200: 1 };
-  if (!ALLOWED[ttlMinutes]) return bad("Invalid lifetime — pick 1 h, 6 h, 24 h, 7 days or 30 days");
+  // 0 = never expire (NULL in expires_at; manual burn only). Otherwise finite.
+  const ALLOWED = { 0: 1, 60: 1, 360: 1, 1440: 1, 10080: 1, 43200: 1 };
+  if (!ALLOWED[ttlMinutes]) return bad("Invalid lifetime — pick Never, 1 h, 6 h, 24 h, 7 days or 30 days");
+
+  // Permanent identities are a stronger commitment — cap them so a user
+  // can't quietly accumulate a huge fleet of @inpriv.xyz mailboxes.
+  if (ttlMinutes === 0) {
+    const perm = await env.DB.prepare(
+      "SELECT COUNT(*) c FROM identities WHERE owner_id = ? AND burned_at IS NULL AND ttl_minutes = 0"
+    ).bind(me.owner_id ?? me.id).first();
+    if ((perm?.c || 0) >= MAX_PERMANENT_IDENTITIES)
+      return bad(`Permanent identity limit reached (${MAX_PERMANENT_IDENTITIES})`, 409);
+  }
 
   if (!(await rateLimit(env.DB, `mk:${me.owner_id ?? me.id}`, 6, 3_600_000)))
     return bad("Too many identities created — try again later", 429);
 
+  // Permanent identities count toward MAX_IDENTITIES_PER_USER just like finite ones —
+  // they're real @inpriv.xyz mailboxes that can't be hoarded.
   const active = await env.DB.prepare(
-    "SELECT COUNT(*) c FROM identities WHERE owner_id = ? AND burned_at IS NULL AND expires_at > ?"
+    "SELECT COUNT(*) c FROM identities WHERE owner_id = ? AND burned_at IS NULL AND (expires_at IS NULL OR expires_at > ?)"
   ).bind(me.owner_id ?? me.id, now()).first();
   if ((active?.c || 0) >= MAX_IDENTITIES_PER_USER)
     return bad(`Identity limit reached (${MAX_IDENTITIES_PER_USER} active)`, 409);
@@ -328,7 +342,8 @@ async function createIdentity(request, env, cors, me) {
 
   const password = genPassword();
   const t = now();
-  const expiresAt = t + ttlMinutes * 60_000;
+  // 0 = permanent; expires_at is NULL and the cron sweep ignores it.
+  const expiresAt = ttlMinutes === 0 ? null : t + ttlMinutes * 60_000;
 
   // Seal the password so the owner can re-reveal it until the identity dies.
   const sealed = await sealString(env, password);
@@ -426,7 +441,8 @@ export default {
 
       if (path === "/api/me" && request.method === "GET") {
         const active = await env.DB.prepare(
-          "SELECT COUNT(*) c FROM identities WHERE owner_id = ? AND burned_at IS NULL AND expires_at > ?"
+          // NULL expires_at = permanent, still active.
+          "SELECT COUNT(*) c FROM identities WHERE owner_id = ? AND burned_at IS NULL AND (expires_at IS NULL OR expires_at > ?)"
         ).bind(me.owner_id, now()).first();
         return json({ user: pubUser(me), active_count: active?.c || 0 }, 200, cors);
       }
@@ -441,7 +457,8 @@ export default {
         return json({
           identities: (rows.results || []).map((r) => ({
             ...r,
-            status: r.burned_at ? "burned" : r.expires_at <= t ? "expired" : "active",
+            // NULL expires_at = permanent → always active until manual burn.
+            status: r.burned_at ? "burned" : (r.expires_at == null || r.expires_at > t) ? "active" : "expired",
           })),
         }, 200, cors);
       }
@@ -450,13 +467,15 @@ export default {
         return await createIdentity(request, env, cors, me);
       }
 
-      // re-reveal the password (sealed at rest with FAKE_ENC_KEY)
+      // re-reveal the password (sealed at rest with FAKE_ENC_KEY).
+      // Permanent identities (expires_at IS NULL) are revealable until manual burn.
       if ((m = path.match(/^\/api\/identities\/([a-f0-9-]{36})\/password$/)) && request.method === "GET") {
         const row = await env.DB.prepare(
           "SELECT pass_sealed, expires_at, burned_at FROM identities WHERE id = ? AND owner_id = ?"
         ).bind(m[1], me.owner_id).first();
         if (!row) return bad("not found", 404);
-        if (row.burned_at || row.expires_at <= now()) return bad("this identity is gone", 410);
+        if (row.burned_at) return bad("this identity is gone", 410);
+        if (row.expires_at != null && row.expires_at <= now()) return bad("this identity is gone", 410);
         const password = await openString(env, row.pass_sealed);
         if (!password) return bad("decryption failure", 500);
         return json({ password }, 200, cors);
@@ -483,8 +502,9 @@ export default {
   // every 15 minutes: sweep expired identities + tombstones + stale sessions
   async scheduled(_event, env) {
     const t = now();
+    // expires_at IS NULL = permanent identity; cron must leave those alone.
     const expired = await env.DB.prepare(
-      "SELECT id, username FROM identities WHERE burned_at IS NULL AND expires_at <= ?"
+      "SELECT id, username FROM identities WHERE burned_at IS NULL AND expires_at IS NOT NULL AND expires_at <= ?"
     ).bind(t).all();
     for (const r of expired.results || []) {
       await destroyMailbox(env, r.username);
@@ -496,8 +516,9 @@ export default {
     const keepFrom = t - TOMBSTONE_KEEP_MS;
     await env.DB.prepare("DELETE FROM identities WHERE burned_at IS NOT NULL AND burned_at < ?")
       .bind(keepFrom).run();
-    // safety net: anything expired >48 h that slipped past the mark step
-    await env.DB.prepare("DELETE FROM identities WHERE expires_at < ?")
+    // safety net: anything expired >48 h that slipped past the mark step.
+    // NULL expires_at = permanent identity; NEVER touch those.
+    await env.DB.prepare("DELETE FROM identities WHERE expires_at IS NOT NULL AND expires_at < ?")
       .bind(keepFrom).run();
     await env.DB.batch([
       env.DB.prepare("DELETE FROM sessions WHERE expires_at < ?").bind(t),
