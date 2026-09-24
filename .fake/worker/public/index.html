@@ -706,6 +706,19 @@ $("#revealBtn").addEventListener("click", () => {
   else { passEl.textContent = passEl.dataset.real; passEl.classList.remove("pass-hidden"); btn.dataset.shown = "1"; btn.querySelector(".material-symbols-rounded").textContent = "visibility_off"; }
 });
 
+// When opening the mailbox, copy the password to clipboard so the user only
+// has to paste it on mail.inpriv.xyz — avoids typo'ing a 19-char random string.
+$("#openMailBtn").addEventListener("click", (ev) => {
+  const passEl = $("#resPass");
+  const pwd = passEl?.dataset.real;
+  if (!pwd) return;
+  ev.preventDefault();
+  const go = () => window.open("https://mail.inpriv.xyz", "_blank", "noopener");
+  (navigator.clipboard ? navigator.clipboard.writeText(pwd) : Promise.reject())
+    .then(() => { snack("Password copied — paste it on mail.inpriv.xyz"); go(); },
+          () => { snack("Open the eye first, then copy with the clipboard button"); go(); });
+});
+
 /* copy buttons */
 document.addEventListener("click", (ev) => {
   const b = ev.target.closest("[data-copy]");
