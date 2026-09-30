@@ -108,3 +108,11 @@ cd worker && npm test    # svix verification vs official Standard Webhooks vecto
 ## License
 
 MIT — see [LICENSE](../LICENSE).
+
+## Fake identity (merged)
+
+`temp.inpriv.xyz/fake/` serves the former fake.inpriv.xyz tool (still requires an Inpriv ID).
+A Temp mail / Fake identity switcher sits under the header of both pages. The Fake
+backend is unchanged and stays in the `inpriv-fake` worker (own D1, secrets and cron);
+this worker forwards `/fake/api/*` to it through the `FAKE` service binding.
+`fake.inpriv.xyz` redirects page requests to `/fake/` (its `/api/*` keeps working).

@@ -401,11 +401,13 @@ export default {
     const gate = await maintenanceGate("fake");
     if (gate.locked && path !== "/api/health") return maintenancePage("Inpriv Fake", gate.message);
 
-    // static frontend for non-API GETs/HEADs
+    // The frontend moved to temp.inpriv.xyz/fake/ — keep old page links working.
+    // /api/* stays on this worker (the new page reaches it via a service binding).
     if ((request.method === "GET" || request.method === "HEAD") && !path.startsWith("/api/")) {
-      const res = await env.ASSETS.fetch(request);
-      if (res.status === 404) return notFound(request, "Inpriv Fake");
-      return res;
+      return new Response(null, {
+        status: 301,
+        headers: { Location: "https://temp.inpriv.xyz/fake/", "Cache-Control": "public, max-age=3600" },
+      });
     }
 
     if (path === "/api/health") return json({ service: "inpriv-fake", status: "ok" });

@@ -154,6 +154,16 @@ ${msg}
 async function handleFetch(request, env) {
   const url = new URL(request.url);
 
+  // Fake identity API (Inpriv Fake lives at /fake/ on this origin). The
+  // original Fake worker keeps its own database, secrets, cron and kill-switch;
+  // requests are forwarded to it through a service binding with the /fake
+  // prefix removed.
+  if (url.pathname.startsWith("/fake/api/")) {
+    const target = new URL(request.url);
+    target.pathname = url.pathname.slice("/fake".length);
+    return env.FAKE.fetch(new Request(target, request));
+  }
+
   // kill-switch (admin.inpriv.xyz): global lock or service "temp" lock.
   // /api/health and the inbound webhook always pass (monitoring + no lost mail).
   const isApi = url.pathname.startsWith("/api/");
