@@ -1,5 +1,5 @@
 /* Inpriv Labs — service worker (PWA offline shell) */
-const VERSION = "labs-v4";
+const VERSION = "labs-v5";
 const STATIC_CACHE = `${VERSION}-static`;
 
 self.addEventListener("install", (event) => {
@@ -20,11 +20,11 @@ self.addEventListener("fetch", (event) => {
       try {
         const fresh = await fetch(req);
         const cache = await caches.open(STATIC_CACHE);
-        cache.put("/", fresh.clone());
+        cache.put(req, fresh.clone());
         return fresh;
       } catch {
         const cache = await caches.open(STATIC_CACHE);
-        return (await cache.match("/")) || (await cache.match(req)) || Response.error();
+        return (await cache.match(req)) || (await cache.match("/")) || Response.error();
       }
     })());
     return;

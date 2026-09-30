@@ -4,31 +4,31 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; script-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self' data:">
-<title>Inpriv Labs — Experimental Privacy &amp; Security Tools</title>
-<meta name="description" content="Inpriv Labs is the public lab bench of Inpriv — experimental privacy &amp; security tools by Inpriv Labs. Wi-Fi resilience auditing, ultra-fast file viewing, and more.">
+<title>air — Wi-Fi 802.11 resilience auditor</title>
+<meta name="description" content="air is an authorized 802.11 deauthentication auditor. Verify whether your WPA3 / PMF deployment actually protects management frames.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Inpriv">
-<meta property="og:title" content="Inpriv Labs — Experimental Privacy &amp; Security Tools">
-<meta property="og:description" content="Inpriv Labs is the public lab bench of Inpriv — experimental privacy & security tools by Inpriv Labs.">
-<meta property="og:url" content="https://labs.inpriv.xyz/">
-<meta property="og:image" content="https://inpriv.xyz/og/labs.png?v=2">
+<meta property="og:title" content="air — Wi-Fi 802.11 resilience auditor">
+<meta property="og:description" content="Authorized 802.11 deauthentication auditor. Verify whether your WPA3 / PMF deployment actually protects management frames.">
+<meta property="og:url" content="https://labs.inpriv.xyz/air/">
+<meta property="og:image" content="https://inpriv.xyz/og/air.png?v=1">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Inpriv Labs — Experimental Privacy & Security Tools">
+<meta property="og:image:alt" content="air — Wi-Fi 802.11 resilience auditor">
 <meta property="og:locale" content="en_US">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Inpriv Labs — Experimental Privacy &amp; Security Tools">
-<meta name="twitter:description" content="Inpriv Labs is the public lab bench of Inpriv — experimental privacy & security tools by Inpriv Labs.">
-<meta name="twitter:image" content="https://inpriv.xyz/og/labs.png?v=2">
-<meta name="twitter:image:alt" content="Inpriv Labs — Experimental Privacy & Security Tools">
-<link rel="canonical" href="https://labs.inpriv.xyz/">
+<meta name="twitter:title" content="air — Wi-Fi 802.11 resilience auditor">
+<meta name="twitter:description" content="Authorized 802.11 deauthentication auditor. Verify whether your WPA3 / PMF deployment actually protects management frames.">
+<meta name="twitter:image" content="https://inpriv.xyz/og/air.png?v=1">
+<meta name="twitter:image:alt" content="air — Wi-Fi 802.11 resilience auditor">
+<link rel="canonical" href="https://labs.inpriv.xyz/air/">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:ital,opsz,wght@0,8..144,300..800;1,8..144,300..800&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
 <script>document.addEventListener('DOMContentLoaded',()=>{try{const t=localStorage.getItem('inpriv_theme');if(t==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}});</script>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Inpriv Labs","url":"https://labs.inpriv.xyz/","description":"Inpriv Labs is the public lab bench of Inpriv — experimental privacy & security tools by Inpriv Labs.","publisher":{"@type":"Organization","name":"Inpriv Labs","url":"https://inpriv.xyz/"},"inLanguage":"en"}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"air","alternateName":"air — Wi-Fi 802.11 resilience auditor","url":"https://labs.inpriv.xyz/air/","description":"Authorized 802.11 deauthentication auditor. Verify whether your WPA3 / PMF deployment actually protects management frames.","operatingSystem":"Linux","applicationCategory":"SecurityApplication","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"publisher":{"@type":"Organization","name":"Inpriv Labs","url":"https://inpriv.xyz/"},"inLanguage":"en"}</script>
 <meta name="theme-color" content="#141218">
-<meta name="robots" content="noindex, follow">
+<meta name="robots" content="index, follow">
 <link rel="icon" href="/icon.png">
 <style>
 :root {
@@ -52,7 +52,6 @@
   --md-outline: #787579;
   --md-outline-variant: #E6E1E3;
   --md-error: #FF6240;
-  --md-tertiary: #E37402;
   --md-card: #FFFFFF;
 }
 [data-theme="dark"] {
@@ -70,7 +69,6 @@
   --md-outline: #948F99;
   --md-outline-variant: #47464F;
   --md-error: #FF8670;
-  --md-tertiary: #FFB868;
   --md-card: #1F1D24;
 }
 [hidden] { display: none !important; }
@@ -91,15 +89,13 @@ body {
   flex-direction: column;
 }
 .wrap {
-  max-width: 920px;
+  max-width: 880px;
   width: 100%;
   margin: 0 auto;
   padding: 3rem 1.5rem 4rem;
   flex: 1 0 auto;
 }
-header.hero {
-  margin-bottom: 2.5rem;
-}
+header.hero { margin-bottom: 2.5rem; }
 header.hero h1 {
   font-family: var(--font-display);
   font-weight: 475;
@@ -112,22 +108,12 @@ header.hero p {
   color: var(--md-on-surface-variant);
   margin: 0;
   font-size: 1.05rem;
-  max-width: 640px;
-}
-.cards {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
 }
 .card {
   background: var(--md-surface-container-low);
   border: 1px solid var(--md-outline-variant);
   border-radius: 24px;
   padding: 2rem;
-  transition: border-color 180ms var(--ease-standard);
-}
-.card:hover {
-  border-color: var(--md-outline);
 }
 .card header {
   display: flex;
@@ -135,7 +121,7 @@ header.hero p {
   align-items: baseline;
   flex-wrap: wrap;
   gap: 0.75rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
 }
 .card h2 {
   margin: 0;
@@ -146,15 +132,15 @@ header.hero p {
 }
 .tagline {
   color: var(--md-primary);
-  margin: 0.25rem 0 1rem;
+  margin: 0.25rem 0 1.25rem;
   font-weight: 500;
 }
 .description {
   color: var(--md-on-surface);
-  margin: 0 0 1.25rem;
+  margin: 0 0 1.5rem;
 }
 .card h3 {
-  margin: 1.5rem 0 0.75rem;
+  margin: 1.75rem 0 0.75rem;
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -215,10 +201,6 @@ ul.reqs li { margin: 0.25rem 0; }
   color: var(--md-error);
   border-color: var(--md-error);
 }
-.status-tool {
-  color: var(--md-tertiary);
-  border-color: var(--md-tertiary);
-}
 .legal {
   color: var(--md-error);
   font-size: 0.9rem;
@@ -227,15 +209,6 @@ ul.reqs li { margin: 0.25rem 0; }
   border-top: 1px solid var(--md-outline-variant);
   line-height: 1.55;
 }
-.note {
-  color: var(--md-on-surface-variant);
-  font-size: 0.9rem;
-  margin: 1.5rem 0 0;
-  padding-top: 1.25rem;
-  border-top: 1px solid var(--md-outline-variant);
-  line-height: 1.55;
-}
-.note strong { color: var(--md-on-surface); font-weight: 500; }
 footer {
   margin-top: 3rem;
   padding-top: 2rem;
@@ -263,12 +236,11 @@ footer a:hover { color: var(--md-primary); }
 <body>
 <div class="wrap">
   <header class="hero">
-    <h1>Inpriv Labs</h1>
-    <p>Experimental privacy &amp; security tools. Public research, open source. Tools live here as experiments; production-grade utilities live at <a href="https://inpriv.xyz" style="color:var(--md-primary);text-decoration:none;">inpriv.xyz</a>.</p>
+    <h1>air</h1>
+    <p>Wi-Fi 802.11 resilience auditor. Authorized testing only.</p>
   </header>
 
-  <section class="cards">
-
+  <section class="labs">
     <article class="card" id="air">
       <header>
         <h2>air</h2>
@@ -291,59 +263,10 @@ sudo python air.py -i wlan0</code></pre>
       <p class="links">
         <a href="https://github.com/Inpriv/labs/tree/main/tools/air">Source</a>
         <a href="https://github.com/Inpriv/labs/blob/main/tools/air/README.md">Docs</a>
-        <a href="/air/">Open air page</a>
       </p>
 
       <p class="legal">Authorized use only. Deauthentication against networks you do not own or have explicit written permission to test is illegal in most jurisdictions.</p>
     </article>
-
-    <article class="card" id="ship-battle">
-      <header>
-        <h2>ship-battle</h2>
-        <span class="status status-experimental">experimental</span>
-      </header>
-      <p class="tagline">2D space shooter running entirely in your browser</p>
-      <p class="description">Ship Battle is an endless-wave arcade shooter built as a single self-contained HTML file. Pilot a defender ship, dodge incoming fire, collect power-ups (rapid fire, spread shot, shield), and survive as many waves as you can. Mobile-first with on-screen controls; keyboard, drag, and touch all supported.</p>
-
-      <h3>Controls</h3>
-      <ul class="reqs">
-        <li>Desktop: arrow keys or A/D to move, Space to shoot, P to pause, M to mute</li>
-        <li>Mobile: on-screen Left / Right buttons and Fire; drag anywhere on the canvas to steer</li>
-      </ul>
-
-      <p class="links">
-        <a href="/ship-battle.html">Open Ship Battle</a>
-        <a href="https://github.com/Inpriv/inpriv/blob/main/.labs/ship-battle.html">Source</a>
-      </p>
-
-      <p class="note"><strong>Status:</strong> experiment on <a href="https://labs.inpriv.xyz/ship-battle.html" style="color:var(--md-primary);text-decoration:none;">labs.inpriv.xyz/ship-battle.html</a> — static asset, no backend, no telemetry, no accounts.</p>
-    </article>
-
-    <article class="card" id="swift">
-      <header>
-        <h2>swift</h2>
-        <span class="status status-tool">native tool</span>
-      </header>
-      <p class="tagline">Ultra-fast Rust text viewer for massive files</p>
-      <p class="description">Inpriv Swift is a native desktop text editor engineered for opening and navigating files that crash conventional editors — log files, data exports, large codebases. It uses memory-mapped I/O (memmap2) and SIMD-accelerated line scanning (memchr) for instant performance on multi-gigabyte files. Built with eframe/egui for 60fps rendering and a minimal memory footprint — only visible lines are rendered.</p>
-
-      <h3>Highlights</h3>
-      <ul class="reqs">
-        <li>Zero-copy I/O — memory-mapped file reading, no full-file load into RAM</li>
-        <li>SIMD line scanning — memchr at memory bandwidth speed</li>
-        <li>Optional edit mode (Ctrl+E) — line-granular overlay, never copies the file</li>
-        <li>Read-only by default; saves only when explicitly requested</li>
-        <li>Fully offline, no telemetry, no network access</li>
-      </ul>
-
-      <p class="links">
-        <a href="https://github.com/Inpriv/swift">Source</a>
-        <a href="https://github.com/Inpriv/swift/blob/main/README.md">Docs</a>
-      </p>
-
-      <p class="note"><strong>Status:</strong> native binary only — no web build. Build locally with <code style="font-family:var(--font-mono);font-size:0.85em;">cargo build --release</code> from the repo.</p>
-    </article>
-
   </section>
 
   <footer>
