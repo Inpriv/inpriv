@@ -15,8 +15,8 @@
   <!-- Primary SEO Meta Tags -->
   <title>Inpriv — Privacy-First Tools | Zero-Knowledge & Client-Side</title>
   <meta name="title" content="Inpriv — Privacy-First Tools | Zero-Knowledge & Client-Side">
-  <meta name="description" content="A suite of zero-knowledge, client-side web utilities engineered for total digital privacy. Disposable temporary email, encrypted chat, EXIF wipe, WebRTC leak test, TOTP authenticator, ephemeral encrypted notes, hash brute force, image compression, and more.">
-  <meta name="keywords" content="privacy tools, zero knowledge, disposable email, temp mail, hush chat, metadata sanitizer, image compression, webrtc leak test, totp authenticator, 2fa, burn ephemeral notes, open source privacy">
+  <meta name="description" content="A suite of zero-knowledge, client-side privacy tools: disposable email and fake identities, encrypted chat and mail, image metadata wipe and compression, password vault and TOTP, one-time notes, P2P file transfer, hashing and encoding. No trackers, no uploads.">
+  <meta name="keywords" content="privacy tools, zero knowledge, disposable email, temp mail, fake identity, hush chat, image metadata remover, exif wipe, image compression, password vault, totp authenticator, password generator, one-time notes, p2p file transfer, hash, base64, open source privacy">
   <meta name="author" content="Inpriv Labs">
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
   <link rel="canonical" href="https://inpriv.xyz/">
@@ -33,7 +33,7 @@
   <meta property="og:url" content="https://inpriv.xyz/">
   <meta property="og:site_name" content="Inpriv">
   <meta property="og:title" content="Inpriv — Privacy-First Tools | Zero-Knowledge & Client-Side">
-  <meta property="og:description" content="A suite of zero-knowledge, client-side web utilities engineered for total digital privacy. No trackers, no server logs.">
+  <meta property="og:description" content="Zero-knowledge, client-side privacy tools: temp mail, image wipe, vault, secure send and more. No trackers, no server logs.">
   <meta property="og:image" content="https://inpriv.xyz/og/landing.png?v=2">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
@@ -44,7 +44,7 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:url" content="https://inpriv.xyz/">
   <meta name="twitter:title" content="Inpriv — Privacy-First Tools | Zero-Knowledge & Client-Side">
-  <meta name="twitter:description" content="A suite of zero-knowledge, client-side web utilities engineered for total digital privacy. No trackers, no server logs.">
+  <meta name="twitter:description" content="Zero-knowledge, client-side privacy tools: temp mail, image wipe, vault, secure send and more. No trackers, no server logs.">
   <meta name="twitter:image" content="https://inpriv.xyz/og/landing.png?v=2">
 
   <!-- Favicons & App Icons -->
@@ -85,7 +85,7 @@
           "item": {
             "@type": "SoftwareApplication",
             "name": "Temp",
-            "description": "Disposable email addresses on inpriv.xyz. Random inbox, live polling, one-click shred.",
+            "description": "Disposable email addresses and throwaway identities. Random inbox, live polling, one-click shred.",
             "url": "https://temp.inpriv.xyz",
             "applicationCategory": "SecurityApplication",
             "operatingSystem": "All"
@@ -120,78 +120,6 @@
           "position": 4,
           "item": {
             "@type": "SoftwareApplication",
-            "name": "Wipe",
-            "description": "Zero-knowledge metadata sanitizer for images.",
-            "url": "https://wipe.inpriv.xyz",
-            "applicationCategory": "SecurityApplication",
-            "operatingSystem": "All"
-          }
-        },
-        {
-          "@type": "ListItem",
-          "position": 5,
-          "item": {
-            "@type": "SoftwareApplication",
-            "name": "Compress",
-            "description": "Client-side image compression. No server uploads.",
-            "url": "https://compress.inpriv.xyz",
-            "applicationCategory": "UtilitiesApplication",
-            "operatingSystem": "All"
-          }
-        },
-        {
-          "@type": "ListItem",
-          "position": 6,
-          "item": {
-            "@type": "SoftwareApplication",
-            "name": "Stego",
-            "description": "Hide AES-256 encrypted messages inside PNG images. LSB steganography, fully client-side.",
-            "url": "https://stego.inpriv.xyz",
-            "applicationCategory": "SecurityApplication",
-            "operatingSystem": "All"
-          }
-        },
-        {
-          "@type": "ListItem",
-          "position": 7,
-          "item": {
-            "@type": "SoftwareApplication",
-            "name": "Burn",
-            "description": "Ephemeral encrypted notes. Read once, then destroyed. Zero-knowledge.",
-            "url": "https://burn.inpriv.xyz",
-            "applicationCategory": "SecurityApplication",
-            "operatingSystem": "All"
-          }
-        },
-        {
-          "@type": "ListItem",
-          "position": 8,
-          "item": {
-            "@type": "SoftwareApplication",
-            "name": "TOTP",
-            "description": "Time-based one-time password generator (RFC 6238). Authenticator, client-side.",
-            "url": "https://totp.inpriv.xyz",
-            "applicationCategory": "SecurityApplication",
-            "operatingSystem": "All"
-          }
-        },
-        {
-          "@type": "ListItem",
-          "position": 9,
-          "item": {
-            "@type": "SoftwareApplication",
-            "name": "Keyring",
-            "description": "Zero-knowledge encrypted vault for SSH keys, tokens and passwords.",
-            "url": "https://keyring.inpriv.xyz",
-            "applicationCategory": "SecurityApplication",
-            "operatingSystem": "All"
-          }
-        },
-        {
-          "@type": "ListItem",
-          "position": 10,
-          "item": {
-            "@type": "SoftwareApplication",
             "name": "QR",
             "description": "Generate and read QR codes entirely in your browser.",
             "url": "https://qr.inpriv.xyz",
@@ -201,7 +129,7 @@
         },
         {
           "@type": "ListItem",
-          "position": 11,
+          "position": 5,
           "item": {
             "@type": "SoftwareApplication",
             "name": "Trace",
@@ -213,23 +141,11 @@
         },
         {
           "@type": "ListItem",
-          "position": 12,
-          "item": {
-            "@type": "SoftwareApplication",
-            "name": "Brute",
-            "description": "Client-side hash brute force matcher. MD5, SHA-1, SHA-256, SHA-384, SHA-512.",
-            "url": "https://brute.inpriv.xyz",
-            "applicationCategory": "SecurityApplication",
-            "operatingSystem": "All"
-          }
-        },
-        {
-          "@type": "ListItem",
-          "position": 13,
+          "position": 6,
           "item": {
             "@type": "SoftwareApplication",
             "name": "Hash",
-            "description": "Client-side SHA and MD5 checksum generator for text and files.",
+            "description": "Checksums, hash reversal (MD5 / SHA) and Base64 / URL / HTML encoding, in-browser.",
             "url": "https://hash.inpriv.xyz",
             "applicationCategory": "SecurityApplication",
             "operatingSystem": "All"
@@ -237,7 +153,7 @@
         },
         {
           "@type": "ListItem",
-          "position": 14,
+          "position": 7,
           "item": {
             "@type": "SoftwareApplication",
             "name": "Pay",
@@ -249,7 +165,7 @@
         },
         {
           "@type": "ListItem",
-          "position": 15,
+          "position": 8,
           "item": {
             "@type": "SoftwareApplication",
             "name": "Host",
@@ -261,55 +177,7 @@
         },
         {
           "@type": "ListItem",
-          "position": 16,
-          "item": {
-            "@type": "SoftwareApplication",
-            "name": "Censor",
-            "description": "Blur, pixelate or black out faces, card numbers, IPs and tokens on screenshots. On-device auto-detect, fully client-side.",
-            "url": "https://censor.inpriv.xyz",
-            "applicationCategory": "SecurityApplication",
-            "operatingSystem": "All"
-          }
-        },
-        {
-          "@type": "ListItem",
-          "position": 17,
-          "item": {
-            "@type": "SoftwareApplication",
-            "name": "Share",
-            "description": "Direct device-to-device file transfer over an end-to-end encrypted P2P tunnel. No uploads, no size limits.",
-            "url": "https://share.inpriv.xyz",
-            "applicationCategory": "SecurityApplication",
-            "operatingSystem": "All"
-          }
-        },
-        {
-          "@type": "ListItem",
-          "position": 18,
-          "item": {
-            "@type": "SoftwareApplication",
-            "name": "Labs",
-            "description": "Public experiment bench of the Inpriv suite: live UI concepts and prototypes under evaluation.",
-            "url": "https://labs.inpriv.xyz",
-            "applicationCategory": "DeveloperApplication",
-            "operatingSystem": "All"
-          }
-        },
-        {
-          "@type": "ListItem",
-          "position": 19,
-          "item": {
-            "@type": "SoftwareApplication",
-            "name": "Status",
-            "description": "Live service health, response time and 7-day uptime for every Inpriv tool.",
-            "url": "https://status.inpriv.xyz",
-            "applicationCategory": "SecurityApplication",
-            "operatingSystem": "All"
-          }
-        },
-        {
-          "@type": "ListItem",
-          "position": 20,
+          "position": 9,
           "item": {
             "@type": "SoftwareApplication",
             "name": "Amber",
@@ -321,7 +189,7 @@
         },
         {
           "@type": "ListItem",
-          "position": 21,
+          "position": 10,
           "item": {
             "@type": "SoftwareApplication",
             "name": "Check",
@@ -333,14 +201,38 @@
         },
         {
           "@type": "ListItem",
-          "position": 22,
+          "position": 11,
           "item": {
             "@type": "SoftwareApplication",
-            "name": "air",
-            "description": "Authorized 802.11 deauthentication auditor. Verify whether your WPA3 / PMF deployment actually protects management frames.",
-            "url": "https://air.inpriv.xyz",
+            "name": "Image",
+            "description": "Wipe EXIF/GPS metadata, compress, censor and hide data in images, locally.",
+            "url": "https://image.inpriv.xyz",
             "applicationCategory": "SecurityApplication",
-            "operatingSystem": "Linux"
+            "operatingSystem": "All"
+          }
+        },
+        {
+          "@type": "ListItem",
+          "position": 12,
+          "item": {
+            "@type": "SoftwareApplication",
+            "name": "Vault",
+            "description": "Zero-knowledge password vault, TOTP authenticator and password generator.",
+            "url": "https://vault.inpriv.xyz",
+            "applicationCategory": "SecurityApplication",
+            "operatingSystem": "All"
+          }
+        },
+        {
+          "@type": "ListItem",
+          "position": 13,
+          "item": {
+            "@type": "SoftwareApplication",
+            "name": "Send",
+            "description": "Self-destructing encrypted notes and peer-to-peer file transfer.",
+            "url": "https://send.inpriv.xyz",
+            "applicationCategory": "SecurityApplication",
+            "operatingSystem": "All"
           }
         },
         {
@@ -998,6 +890,10 @@
       text-align: center; padding-top: 24px;
     }
 
+    footer .footer-links { display: flex; justify-content: center; gap: 18px; flex-wrap: wrap; margin-bottom: 10px; }
+    footer .footer-links a { color: var(--md-on-surface-variant); text-decoration: none; font-size: 13px; font-weight: 500; }
+    footer .footer-links a:hover, footer .footer-links a:focus-visible { color: var(--md-primary); text-decoration: underline; }
+    footer .footer-links .fun-link { opacity: 0.55; font-family: ui-monospace, monospace; }
     footer .copyright {
       font-size: 12px; color: var(--md-on-surface-variant); margin-bottom: 3px; opacity: 0.8;
     }
@@ -1247,7 +1143,7 @@
               <span class="featured-domain">temp.inpriv.xyz</span>
             </div>
             <p class="featured-desc" data-i18n="desc-temp-featured">
-              Disposable email addresses on inpriv.xyz. Instant random inbox, live incoming feed, auto-refresh, and one-click shred.
+              Disposable email addresses and throwaway identities (Fake). Instant random inbox, live incoming feed, and one-click shred.
             </p>
             <div class="featured-tags">
               <span class="feat-tag"><span class="icon" aria-hidden="true">bolt</span> <span data-i18n="tag-instant">Instant Inbox</span></span>
@@ -1358,73 +1254,40 @@
       <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
     </a>
 
-    <a href="https://wipe.inpriv.xyz" class="service-card" data-category="security" style="animation-delay: 0.23s;" target="_blank" rel="noopener noreferrer">
-      <div class="service-icon-box"><span class="icon" aria-hidden="true">auto_fix_high</span></div>
+
+
+
+
+
+
+
+    <a href="https://image.inpriv.xyz" class="service-card" data-category="security utils" style="animation-delay: 0.23s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">image</span></div>
       <div class="service-info">
-        <h2 class="service-name">Wipe</h2>
-        <p class="service-desc" data-i18n="desc-wipe">Inspect every EXIF, GPS and XMP tag your photo leaks — then wipe it all locally.</p>
+        <h2 class="service-name">Image</h2>
+        <p class="service-desc" data-i18n="desc-image">Wipe EXIF/GPS metadata, compress, censor and hide data in images — all locally.</p>
       </div>
-      <span class="status-badge live" data-service="wipe" data-i18n="badge-live">Live</span>
+      <span class="status-badge live" data-service="image" data-i18n="badge-live">Live</span>
       <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
     </a>
 
-    <a href="https://compress.inpriv.xyz" class="service-card" data-category="utils" style="animation-delay: 0.27s;" target="_blank" rel="noopener noreferrer">
-      <div class="service-icon-box"><span class="icon" aria-hidden="true">compress</span></div>
+    <a href="https://vault.inpriv.xyz" class="service-card" data-category="security" style="animation-delay: 0.27s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">lock</span></div>
       <div class="service-info">
-        <h2 class="service-name">Compress</h2>
-        <p class="service-desc" data-i18n="desc-compress">Client-side image compression. No upload needed.</p>
+        <h2 class="service-name">Vault</h2>
+        <p class="service-desc" data-i18n="desc-vault">Zero-knowledge password vault, TOTP authenticator and password generator.</p>
       </div>
-      <span class="status-badge live" data-service="compress" data-i18n="badge-live">Live</span>
+      <span class="status-badge live" data-service="vault" data-i18n="badge-live">Live</span>
       <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
     </a>
 
-    <a href="https://stego.inpriv.xyz" class="service-card" data-category="security" style="animation-delay: 0.31s;" target="_blank" rel="noopener noreferrer">
-      <div class="service-icon-box"><span class="icon" aria-hidden="true">hide_image</span></div>
+    <a href="https://send.inpriv.xyz" class="service-card" data-category="security utils" style="animation-delay: 0.31s;" target="_blank" rel="noopener noreferrer">
+      <div class="service-icon-box"><span class="icon" aria-hidden="true">send</span></div>
       <div class="service-info">
-        <h2 class="service-name">Stego</h2>
-        <p class="service-desc" data-i18n="desc-stego">Hide encrypted messages inside PNG images. Invisible, in-browser.</p>
+        <h2 class="service-name">Send</h2>
+        <p class="service-desc" data-i18n="desc-send">Self-destructing encrypted notes and peer-to-peer file transfer.</p>
       </div>
-      <span class="status-badge live" data-service="stego" data-i18n="badge-live">Live</span>
-      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
-    </a>
-
-    <a href="https://burn.inpriv.xyz" class="service-card" data-category="security" style="animation-delay: 0.35s;" target="_blank" rel="noopener noreferrer">
-      <div class="service-icon-box"><span class="icon" aria-hidden="true">local_fire_department</span></div>
-      <div class="service-info">
-        <h2 class="service-name">Burn</h2>
-        <p class="service-desc" data-i18n="desc-burn">Ephemeral encrypted notes. Read once, then destroyed.</p>
-      </div>
-      <span class="status-badge live" data-service="burn" data-i18n="badge-live">Live</span>
-      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
-    </a>
-
-    <a href="https://totp.inpriv.xyz" class="service-card" data-category="security" style="animation-delay: 0.37s;" target="_blank" rel="noopener noreferrer">
-      <div class="service-icon-box"><span class="icon" aria-hidden="true">timer</span></div>
-      <div class="service-info">
-        <h2 class="service-name">TOTP</h2>
-        <p class="service-desc" data-i18n="desc-totp">Time-based one-time password generator (RFC 6238). 2FA codes, client-side.</p>
-      </div>
-      <span class="status-badge live" data-service="totp" data-i18n="badge-live">Live</span>
-      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
-    </a>
-
-    <a href="https://fake.inpriv.xyz" class="service-card" data-category="comms security" style="animation-delay: 0.39s;" target="_blank" rel="noopener noreferrer">
-      <div class="service-icon-box"><span class="icon" aria-hidden="true">theater_comedy</span></div>
-      <div class="service-info">
-        <h2 class="service-name">Fake</h2>
-        <p class="service-desc" data-i18n="desc-fake">Time-limited fake identities with a real @inpriv.xyz mailbox. Inpriv ID required.</p>
-      </div>
-      <span class="status-badge live" data-service="fake" data-i18n="badge-live">Live</span>
-      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
-    </a>
-
-    <a href="https://keyring.inpriv.xyz" class="service-card" data-category="security" style="animation-delay: 0.43s;" target="_blank" rel="noopener noreferrer">
-      <div class="service-icon-box"><span class="icon" aria-hidden="true">key</span></div>
-      <div class="service-info">
-        <h2 class="service-name">Keyring</h2>
-        <p class="service-desc" data-i18n="desc-keyring">Zero-knowledge encrypted vault for keys &amp; tokens.</p>
-      </div>
-      <span class="status-badge live" data-service="keyring" data-i18n="badge-live">Live</span>
+      <span class="status-badge live" data-service="send" data-i18n="badge-live">Live</span>
       <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
     </a>
 
@@ -1448,21 +1311,12 @@
       <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
     </a>
 
-    <a href="https://brute.inpriv.xyz" class="service-card" data-category="security" style="animation-delay: 0.55s;" target="_blank" rel="noopener noreferrer">
-      <div class="service-icon-box"><span class="icon" aria-hidden="true">lock_open</span></div>
-      <div class="service-info">
-        <h2 class="service-name">Brute</h2>
-        <p class="service-desc" data-i18n="desc-brute">Hash brute force matcher — MD5, SHA-1, SHA-256, SHA-384, SHA-512.</p>
-      </div>
-      <span class="status-badge live" data-service="brute" data-i18n="badge-live">Live</span>
-      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
-    </a>
 
     <a href="https://hash.inpriv.xyz" class="service-card" data-category="security utils" style="animation-delay: 0.59s;" target="_blank" rel="noopener noreferrer">
       <div class="service-icon-box"><span class="icon" aria-hidden="true">fingerprint</span></div>
       <div class="service-info">
         <h2 class="service-name">Hash</h2>
-        <p class="service-desc" data-i18n="desc-hash">SHA &amp; MD5 checksums for any text or file, in-browser.</p>
+        <p class="service-desc" data-i18n="desc-hash">Checksums, hash reversal (MD5 / SHA) and Base64 / URL / HTML encoding — in-browser.</p>
       </div>
       <span class="status-badge live" data-service="hash" data-i18n="badge-live">Live</span>
       <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
@@ -1479,45 +1333,9 @@
     </a>
 
 
-    <a href="https://censor.inpriv.xyz" class="service-card" data-category="security utils" style="animation-delay: 0.71s;" target="_blank" rel="noopener noreferrer">
-      <div class="service-icon-box"><span class="icon" aria-hidden="true">privacy_tip</span></div>
-      <div class="service-info">
-        <h2 class="service-name">Censor</h2>
-        <p class="service-desc" data-i18n="desc-censor">Blur or pixelate sensitive content on screenshots — faces, cards, IPs, tokens. Auto-detect, in-browser.</p>
-      </div>
-      <span class="status-badge live" data-service="censor" data-i18n="badge-live">Live</span>
-      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
-    </a>
 
-    <a href="https://share.inpriv.xyz" class="service-card" data-category="security utils" style="animation-delay: 0.75s;" target="_blank" rel="noopener noreferrer">
-      <div class="service-icon-box"><span class="icon" aria-hidden="true">swap_horiz</span></div>
-      <div class="service-info">
-        <h2 class="service-name">Share</h2>
-        <p class="service-desc" data-i18n="desc-share">Direct device-to-device file transfer over an encrypted P2P tunnel. No uploads, no size limits.</p>
-      </div>
-      <span class="status-badge live" data-service="share" data-i18n="badge-live">Live</span>
-      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
-    </a>
 
-<a href="https://labs.inpriv.xyz" class="service-card" data-category="security utils" style="animation-delay: 0.79s;" target="_blank" rel="noopener noreferrer">
-      <div class="service-icon-box"><span class="icon" aria-hidden="true">swap_horiz</span></div>
-      <div class="service-info">
-        <h2 class="service-name">Labs</h2>
-        <p class="service-desc" data-i18n="desc-labs">Live experiments and UI concepts under evaluation — themes and prototypes.</p>
-      </div>
-      <span class="status-badge live" data-service="labs" data-i18n="badge-live">Live</span>
-      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
-    </a>
 
-<a href="https://status.inpriv.xyz" class="service-card" data-category="utils" style="animation-delay: 0.81s;" target="_blank" rel="noopener noreferrer">
-      <div class="service-icon-box"><span class="icon" aria-hidden="true">monitor_heart</span></div>
-      <div class="service-info">
-        <h2 class="service-name">Status</h2>
-        <p class="service-desc" data-i18n="desc-status">Live health, response time and 7-day uptime for every Inpriv tool.</p>
-      </div>
-      <span class="status-badge live" data-service="status" data-i18n="badge-live">Live</span>
-      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
-    </a>
 
 <a href="https://amber.inpriv.xyz" class="service-card" data-category="utils" style="animation-delay: 0.82s;" target="_blank" rel="noopener noreferrer">
       <div class="service-icon-box"><span class="icon" aria-hidden="true">history_edu</span></div>
@@ -1539,15 +1357,6 @@
       <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
     </a>
 
-<a href="https://air.inpriv.xyz" class="service-card" data-category="security utils" style="animation-delay: 0.84s;" target="_blank" rel="noopener noreferrer">
-      <div class="service-icon-box"><span class="icon" aria-hidden="true">wifi_tethering</span></div>
-      <div class="service-info">
-        <h2 class="service-name">air</h2>
-        <p class="service-desc" data-i18n="desc-air">Authorized 802.11 deauthentication auditor. Verify whether your WPA3 / PMF deployment actually protects management frames.</p>
-      </div>
-      <span class="status-badge live" data-service="air" data-i18n="badge-live">Live</span>
-      <span class="icon arrow-icon" aria-hidden="true">arrow_forward</span>
-    </a>
 
 <a href="https://null.inpriv.xyz" class="service-card" data-category="games" style="animation-delay: 0.845s;" target="_blank" rel="noopener noreferrer">
       <div class="service-icon-box"><span class="icon" aria-hidden="true">extension_off</span></div>
@@ -1583,24 +1392,6 @@
       <span class="status-badge soon" data-i18n="badge-soon">Soon</span>
     </div>
 
-    <div class="service-card coming-soon" data-category="security" style="animation-delay: 0.89s;" id="pass">
-      <div class="service-icon-box"><span class="icon" aria-hidden="true">password</span></div>
-      <div class="service-info">
-        <h2 class="service-name">Pass</h2>
-        <p class="service-desc" data-i18n="desc-pass">Offline cryptographic password generator.</p>
-      </div>
-      <span class="status-badge soon" data-i18n="badge-soon">Soon</span>
-    </div>
-
-    <div class="service-card coming-soon" data-category="utils" style="animation-delay: 0.91s;" id="base64">
-      <div class="service-icon-box"><span class="icon" aria-hidden="true">code</span></div>
-      <div class="service-info">
-        <h2 class="service-name">Base64</h2>
-        <p class="service-desc" data-i18n="desc-base64">Client-side Base64, URL, and HTML encoder/decoder.</p>
-      </div>
-      <span class="status-badge soon" data-i18n="badge-soon">Soon</span>
-    </div>
-
     <div class="service-card placeholder" style="animation-delay: 1.03s;">
       <div class="service-icon-box"><span class="icon" aria-hidden="true">add</span></div>
       <div class="service-info">
@@ -1619,6 +1410,11 @@
 
   <footer>
     <div class="copyright" data-i18n="copyright">Copyright 2026, Inpriv</div>
+    <nav class="footer-links" aria-label="More">
+      <a href="https://labs.inpriv.xyz" target="_blank" rel="noopener noreferrer">Labs</a>
+      <a href="https://status.inpriv.xyz" target="_blank" rel="noopener noreferrer">Status</a>
+      <a href="https://null.inpriv.xyz" target="_blank" rel="noopener noreferrer" class="fun-link">null</a>
+    </nav>
     <div class="byline"><span data-i18n="by">by</span> <span>Inpriv Labs</span></div>
     <a class="github-link" href="https://github.com/Inpriv/inpriv" target="_blank" rel="noopener noreferrer" aria-label="Inpriv on GitHub">
       <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
@@ -1767,7 +1563,7 @@
       'badge-fast': 'Free & instant',
       'badge-oss': 'Open source',
       'featured-label': 'Suggested',
-      'desc-temp-featured': 'Disposable email addresses on inpriv.xyz. Instant random inbox, live incoming feed, auto-refresh, and one-click shred.',
+      'desc-temp-featured': 'Disposable email addresses and throwaway identities (Fake). Instant random inbox, live incoming feed, and one-click shred.',
       'desc-mail-featured': 'Zero-knowledge encrypted email. End-to-end RSA-2048 + AES-GCM, synced with your Inpriv ID. Only you hold the keys.',
       'btn-open-mail': 'Open Mail',
       'tag-e2e': 'End-to-End Encrypted',
@@ -1790,30 +1586,19 @@
       'desc-soon': 'Something new is coming.',
       'desc-id': 'One private account for every Inpriv tool. Quick sign-in, 2FA, encrypted sync.',
       'desc-hush': 'End-to-end encrypted chat. No logs, no servers.',
-      'desc-wipe': 'Inspect every EXIF, GPS and XMP tag your photo leaks — then wipe it all locally.',
-      'desc-compress': 'Client-side image compression. No upload needed.',
       'desc-pay': 'Crypto payment bridge for accepting payments.',
       'desc-host': 'Private static hosting with a built-in privacy shield. Uploads are scanned for IP loggers before going live.',
-      'desc-hash': 'SHA & MD5 checksums for any text or file, in-browser.',
+      'desc-hash': 'Checksums, hash reversal (MD5 / SHA) and Base64 / URL / HTML encoding — in-browser.',
+      'desc-image': 'Wipe EXIF/GPS metadata, compress, censor and hide data in images — all locally.',
+      'desc-vault': 'Zero-knowledge password vault, TOTP authenticator and password generator.',
+      'desc-send': 'Self-destructing encrypted notes and peer-to-peer file transfer.',
       'desc-qr': 'Generate & read QR codes. Camera or image, fully offline.',
-      'desc-keyring': 'Zero-knowledge encrypted vault for keys & tokens.',
       'desc-trace': 'One scan: IP & ISP intel, DNS leak test and WebRTC leak check.',
-      'desc-brute': 'Hash brute force matcher — MD5, SHA-1, SHA-256, SHA-384, SHA-512.',
-      'desc-totp': 'Time-based one-time password generator (RFC 6238). 2FA codes, client-side.',
-      'desc-burn': 'Ephemeral encrypted notes. Read once, then destroyed.',
-      'desc-stego': 'Hide encrypted messages inside PNG images. Invisible, in-browser.',
-      'desc-censor': 'Blur or pixelate sensitive content on screenshots — faces, cards, IPs, tokens. Auto-detect, in-browser.',
-      'desc-share': 'Direct device-to-device file transfer over an encrypted P2P tunnel. No uploads, no size limits.',
-      'desc-labs': 'Live experiments and UI concepts under evaluation — themes and prototypes.',
-      'desc-fake': 'Time-limited fake identities with a real @inpriv.xyz mailbox. Inpriv ID required.',
       'desc-temp': 'Disposable email addresses on inpriv.xyz. Random inbox, live polling, one-click shred.',
-      'desc-status': 'Live health, response time and 7-day uptime for every Inpriv tool.',
       'desc-amber': 'Personal web archive. Capture any page, browse it by date and read it offline — snapshots stored on your own Google Drive.',
       'desc-check': 'Paste code, upload a file or scan a GitHub repo for malware, trojans and backdoors — heuristics plus VirusTotal.',
-      'desc-air': 'Authorized 802.11 deauthentication auditor. Verify whether your WPA3 / PMF deployment actually protects management frames.',
       'desc-zero': 'Private crypto wallet. Self-custodial.',
       'desc-osint': 'AI-powered open-source intelligence on anything.',
-      'desc-pass': 'Offline cryptographic password generator.',
       'desc-base64': 'Client-side Base64, URL, and HTML encoder/decoder.'
     },
     pl: {
@@ -1830,7 +1615,7 @@
       'badge-fast': 'Darmowe i natychmiastowe',
       'badge-oss': 'Open source',
       'featured-label': 'Proponowane',
-      'desc-temp-featured': 'Jednorazowe adresy e-mail na inpriv.xyz. Losowa skrzynka, live polling, odbiór w czasie rzeczywistym, kasowanie jednym kliknięciem.',
+      'desc-temp-featured': 'Jednorazowe adresy e-mail i fałszywe tożsamości (Fake). Losowa skrzynka, odbiór na żywo, kasowanie jednym kliknięciem.',
       'desc-mail-featured': 'Szyfrowana poczta zero-knowledge. End-to-end RSA-2048 + AES-GCM, synchronizacja z Inpriv ID. Klucze ma tylko Ty.',
       'btn-open-mail': 'Otwórz Mail',
       'tag-e2e': 'Szyfrowanie E2E',
@@ -1853,30 +1638,19 @@
       'desc-soon': 'Coś nowego nadchodzi.',
       'desc-id': 'Jedno prywatne konto do wszystkich narzędzi Inpriv. Szybkie logowanie, 2FA, szyfrowana synchronizacja.',
       'desc-hush': 'Czat szyfrowany end-to-end. Bez logów, bez serwerów.',
-      'desc-wipe': 'Zobacz każdy tag EXIF, GPS i XMP, który wycieka ze zdjęcia — a potem usuń je wszystkie lokalnie.',
-      'desc-compress': 'Kompresja zdjęć w przeglądarce. Bez wysyłania.',
       'desc-pay': 'Krypto mostek płatności do przyjmowania płatności.',
       'desc-host': 'Prywatny hosting statyczny z wbudowaną tarczą prywatności. Pliki są skanowane pod kątem IP loggerów przed publikacją.',
-      'desc-hash': 'Sumy SHA i MD5 dla tekstu i plików, w przeglądarce.',
+      'desc-hash': 'Sumy kontrolne, odwracanie hashy (MD5 / SHA) oraz kodowanie Base64 / URL / HTML — w przeglądarce.',
+      'desc-image': 'Usuwaj metadane EXIF/GPS, kompresuj, cenzuruj i ukrywaj dane w obrazach — lokalnie.',
+      'desc-vault': 'Szyfrowany sejf na hasła, autentykator TOTP i generator haseł — zero-knowledge.',
+      'desc-send': 'Samozniszczalne szyfrowane notatki i bezpośredni transfer plików P2P.',
       'desc-qr': 'Generuj i czytaj kody QR. Aparat lub obraz, w pełni offline.',
-      'desc-keyring': 'Zero-knowledge szyfrowany sejf na klucze i tokeny.',
       'desc-trace': 'Jeden skan: IP i ISP, test wycieku DNS i wycieku WebRTC.',
-      'desc-brute': 'Łamanie hashy słownikowo — MD5, SHA-1, SHA-256, SHA-384, SHA-512.',
-      'desc-totp': 'Generator haseł jednorazowych TOTP (RFC 6238). Kody 2FA, client-side.',
-      'desc-burn': 'Szyfrowane notatki efemeryczne. Przeczytane raz — zniszczone.',
-      'desc-stego': 'Ukryj zaszyfrowane wiadomości w zdjęciach PNG. Niewidoczne, w przeglądarce.',
-      'desc-censor': 'Zamaż lub spikseluj wrażliwe dane na zrzutach ekranu — twarze, karty, IP, tokeny. Autodetekcja, w przeglądarce.',
-      'desc-share': 'Bezpośredni transfer plików między urządzeniami przez szyfrowany tunel P2P. Bez uploadu, bez limitów rozmiaru.',
-      'desc-labs': 'Żywe eksperymenty i koncepcje UI w ocenie — motywy i prototypy.',
-      'desc-fake': 'Czasowe fałszywe tożsamości z prawdziwą skrzynką @inpriv.xyz. Wymagane Inpriv ID.',
       'desc-temp': 'Jednorazowe adresy e-mail na inpriv.xyz. Losowa skrzynka, live polling, kasowanie jednym kliknięciem.',
-      'desc-status': 'Żywy status, czas odpowiedzi i 7-dniowa dostępność każdego narzędzia Inpriv.',
       'desc-amber': 'Osobiste archiwum WWW. Zapisz dowolną stronę, przeglądaj po datach i czytaj offline — snapshoty lądują na Twoim Dysku Google.',
       'desc-check': 'Wklej kod, wgraj plik lub przeskanuj repozytorium GitHub pod kątem malware, trojanów i backdoorów — heurystyki plus VirusTotal.',
-      'desc-air': 'Autoryzowany audytor deautentykacji 802.11. Sprawdź, czy Twoje WPA3 / PMF faktycznie chroni ramki zarządzania.',
       'desc-zero': 'Prywatny portfel krypto. Self-custodial.',
       'desc-osint': 'Open-source intelligence wspomagane AI — na wszystko.',
-      'desc-pass': 'Offline kryptograficzny generator haseł.',
       'desc-base64': 'Koder/dekoder Base64, URL i HTML — w przeglądarce.'
     }
   };
