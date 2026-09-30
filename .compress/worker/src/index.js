@@ -1,12 +1,18 @@
-import { maintenanceGate, maintenancePage } from "../../../common/gate.js";
-import { notFound } from "../../../common/errors.js";
+// compress.inpriv.xyz moved into Inpriv Image. Permanent redirect keeps bookmarks working.
+const TARGET = "https://image.inpriv.xyz/";
+const MODE = "compress";
 
 export default {
-  async fetch(request, env) {
-    const gate = await maintenanceGate("compress");
-    if (gate.locked) return maintenancePage("Inpriv Compress", gate.message);
-    const res = await env.ASSETS.fetch(request);
-    if (res.status === 404) return notFound(request, "Inpriv Compress");
-    return res;
+  async fetch(request) {
+    const url = new URL(request.url);
+    if (url.pathname === "/api/health") {
+      return new Response(JSON.stringify({ ok: true, redirect: TARGET + "#" + MODE }), {
+        headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" },
+      });
+    }
+    return new Response(null, {
+      status: 301,
+      headers: { Location: TARGET + "#" + MODE, "Cache-Control": "public, max-age=3600" },
+    });
   },
 };
