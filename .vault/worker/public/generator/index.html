@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<!--
+  Inpriv Vault — Password generator
+  Copyright (c) 2026 Inpriv Labs — MIT License
+  Random passwords from crypto.getRandomValues (rejection sampling, no modulo bias).
+  Runs locally; nothing is stored or sent anywhere.
+-->
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com fonts.gstatic.com; script-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.googleapis.com fonts.gstatic.com https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'; connect-src 'self'; worker-src 'none'; manifest-src 'self'">
+<title>Inpriv Vault — Password Generator</title>
+<meta name="robots" content="index, follow">
+<meta name="description" content="Generate strong random passwords in your browser. Nothing is stored or sent anywhere.">
+<link rel="canonical" href="https://vault.inpriv.xyz/generator/">
+<link rel="icon" type="image/png" href="/icon.png" />
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,100..1000&display=swap" rel="stylesheet">
+<style>
+/* Google typography (m3.material.io baseline) */
+  @font-face { font-family:'Google Sans'; font-style:normal; font-weight:475; font-display:swap; src:url(https://fonts.gstatic.com/s/googlesans/v70/4UaRrENHsxJlGDuGo1OIlJfC6mGS6vhAK1YobMu2vgCIhM907w.woff2) format('woff2'); }
+  @font-face { font-family:'Google Sans Text'; font-style:normal; font-weight:400; font-display:swap; src:url(https://fonts.gstatic.com/s/googlesanstext/v25/5aUu9-KzpRiLCAt4Unrc-xIKmCU5qEp2i0VBuxM.woff2) format('woff2'); }
+  @font-face { font-family:'Google Sans Text'; font-style:normal; font-weight:500; font-display:swap; src:url(https://fonts.gstatic.com/s/googlesanstext/v25/5aUp9-KzpRiLCAt4Unrc-xIKmCU5oLlVnmhjtjm4DZw.woff2) format('woff2'); }
+  @font-face { font-family:'Google Sans Text'; font-style:normal; font-weight:700; font-display:swap; src:url(https://fonts.gstatic.com/s/googlesanstext/v25/5aUp9-KzpRiLCAt4Unrc-xIKmCU5oPFTnmhjtjm4DZw.woff2) format('woff2'); }
+
+/* =====================================================================
+   INPRIV LABS · MATERIAL DESIGN 3 — EARTHY FOREST AESTHETIC
+   ===================================================================== */
+
+/* ---------- 1. COLOR TOKENS (M3) ---------- */
+:root,
+[data-theme="dark"] {
+  --md-primary: #CBBEFF;
+  --md-on-primary: #340098;
+  --md-primary-container: #4B21BD;
+  --md-on-primary-container: #E6DEFF;
+
+  --md-secondary: #C6C4DE;
+  --md-on-secondary: #313049;
+  --md-secondary-container: #45425C;
+  --md-on-secondary-container: #E2E0F1;
+
+  --md-tertiary: #FFB868;
+  --md-on-tertiary: #4E2800;
+  --md-tertiary-container: #4E3655;
+  --md-on-tertiary-container: #F5D9FC;
+
+  --md-error: #FF8670;
+  --md-on-error: #490909;
+
+  --md-surface: #141218;
+  --md-on-surface: #E6E1E3;
+  --md-on-surface-variant: #CBC4D4;
+
+  --md-surface-dim: #141218;
+  --md-surface-container-lowest: #0F0E13;
+  --md-surface-container-low: #1F1D24;
+  --md-surface-container: #242229;
+  --md-surface-container-high: #2F2C33;
+  --md-surface-container-highest: #3A373F;
+
+  --md-outline: #948F99;
+  --md-outline-variant: #47464F;
+
+  --md-inverse-surface: #E6E1E3;
+  --md-inverse-on-surface: #303030;
+  --md-inverse-primary: #CBBDFF;
+
+  --md-shadow: rgba(0, 0, 0, 0.40);
+  --md-shadow-strong: rgba(0, 0, 0, 0.65);
+
+  --md-scrim: rgba(0, 0, 0, 0.55);
+  --dot-color: rgba(195, 200, 182, 0.10);
+  --blob-a: rgba(46, 79, 47, 0.55);
+  --blob-b: rgba(126, 45, 30, 0.40);
+  color-scheme: dark;
+}
+
+[data-theme="light"] {
+  --md-primary: #9F86FF;
+  --md-on-primary: #FFFFFF;
+  --md-primary-container: #9F86FF;
+  --md-on-primary-container: #1E0060;
+
+  --md-secondary: #5D5D74;
+  --md-on-secondary: #FFFFFF;
+  --md-secondary-container: #E6DEFF;
+  --md-on-secondary-container: #21182B;
+
+  --md-tertiary: #E37402;
+  --md-on-tertiary: #FFFFFF;
+  --md-tertiary-container: #F1D3F9;
+  --md-on-tertiary-container: #271430;
+
+  --md-error: #FF6240;
+  --md-on-error: #FFFFFF;
+
+  --md-surface: #FEFBFF;
+  --md-on-surface: #1C1B1D;
+  --md-on-surface-variant: #47464F;
+
+  --md-surface-dim: #DBD9DD;
+  --md-surface-container-lowest: #FFFFFF;
+  --md-surface-container-low: #F8F1F6;
+  --md-surface-container: #F2ECEE;
+  --md-surface-container-high: #ECE7E9;
+  --md-surface-container-highest: #E6E1E3;
+
+  --md-outline: #787579;
+  --md-outline-variant: #E6E1E3;
+
+  --md-inverse-surface: #303030;
+  --md-inverse-on-surface: #F5EFF1;
+  --md-inverse-primary: #4B21BD;
+
+  --md-shadow: rgba(20, 25, 15, 0.15);
+  --md-shadow-strong: rgba(20, 25, 15, 0.28);
+
+  --md-scrim: rgba(20, 25, 15, 0.30);
+  --dot-color: rgba(67, 72, 61, 0.10);
+  --blob-a: rgba(199, 239, 160, 0.55);
+  --blob-b: rgba(255, 218, 211, 0.55);
+  color-scheme: light;
+}
+*{box-sizing:border-box;margin:0}
+body{font-family:'Roboto Flex','Google Sans Text',system-ui,sans-serif;background:var(--md-surface);color:var(--md-on-surface);min-height:100dvh}
+.inpriv-mode-switch{display:flex;justify-content:center;margin:0 auto 14px;padding:0 12px;position:relative;z-index:5}
+.inpriv-mode-switch .seg{display:inline-flex;border:1px solid var(--md-outline-variant,var(--md-outline-var,#47464F));border-radius:999px;overflow:hidden;background:var(--md-surface-container-low,var(--md-surface-container,#1F1D24))}
+.inpriv-mode-switch a{font:600 13.5px/1 'Roboto Flex',system-ui,sans-serif;padding:10px 18px;color:var(--md-on-surface-variant,#CBC4D4);text-decoration:none;white-space:nowrap}
+.inpriv-mode-switch a[aria-current="page"]{background:var(--md-primary-container,#4B21BD);color:var(--md-on-primary-container,#E6DEFF)}
+.inpriv-mode-switch a:focus-visible{outline:2px solid var(--md-primary,#CBBEFF);outline-offset:-2px}
+.top{max-width:900px;margin:0 auto;padding:20px 16px 0;display:flex;align-items:baseline;gap:10px}
+.top .t{font-size:26px;font-weight:700;letter-spacing:-.5px}.top .t span{color:var(--md-primary)}
+.top .s{font-size:12px;font-weight:500;letter-spacing:.4px;text-transform:uppercase;color:var(--md-on-surface-variant)}
+.top .grow{flex:1}
+.theme{width:40px;height:40px;border-radius:50%;border:1px solid var(--md-outline-variant);background:var(--md-surface-container);color:var(--md-on-surface);cursor:pointer;font-size:18px}
+main{max-width:900px;margin:0 auto;padding:0 16px 40px}
+h1{font-size:clamp(28px,5vw,44px);font-weight:800;letter-spacing:-1px;line-height:1.05;margin-bottom:6px}
+h1 em{font-style:italic;font-weight:400;color:var(--md-primary)}
+.lead{color:var(--md-on-surface-variant);font-size:14px;margin-bottom:18px}
+.out{display:flex;gap:8px;align-items:stretch;margin-bottom:8px}
+.pw{flex:1;min-width:0;font:600 20px/1.4 ui-monospace,SFMono-Regular,Consolas,monospace;padding:16px;border-radius:16px;background:var(--md-surface-container);border:1px solid var(--md-outline-variant);word-break:break-all;min-height:62px}
+.pw .d{color:var(--md-primary)}.pw .sy{color:var(--md-tertiary)}
+.btn{font:inherit;font-size:14px;border:0;border-radius:16px;padding:0 18px;cursor:pointer;background:var(--md-secondary-container);color:var(--md-on-secondary-container)}
+.btn.primary{background:var(--md-primary-container);color:var(--md-on-primary-container);font-weight:600}
+.btn:hover{filter:brightness(1.08)}
+.meter{height:6px;border-radius:99px;background:var(--md-surface-container-high);overflow:hidden;margin:10px 0 6px}
+.meter i{display:block;height:100%;width:0;background:var(--md-error);transition:width .2s,background .2s}
+.info{font-size:12.5px;color:var(--md-on-surface-variant);min-height:1.4em}
+.panel{margin-top:18px;padding:16px;border-radius:20px;background:var(--md-surface-container-low);border:1px solid var(--md-outline-variant)}
+.len{display:flex;align-items:center;gap:14px}
+.len input[type=range]{flex:1;accent-color:var(--md-primary)}
+.len output{font:700 18px ui-monospace,Consolas,monospace;min-width:3ch;text-align:right}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-top:14px}
+.opts label{display:flex;align-items:center;gap:10px;font-size:14px;padding:10px 12px;border-radius:12px;background:var(--md-surface-container);cursor:pointer}
+.opts input{accent-color:var(--md-primary);width:18px;height:18px}
+.opts small{color:var(--md-on-surface-variant);margin-left:auto;font-family:ui-monospace,Consolas,monospace}
+</style>
+</head>
+<body>
+<header class="top"><div class="t">vault<span>.</span></div><div class="s">Inpriv Labs</div><div class="grow"></div><button class="theme" id="theme" type="button" aria-label="Toggle theme">◐</button></header>
+<nav class="inpriv-mode-switch" aria-label="Vault tools"><div class="seg"><a href="/">Passwords</a><a href="/totp/">Authenticator</a><a href="/generator/" aria-current="page">Generator</a></div></nav>
+
+<main>
+  <h1>Generate. <em>Strongly.</em></h1>
+  <p class="lead">Random passwords from your browser's secure random source. Nothing is stored, logged or sent anywhere.</p>
+
+  <div class="out">
+    <div class="pw" id="pw" aria-live="polite"></div>
+    <button class="btn primary" id="copy" type="button">Copy</button>
+    <button class="btn" id="regen" type="button" aria-label="Generate a new password">↻</button>
+  </div>
+  <div class="meter" aria-hidden="true"><i id="bar"></i></div>
+  <div class="info" id="info"></div>
+
+  <div class="panel">
+    <div class="len"><label for="len">Length</label><input type="range" id="len" min="8" max="128" value="20"><output id="lenOut" for="len">20</output></div>
+    <div class="opts">
+      <label><input type="checkbox" id="lower" checked> Lowercase <small>a–z</small></label>
+      <label><input type="checkbox" id="upper" checked> Uppercase <small>A–Z</small></label>
+      <label><input type="checkbox" id="digit" checked> Digits <small>0–9</small></label>
+      <label><input type="checkbox" id="sym" checked> Symbols <small>!@#…</small></label>
+      <label><input type="checkbox" id="amb"> No look-alikes <small>Il1O0</small></label>
+    </div>
+  </div>
+</main>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var SETS = {
+    lower: 'abcdefghijklmnopqrstuvwxyz', upper: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+    digit: '0123456789', sym: '!@#$%^&*()-_=+[]{};:,.<>?/~'
+  };
+  var AMB = /[Il1O0]/g;
+
+  // Uniform integer in [0, n) via rejection sampling on 32-bit values (no modulo bias).
+  function rnd(n) {
+    var lim = Math.floor(0x100000000 / n) * n, b = new Uint32Array(1);
+    do { crypto.getRandomValues(b); } while (b[0] >= lim);
+    return b[0] % n;
+  }
+  function pools() {
+    var out = [];
+    ['lower', 'upper', 'digit', 'sym'].forEach(function (k) {
+      if (!$(k).checked) return;
+      var s = SETS[k]; if ($('amb').checked) s = s.replace(AMB, '');
+      if (s) out.push(s);
+    });
+    return out;
+  }
+  function generate() {
+    var ps = pools(), len = +$('len').value;
+    if (!ps.length) { $('pw').textContent = ''; $('info').textContent = 'Select at least one character set.'; $('bar').style.width = '0'; return; }
+    var all = ps.join(''), chars = [];
+    ps.forEach(function (p) { chars.push(p[rnd(p.length)]); });          // at least one of each selected set
+    while (chars.length < len) chars.push(all[rnd(all.length)]);
+    for (var i = chars.length - 1; i > 0; i--) { var j = rnd(i + 1), t = chars[i]; chars[i] = chars[j]; chars[j] = t; }
+    chars = chars.slice(0, len);
+    var pw = chars.join('');
+    render(pw, all.length, len);
+  }
+  function render(pw, poolSize, len) {
+    var el = $('pw'); el.textContent = '';
+    pw.split('').forEach(function (c) {
+      var s = document.createElement('span');
+      if (/[0-9]/.test(c)) s.className = 'd'; else if (/[^A-Za-z0-9]/.test(c)) s.className = 'sy';
+      s.textContent = c; el.appendChild(s);
+    });
+    var bits = len * Math.log2(poolSize);
+    var label = bits < 50 ? 'Weak' : bits < 70 ? 'Fair' : bits < 100 ? 'Strong' : 'Very strong';
+    $('bar').style.width = Math.min(100, bits / 1.28) + '%';
+    $('bar').style.background = bits < 50 ? 'var(--md-error)' : bits < 70 ? 'var(--md-tertiary)' : 'var(--md-primary)';
+    $('info').textContent = label + ' · ~' + Math.round(bits) + ' bits of entropy · ' + len + ' characters';
+  }
+  ['len', 'lower', 'upper', 'digit', 'sym', 'amb'].forEach(function (id) {
+    $(id).addEventListener('input', function () { $('lenOut').textContent = $('len').value; generate(); });
+  });
+  $('regen').addEventListener('click', generate);
+  $('copy').addEventListener('click', function () {
+    var v = $('pw').textContent; if (!v) return;
+    function ok() { $('copy').textContent = 'Copied'; setTimeout(function () { $('copy').textContent = 'Copy'; }, 1200); }
+    if (navigator.clipboard) navigator.clipboard.writeText(v).then(ok, function () {});
+  });
+
+  var root = document.documentElement;
+  try { var t = localStorage.getItem('inpriv_theme'); if (t) root.setAttribute('data-theme', t); else if (matchMedia('(prefers-color-scheme: light)').matches) root.setAttribute('data-theme', 'light'); } catch (e) {}
+  $('theme').addEventListener('click', function () {
+    var n = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', n); try { localStorage.setItem('inpriv_theme', n); } catch (e) {}
+  });
+  generate();
+})();
+</script>
+</body>
+</html>

@@ -1,12 +1,17 @@
-import { maintenanceGate, maintenancePage } from "../../../common/gate.js";
-import { notFound } from "../../../common/errors.js";
+// totp.inpriv.xyz moved into Inpriv Vault. Permanent redirect keeps bookmarks working.
+const TARGET = "https://vault.inpriv.xyz/totp/";
 
 export default {
-  async fetch(request, env) {
-    const gate = await maintenanceGate("totp");
-    if (gate.locked) return maintenancePage("Inpriv TOTP", gate.message);
-    const res = await env.ASSETS.fetch(request);
-    if (res.status === 404) return notFound(request, "Inpriv TOTP");
-    return res;
+  async fetch(request) {
+    const url = new URL(request.url);
+    if (url.pathname === "/api/health") {
+      return new Response(JSON.stringify({ ok: true, redirect: TARGET }), {
+        headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" },
+      });
+    }
+    return new Response(null, {
+      status: 301,
+      headers: { Location: TARGET, "Cache-Control": "public, max-age=3600" },
+    });
   },
 };
