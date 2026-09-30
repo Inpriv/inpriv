@@ -19,7 +19,7 @@
 <meta property="og:site_name" content="Inpriv">
 <meta property="og:title" content="Inpriv Keyring — Zero-Knowledge Encrypted Secret Vault">
 <meta property="og:description" content="A client-side encrypted vault for SSH keys, API tokens, passwords and notes. AES-256-GCM with PBKDF2. Your master password never leaves your device and cannot be recovered.">
-<meta property="og:url" content="https://keyring.inpriv.xyz/">
+<meta property="og:url" content="https://vault.inpriv.xyz/">
 <meta property="og:image" content="https://inpriv.xyz/og/keyring.png?v=2">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -30,8 +30,8 @@
 <meta name="twitter:description" content="A client-side encrypted vault for SSH keys, API tokens, passwords and notes. AES-256-GCM with PBKDF2. Your master password never leaves your device and cannot be recovered.">
 <meta name="twitter:image" content="https://inpriv.xyz/og/keyring.png?v=2">
 <meta name="twitter:image:alt" content="Inpriv Keyring — Zero-Knowledge Encrypted Secret Vault">
-<link rel="canonical" href="https://keyring.inpriv.xyz/">
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "SecurityApplication", "name": "Inpriv Keyring — Zero-Knowledge Encrypted Secret Vault", "url": "https://keyring.inpriv.xyz/", "description": "A client-side encrypted vault for SSH keys, API tokens, passwords and notes. AES-256-GCM with PBKDF2. Your master password never leaves your device and cannot be recovered.", "applicationCategory": "SecurityApplication", "operatingSystem": "All", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "publisher": {"@type": "Organization", "name": "Inpriv Labs", "url": "https://inpriv.xyz/"}, "inLanguage": "en"}</script>
+<link rel="canonical" href="https://vault.inpriv.xyz/">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "SecurityApplication", "name": "Inpriv Keyring — Zero-Knowledge Encrypted Secret Vault", "url": "https://vault.inpriv.xyz/", "description": "A client-side encrypted vault for SSH keys, API tokens, passwords and notes. AES-256-GCM with PBKDF2. Your master password never leaves your device and cannot be recovered.", "applicationCategory": "SecurityApplication", "operatingSystem": "All", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "publisher": {"@type": "Organization", "name": "Inpriv Labs", "url": "https://inpriv.xyz/"}, "inLanguage": "en"}</script>
 
   <link rel="icon" type="image/png" href="/icon.png" />
   <link rel="apple-touch-icon" href="/icon.png" />
@@ -294,28 +294,6 @@
 
 </head>
 <body>
-<script data-moved>
-/* Keyring moved into Inpriv Vault. Your data lives in this browser, on this address, so the
-   page stays usable while it holds a vault; with nothing stored here we just forward you. */
-(function () {
-  var has = false;
-  try { has = !!localStorage.getItem('inpriv_keyring_v1'); } catch (e) {}
-  if (!has) { location.replace('https://vault.inpriv.xyz/'); return; }
-  document.addEventListener('DOMContentLoaded', function () {
-    var b = document.createElement('div');
-    b.setAttribute('role', 'status');
-    b.style.cssText = 'position:sticky;top:0;z-index:2147483600;display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center;padding:10px 14px;font:500 13.5px/1.4 system-ui,sans-serif;background:#4B21BD;color:#E6DEFF';
-    var t = document.createElement('span');
-    t.textContent = 'Keyring has moved to Inpriv Vault. Your data is stored in this browser under this address and is not carried over automatically. Use Export → Encrypted backup here, then Import it in Vault.';
-    var a = document.createElement('a');
-    a.href = 'https://vault.inpriv.xyz/'; a.textContent = 'Open Vault'; a.style.cssText = 'color:#fff;font-weight:700;text-decoration:underline';
-    b.appendChild(t); b.appendChild(a);
-    
-    document.body.insertBefore(b, document.body.firstChild);
-  });
-})();
-</script>
-
   
   
 
@@ -338,6 +316,15 @@
         </button>
     </div>
   </header>
+<nav class="inpriv-mode-switch" aria-label="Vault tools"><div class="seg"><a href="/" aria-current="page">Passwords</a><a href="/totp/">Authenticator</a><a href="/generator/">Generator</a></div></nav>
+<style data-mode-switch>
+.inpriv-mode-switch{display:flex;justify-content:center;margin:0 auto 14px;padding:0 12px;position:relative;z-index:5}
+.inpriv-mode-switch .seg{display:inline-flex;border:1px solid var(--md-outline-variant,var(--md-outline-var,#47464F));border-radius:999px;overflow:hidden;background:var(--md-surface-container-low,var(--md-surface-container,#1F1D24))}
+.inpriv-mode-switch a{font:600 13.5px/1 'Roboto Flex',system-ui,sans-serif;padding:10px 18px;color:var(--md-on-surface-variant,#CBC4D4);text-decoration:none;white-space:nowrap}
+.inpriv-mode-switch a[aria-current="page"]{background:var(--md-primary-container,#4B21BD);color:var(--md-on-primary-container,#E6DEFF)}
+.inpriv-mode-switch a:focus-visible{outline:2px solid var(--md-primary,#CBBEFF);outline-offset:-2px}
+</style>
+
 <style data-inpriv-mobile-header>
 /* ── mobile floating glass app-bar (fake.inpriv.xyz style) — <600px only ── */
 @media (max-width: 599.98px) {

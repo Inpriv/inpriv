@@ -10,7 +10,7 @@
 <meta property="og:site_name" content="Inpriv">
 <meta property="og:title" content="Inpriv TOTP — Authenticator &amp;amp; 2FA">
 <meta property="og:description" content="RFC 6238 time-based one-time passwords. Fully client-side, zero-knowledge. Your seeds never leave this browser.">
-<meta property="og:url" content="https://totp.inpriv.xyz/">
+<meta property="og:url" content="https://vault.inpriv.xyz/totp/">
 <meta property="og:image" content="https://inpriv.xyz/og/totp.png?v=2">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -21,8 +21,8 @@
 <meta name="twitter:description" content="RFC 6238 time-based one-time passwords. Fully client-side, zero-knowledge. Your seeds never leave this browser.">
 <meta name="twitter:image" content="https://inpriv.xyz/og/totp.png?v=2">
 <meta name="twitter:image:alt" content="Inpriv TOTP — Authenticator &amp;amp; 2FA">
-<link rel="canonical" href="https://totp.inpriv.xyz/">
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "SecurityApplication", "name": "Inpriv TOTP — Authenticator &amp; 2FA", "url": "https://totp.inpriv.xyz/", "description": "RFC 6238 time-based one-time passwords. Fully client-side, zero-knowledge. Your seeds never leave this browser.", "applicationCategory": "SecurityApplication", "operatingSystem": "All", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "publisher": {"@type": "Organization", "name": "Inpriv Labs", "url": "https://inpriv.xyz/"}, "inLanguage": "en"}</script>
+<link rel="canonical" href="https://vault.inpriv.xyz/totp/">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "SecurityApplication", "name": "Inpriv TOTP — Authenticator &amp; 2FA", "url": "https://vault.inpriv.xyz/totp/", "description": "RFC 6238 time-based one-time passwords. Fully client-side, zero-knowledge. Your seeds never leave this browser.", "applicationCategory": "SecurityApplication", "operatingSystem": "All", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "publisher": {"@type": "Organization", "name": "Inpriv Labs", "url": "https://inpriv.xyz/"}, "inLanguage": "en"}</script>
 <meta name="theme-color" content="#141218" media="(prefers-color-scheme: dark)">
 <meta name="theme-color" content="#FEFBFF" media="(prefers-color-scheme: light)">
 <meta name="robots" content="index, follow">
@@ -451,38 +451,6 @@ textarea.text-input { min-height:64px; resize:vertical; font-family:var(--font-m
 </style>
 </head>
 <body>
-<script data-moved>
-/* TOTP moved into Inpriv Vault. Your data lives in this browser, on this address, so the
-   page stays usable while it holds a vault; with nothing stored here we just forward you. */
-(function () {
-  var has = false;
-  try { has = !!localStorage.getItem('inpriv_totp_vault_v1'); } catch (e) {}
-  if (!has) { location.replace('https://vault.inpriv.xyz/totp/'); return; }
-  document.addEventListener('DOMContentLoaded', function () {
-    var b = document.createElement('div');
-    b.setAttribute('role', 'status');
-    b.style.cssText = 'position:sticky;top:0;z-index:2147483600;display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center;padding:10px 14px;font:500 13.5px/1.4 system-ui,sans-serif;background:#4B21BD;color:#E6DEFF';
-    var t = document.createElement('span');
-    t.textContent = 'TOTP has moved to Inpriv Vault. Your data is stored in this browser under this address and is not carried over automatically. Download a backup here, then import it in Vault (Authenticator tab).';
-    var a = document.createElement('a');
-    a.href = 'https://vault.inpriv.xyz/totp/'; a.textContent = 'Open Vault'; a.style.cssText = 'color:#fff;font-weight:700;text-decoration:underline';
-    b.appendChild(t); b.appendChild(a);
-    var d = document.createElement('button');
-    d.type = 'button'; d.textContent = 'Download backup';
-    d.style.cssText = 'font:inherit;font-weight:700;border:0;border-radius:99px;padding:6px 14px;cursor:pointer;background:#E6DEFF;color:#340098';
-    d.addEventListener('click', function () {
-      var raw = localStorage.getItem('inpriv_totp_vault_v1'); if (!raw) return;
-      var blob = new Blob([JSON.stringify({ inpriv_totp_vault_v1: raw })], { type: 'application/json' });
-      var u = URL.createObjectURL(blob), l = document.createElement('a');
-      l.href = u; l.download = 'inpriv-totp-backup.json'; document.body.appendChild(l); l.click(); l.remove();
-      setTimeout(function () { URL.revokeObjectURL(u); }, 1000);
-    });
-    b.appendChild(d);
-    document.body.insertBefore(b, document.body.firstChild);
-  });
-})();
-</script>
-
 
 
 
@@ -508,6 +476,15 @@ textarea.text-input { min-height:64px; resize:vertical; font-family:var(--font-m
       </button>
     </div>
   </header>
+<nav class="inpriv-mode-switch" aria-label="Vault tools"><div class="seg"><a href="/">Passwords</a><a href="/totp/" aria-current="page">Authenticator</a><a href="/generator/">Generator</a></div></nav>
+<style data-mode-switch>
+.inpriv-mode-switch{display:flex;justify-content:center;margin:0 auto 14px;padding:0 12px;position:relative;z-index:5}
+.inpriv-mode-switch .seg{display:inline-flex;border:1px solid var(--md-outline-variant,var(--md-outline-var,#47464F));border-radius:999px;overflow:hidden;background:var(--md-surface-container-low,var(--md-surface-container,#1F1D24))}
+.inpriv-mode-switch a{font:600 13.5px/1 'Roboto Flex',system-ui,sans-serif;padding:10px 18px;color:var(--md-on-surface-variant,#CBC4D4);text-decoration:none;white-space:nowrap}
+.inpriv-mode-switch a[aria-current="page"]{background:var(--md-primary-container,#4B21BD);color:var(--md-on-primary-container,#E6DEFF)}
+.inpriv-mode-switch a:focus-visible{outline:2px solid var(--md-primary,#CBBEFF);outline-offset:-2px}
+</style>
+
 
 <style data-inpriv-mobile-header>
 /* ── mobile floating glass app-bar (fake.inpriv.xyz style) — <600px only ── */
@@ -982,10 +959,10 @@ textarea.text-input { min-height:64px; resize:vertical; font-family:var(--font-m
   var themeBtn = $('theme-toggle'), themeIcon = $('theme-icon');
   function setTheme(t) {
     document.documentElement.setAttribute('data-theme', t);
-    localStorage.setItem('inpriv_totp_theme', t);
+    localStorage.setItem('inpriv_theme', t);
     themeIcon.textContent = t === 'dark' ? 'light_mode' : 'dark_mode';
   }
-  var saved = localStorage.getItem('inpriv_totp_theme') || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  var saved = localStorage.getItem('inpriv_theme') || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
   setTheme(saved);
   themeBtn.addEventListener('click', function() {
     setTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
@@ -1016,6 +993,35 @@ textarea.text-input { min-height:64px; resize:vertical; font-family:var(--font-m
     // re-render ring structure when period boundary passes
     if (!vault.locked && vault.accounts.length) refreshCodes();
   }, 1000);
+})();
+</script>
+<script data-import>
+/* One-time import of a backup downloaded from the old totp.inpriv.xyz page. */
+(function () {
+  var KEY = 'inpriv_totp_vault_v1';
+  try { if (localStorage.getItem(KEY)) return; } catch (e) { return; }
+  document.addEventListener('DOMContentLoaded', function () {
+    var box = document.createElement('div');
+    box.style.cssText = 'max-width:900px;margin:0 auto 12px;padding:10px 14px;border-radius:16px;font:500 13.5px/1.4 system-ui,sans-serif;background:var(--md-surface-container,#242229);color:var(--md-on-surface,#E6E1E3);border:1px solid var(--md-outline-variant,#47464F);display:flex;gap:10px;align-items:center;flex-wrap:wrap';
+    var t = document.createElement('span'); t.textContent = 'Coming from totp.inpriv.xyz? Import the backup you downloaded there.';
+    var f = document.createElement('input'); f.type = 'file'; f.accept = 'application/json,.json'; f.hidden = true;
+    var b = document.createElement('button'); b.type = 'button'; b.textContent = 'Import backup';
+    b.style.cssText = 'font:inherit;font-weight:600;border:0;border-radius:99px;padding:7px 14px;cursor:pointer;background:var(--md-primary-container,#4B21BD);color:var(--md-on-primary-container,#E6DEFF)';
+    var m = document.createElement('span'); m.setAttribute('role', 'status');
+    b.addEventListener('click', function () { f.click(); });
+    f.addEventListener('change', function () {
+      var file = f.files[0]; if (!file) return;
+      file.text().then(function (txt) {
+        var raw = JSON.parse(txt)[KEY], p = JSON.parse(raw);
+        if (!p || (!p.passSet && !Array.isArray(p.accounts))) throw new Error('bad');
+        if (localStorage.getItem(KEY)) throw new Error('exists');
+        localStorage.setItem(KEY, raw); location.reload();
+      }).catch(function (e) { m.textContent = e.message === 'exists' ? 'This browser already has a vault here.' : 'That file is not a valid TOTP backup.'; });
+    });
+    box.appendChild(t); box.appendChild(b); box.appendChild(f); box.appendChild(m);
+    var nav = document.querySelector('.inpriv-mode-switch');
+    if (nav && nav.parentNode) nav.parentNode.insertBefore(box, nav.nextSibling); else document.body.insertBefore(box, document.body.firstChild);
+  });
 })();
 </script>
 </body>

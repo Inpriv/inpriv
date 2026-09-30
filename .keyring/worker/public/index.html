@@ -294,6 +294,28 @@
 
 </head>
 <body>
+<script data-moved>
+/* Keyring moved into Inpriv Vault. Your data lives in this browser, on this address, so the
+   page stays usable while it holds a vault; with nothing stored here we just forward you. */
+(function () {
+  var has = false;
+  try { has = !!localStorage.getItem('inpriv_keyring_v1'); } catch (e) {}
+  if (!has) { location.replace('https://vault.inpriv.xyz/'); return; }
+  document.addEventListener('DOMContentLoaded', function () {
+    var b = document.createElement('div');
+    b.setAttribute('role', 'status');
+    b.style.cssText = 'position:sticky;top:0;z-index:2147483600;display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center;padding:10px 14px;font:500 13.5px/1.4 system-ui,sans-serif;background:#4B21BD;color:#E6DEFF';
+    var t = document.createElement('span');
+    t.textContent = 'Keyring has moved to Inpriv Vault. Your data is stored in this browser under this address and is not carried over automatically. Use Export → Encrypted backup here, then Import it in Vault.';
+    var a = document.createElement('a');
+    a.href = 'https://vault.inpriv.xyz/'; a.textContent = 'Open Vault'; a.style.cssText = 'color:#fff;font-weight:700;text-decoration:underline';
+    b.appendChild(t); b.appendChild(a);
+    
+    document.body.insertBefore(b, document.body.firstChild);
+  });
+})();
+</script>
+
   
   
 

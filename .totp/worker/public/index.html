@@ -451,6 +451,38 @@ textarea.text-input { min-height:64px; resize:vertical; font-family:var(--font-m
 </style>
 </head>
 <body>
+<script data-moved>
+/* TOTP moved into Inpriv Vault. Your data lives in this browser, on this address, so the
+   page stays usable while it holds a vault; with nothing stored here we just forward you. */
+(function () {
+  var has = false;
+  try { has = !!localStorage.getItem('inpriv_totp_vault_v1'); } catch (e) {}
+  if (!has) { location.replace('https://vault.inpriv.xyz/totp/'); return; }
+  document.addEventListener('DOMContentLoaded', function () {
+    var b = document.createElement('div');
+    b.setAttribute('role', 'status');
+    b.style.cssText = 'position:sticky;top:0;z-index:2147483600;display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center;padding:10px 14px;font:500 13.5px/1.4 system-ui,sans-serif;background:#4B21BD;color:#E6DEFF';
+    var t = document.createElement('span');
+    t.textContent = 'TOTP has moved to Inpriv Vault. Your data is stored in this browser under this address and is not carried over automatically. Download a backup here, then import it in Vault (Authenticator tab).';
+    var a = document.createElement('a');
+    a.href = 'https://vault.inpriv.xyz/totp/'; a.textContent = 'Open Vault'; a.style.cssText = 'color:#fff;font-weight:700;text-decoration:underline';
+    b.appendChild(t); b.appendChild(a);
+    var d = document.createElement('button');
+    d.type = 'button'; d.textContent = 'Download backup';
+    d.style.cssText = 'font:inherit;font-weight:700;border:0;border-radius:99px;padding:6px 14px;cursor:pointer;background:#E6DEFF;color:#340098';
+    d.addEventListener('click', function () {
+      var raw = localStorage.getItem('inpriv_totp_vault_v1'); if (!raw) return;
+      var blob = new Blob([JSON.stringify({ inpriv_totp_vault_v1: raw })], { type: 'application/json' });
+      var u = URL.createObjectURL(blob), l = document.createElement('a');
+      l.href = u; l.download = 'inpriv-totp-backup.json'; document.body.appendChild(l); l.click(); l.remove();
+      setTimeout(function () { URL.revokeObjectURL(u); }, 1000);
+    });
+    b.appendChild(d);
+    document.body.insertBefore(b, document.body.firstChild);
+  });
+})();
+</script>
+
 
 
 
