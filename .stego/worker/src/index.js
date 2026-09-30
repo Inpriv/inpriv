@@ -10,6 +10,25 @@ export default {
         headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" },
       });
     }
+    // Installed copies run a cache-first service worker on this origin; serve a
+    // replacement that clears its caches and unregisters so the redirect is reached.
+    if (url.pathname === "/sw.js") {
+      return new Response(
+        "self.addEventListener('install', () => self.skipWaiting());
+" +
+        "self.addEventListener('activate', (e) => e.waitUntil((async () => {
+" +
+        "  for (const k of await caches.keys()) await caches.delete(k);
+" +
+        "  await self.registration.unregister();
+" +
+        "  for (const c of await self.clients.matchAll({ type: 'window' })) c.navigate(c.url);
+" +
+        "})()));
+",
+        { headers: { "Content-Type": "application/javascript; charset=utf-8", "Cache-Control": "no-store" } }
+      );
+    }
     return new Response(null, {
       status: 301,
       headers: { Location: TARGET + "#" + MODE, "Cache-Control": "public, max-age=3600" },
