@@ -14,18 +14,12 @@ export default {
     // replacement that clears its caches and unregisters so the redirect is reached.
     if (url.pathname === "/sw.js") {
       return new Response(
-        "self.addEventListener('install', () => self.skipWaiting());
-" +
-        "self.addEventListener('activate', (e) => e.waitUntil((async () => {
-" +
-        "  for (const k of await caches.keys()) await caches.delete(k);
-" +
-        "  await self.registration.unregister();
-" +
-        "  for (const c of await self.clients.matchAll({ type: 'window' })) c.navigate(c.url);
-" +
-        "})()));
-",
+        "self.addEventListener('install', () => self.skipWaiting());\n" +
+        "self.addEventListener('activate', (e) => e.waitUntil((async () => {\n" +
+        "  for (const k of await caches.keys()) await caches.delete(k);\n" +
+        "  await self.registration.unregister();\n" +
+        "  for (const c of await self.clients.matchAll({ type: 'window' })) c.navigate(c.url);\n" +
+        "})()));\n",
         { headers: { "Content-Type": "application/javascript; charset=utf-8", "Cache-Control": "no-store" } }
       );
     }
