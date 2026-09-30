@@ -486,6 +486,14 @@ footer a { color: var(--md-on-surface-variant); }
         <a class="suite-link" href="https://inpriv.xyz" target="_blank" rel="noopener">inpriv.xyz</a>
     </div>
   </header>
+<nav class="inpriv-mode-switch" aria-label="Temp mail or Fake identity"><div class="seg"><a href="/" aria-current="page">Temp mail</a><a href="/fake/">Fake identity</a></div></nav>
+<style data-mode-switch>
+.inpriv-mode-switch{display:flex;justify-content:center;margin:0 auto 14px;padding:0 12px;position:relative;z-index:5}
+.inpriv-mode-switch .seg{display:inline-flex;gap:0;border:1px solid var(--md-outline-variant,var(--md-outline-var,#47464F));border-radius:999px;overflow:hidden;background:var(--md-surface-container-low,var(--md-surface-container,#1F1D24))}
+.inpriv-mode-switch a{font:600 13.5px/1 'Roboto Flex',system-ui,sans-serif;padding:10px 20px;color:var(--md-on-surface-variant,#CBC4D4);text-decoration:none}
+.inpriv-mode-switch a[aria-current="page"]{background:var(--md-primary-container,#4B21BD);color:var(--md-on-primary-container,#E6DEFF)}
+.inpriv-mode-switch a:focus-visible{outline:2px solid var(--md-primary,#CBBEFF);outline-offset:-2px}
+</style>
 
 <style data-inpriv-mobile-header>
 /* ── mobile floating glass app-bar (fake.inpriv.xyz style) — <600px only ── */
