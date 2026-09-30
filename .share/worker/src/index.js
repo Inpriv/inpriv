@@ -179,10 +179,35 @@ export default {
     // ─── GET /api/health — always passes (monitoring) ───
     if (path === "/api/health") return json({ ok: true });
 
-    // ─── everything else: static frontend (single-file app) ───
-    const res = await env.ASSETS.fetch(request);
-    if (res.status === 404) return notFound(request, "Inpriv Share");
-    return res;
+    // ─── frontend moved to send.inpriv.xyz/share/ ───
+    // Installed PWAs on this origin still run the old service worker; serve a
+    // replacement that removes itself so the next load follows the redirect.
+    if (path === "/sw.js") {
+      return new Response(
+        "self.addEventListener('install', () => self.skipWaiting());
+" +
+        "self.addEventListener('activate', (e) => e.waitUntil((async () => {
+" +
+        "  for (const k of await caches.keys()) await caches.delete(k);
+" +
+        "  await self.registration.unregister();
+" +
+        "  for (const c of await self.clients.matchAll({ type: 'window' })) c.navigate(c.url);
+" +
+        "})()));
+",
+        { headers: { "Content-Type": "application/javascript; charset=utf-8", "Cache-Control": "no-store" } }
+      );
+    }
+    // No fragment in Location: browsers keep the original one, so old room
+    // links (share.inpriv.xyz/#code) still open the room.
+    if (method === "GET" || method === "HEAD") {
+      return new Response(null, {
+        status: 301,
+        headers: { Location: "https://send.inpriv.xyz/share/", "Cache-Control": "public, max-age=3600" },
+      });
+    }
+    return json({ error: "not found" }, 404);
   },
 
   // cron fallback (when the account-wide slot frees up); primary: lazy sweep
