@@ -1,12 +1,18 @@
-import { maintenanceGate, maintenancePage } from "../../../common/gate.js";
-import { notFound } from "../../../common/errors.js";
+// brute.inpriv.xyz moved into Inpriv Hash. Permanent redirect keeps bookmarks working.
+const TARGET = "https://hash.inpriv.xyz/";
+const MODE = "brute";
 
 export default {
-  async fetch(request, env) {
-    const gate = await maintenanceGate("brute");
-    if (gate.locked) return maintenancePage("Inpriv Brute", gate.message);
-    const res = await env.ASSETS.fetch(request);
-    if (res.status === 404) return notFound(request, "Inpriv Brute");
-    return res;
+  async fetch(request) {
+    const url = new URL(request.url);
+    if (url.pathname === "/api/health") {
+      return new Response(JSON.stringify({ ok: true, redirect: TARGET + "#" + MODE }), {
+        headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" },
+      });
+    }
+    return new Response(null, {
+      status: 301,
+      headers: { Location: TARGET + "#" + MODE, "Cache-Control": "public, max-age=3600" },
+    });
   },
 };
