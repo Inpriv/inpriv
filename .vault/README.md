@@ -12,9 +12,5 @@ The pages are the original tools, served top-level on one origin with a small sw
 header (top-level so the Inpriv ID widget keeps working). Vault data stays in this browser's
 `localStorage`; nothing is sent anywhere.
 
-## Migrating from keyring / totp
-
-Browser storage is per origin, so data saved on `keyring.inpriv.xyz` / `totp.inpriv.xyz` is not visible
-here. The old pages keep working while they hold data, show a banner, and forward visitors that have
-nothing stored. Keyring: Export → Encrypted backup, then Import in Vault. TOTP: "Download backup"
-on the old page, then "Import backup" in the Vault Authenticator tab.
+`keyring.inpriv.xyz` and `totp.inpriv.xyz` answer with a 301 to `/` and `/totp/`. Browser storage is per origin, so
+vaults saved on the old hosts are not visible here (none existed when this was merged).

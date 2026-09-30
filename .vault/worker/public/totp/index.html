@@ -995,34 +995,5 @@ textarea.text-input { min-height:64px; resize:vertical; font-family:var(--font-m
   }, 1000);
 })();
 </script>
-<script data-import>
-/* One-time import of a backup downloaded from the old totp.inpriv.xyz page. */
-(function () {
-  var KEY = 'inpriv_totp_vault_v1';
-  try { if (localStorage.getItem(KEY)) return; } catch (e) { return; }
-  document.addEventListener('DOMContentLoaded', function () {
-    var box = document.createElement('div');
-    box.style.cssText = 'max-width:900px;margin:0 auto 12px;padding:10px 14px;border-radius:16px;font:500 13.5px/1.4 system-ui,sans-serif;background:var(--md-surface-container,#242229);color:var(--md-on-surface,#E6E1E3);border:1px solid var(--md-outline-variant,#47464F);display:flex;gap:10px;align-items:center;flex-wrap:wrap';
-    var t = document.createElement('span'); t.textContent = 'Coming from totp.inpriv.xyz? Import the backup you downloaded there.';
-    var f = document.createElement('input'); f.type = 'file'; f.accept = 'application/json,.json'; f.hidden = true;
-    var b = document.createElement('button'); b.type = 'button'; b.textContent = 'Import backup';
-    b.style.cssText = 'font:inherit;font-weight:600;border:0;border-radius:99px;padding:7px 14px;cursor:pointer;background:var(--md-primary-container,#4B21BD);color:var(--md-on-primary-container,#E6DEFF)';
-    var m = document.createElement('span'); m.setAttribute('role', 'status');
-    b.addEventListener('click', function () { f.click(); });
-    f.addEventListener('change', function () {
-      var file = f.files[0]; if (!file) return;
-      file.text().then(function (txt) {
-        var raw = JSON.parse(txt)[KEY], p = JSON.parse(raw);
-        if (!p || (!p.passSet && !Array.isArray(p.accounts))) throw new Error('bad');
-        if (localStorage.getItem(KEY)) throw new Error('exists');
-        localStorage.setItem(KEY, raw); location.reload();
-      }).catch(function (e) { m.textContent = e.message === 'exists' ? 'This browser already has a vault here.' : 'That file is not a valid TOTP backup.'; });
-    });
-    box.appendChild(t); box.appendChild(b); box.appendChild(f); box.appendChild(m);
-    var nav = document.querySelector('.inpriv-mode-switch');
-    if (nav && nav.parentNode) nav.parentNode.insertBefore(box, nav.nextSibling); else document.body.insertBefore(box, document.body.firstChild);
-  });
-})();
-</script>
 </body>
 </html>
