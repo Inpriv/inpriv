@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<!--
+  Inpriv Send — one-time notes and peer-to-peer file transfer
+  Copyright (c) 2026 Inpriv Labs — MIT License
+-->
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com fonts.gstatic.com; script-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.googleapis.com fonts.gstatic.com https://fonts.gstatic.com; img-src 'self' data:; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'; connect-src 'self'; worker-src 'none'; manifest-src 'self'">
+<title>Inpriv Send — One-time Notes &amp; P2P File Transfer</title>
+<meta name="robots" content="index, follow">
+<meta name="description" content="Inpriv Send — self-destructing encrypted notes and end-to-end encrypted peer-to-peer file transfer. Zero-knowledge, no accounts, no trackers.">
+<meta name="keywords" content="one-time note, self-destructing message, encrypted note, p2p file transfer, webrtc, send file, zero-knowledge">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Inpriv">
+<meta property="og:title" content="Inpriv Send — One-time Notes &amp; P2P File Transfer">
+<meta property="og:description" content="Self-destructing encrypted notes and peer-to-peer file transfer. Zero-knowledge.">
+<meta property="og:url" content="https://send.inpriv.xyz/">
+<meta property="og:image" content="https://inpriv.xyz/og/send.png?v=1">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://send.inpriv.xyz/">
+<link rel="icon" type="image/png" href="/icon.png" />
+<link rel="apple-touch-icon" href="/icon.png" />
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,100..1000&display=swap" rel="stylesheet">
+<style>
+/* Google typography (m3.material.io baseline) */
+  @font-face { font-family:'Google Sans'; font-style:normal; font-weight:475; font-display:swap; src:url(https://fonts.gstatic.com/s/googlesans/v70/4UaRrENHsxJlGDuGo1OIlJfC6mGS6vhAK1YobMu2vgCIhM907w.woff2) format('woff2'); }
+  @font-face { font-family:'Google Sans Text'; font-style:normal; font-weight:400; font-display:swap; src:url(https://fonts.gstatic.com/s/googlesanstext/v25/5aUu9-KzpRiLCAt4Unrc-xIKmCU5qEp2i0VBuxM.woff2) format('woff2'); }
+  @font-face { font-family:'Google Sans Text'; font-style:normal; font-weight:500; font-display:swap; src:url(https://fonts.gstatic.com/s/googlesanstext/v25/5aUp9-KzpRiLCAt4Unrc-xIKmCU5oLlVnmhjtjm4DZw.woff2) format('woff2'); }
+  @font-face { font-family:'Google Sans Text'; font-style:normal; font-weight:700; font-display:swap; src:url(https://fonts.gstatic.com/s/googlesanstext/v25/5aUp9-KzpRiLCAt4Unrc-xIKmCU5oPFTnmhjtjm4DZw.woff2) format('woff2'); }
+
+/* =====================================================================
+   INPRIV LABS · MATERIAL DESIGN 3 — EARTHY FOREST AESTHETIC
+   ===================================================================== */
+
+/* ---------- 1. COLOR TOKENS (M3) ---------- */
+:root,
+[data-theme="dark"] {
+  --md-primary: #CBBEFF;
+  --md-on-primary: #340098;
+  --md-primary-container: #4B21BD;
+  --md-on-primary-container: #E6DEFF;
+
+  --md-secondary: #C6C4DE;
+  --md-on-secondary: #313049;
+  --md-secondary-container: #45425C;
+  --md-on-secondary-container: #E2E0F1;
+
+  --md-tertiary: #FFB868;
+  --md-on-tertiary: #4E2800;
+  --md-tertiary-container: #4E3655;
+  --md-on-tertiary-container: #F5D9FC;
+
+  --md-error: #FF8670;
+  --md-on-error: #490909;
+
+  --md-surface: #141218;
+  --md-on-surface: #E6E1E3;
+  --md-on-surface-variant: #CBC4D4;
+
+  --md-surface-dim: #141218;
+  --md-surface-container-lowest: #0F0E13;
+  --md-surface-container-low: #1F1D24;
+  --md-surface-container: #242229;
+  --md-surface-container-high: #2F2C33;
+  --md-surface-container-highest: #3A373F;
+
+  --md-outline: #948F99;
+  --md-outline-variant: #47464F;
+
+  --md-inverse-surface: #E6E1E3;
+  --md-inverse-on-surface: #303030;
+  --md-inverse-primary: #CBBDFF;
+
+  --md-shadow: rgba(0, 0, 0, 0.40);
+  --md-shadow-strong: rgba(0, 0, 0, 0.65);
+
+  --md-scrim: rgba(0, 0, 0, 0.55);
+  --dot-color: rgba(195, 200, 182, 0.10);
+  --blob-a: rgba(46, 79, 47, 0.55);
+  --blob-b: rgba(126, 45, 30, 0.40);
+  color-scheme: dark;
+}
+
+[data-theme="light"] {
+  --md-primary: #9F86FF;
+  --md-on-primary: #FFFFFF;
+  --md-primary-container: #9F86FF;
+  --md-on-primary-container: #1E0060;
+
+  --md-secondary: #5D5D74;
+  --md-on-secondary: #FFFFFF;
+  --md-secondary-container: #E6DEFF;
+  --md-on-secondary-container: #21182B;
+
+  --md-tertiary: #E37402;
+  --md-on-tertiary: #FFFFFF;
+  --md-tertiary-container: #F1D3F9;
+  --md-on-tertiary-container: #271430;
+
+  --md-error: #FF6240;
+  --md-on-error: #FFFFFF;
+
+  --md-surface: #FEFBFF;
+  --md-on-surface: #1C1B1D;
+  --md-on-surface-variant: #47464F;
+
+  --md-surface-dim: #DBD9DD;
+  --md-surface-container-lowest: #FFFFFF;
+  --md-surface-container-low: #F8F1F6;
+  --md-surface-container: #F2ECEE;
+  --md-surface-container-high: #ECE7E9;
+  --md-surface-container-highest: #E6E1E3;
+
+  --md-outline: #787579;
+  --md-outline-variant: #E6E1E3;
+
+  --md-inverse-surface: #303030;
+  --md-inverse-on-surface: #F5EFF1;
+  --md-inverse-primary: #4B21BD;
+
+  --md-shadow: rgba(20, 25, 15, 0.15);
+  --md-shadow-strong: rgba(20, 25, 15, 0.28);
+
+  --md-scrim: rgba(20, 25, 15, 0.30);
+  --dot-color: rgba(67, 72, 61, 0.10);
+  --blob-a: rgba(199, 239, 160, 0.55);
+  --blob-b: rgba(255, 218, 211, 0.55);
+  color-scheme: light;
+}
+*{box-sizing:border-box;margin:0}
+body{font-family:'Roboto Flex','Google Sans Text',system-ui,sans-serif;background:var(--md-surface);color:var(--md-on-surface);min-height:100dvh}
+.top{max-width:900px;margin:0 auto;padding:20px 16px 0;display:flex;align-items:baseline;gap:10px}
+.top .t{font-size:26px;font-weight:700;letter-spacing:-.5px}.top .t span{color:var(--md-primary)}
+.top .s{font-size:12px;font-weight:500;letter-spacing:.4px;text-transform:uppercase;color:var(--md-on-surface-variant)}
+.top .grow{flex:1}
+.theme{width:40px;height:40px;border-radius:50%;border:1px solid var(--md-outline-variant);background:var(--md-surface-container);color:var(--md-on-surface);cursor:pointer;font-size:18px}
+main{max-width:900px;margin:0 auto;padding:28px 16px 48px}
+h1{font-size:clamp(32px,6vw,52px);font-weight:800;letter-spacing:-1.2px;line-height:1.05;margin-bottom:10px}
+h1 em{font-style:italic;font-weight:400;color:var(--md-primary)}
+.lead{color:var(--md-on-surface-variant);font-size:15px;margin-bottom:26px;max-width:60ch}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+a.card{display:block;padding:22px;border-radius:24px;background:var(--md-surface-container-low);border:1px solid var(--md-outline-variant);text-decoration:none;color:inherit;transition:background .15s,border-color .15s}
+a.card:hover,a.card:focus-visible{background:var(--md-surface-container);border-color:var(--md-primary);outline:none}
+a.card h2{font-size:20px;margin-bottom:6px}
+a.card p{font-size:14px;color:var(--md-on-surface-variant);line-height:1.5}
+a.card .tag{display:inline-block;margin-top:14px;font-size:12.5px;font-weight:600;color:var(--md-primary)}
+</style>
+</head>
+<body>
+<header class="top"><div class="t">send<span>.</span></div><div class="s">Inpriv Labs</div><div class="grow"></div><button class="theme" id="theme" type="button" aria-label="Toggle theme">&#9680;</button></header>
+<main>
+  <h1>Send it. <em>Privately.</em></h1>
+  <p class="lead">Two ways to pass something on without leaving a trace. Everything is encrypted in your browser; we never see the content.</p>
+  <div class="grid">
+    <a class="card" href="/burn/"><h2>Send a note</h2><p>Write a message, get a one-time link. It is encrypted on your device and can be deleted after the first read or after a set time.</p><span class="tag">Open Note &rarr;</span></a>
+    <a class="card" href="/share/"><h2>Send a file</h2><p>Transfer a file directly between two devices, end-to-end encrypted. The file goes straight to the other person and never touches a server.</p><span class="tag">Open File &rarr;</span></a>
+  </div>
+</main>
+<script>
+(function () {
+  var root = document.documentElement;
+  try { var t = localStorage.getItem('inpriv_theme'); if (t) root.setAttribute('data-theme', t); else if (matchMedia('(prefers-color-scheme: light)').matches) root.setAttribute('data-theme', 'light'); } catch (e) {}
+  document.getElementById('theme').addEventListener('click', function () {
+    var n = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', n); try { localStorage.setItem('inpriv_theme', n); } catch (e) {}
+  });
+})();
+</script>
+</body>
+</html>

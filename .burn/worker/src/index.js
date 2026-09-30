@@ -188,10 +188,14 @@ export default {
       }
     }
 
-    if (env.ASSETS) {
-      const res = await env.ASSETS.fetch(request);
-      if (res.status === 404) return notFound(request, "Inpriv Burn");
-      return res;
+    // The frontend moved to send.inpriv.xyz/burn/. The redirect carries no
+    // fragment, so browsers keep the original one: old note links
+    // (burn.inpriv.xyz/#id.key) still open the note. /api/* stays on this worker.
+    if (method === "GET" || method === "HEAD") {
+      return new Response(null, {
+        status: 301,
+        headers: { Location: "https://send.inpriv.xyz/burn/", "Cache-Control": "public, max-age=3600" },
+      });
     }
 
     return json({ error: "not found" }, 404);
