@@ -1,16 +1,18 @@
-// Inpriv Stego — static asset worker + maintenance gate.
-// The tool is 100% client-side; this worker only serves files and never
-// touches user data (there is no API by design). The admin kill-switch can
-// still take the whole page down.
-import { maintenanceGate, maintenancePage } from "../../../common/gate.js";
-import { notFound } from "../../../common/errors.js";
+// stego.inpriv.xyz moved into Inpriv Image. Permanent redirect keeps bookmarks working.
+const TARGET = "https://image.inpriv.xyz/";
+const MODE = "stego";
 
 export default {
-  async fetch(request, env, ctx) {
-    const gate = await maintenanceGate("stego");
-    if (gate.locked) return maintenancePage("Inpriv Stego", gate.message);
-    const res = await env.ASSETS.fetch(request);
-    if (res.status === 404) return notFound(request, "Inpriv Stego");
-    return res;
+  async fetch(request) {
+    const url = new URL(request.url);
+    if (url.pathname === "/api/health") {
+      return new Response(JSON.stringify({ ok: true, redirect: TARGET + "#" + MODE }), {
+        headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" },
+      });
+    }
+    return new Response(null, {
+      status: 301,
+      headers: { Location: TARGET + "#" + MODE, "Cache-Control": "public, max-age=3600" },
+    });
   },
 };
