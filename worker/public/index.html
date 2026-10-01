@@ -502,6 +502,7 @@
     .featured-wrap {
       margin-bottom: 16px;
       display: grid;
+      grid-template-columns: 1fr;
       gap: 16px;
       opacity: 0; animation: fadeUp 0.7s var(--md-easing-spring) 0.2s both;
     }
@@ -557,6 +558,7 @@
 
     .featured-main-info {
       display: flex; align-items: flex-start; gap: 14px;
+      flex: 1 1 auto; min-width: 0;
     }
 
     .featured-icon-box {
@@ -619,6 +621,7 @@
     .featured-cta-row {
       display: flex; align-items: center; justify-content: flex-end;
       padding-top: 4px;
+      flex: 0 0 auto;
     }
 
     .featured-btn {
@@ -629,7 +632,8 @@
       color: var(--md-on-primary);
       font-size: 14px; font-weight: 800; letter-spacing: 0.01em;
       border: 1px solid color-mix(in srgb, var(--md-primary) 62%, black);
-      
+      white-space: nowrap;
+      flex-shrink: 0;
       transition: transform 0.25s var(--md-easing-spring), box-shadow 0.25s var(--md-easing-standard), filter 0.25s var(--md-easing-standard);
     }
 
@@ -960,8 +964,8 @@
       .description { font-size: 13.5px; }
 
       .featured-card { padding: 20px 22px; }
-      .featured-body { flex-direction: row; align-items: center; justify-content: space-between; }
-      .featured-main-info { align-items: center; }
+      .featured-body { flex-direction: row; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; }
+      .featured-main-info { align-items: center; flex: 1 1 320px; }
       .featured-icon-box { width: 52px; height: 52px; }
       .featured-icon-box .icon { font-size: 28px; }
       .featured-title { font-size: 20px; }
