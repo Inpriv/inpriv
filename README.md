@@ -4,186 +4,79 @@
 
 # Inpriv
 
-### Zero-knowledge. Client-side only.
-
-**A suite of privacy-first web utilities engineered for total digital privacy.**
-
-No trackers. No remote logs. No compromises — everything runs in your browser.
+### Private email. One address to keep, one to throw away.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Website](https://img.shields.io/badge/website-inpriv.xyz-466E47)](https://inpriv.xyz)
-[![Tools](https://img.shields.io/badge/tools-23%20live%20%2B%204%20in%20dev-9F86FF)](https://inpriv.xyz)
-[![Zero-Knowledge](https://img.shields.io/badge/zero--knowledge-%E2%9C%93-C7EFA0)]()
-[![By Inpriv Labs](https://img.shields.io/badge/by-Inpriv%20Labs-9C4231)]()
+[![Website](https://img.shields.io/badge/website-inpriv.xyz-0c0c0b)](https://inpriv.xyz)
 
-<img src="assets/icons/link.svg" width="14" height="14" alt=""> Quick links: [Website](https://inpriv.xyz) · [License](LICENSE) · [Security](SECURITY.md) · [Contributing](CONTRIBUTING.md)
+[Website](https://inpriv.xyz) · [License](LICENSE) · [Security](SECURITY.md) · [Contributing](CONTRIBUTING.md)
 
 </div>
 
 ---
 
-## <img src="assets/icons/compass.svg" width="18" height="18" align="center" alt=""> Overview
+## What it is
 
-Inpriv is an ecosystem of **zero-knowledge, fully client-side web utilities** — engineered so your sensitive data **never leaves your device**. No accounts, no servers, no telemetry, no log files. What happens in your browser, stays in your browser.
+Inpriv is two ways to receive email on an @inpriv.xyz address, plus the account behind them:
 
-> **Why "zero-knowledge"?** Because the system — by design — holds *zero* knowledge about you. There is nothing to leak, nothing to subpoena, nothing to sell.
+- **Mail** — [mail.inpriv.xyz](https://mail.inpriv.xyz) — a permanent mailbox. Mail between Inpriv users is encrypted in your browser (RSA-2048 + AES-256-GCM); mail to and from Gmail, Outlook and others goes through a relay and is stored encrypted.
+- **Temp** — [temp.inpriv.xyz](https://temp.inpriv.xyz) — a random disposable address with a live inbox. No sign-up. It deletes itself after 24 hours, or when you say so. Temp inboxes are not end-to-end encrypted.
+- **Inpriv ID** — [id.inpriv.xyz](https://id.inpriv.xyz) — your account: the @inpriv.xyz address, password, optional 2FA, sessions.
 
----
+[inpriv.xyz](https://inpriv.xyz) lets you choose between Mail and Temp. If you're signed in with Inpriv ID it takes you straight to Mail; `inpriv.xyz/?home` always shows the choice.
 
-## <img src="assets/icons/check-circle.svg" width="18" height="18" align="center" alt=""> Live Tools
-
-- **Hush** — [hush.best](https://hush.best) — E2E encrypted chat. Forward-secret rooms, QR sharing, zero metadata
-- **Wipe** — [wipe.inpriv.xyz](https://wipe.inpriv.xyz) — metadata (EXIF/GPS) sanitizer for images
-- **Compress** — [compress.inpriv.xyz](https://compress.inpriv.xyz) — image compression, no uploads
-- **Trace** — [trace.inpriv.xyz](https://trace.inpriv.xyz) — one scan: IP & ISP intel, DNS leak test, WebRTC leak check
-- **Pay** — [pay.inpriv.xyz](https://pay.inpriv.xyz) — crypto payment bridge
-- **Host** — [host.inpriv.xyz](https://host.inpriv.xyz) — private static file hosting (Google Drive) with IP-logger/WebRTC-leak scan before publish
-- **Hash** — [hash.inpriv.xyz](https://hash.inpriv.xyz) — SHA & MD5 checksums, in-browser
-- **QR** — [qr.inpriv.xyz](https://qr.inpriv.xyz) — generate & read QR codes, offline
-- **Keyring** — [keyring.inpriv.xyz](https://keyring.inpriv.xyz) — zero-knowledge secret vault
-- **Brute** — [brute.inpriv.xyz](https://brute.inpriv.xyz) — hash brute-force matcher
-- **TOTP** — [totp.inpriv.xyz](https://totp.inpriv.xyz) — RFC 6238 authenticator, encrypted vault
-- **Burn** — [burn.inpriv.xyz](https://burn.inpriv.xyz) — ephemeral encrypted notes, read-once
-- **Stego** — [stego.inpriv.xyz](https://stego.inpriv.xyz) — hide AES-256 encrypted messages inside PNG images
-- **Temp** — [temp.inpriv.xyz](https://temp.inpriv.xyz) — disposable email addresses, live inbox, one-click shred
-- **Censor** — [censor.inpriv.xyz](https://censor.inpriv.xyz) — blur/pixelate faces, cards, IPs & tokens on screenshots (on-device auto-detect)
-- **Share** — [share.inpriv.xyz](https://share.inpriv.xyz) — direct device-to-device file transfer over an encrypted P2P tunnel (no uploads, no size limits)
-- **Labs** — [labs.inpriv.xyz](https://labs.inpriv.xyz) — public experiment bench: live UI concepts and prototypes under evaluation
-- **Status** — [status.inpriv.xyz](https://status.inpriv.xyz) — live health, response time and 7-day uptime for every Inpriv tool
-- **Amber** — [amber.inpriv.xyz](https://amber.inpriv.xyz) — personal web archive: capture pages, browse snapshots by date, read offline (stored on your Google Drive)
-- **Check** — [check.inpriv.xyz](https://check.inpriv.xyz) — paste code, upload a file or scan a GitHub repo for malware, trojans, backdoors & obfuscation (heuristic engine + VirusTotal)
-- **ID** — [id.inpriv.xyz](https://id.inpriv.xyz) — Inpriv ID: one account for the whole suite (SSO, @inpriv.xyz address, optional 2FA)
-- **Mail** — [mail.inpriv.xyz](https://mail.inpriv.xyz) — zero-knowledge encrypted mail: E2EE inside the suite, external delivery to Gmail/Outlook/any
-- **Fake** — [fake.inpriv.xyz](https://fake.inpriv.xyz) — time-limited fake identities for Inpriv ID members (persona, password, real @inpriv.xyz mailbox)
-
-## <img src="assets/icons/clock.svg" width="18" height="18" align="center" alt=""> In Development
-
-- **Zero** (wallet) · **OSINT** · **Pass** (password generator) · **Base64** (encoder/decoder)
+No ads, no analytics, no trackers.
 
 ---
 
-## <img src="assets/icons/lock.svg" width="18" height="18" align="center" alt=""> Security
-
-- **Key exchange** — Curve25519 (X25519 ECDH)
-- **Encryption** — AES-256-GCM
-- **Key derivation** — HKDF-SHA-256 + PBKDF2 (100k iterations)
-- **Randomness** — Web Crypto API (`crypto.getRandomValues()`)
-- **Transport** — TLS 1.3 (Hush signaling: `wss://`)
-- **CSP** — `default-src 'self'`, `object-src 'none'`, `frame-src 'none'`
-
-**Guarantees:** ✓ client-side only · ✓ forward secrecy · ✓ zero metadata · ✓ open source
-
----
-
-## <img src="assets/icons/wrench.svg" width="18" height="18" align="center" alt=""> Tech Stack
-
-- **Frontend** — vanilla HTML/CSS/JS, Material Design 3 (Google baseline)
-- **Crypto** — Web Crypto API, Curve25519
-- **Hush signaling** — Python WebSocket server
-- **Swift editor** — Rust
-- **Edge** — Cloudflare (TLS, DDoS protection)
-
----
-
-## <img src="assets/icons/rocket.svg" width="18" height="18" align="center" alt=""> Getting Started
-
-```bash
-git clone https://github.com/Inpriv/inpriv.git
-cd inpriv
-
-# Serve locally (any static server works)
-python -m http.server 8080
-# → http://localhost:8080
-```
-
-Run your own Hush signaling relay:
-
-```bash
-cd .hush
-pip install -r requirements.txt
-python server.py
-```
-
----
-
-## <img src="assets/icons/folder.svg" width="18" height="18" align="center" alt=""> Project Structure
-
-<details>
-<summary>Click to expand — full monorepo layout</summary>
+## Layout
 
 ```
 inpriv/
-├── index.html          # Suite landing page (inpriv.xyz)
-├── LICENSE             # MIT
-├── common/             # Shared worker modules — maintenance gate + branded error pages
-├── .hush/              # E2E chat — web app + signaling server
-├── .censor/            # Screenshot redactor (blur/pixelate + face/OCR auto-detect)
-├── .wipe/              # Metadata sanitizer
-├── .compress/          # Image compression
-├── .trace/             # IP + DNS + WebRTC leak test (one scan)
-├── .host/              # private static hosting — Google Drive + privacy shield
-├── .pay/               # Crypto payment bridge
-├── .hash/              # Checksum generator
-├── .webrtc/            # redirects to trace.inpriv.xyz
-├── .qr/                # QR generator/reader
-├── .keyring/           # Encrypted secret vault
-├── .dns/               # redirects to trace.inpriv.xyz
-├── .ipinfo/            # redirects to trace.inpriv.xyz
-├── .brute/             # Hash brute-force matcher
-├── .stego/             # LSB steganography — hide encrypted messages in PNGs
-├── .temp/              # disposable email — random @inpriv.xyz inboxes, Resend inbound
-├── .id/                # Inpriv ID — central account & SSO (@inpriv.xyz addresses)
-├── .mail/              # Inpriv Mail — zero-knowledge encrypted mail
-├── .fake/              # Fake — time-limited fake identities for Inpriv ID
-├── .share/             # Share — P2P encrypted file transfer (WebRTC)
-├── .labs/              # Labs — public experiment bench
-├── .admin/             # admin dashboard — admin.inpriv.xyz (TOTP login, kill-switches)
-├── .status/            # Status — live service health & uptime page
-├── .amber/             # Amber — personal web archive (Wayback-style, Drive-backed)
-├── .zero/              # Crypto wallet (WIP)
-├── .osint/             # OSINT engine (WIP)
-├── .totp/              # TOTP generator (WIP)
-├── .hexa/              # In development
-├── ..swift/            # inpriv-swift — Rust text editor
-└── .cftcfg/            # Cloudflare Tunnel config manager
+├── index.html            landing page source (copied to worker/public/)
+├── worker/               Worker "inpriv": inpriv.xyz, sitemap, robots
+├── .mail/                Inpriv Mail: page (index.html) + Worker (worker/)
+├── .temp/                Inpriv Temp: page + Worker (D1, inbound webhook, hourly cleanup)
+├── .id/                  Inpriv ID: Worker + page (worker/public/)
+├── .admin/               admin.inpriv.xyz: maintenance switches
+├── common/
+│   ├── ui/               shared design core: inpriv-ui.css, inpriv-ui.js, sync.mjs
+│   ├── page.js           styles for Worker-rendered pages
+│   ├── errors.js         404/410/429/500 pages
+│   └── gate.js           maintenance gate
+└── .hush/                Hush (now its own service at hush.best)
 ```
 
-</details>
+## Design
+
+Every page uses one shared core in `common/ui/`: ink-and-paper colours with one warm accent, liquid glass over faint drifting text, system fonts, inline SVG icons and spring motion. Dark by default, light follows the system, and the theme button stores an explicit choice.
+
+The core is inlined into each page, so pages make no extra requests. After editing `common/ui/inpriv-ui.css` or `inpriv-ui.js`, or any page source, run:
+
+```bash
+node common/ui/sync.mjs
+```
+
+It refreshes the core in every page and copies each source page into the folder its Worker serves. `--check` exits non-zero when something is out of date.
+
+## Running locally
+
+Serve a page's `worker/public` folder with any static server, for example:
+
+```bash
+python -m http.server 8080 -d .temp/worker/public
+```
+
+The pages call their own `/api/…` routes, so a static server shows the interface only. To exercise the API, deploy a preview Worker (see CONTRIBUTING.md).
 
 ---
 
-## <img src="assets/icons/map.svg" width="18" height="18" align="center" alt=""> Roadmap
+## Contributing
 
-- [x] 21 core tools live on production
-- [ ] PWA + offline support
-- [ ] Zero wallet — security audit before release
-- [ ] OSINT — AI-powered intelligence engine
-- [ ] Security headers + SRI hardening
-- [ ] i18n (PL/EN)
-
----
-
-## <img src="assets/icons/users.svg" width="18" height="18" align="center" alt=""> Contributing
-
-See **[CONTRIBUTING.md](CONTRIBUTING.md)** for full guidelines.
-
-1. **No malicious features** — modules enabling unauthorized access will be rejected
-2. **Privacy by design** — nothing may ever phone home
-3. Open an issue first for big changes
-4. Follow the existing M3 design tokens (Google baseline, see .inpriv-labs/inpriv-labs.md)
+See **[CONTRIBUTING.md](CONTRIBUTING.md)**. Nothing may phone home: no analytics, no third-party requests.
 
 Found a security issue? See **[SECURITY.md](SECURITY.md)**.
 
----
-
-## <img src="assets/icons/file-text.svg" width="18" height="18" align="center" alt=""> License
+## License
 
 MIT © 2026 [Inpriv Labs](https://inpriv.xyz)
-
----
-
-<div align="center">
-
-<img src="assets/icons/heart.svg" width="14" height="14" alt=""> Built with love and paranoia — by **Inpriv Labs**, independent studio
-
-</div>

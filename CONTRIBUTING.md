@@ -17,17 +17,17 @@ These principles define what Inpriv IS. Violating them means the PR will be reje
 
 ## Design System
 
-All UI follows the **Inpriv Labs Design System** — Material Design 3, "Earthy Forest" aesthetic. See [`.inpriv-labs/inpriv-labs.md`](.inpriv-labs/inpriv-labs.md) for tokens, typography, motion, and component specs.
+Every page uses the shared core in [`common/ui/`](common/ui/): ink-and-paper colours with one warm accent, liquid glass over faint drifting text, system fonts, inline SVG icons and spring motion. Components use tokens only (`--bg`, `--text`, `--text-2`, `--text-3`, `--fill*`, `--well`, `--hairline`, `--accent`, `--danger`); dark is the default and light follows the system.
 
-**Key tokens:**
+| Token | Dark | Light |
+|-------|------|-------|
+| `--bg` | `#0c0c0b` | `#ebe9e4` |
+| `--text` | `#f2f1ed` | `#141412` |
+| `--accent` | `#ff6a2b` | `#e4511b` |
 
-| Token | Light | Dark |
-|-------|-------|------|
-| Primary | `#466E47` | `#ABD37A` |
-| Surface | `#FAF9F0` | `#13140E` |
-| On-Surface | `#1A1C17` | `#E3E2D3` |
+Use the accent for one thing per screen at most. Respect `prefers-reduced-motion`, keep focus visible, and keep inputs at 16px so iOS doesn't zoom.
 
-Font: Roboto Flex + Material Symbols Rounded. Motion: spring easing only.
+After changing the core or a page source, run `node common/ui/sync.mjs`.
 
 ---
 
@@ -98,25 +98,20 @@ Open a PR against `main`. Include:
 
 ---
 
-## Micro-Service Architecture
+## Layout
 
-Each tool lives in its own directory prefixed with `.`:
+Each app lives in its own directory prefixed with `.`, with its page and its Cloudflare Worker:
 
 ```
-.totp/
-├── index.html      # The tool (single-file for client-side tools)
-├── README.md       # What it does, how to run it
-├── .env.example    # Required env vars (if backend exists)
-└── requirements.txt # Python deps (if applicable)
+.temp/
+├── index.html          # page source
+└── worker/
+    ├── public/         # what the Worker serves (index.html is a synced copy)
+    ├── src/index.js    # Worker entry
+    └── wrangler.toml
 ```
 
-When adding a new tool:
-
-1. Create `.<toolname>/` directory
-2. Follow the design system
-3. Add it to the root `index.html` landing page
-4. Update the root `README.md`
-5. Add a `README.md` for the tool
+Preview a Worker without touching production: copy `wrangler.toml`, remove the `routes` block (and `[triggers]`), then `npx wrangler deploy -c <that file> --name inpriv-<app>-preview`.
 
 ---
 

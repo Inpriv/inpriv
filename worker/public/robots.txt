@@ -32,6 +32,5 @@ Content-Signal: ai-input: no
 User-agent: *
 Disallow: /api/
 Noindex: admin.inpriv.xyz
-Noindex: pages.inpriv.xyz
 
 Sitemap: https://inpriv.xyz/sitemap.xml
