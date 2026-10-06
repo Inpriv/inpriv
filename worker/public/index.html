@@ -322,7 +322,8 @@ button, .btn, .icon-btn, [role="tab"], [role="switch"] { user-select: none; -web
 
 /* ── toast ────────────────────────────────────────────────────────────── */
 .toaster {
-  position: fixed; left: 50%; bottom: max(24px, calc(var(--safe-bottom) + 16px)); z-index: 200;
+  position: fixed; left: 50%; z-index: 200;
+  bottom: calc(max(24px, var(--safe-bottom) + 16px) + var(--toast-offset, 0px));
   transform: translateX(-50%);
   width: max-content; max-width: min(100vw - 32px, 440px);
   display: flex; flex-direction: column; align-items: center; gap: 8px;
@@ -360,6 +361,12 @@ button, .btn, .icon-btn, [role="tab"], [role="switch"] { user-select: none; -web
     transition-duration: 0.01ms !important;
   }
   .spin-keep { animation-duration: 0.8s !important; animation-iteration-count: infinite !important; }
+}
+
+/* ── touch screens: comfortable targets ───────────────────────────────── */
+@media (pointer: coarse) {
+  .switcher a { height: 38px; }
+  .icon-btn { width: 44px; height: 44px; }
 }
 
 /* ── phones ───────────────────────────────────────────────────────────── */
@@ -402,7 +409,7 @@ button, .btn, .icon-btn, [role="tab"], [role="switch"] { user-select: none; -web
     color: var(--text); text-decoration: none;
     transition: transform 0.3s var(--spring);
   }
-  .choice:hover { transform: translateY(-2px); }
+  @media (hover: hover) { .choice:hover { transform: translateY(-2px); } }
   .choice:active { transform: scale(0.985); }
   .choice-head { display: flex; align-items: center; gap: 12px; }
   .tile {
@@ -414,6 +421,8 @@ button, .btn, .icon-btn, [role="tab"], [role="switch"] { user-select: none; -web
   .tile .i { width: 20px; height: 20px; }
   .choice h2 { margin: 0; font: 660 20px/1.2 var(--font-display); letter-spacing: -0.02em; }
   .choice-host { display: block; color: var(--text-3); font-size: 13px; font-weight: 500; margin-top: 2px; }
+  .choice-head > div { flex: 1; min-width: 0; }
+  .go { display: none; color: var(--text-3); }
   .choice p { margin: 0; color: var(--text-2); }
   .pills { display: flex; flex-wrap: wrap; gap: 6px; }
   .pill {
@@ -471,7 +480,7 @@ button, .btn, .icon-btn, [role="tab"], [role="switch"] { user-select: none; -web
   footer nav { display: flex; gap: 4px; }
   footer a {
     display: inline-flex; align-items: center; gap: 6px;
-    padding: 6px 10px; border-radius: 999px;
+    min-height: 40px; padding: 0 12px; border-radius: 999px;
     color: var(--text-2); text-decoration: none; font-weight: 550;
   }
   footer a:hover { background: var(--fill-2); color: var(--text); }
@@ -481,10 +490,20 @@ button, .btn, .icon-btn, [role="tab"], [role="switch"] { user-select: none; -web
     .choices { grid-template-columns: 1fr 1fr; }
     .choice { grid-template-rows: auto 1fr auto auto; }
   }
+  /* phones: both choices fit on the first screen; the whole card is the link */
+  @media (max-width: 560px) {
+    .hero { padding-top: 10px; }
+    .hero p { font-size: 15px; }
+    .choice { gap: 12px; padding: 16px 16px 16px 14px; border-radius: 28px; }
+    .choice p, .choice .btn { display: none; }
+    .go { display: block; }
+    .pills { gap: 6px; }
+    .pill { height: 28px; padding: 0 10px; font-size: 12.5px; }
+    .note { font-size: 13px; }
+  }
   @media (max-width: 440px) {
-    .choice { padding: 18px; border-radius: 28px; }
     .badge span { display: none; }
-    .badge { width: 34px; padding: 0; justify-content: center; }
+    .badge { width: 40px; height: 40px; padding: 0; justify-content: center; }
   }
 </style>
 </head>
@@ -945,6 +964,7 @@ button, .btn, .icon-btn, [role="tab"], [role="switch"] { user-select: none; -web
       <div class="choice-head">
         <span class="tile"><i data-icon="mail"></i></span>
         <div><h2>Mail</h2><span class="choice-host">mail.inpriv.xyz</span></div>
+        <i data-icon="chevron" class="go"></i>
       </div>
       <p>Your own permanent @inpriv.xyz address. Messages between Inpriv users are encrypted in your browser before they leave it.</p>
       <div class="pills">
@@ -958,6 +978,7 @@ button, .btn, .icon-btn, [role="tab"], [role="switch"] { user-select: none; -web
       <div class="choice-head">
         <span class="tile"><i data-icon="hourglass"></i></span>
         <div><h2>Temp</h2><span class="choice-host">temp.inpriv.xyz</span></div>
+        <i data-icon="chevron" class="go"></i>
       </div>
       <p>A random address that works straight away. No sign-up. Use it for codes and sign-ups you don't want tied to you.</p>
       <div class="pills">

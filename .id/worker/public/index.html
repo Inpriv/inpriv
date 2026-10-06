@@ -283,7 +283,8 @@ button, .btn, .icon-btn, [role="tab"], [role="switch"] { user-select: none; -web
 
 /* ── toast ────────────────────────────────────────────────────────────── */
 .toaster {
-  position: fixed; left: 50%; bottom: max(24px, calc(var(--safe-bottom) + 16px)); z-index: 200;
+  position: fixed; left: 50%; z-index: 200;
+  bottom: calc(max(24px, var(--safe-bottom) + 16px) + var(--toast-offset, 0px));
   transform: translateX(-50%);
   width: max-content; max-width: min(100vw - 32px, 440px);
   display: flex; flex-direction: column; align-items: center; gap: 8px;
@@ -321,6 +322,12 @@ button, .btn, .icon-btn, [role="tab"], [role="switch"] { user-select: none; -web
     transition-duration: 0.01ms !important;
   }
   .spin-keep { animation-duration: 0.8s !important; animation-iteration-count: infinite !important; }
+}
+
+/* ── touch screens: comfortable targets ───────────────────────────────── */
+@media (pointer: coarse) {
+  .switcher a { height: 38px; }
+  .icon-btn { width: 44px; height: 44px; }
 }
 
 /* ── phones ───────────────────────────────────────────────────────────── */
