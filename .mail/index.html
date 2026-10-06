@@ -320,16 +320,19 @@ button, .btn, .icon-btn, [role="tab"], [role="switch"] { user-select: none; -web
 
 /* ── theme change ─────────────────────────────────────────────────────── */
 /* The new theme spreads from the tapped button as a soft-edged circle of
-   ink; the old page eases back and blurs slightly underneath it. */
+   ink; the old page eases back and blurs slightly underneath it.
+   The centre is measured from the bottom edge: on Android the transition
+   snapshot also covers the area under the address bar, so it starts above
+   the visible page, while its bottom matches the viewport's bottom. */
 @property --vt-r { syntax: '<length>'; inherits: true; initial-value: 0px; }
 ::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
 html.vt-theme::view-transition-new(root) {
-  -webkit-mask: radial-gradient(circle at var(--vt-x) var(--vt-y), #000 calc(var(--vt-r) - 36px), rgb(0 0 0 / 0.5) calc(var(--vt-r) - 12px), transparent var(--vt-r));
-  mask: radial-gradient(circle at var(--vt-x) var(--vt-y), #000 calc(var(--vt-r) - 36px), rgb(0 0 0 / 0.5) calc(var(--vt-r) - 12px), transparent var(--vt-r));
+  -webkit-mask: radial-gradient(circle at var(--vt-x) calc(100% - var(--vt-yb)), #000 calc(var(--vt-r) - 36px), rgb(0 0 0 / 0.5) calc(var(--vt-r) - 12px), transparent var(--vt-r));
+  mask: radial-gradient(circle at var(--vt-x) calc(100% - var(--vt-yb)), #000 calc(var(--vt-r) - 36px), rgb(0 0 0 / 0.5) calc(var(--vt-r) - 12px), transparent var(--vt-r));
   animation: vt-spread 0.95s cubic-bezier(0.5, 0, 0.2, 1) both;
 }
 html.vt-theme::view-transition-old(root) {
-  transform-origin: var(--vt-x) var(--vt-y);
+  transform-origin: var(--vt-x) calc(100% - var(--vt-yb));
   animation: vt-settle 0.9s cubic-bezier(0.65, 0, 0.25, 1) both;
 }
 @keyframes vt-spread { from { --vt-r: 36px; } to { --vt-r: var(--vt-reach, 150vmax); } }
@@ -1042,9 +1045,10 @@ html, body { overscroll-behavior-y: contain; }
       var r = from.getBoundingClientRect();
       if (r.width) { x = r.left + r.width / 2; y = r.top + r.height / 2; }
     }
-    var reach = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y)) + 64;
+    // + room for the address bar area the Android snapshot also covers
+    var reach = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y)) + 160;
     root.style.setProperty('--vt-x', x + 'px');
-    root.style.setProperty('--vt-y', y + 'px');
+    root.style.setProperty('--vt-yb', (innerHeight - y) + 'px');
     root.style.setProperty('--vt-reach', reach + 'px');
     root.classList.add('vt-theme');
     var ripple = doc.createElement('div');
