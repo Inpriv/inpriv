@@ -1,17 +1,18 @@
 // ── Inpriv error pages (shared) ──────────────────────────────────────────────
-// Minimal, typographic error pages for every Inpriv service. Flat dark
-// background, oversized status number, one line of copy, one quiet action.
-// No icons, no cards, no gradients — nothing decorative.
+// Small standalone error pages for every Inpriv Worker, in the same look as
+// the apps (see common/page.js): a glass card over faint drifting letters,
+// the status number, one line of copy and one clear action.
 //
 // Usage in a worker:
 //   import { notFound, notFoundPage, forbiddenPage, gonePage,
 //            tooManyRequestsPage, serverErrorPage } from "../common/errors.js";
 //
 //   const res = await env.ASSETS.fetch(request);
-//   if (res.status === 404) return notFound(request, "Inpriv QR");
+//   if (res.status === 404) return notFound(request, "Inpriv Mail");
 //   return res;
 //
 // Every page is standalone (zero external requests), noindex, no-store.
+import { PAGE_CSS, LOGO_SVG, backdropHtml } from "./page.js";
 
 const ESC = (s) =>
   String(s).replace(/[&<>"']/g, (c) => ({
@@ -23,49 +24,29 @@ function errorPage({ status, title, heading, intro, extra, primary, noteHtml }) 
     ? `<p class="msg">${ESC(extra)}</p>`
     : "";
   const primaryHtml = primary
-    ? `<a class="btn" href="${ESC(primary.href)}"${primary.reload ? ' rel="nofollow"' : ""}>${ESC(primary.label)}</a>`
+    ? `<a class="btn btn-primary" href="${ESC(primary.href)}"${primary.reload ? ' rel="nofollow" onclick="location.reload();return false"' : ""}>${ESC(primary.label)}</a>`
     : "";
   return new Response(
     `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex">
+<meta name="color-scheme" content="dark light">
 <title>${ESC(title)}</title>
-<style>
-:root{color-scheme:dark}
-*{margin:0;padding:0;box-sizing:border-box}
-body{min-height:100svh;display:grid;place-items:center;background:#141218;color:#E6E1E3;
-     font:16px/1.6 'Roboto Flex',system-ui,-apple-system,sans-serif;padding:24px;
-     -webkit-font-smoothing:antialiased}
-main{max-width:420px;width:100%;animation:fade .4s cubic-bezier(.2,1.4,0,1) both}
-@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-@media (prefers-reduced-motion:reduce){main{animation:none}}
-.code{font-size:88px;font-weight:200;line-height:1;letter-spacing:-.04em;color:#47464F;
-      margin-bottom:20px;font-variant-numeric:tabular-nums}
-h1{font-size:1.15rem;font-weight:600;letter-spacing:-.01em;margin-bottom:8px;color:#E6E1E3}
-p{color:#948F99;font-size:.9rem;line-height:1.6}
-p a{color:#CBBEFF;text-decoration:none}
-p a:hover{text-decoration:underline}
-.msg{margin-top:16px;padding:10px 14px;border-left:2px solid #CBBEFF;background:#1F1D24;
-     border-radius:0 10px 10px 0;color:#CBC4D4;font-size:.85rem;word-break:break-word}
-.actions{margin-top:28px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
-.btn{display:inline-flex;align-items:center;padding:10px 22px;border-radius:9999px;
-     border:1px solid #47464F;color:#E6E1E3;text-decoration:none;font-size:.88rem;font-weight:600;
-     transition:border-color .2s,color .2s,transform .2s cubic-bezier(.2,1.4,0,1)}
-.btn:hover{border-color:#CBBEFF;color:#E6DEFF;transform:translateY(-1px)}
-.btn:active{transform:translateY(0)}
-.home{color:#948F99;font-size:.85rem;text-decoration:none;transition:color .2s}
-.home:hover{color:#E6DEFF}
-</style></head><body>
+<style>${PAGE_CSS}</style></head><body>
+${backdropHtml()}
 <main>
-  <div class="code">${status}</div>
-  <h1>${ESC(heading)}</h1>
-  <p>${intro}</p>
-  ${extraHtml}
-  <div class="actions">
-    ${primaryHtml}
-    <a class="home" href="https://inpriv.xyz">inpriv.xyz</a>
-  </div>
-  ${noteHtml || ""}
+  <a class="brand" href="https://inpriv.xyz/?home">${LOGO_SVG}<span>Inpriv</span></a>
+  <section class="card">
+    <div class="code">${status}</div>
+    <h1>${ESC(heading)}</h1>
+    <p>${intro}</p>
+    ${extraHtml}
+    <div class="actions">
+      ${primaryHtml}
+      <a class="btn btn-glass" href="https://inpriv.xyz/?home">inpriv.xyz</a>
+    </div>
+    ${noteHtml || ""}
+  </section>
 </main>
 </body></html>`,
     {
@@ -123,7 +104,7 @@ export function gonePage(serviceName, reason) {
     title: `Expired — ${serviceName}`,
     heading: "Gone",
     intro:
-      "Whatever lived here was set to expire — and it did. When time's up, it's gone for good.",
+      "What was here was set to expire, and it has. Once it's gone, it's gone for good.",
     extra: reason,
     primary: HOME,
   });
@@ -134,7 +115,7 @@ export function tooManyRequestsPage(serviceName, reason) {
     status: 429,
     title: `Too many requests — ${serviceName}`,
     heading: "Too many requests",
-    intro: "A short pause — give it a minute, then try again.",
+    intro: "Give it a minute, then try again.",
     extra: reason,
     primary: RETRY,
   });

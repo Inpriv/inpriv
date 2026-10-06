@@ -1,6 +1,6 @@
 // Inpriv landing — service worker
 // Strategy: network-first for navigation (fresh landing), cache-first for icons/assets.
-const VERSION = 'inpriv-v4';
+const VERSION = 'inpriv-v5';
 const PRECACHE = [
   '/',
   '/manifest.webmanifest',
