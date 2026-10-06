@@ -66,6 +66,12 @@
     chevron: '<path d="m9 6 6 6-6 6"/>',
     'chevron-down': '<path d="m6 9 6 6 6-6"/>',
     github: '<path fill="currentColor" stroke="none" d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02a9.58 9.58 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2Z"/>',
+    home: '<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9v10a2 2 0 0 0 2 2h3v-6h4v6h3a2 2 0 0 0 2-2V9"/>',
+    sliders: '<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>',
+    megaphone: '<path d="M3 11v2a1 1 0 0 0 1 1h3l6 4V6L7 10H4a1 1 0 0 0-1 1Z"/><path d="M17 9a4 4 0 0 1 0 6"/><path d="M8 14v4a2 2 0 0 0 4 0"/>',
+    grid: '<rect x="4" y="4" width="6" height="6" rx="1.5"/><rect x="14" y="4" width="6" height="6" rx="1.5"/><rect x="4" y="14" width="6" height="6" rx="1.5"/><rect x="14" y="14" width="6" height="6" rx="1.5"/>',
+    'arrow-up': '<path d="M12 19V5"/><path d="m6 11 6-6 6 6"/>',
+    activity: '<path d="M3 12h4l3-8 4 16 3-8h4"/>',
     leaf: '<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>'
   };
   // Material Symbols names still used by page scripts → sprite ids
@@ -80,7 +86,9 @@
     palette: 'rich', subject: 'plain', memory: 'cpu', check_circle: 'check', error: 'alert',
     schedule: 'clock', casino: 'dice', attach_file: 'clip', block: 'ban', light_mode: 'sun',
     dark_mode: 'moon', devices: 'monitor', bolt: 'zap', hub: 'link', badge: 'id',
-    visibility_lock: 'lock', person: 'user'
+    visibility_lock: 'lock', person: 'user',
+    shield_lock: 'shield', tune: 'sliders', campaign: 'megaphone', apps: 'grid', upgrade: 'arrow-up',
+    monitor_heart: 'activity', privacy_tip: 'shield', check: 'check', progress_activity: 'refresh'
   };
   function iconId(name) { name = ALIAS[name] || name; return P[name] ? name : 'info'; }
   function icon(name, cls) {

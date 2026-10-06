@@ -18,6 +18,7 @@ const PAGES = [
   [".mail/index.html", ".mail/worker/public/index.html"],
   [".temp/index.html", ".temp/worker/public/index.html"],
   [".id/worker/public/index.html", null],
+  [".admin/worker/public/index.html", null],
 ];
 
 const check = process.argv.includes("--check");
