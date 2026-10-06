@@ -619,6 +619,65 @@ html, body { overscroll-behavior-y: contain; }
 .view-actions-bar { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
 .view-actions-bar .btn { height: 46px; }
 
+/* ── reader: a near full-page sheet; the message scrolls under a pinned header ── */
+.modal-sheet.reader {
+  max-width: 860px; height: calc(100dvh - 48px); max-height: none;
+  padding: 0; overflow: hidden;
+}
+.reader .view-sheet {
+  flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  padding: 0 22px; gap: 12px; scrollbar-width: thin;
+}
+.reader .view-header {
+  position: sticky; top: 0; z-index: 2;
+  margin: 0 -22px; padding: 14px 16px 12px;
+  align-items: center;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  box-shadow: 0 1px 0 var(--hairline);
+}
+.reader .view-title {
+  font-size: 18px; padding: 0;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.view-from { display: flex; align-items: center; gap: 12px; padding-top: 6px; }
+.view-from .msg-avatar { width: 44px; height: 44px; }
+.view-from-text { flex: 1; min-width: 0; }
+.view-from-name { font-weight: 650; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.view-from-sub { color: var(--text-3); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.view-from-date { flex: none; align-self: flex-start; padding-top: 3px; color: var(--text-3); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.view-tools { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.view-tools .sec-badge {
+  margin: 0 0 0 auto; height: 32px; padding: 0 12px; align-items: center; border-radius: 999px;
+  font-size: 12.5px; white-space: nowrap; max-width: 100%; overflow: hidden;
+}
+.view-tools .sec-badge span { overflow: hidden; text-overflow: ellipsis; }
+.view-tools .sec-badge .i { width: 15px; height: 15px; }
+.reader .view-format-toggle { align-self: auto; }
+/* the email itself sits on paper, the way it was designed to be read */
+.reader .view-rich-wrap {
+  background: #fff; border-radius: 20px; overflow: hidden;
+  box-shadow: 0 0 0 1px var(--hairline), var(--shadow-sm);
+  animation: pop-in 0.35s var(--out) backwards;
+}
+.reader .view-rich-frame { min-height: 200px; background: #fff; }
+.reader .view-body-box { min-height: 200px; }
+.reader .view-actions-bar {
+  position: sticky; bottom: 0; z-index: 2;
+  margin: 0 -22px; padding: 12px 22px max(16px, var(--safe-bottom));
+  background: linear-gradient(to top, color-mix(in srgb, var(--bg) 92%, transparent) 65%, transparent);
+}
+@media (max-width: 600px) {
+  .modal-overlay:has(.reader) { padding: 8px 8px max(8px, var(--safe-bottom)); }
+  .modal-sheet.reader { height: calc(100dvh - 16px); padding: 0; border-radius: 26px; }
+  .reader .view-sheet { padding: 0 14px; }
+  .reader .view-header { margin: 0 -14px; padding: 10px 8px; }
+  .reader .view-title { font-size: 17px; padding-top: 0; }
+  .reader .view-actions-bar { margin: 0 -14px; padding: 10px 14px max(12px, var(--safe-bottom)); }
+  .reader .view-rich-wrap { border-radius: 16px; margin: 0 -4px; }
+  .view-tools .sec-badge { display: none; }
+}
+
 /* ── bottom nav (phones) + compose button (wider screens) ── */
 .bottom-nav {
   position: fixed; z-index: 45;
@@ -2270,39 +2329,34 @@ async function openMessageView(id) {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay open';
   overlay.innerHTML = `
-    <div class="modal-sheet" role="dialog" aria-modal="true">
+    <div class="modal-sheet reader" role="dialog" aria-modal="true" aria-labelledby="viewSubject">
       <div class="view-sheet">
         <div class="view-header">
-          <button class="icon-btn" id="viewBackBtn" title="Back">${mkIcon('arrow_back')}</button>
+          <button class="icon-btn" id="viewBackBtn" title="Back" aria-label="Back">${mkIcon('arrow_back')}</button>
           <div class="view-title-wrap">
             <h2 class="view-title" id="viewSubject">Loading message…</h2>
           </div>
-          <button class="icon-btn" id="viewDeleteBtn" title="Delete Message">${mkIcon('delete')}</button>
+          <button class="icon-btn" id="viewDeleteBtn" title="Delete message" aria-label="Delete message">${mkIcon('delete')}</button>
         </div>
 
-        <div class="view-meta-box">
-          <div class="view-meta-row">
-            <span class="k">From</span>
-            <span class="v" id="viewFrom">—</span>
+        <div class="view-from">
+          <div class="msg-avatar" id="viewAvatar">·</div>
+          <div class="view-from-text">
+            <div class="view-from-name" id="viewFrom">—</div>
+            <div class="view-from-sub">to <span id="viewTo">—</span></div>
           </div>
-          <div class="view-meta-row">
-            <span class="k">To</span>
-            <span class="v" id="viewTo">—</span>
-          </div>
-          <div class="view-meta-row">
-            <span class="k">Date</span>
-            <span class="v" id="viewDate">—</span>
-          </div>
+          <div class="view-from-date" id="viewDate"></div>
         </div>
 
-        <div class="sec-badge" id="viewSecBadge">
-          ${mkIcon('verified_user')}
-          <span>Zero-Knowledge Encrypted (RSA-OAEP-2048 + AES-256-GCM)</span>
-        </div>
-
-        <div class="view-format-toggle hidden" id="viewFormatToggle">
-          <button type="button" class="fmt-btn active" id="viewFmtRich">${mkIcon('palette')} <span>Rich</span></button>
-          <button type="button" class="fmt-btn" id="viewFmtPlain">${mkIcon('subject')} <span>Plain</span></button>
+        <div class="view-tools">
+          <div class="view-format-toggle hidden" id="viewFormatToggle">
+            <button type="button" class="fmt-btn active" id="viewFmtRich">${mkIcon('palette')} <span>Rich</span></button>
+            <button type="button" class="fmt-btn" id="viewFmtPlain">${mkIcon('subject')} <span>Plain</span></button>
+          </div>
+          <div class="sec-badge" id="viewSecBadge" title="Zero-knowledge encrypted (RSA-OAEP-2048 + AES-256-GCM)">
+            ${mkIcon('verified_user')}
+            <span>End-to-end encrypted</span>
+          </div>
         </div>
 
         <div class="view-body-box decrypting" id="viewBody">
@@ -2360,15 +2414,20 @@ async function openMessageView(id) {
     $('#viewSubject').textContent = msg.subject || '(No Subject)';
     $('#viewFrom').textContent = msg.direction === 'inbound' ? (msg.peer_label || msg.peer_address) : state.user.email;
     $('#viewTo').textContent = msg.direction === 'inbound' ? state.user.email : (msg.peer_label || msg.peer_address);
-    $('#viewDate').textContent = new Date(msg.created_at).toLocaleString();
+    $('#viewDate').textContent = fmtTime(msg.created_at);
+    $('#viewDate').title = new Date(msg.created_at).toLocaleString();
+    $('#viewAvatar').textContent = initials(msg.peer_label || msg.peer_address);
+    $('#viewFrom').title = msg.direction === 'inbound' ? (msg.peer_address || '') : state.user.email;
 
     const isExternalPeer = msg.peer_address && !msg.peer_address.toLowerCase().endsWith('@' + DOMAIN);
     const secEl = $('#viewSecBadge');
     if (secEl) {
       if (isExternalPeer) {
-        secEl.innerHTML = `${mkIcon('public')} <span>External Email · Stored zero-knowledge encrypted in your mailbox</span>`;
+        secEl.innerHTML = `${mkIcon('public')} <span>External · stored encrypted</span>`;
+        secEl.title = 'External email, stored zero-knowledge encrypted in your mailbox';
       } else {
-        secEl.innerHTML = `${mkIcon('verified_user')} <span>Zero-Knowledge Encrypted (RSA-OAEP-2048 + AES-256-GCM)</span>`;
+        secEl.innerHTML = `${mkIcon('verified_user')} <span>End-to-end encrypted</span>`;
+        secEl.title = 'Zero-knowledge encrypted (RSA-OAEP-2048 + AES-256-GCM)';
       }
     }
 
@@ -2412,36 +2471,59 @@ async function openMessageView(id) {
     const richWrap = $('#viewRichWrap');
     const toggle = $('#viewFormatToggle');
     if (richHtml && !decryptFailed) {
-      const cs = getComputedStyle(document.body);
-      const doc = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
-        body{margin:0;padding:16px 18px;font-family:${cs.fontFamily};
-             font-size:15px;line-height:1.6;color:${cs.color};word-break:break-word;
-             background:transparent}
-        img{max-width:100%;height:auto;border-radius:10px}
-        a{color:${cs.color}}
-        table{max-width:100%}
+      // The mail is laid out on white "paper" like a mail client: HTML mail
+      // brings its own colours, so it is not recoloured for the dark theme.
+      const doc = `<!DOCTYPE html><html><head><meta charset="utf-8">
+        <meta name="color-scheme" content="light"><base target="_blank"><style>
+        html{background:#fff;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+        body{margin:0;padding:24px 26px;background:#fff;color:#1d1d1b;
+             font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+             overflow-wrap:break-word}
+        img{max-width:100%;height:auto}
+        a{color:#1f5fbf}
+        blockquote{margin:0 0 0 .4em;padding-left:.9em;border-left:3px solid #e2e0da;color:#55534d}
+        pre{white-space:pre-wrap}
+        hr{border:0;border-top:1px solid #e8e6e1}
+        @media (max-width:600px){body{padding:16px}}
       </style></head><body>${richHtml}</body></html>`;
       const frame = $('#viewRichFrame');
       frame.srcdoc = doc;
       richWrap.classList.remove('hidden');
       toggle.classList.remove('hidden');
-      // Fit the frame to its content. The first paint happens BEFORE the
-      // srcdoc document has loaded (scrollHeight == 0), so the real height
-      // must be applied on load — and re-applied when late assets (images)
-      // change the body height. Toggling Plain→Rich reuses the same fit.
+      // Fit the frame to the mail. Wide layouts (600px+ newsletters) are scaled
+      // down to the available width instead of being cut off; the frame then
+      // takes the scaled height so the whole sheet scrolls as one page.
+      // Re-run when images arrive and when the window changes size.
       const fitFrame = () => {
         try {
-          const h = frame.contentDocument?.body?.scrollHeight || 0;
-          if (h) frame.style.height = Math.max(240, h) + 'px';
+          const d = frame.contentDocument;
+          if (!d || !d.body || !frame.isConnected || frame.offsetParent === null) return;
+          const root = d.documentElement;
+          root.style.zoom = '';
+          const avail = frame.clientWidth;
+          const w = Math.max(root.scrollWidth, d.body.scrollWidth);
+          const h = Math.max(root.scrollHeight, d.body.scrollHeight);
+          const r = avail && w > avail + 1 ? avail / w : 1;
+          if (r < 1) root.style.zoom = String(r);
+          if (h) frame.style.height = Math.max(200, Math.ceil(h * r)) + 'px';
         } catch (e) { /* sandboxed doc not ready yet */ }
+      };
+      let fitQueued = false;
+      const queueFit = () => {
+        if (!frame.isConnected) { window.removeEventListener('resize', queueFit); return; }
+        if (fitQueued) return;
+        fitQueued = true;
+        requestAnimationFrame(() => { fitQueued = false; fitFrame(); });
       };
       frame.addEventListener('load', () => {
         fitFrame();
         try {
-          const body = frame.contentDocument?.body;
-          if (body && 'ResizeObserver' in window) new ResizeObserver(fitFrame).observe(body);
+          frame.contentDocument.querySelectorAll('img').forEach((img) => {
+            if (!img.complete) img.addEventListener('load', queueFit, { once: true });
+          });
         } catch (e) { /* older engines */ }
       });
+      window.addEventListener('resize', queueFit);
       const setFmt = (fmt) => {
         richWrap.classList.toggle('hidden', fmt !== 'rich');
         bodyEl.classList.toggle('hidden', fmt !== 'plain');
