@@ -7,7 +7,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' https://id.inpriv.xyz; font-src 'self'; img-src 'self' data: blob: https:; connect-src 'self' https://id.inpriv.xyz https://mail.inpriv.xyz http://localhost:* http://127.0.0.1:*; object-src 'none'; base-uri 'self'; form-action 'self';" />
 <meta name="color-scheme" content="dark light" />
 <meta name="theme-color" content="#0c0c0b" media="(prefers-color-scheme: dark)" />
@@ -286,7 +286,8 @@ button, .btn, .icon-btn, [role="tab"], [role="switch"] { user-select: none; -web
 
 /* ── toast ────────────────────────────────────────────────────────────── */
 .toaster {
-  position: fixed; left: 50%; bottom: max(24px, calc(var(--safe-bottom) + 16px)); z-index: 200;
+  position: fixed; left: 50%; z-index: 200;
+  bottom: calc(max(24px, var(--safe-bottom) + 16px) + var(--toast-offset, 0px));
   transform: translateX(-50%);
   width: max-content; max-width: min(100vw - 32px, 440px);
   display: flex; flex-direction: column; align-items: center; gap: 8px;
@@ -324,6 +325,12 @@ button, .btn, .icon-btn, [role="tab"], [role="switch"] { user-select: none; -web
     transition-duration: 0.01ms !important;
   }
   .spin-keep { animation-duration: 0.8s !important; animation-iteration-count: infinite !important; }
+}
+
+/* ── touch screens: comfortable targets ───────────────────────────────── */
+@media (pointer: coarse) {
+  .switcher a { height: 38px; }
+  .icon-btn { width: 44px; height: 44px; }
 }
 
 /* ── phones ───────────────────────────────────────────────────────────── */
@@ -494,6 +501,17 @@ html, body { overscroll-behavior-y: contain; }
 .auth-subtitle { margin: 0; color: var(--text-2); font-size: 14.5px; }
 .auth-subtitle strong { color: var(--text); font-weight: 600; }
 @media (max-width: 440px) { .auth-box { padding: 22px 18px 20px; border-radius: 28px; } }
+/* phones: the form starts at the top instead of floating mid-screen */
+@media (max-width: 600px) {
+  .auth-container { align-items: flex-start; min-height: 0; padding: 0 0 24px; }
+  .auth-title { font-size: 22px; }
+  .auth-segmented { margin-bottom: 14px; }
+  .field { margin-bottom: 12px; }
+  .auth-header { margin-bottom: 16px; }
+  .auth-header-icon { width: 40px; height: 40px; margin-bottom: 12px; }
+}
+/* phones: toasts sit above the floating bottom nav */
+@media (max-width: 767px) { :root { --toast-offset: 72px; } }
 
 .sso-card {
   display: flex; align-items: center; gap: 12px;
@@ -548,7 +566,7 @@ html, body { overscroll-behavior-y: contain; }
   animation: pop-in 0.35s var(--out) backwards;
   transition: background 0.2s, transform 0.3s var(--spring);
 }
-.msg-card:hover { background: var(--fill-2); }
+@media (hover: hover) { .msg-card:hover { background: var(--fill-2); } }
 .msg-card:active { transform: scale(0.985); }
 .msg-card.unread { background: var(--fill-2); box-shadow: inset 0 1px 0.5px var(--spec), inset 0 0 0 1px var(--hairline); }
 .msg-body-meta { flex: 1; min-width: 0; }
@@ -579,7 +597,7 @@ html, body { overscroll-behavior-y: contain; }
 
 /* ── message reader ── */
 .view-sheet { display: flex; flex-direction: column; gap: 14px; }
-.view-header { display: flex; align-items: center; gap: 8px; }
+.view-header { display: flex; align-items: flex-start; gap: 8px; }
 .view-title-wrap { flex: 1; min-width: 0; }
 .view-title { margin: 0; font: 660 20px/1.25 var(--font-display); letter-spacing: -0.02em; word-break: break-word; }
 .view-meta-box {
@@ -632,7 +650,7 @@ html, body { overscroll-behavior-y: contain; }
   transition: transform 0.3s var(--spring);
   animation: rise 0.6s var(--out) backwards;
 }
-.fab:hover { transform: translateY(-2px); }
+@media (hover: hover) { .fab:hover { transform: translateY(-2px); } }
 .fab:active { transform: scale(0.95); }
 @media (max-width: 767px) { .fab { display: none !important; } }
 
@@ -664,6 +682,11 @@ html, body { overscroll-behavior-y: contain; }
   .modal-sheet { padding: 26px; }
 }
 .modal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+@media (max-width: 600px) {
+  .view-title { font-size: 18px; padding-top: 9px; }
+  .view-actions-bar .btn { flex: 1; }
+  .modal-sheet { padding: 18px 14px 16px; border-radius: 28px; }
+}
 .modal-title { margin: 0; font: 660 20px/1.2 var(--font-display); letter-spacing: -0.02em; }
 .confirm-desc { margin: -6px 0 20px; color: var(--text-2); font-size: 14.5px; }
 .modal-actions, .compose-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
@@ -1581,7 +1604,7 @@ function renderAuth(initialMode = 'login') {
         <div class="auth-header">
           <div class="auth-header-icon">${mkIcon('mail_lock')}</div>
           <h1 class="auth-title">Your private mailbox.<br><span>Unlocked in your browser.</span></h1>
-          <p class="auth-subtitle">Sign in with your Inpriv ID. Mail between Inpriv users is encrypted on your device with RSA-2048 and AES-256-GCM.</p>
+          <p class="auth-subtitle">Sign in with your Inpriv ID. Mail between Inpriv users is end-to-end encrypted on your device.</p>
         </div>
 
         <div id="ssoBannerContainer"></div>
