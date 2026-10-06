@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mail.inpriv.xyz; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <script>
   try { var t = localStorage.getItem('inpriv_theme') || localStorage.getItem('inpriv-admin-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}
 </script>
@@ -512,40 +512,6 @@ input:focus, textarea:focus { box-shadow: inset 0 0 0 1.5px var(--focus), 0 0 0 
 .a-action { color: var(--text); font-weight: 550; min-width: 0; overflow-wrap: anywhere; }
 .a-action.danger { color: var(--danger); }
 .empty { margin: 0; padding: 16px; color: var(--text-3); font-size: 13.5px; text-align: center; }
-
-/* limit requests */
-.req-row { padding: 14px; margin-bottom: 8px; border-radius: 20px; background: var(--fill); box-shadow: inset 0 0 0 1px var(--hairline); }
-.req-row.pending { box-shadow: inset 0 0 0 1px var(--focus); }
-.req-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
-.req-id { font-weight: 650; font-size: 14.5px; }
-.req-user { color: var(--text-2); font-size: 14px; }
-.req-date { margin-left: auto; color: var(--text-3); font-size: 12.5px; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.req-meta { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; color: var(--text-2); font-size: 13.5px; }
-.req-meta b { color: var(--text); font-weight: 600; }
-.req-contact { word-break: break-all; }
-.req-reason {
-  max-height: 160px; overflow: auto; margin-bottom: 12px; padding: 10px 12px; border-radius: 14px;
-  background: var(--well); box-shadow: inset 0 0 0 1px var(--hairline);
-  font-size: 13.5px; white-space: pre-wrap; word-break: break-word;
-}
-.req-reason.sealed { color: var(--text-3); font-style: italic; background: transparent; box-shadow: inset 0 0 0 1px var(--dash); }
-.req-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.req-gb { width: 90px !important; height: 40px !important; text-align: center; border-radius: 999px !important; }
-.status-chip {
-  display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 999px;
-  font-size: 12px; font-weight: 650; letter-spacing: 0.02em;
-  background: var(--fill-2); color: var(--text-2);
-}
-.status-chip.pending { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
-.status-chip.denied { color: var(--danger); background: var(--danger-glow); }
-.unlock-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
-.unlock-row input { flex: 1 1 220px; }
-#unlock-state { color: var(--text-2); font-size: 13px; }
-.pending-count {
-  display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 7px; border-radius: 999px;
-  background: var(--accent); color: #fff; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;
-}
-.pending-count.zero { display: none; }
 
 /* busy: a thin sweep along the top while saving */
 #busy { position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 300; overflow: hidden; pointer-events: none; opacity: 0; transition: opacity 0.3s; }
@@ -1123,18 +1089,6 @@ input:focus, textarea:focus { box-shadow: inset 0 0 0 1.5px var(--focus), 0 0 0 
       <div id="services-list" class="svc-list"></div>
     </section>
 
-    <!-- host limit requests -->
-    <section class="card glass reveal d4" id="card-limits">
-      <h2><i data-icon="arrow-up"></i> Storage requests <span class="pending-count zero" id="pending-count">0</span></h2>
-      <p class="sub">Requests to raise a storage quota. <strong>Approve</strong> sets the quota in one click. Reasons are end-to-end encrypted; unlock them with your Inpriv Mail password (decrypted in this tab only).</p>
-      <div class="unlock-row" id="unlock-row" style="display:none">
-        <input type="password" id="mail-pass" placeholder="Inpriv Mail password" autocomplete="off">
-        <button class="btn btn-tonal btn-sm" id="mail-unlock-btn" type="button"><i data-icon="key"></i> Unlock reasons</button>
-        <span id="unlock-state"></span>
-      </div>
-      <div id="requests-list"></div>
-    </section>
-
     <!-- audit -->
     <section class="card glass reveal d5" id="card-audit">
       <h2><i data-icon="history"></i> Audit log</h2>
@@ -1219,8 +1173,6 @@ $("logout-btn").onclick = async () => {
 
 // single /api/state fetch carries everything (audit + meta included) — the
 // extra /api/me round-trip on every login/refresh was doubling cold-start
-let limitRequests = [];
-let adminPrivKey = null;   // operator RSA private key (unwrapped in this tab)
 let sessUser = "";
 
 async function refresh() {
@@ -1234,25 +1186,8 @@ async function refresh() {
     renderInfo(st);
     renderServices(st);
     renderAudit(st.audit || []);
-    // fetch the requests list only when the server-side pending count moved
-    // (or first load) — saves a D1 round-trip on every 30 s auto-refresh
-    const localPending = limitRequests.filter((r) => r.status === "pending").length;
-    if (localPending !== (st.pending_count ?? 0) || !limitRequests.length) await refreshRequests();
-    if (adminPrivKey) await decryptAllReasons();
   } catch { toast("Couldn't load the current state", true); }
   finally { busy(false); }
-}
-
-async function refreshRequests() {
-  try {
-    const res = await fetch(`${API}/api/limit-requests`);
-    if (res.status === 401) { backToLogin(); return; }
-    const d = await res.json();
-    limitRequests = d.requests || [];
-    renderRequests();
-    if (adminPrivKey) await decryptAllReasons();
-  } catch { /* card stays empty on error */
-  }
 }
 
 // show the login screen again WITHOUT reloading — a reload would wipe an
@@ -1265,146 +1200,6 @@ function backToLogin() {
   $("login-error").textContent = "Session expired. Sign in again.";
   $("l-code").value = "";
 }
-
-// ── storage limit requests ──
-
-function reqGb(mb) { return mb >= 1024 ? (mb / 1024) : mb; }
-function reqSizeLabel(mb) { return mb >= 1024 ? `${(mb / 1024)} GB` : `${mb} MB`; }
-
-function renderRequests() {
-  const list = $("requests-list");
-  const pending = limitRequests.filter((r) => r.status === "pending").length;
-  const pc = $("pending-count");
-  pc.textContent = pending;
-  pc.classList.toggle("zero", pending === 0);
-  $("unlock-row").style.display = limitRequests.some((r) => r.reason_enc) ? "flex" : "none";
-  if (!limitRequests.length) {
-    list.innerHTML = '<p class="empty">No requests yet.</p>';
-    return;
-  }
-  list.innerHTML = "";
-  for (const r of limitRequests) {
-    const row = document.createElement("div");
-    row.className = "req-row" + (r.status === "pending" ? " pending" : "");
-    const statusChip = `<span class="status-chip ${r.status}">${r.status === "approved" ? "approved" + (r.granted_mb ? " · " + reqSizeLabel(r.granted_mb) : "") : r.status}</span>`;
-    const date = new Date(r.created_at).toLocaleString();
-    const decided = r.decided_at ? new Date(r.decided_at).toLocaleDateString() : "";
-    row.innerHTML = `
-      <div class="req-head">
-        <span class="req-id">#${r.id}</span>
-        <span class="req-user">${r.username ? escapeHtml(r.username) : "unknown user"}</span>
-        ${statusChip}
-        <span class="req-date">${date}${decided ? " · decided " + decided : ""}</span>
-      </div>
-      <div class="req-meta">
-        <span>now <b>${reqSizeLabel(r.current_mb)}</b></span>
-        <span>asks <b>${reqSizeLabel(r.requested_mb)}</b></span>
-        ${r.contact ? `<span class="req-contact">reply-to <b>${escapeHtml(r.contact)}</b></span>` : ""}
-      </div>
-      <div class="req-reason sealed" id="reason-${r.id}">Reason encrypted. Unlock to read.</div>
-      ${r.status === "pending" ? `
-      <div class="req-actions">
-        <input class="req-gb" id="grant-${r.id}" type="number" min="1" max="50" step="1" value="${Math.max(1, Math.min(50, Math.round(reqGb(r.requested_mb))))}" title="Grant storage (GB)">
-        <span style="font-size:13px;color:var(--text-3)">GB</span>
-        <span class="grow"></span>
-        <button class="btn btn-filled btn-sm" data-decide="approve" data-id="${r.id}">${icon("check")} Approve</button>
-        <button class="btn btn-error btn-sm" data-decide="deny" data-id="${r.id}">${icon("close")} Deny</button>
-      </div>` : ""}
-    `;
-    list.appendChild(row);
-  }
-  list.querySelectorAll("[data-decide]").forEach((btn) =>
-    btn.addEventListener("click", () => decideRequest(btn.dataset.id, btn.dataset.decide, btn))
-  );
-}
-
-async function decideRequest(id, decision, btn) {
-  const grant = document.getElementById(`grant-${id}`);
-  const grantGb = grant ? parseInt(grant.value, 10) : 0;
-  if (decision === "approve" && (!grantGb || grantGb < 1 || grantGb > 50)) {
-    toast("Enter the granted storage in GB (1–50)", true);
-    return;
-  }
-  btn.disabled = true;
-  try {
-    await post("/api/limit-request", { id: Number(id), decision, grant_gb: grantGb || 0 });
-    toast(decision === "approve" ? `Approved. Quota raised to ${grantGb} GB` : "Request denied");
-    await refresh();
-  } catch (err) {
-    toast("Error: " + err.message, true);
-    btn.disabled = false;
-  }
-}
-
-// ── decrypt reasons (zero-knowledge: happens in this tab, key never sent) ──
-const PBKDF2_CAP = 100000;
-const b64dec = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
-
-async function deriveAesFromPassword(password, saltB64, iterations) {
-  const rounds = Math.max(1, Math.ceil(iterations / PBKDF2_CAP));
-  let material = new TextEncoder().encode(password);
-  let bits;
-  for (let r = 0; r < rounds; r++) {
-    const key = await crypto.subtle.importKey("raw", material, "PBKDF2", false, ["deriveBits"]);
-    bits = await crypto.subtle.deriveBits(
-      { name: "PBKDF2", salt: b64dec(saltB64), iterations: Math.min(iterations - r * PBKDF2_CAP, PBKDF2_CAP), hash: "SHA-256" },
-      key, 256
-    );
-    material = new Uint8Array(bits);
-  }
-  return crypto.subtle.importKey("raw", bits, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
-}
-
-async function unlockReasons() {
-  const pw = $("mail-pass").value;
-  const state = $("unlock-state");
-  if (!pw) { state.textContent = "Enter your Inpriv Mail password."; return; }
-  state.textContent = "Checking…";
-  try {
-    const res = await fetch("https://mail.inpriv.xyz/api/v1/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: sessUser, password: pw }),
-    });
-    const d = await res.json().catch(() => ({}));
-    if (!res.ok || !d.token) throw new Error("wrong password");
-    const u = d.user || {};
-    if (!u.encrypted_private_key) throw new Error("no key material");
-    // unwrap the RSA private key exactly like the Mail client does
-    const aesKey = await deriveAesFromPassword(pw, u.priv_salt, u.priv_iter || 300000);
-    const pkcs8 = await crypto.subtle.decrypt(
-      { name: "AES-GCM", iv: b64dec(u.priv_iv) }, aesKey, b64dec(u.encrypted_private_key)
-    );
-    adminPrivKey = await crypto.subtle.importKey("pkcs8", pkcs8, { name: "RSA-OAEP", hash: "SHA-256" }, false, ["decrypt"]);
-    $("mail-pass").value = "";
-    state.textContent = "";
-    $("mail-unlock-btn").innerHTML = `${icon("lock_open")} Reasons unlocked`;
-    await decryptAllReasons();
-  } catch (e) {
-    state.textContent = e.message === "wrong password" ? "Wrong Inpriv Mail password." : "Unlock failed.";
-  }
-}
-
-async function decryptAllReasons() {
-  for (const r of limitRequests) {
-    const el = document.getElementById(`reason-${r.id}`);
-    if (!el || !r.reason_enc) continue;
-    try {
-      const env = JSON.parse(r.reason_enc);
-      const rawAes = await crypto.subtle.decrypt({ name: "RSA-OAEP" }, adminPrivKey, b64dec(env.encrypted_aes_key));
-      const aesKey = await crypto.subtle.importKey("raw", rawAes, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
-      const ct = new Uint8Array([...b64dec(env.ciphertext), ...b64dec(env.auth_tag)]);
-      const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64dec(env.iv) }, aesKey, ct);
-      el.textContent = new TextDecoder().decode(pt).replace(/^Limit request\n.*?\n.*?\n\n/s, "");
-      el.classList.remove("sealed");
-    } catch {
-      el.textContent = "Could not decrypt (different key?).";
-    }
-  }
-}
-
-$("mail-unlock-btn").addEventListener("click", unlockReasons);
-$("mail-pass").addEventListener("keydown", (e) => { if (e.key === "Enter") unlockReasons(); });
 
 function renderGlobal(st) {
   const on = !!st.global.locked;

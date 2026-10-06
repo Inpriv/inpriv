@@ -22,12 +22,6 @@ not_found_handling = "single-page-application"
 DRIVE_PARENT = "1yLBrRjNDorTiBgGwQ12krHavKGLshFmV"
 DRIVE_FOLDER_NAME = ".admin"
 
-# Host review queue — storage limit requests from host.inpriv.xyz
-[[d1_databases]]
-binding = "HOST_DB"
-database_name = "inpriv-host"
-database_id = "f6286739-fdfb-4fae-9148-377496175489"
-
 # Resolve requesters to usernames (accounts live in Inpriv ID)
 [[d1_databases]]
 binding = "ID_DB"
