@@ -133,7 +133,43 @@
     syncTheme();
     window.dispatchEvent(new CustomEvent('inpriv:theme', { detail: effectiveTheme() }));
   }
-  function toggleTheme() { setTheme(effectiveTheme() === 'dark' ? 'light' : 'dark'); }
+  // Animated change: the new theme spreads out from whatever was tapped as a
+  // soft-edged circle of ink (View Transitions), while the old page settles
+  // back a touch. Without View Transitions the colours cross-fade; with
+  // reduced motion the switch is instant.
+  var fadeTimer = 0;
+  function changeTheme(t, from) {
+    if (t === effectiveTheme() && root.dataset.theme) return;
+    var spin = function () {
+      doc.querySelectorAll('[data-theme-toggle]').forEach(function (b) {
+        b.classList.remove('swap'); void b.offsetWidth; b.classList.add('swap');
+      });
+    };
+    if (reduced) { setTheme(t); return; }
+    if (!doc.startViewTransition) {
+      root.classList.add('theme-fade');
+      clearTimeout(fadeTimer);
+      fadeTimer = setTimeout(function () { root.classList.remove('theme-fade'); }, 700);
+      setTheme(t); spin();
+      return;
+    }
+    var x = innerWidth / 2, y = 0;
+    if (from && from.getBoundingClientRect) {
+      var r = from.getBoundingClientRect();
+      if (r.width) { x = r.left + r.width / 2; y = r.top + r.height / 2; }
+    }
+    var reach = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y)) + 64;
+    root.style.setProperty('--vt-x', x + 'px');
+    root.style.setProperty('--vt-y', y + 'px');
+    root.style.setProperty('--vt-reach', reach + 'px');
+    root.classList.add('vt-theme');
+    var done = function () { root.classList.remove('vt-theme'); };
+    try {
+      var tr = doc.startViewTransition(function () { setTheme(t); spin(); });
+      tr.finished.then(done, done);
+    } catch (e) { done(); setTheme(t); spin(); }
+  }
+  function toggleTheme(from) { changeTheme(effectiveTheme() === 'dark' ? 'light' : 'dark', from); }
   if (mqLight && mqLight.addEventListener) mqLight.addEventListener('change', syncTheme);
 
   // ── backdrop: two rows of huge, faint, drifting codes ─────────────────
@@ -401,7 +437,8 @@
 
   window.InprivUI = {
     icon: icon, logo: LOGO, toast: toast, liquid: liquid, enhance: enhance,
-    setTheme: setTheme, toggleTheme: toggleTheme, theme: effectiveTheme, syncTheme: syncTheme, hydrate: hydrateIcons
+    setTheme: function (t, from) { if (t === 'light' || t === 'dark') changeTheme(t, from); else setTheme(t); },
+    toggleTheme: toggleTheme, theme: effectiveTheme, syncTheme: syncTheme, hydrate: hydrateIcons
   };
 
   function boot() {
@@ -414,7 +451,8 @@
     liquid('.switcher');
     bindSwitcher();
     doc.addEventListener('click', function (e) {
-      if (e.target.closest && e.target.closest('[data-theme-toggle]')) toggleTheme();
+      var tb = e.target.closest && e.target.closest('[data-theme-toggle]');
+      if (tb) toggleTheme(tb);
     });
     // Escape closes the topmost dialog (pages close theirs on a scrim click)
     doc.addEventListener('keydown', function (e) {
