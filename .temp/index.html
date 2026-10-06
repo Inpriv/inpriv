@@ -239,6 +239,9 @@ button, .btn, .icon-btn, [role="tab"], [role="switch"] { user-select: none; -web
   white-space: nowrap; min-width: 0;
 }
 .brand span span { color: var(--text-3); }
+/* optical centring: the word is mostly lowercase, so its visual middle sits
+   below the line box's middle */
+.brand .logo { transform: translateY(0.11em); }
 .brand { flex: 0 1 auto; overflow: hidden; }
 .brand > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .top-actions { display: flex; align-items: center; gap: 8px; flex: none; }
@@ -322,15 +325,30 @@ button, .btn, .icon-btn, [role="tab"], [role="switch"] { user-select: none; -web
 @property --vt-r { syntax: '<length>'; inherits: true; initial-value: 0px; }
 ::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
 html.vt-theme::view-transition-new(root) {
-  -webkit-mask: radial-gradient(circle at var(--vt-x) var(--vt-y), #000 calc(var(--vt-r) - 56px), rgb(0 0 0 / 0.55) calc(var(--vt-r) - 20px), transparent var(--vt-r));
-  mask: radial-gradient(circle at var(--vt-x) var(--vt-y), #000 calc(var(--vt-r) - 56px), rgb(0 0 0 / 0.55) calc(var(--vt-r) - 20px), transparent var(--vt-r));
-  animation: vt-spread 0.9s cubic-bezier(0.65, 0, 0.25, 1) both;
+  -webkit-mask: radial-gradient(circle at var(--vt-x) var(--vt-y), #000 calc(var(--vt-r) - 36px), rgb(0 0 0 / 0.5) calc(var(--vt-r) - 12px), transparent var(--vt-r));
+  mask: radial-gradient(circle at var(--vt-x) var(--vt-y), #000 calc(var(--vt-r) - 36px), rgb(0 0 0 / 0.5) calc(var(--vt-r) - 12px), transparent var(--vt-r));
+  animation: vt-spread 0.95s cubic-bezier(0.5, 0, 0.2, 1) both;
 }
 html.vt-theme::view-transition-old(root) {
   transform-origin: var(--vt-x) var(--vt-y);
   animation: vt-settle 0.9s cubic-bezier(0.65, 0, 0.25, 1) both;
 }
-@keyframes vt-spread { from { --vt-r: 0px; } to { --vt-r: var(--vt-reach, 150vmax); } }
+@keyframes vt-spread { from { --vt-r: 36px; } to { --vt-r: var(--vt-reach, 150vmax); } }
+/* a ring that ripples out of the button the moment it's tapped; it has its
+   own transition layer so it draws above both the old and the new page */
+.theme-ripple {
+  position: fixed; z-index: 2147483000; pointer-events: none;
+  width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--text), 0 0 24px 4px var(--text);
+  opacity: 0; view-transition-name: theme-ripple;
+}
+::view-transition-group(theme-ripple) { animation: none; }
+::view-transition-old(theme-ripple) { display: none; }
+::view-transition-new(theme-ripple) { animation: theme-ripple 0.8s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes theme-ripple {
+  0% { opacity: 0.9; transform: scale(0.5); }
+  100% { opacity: 0; transform: scale(4.5); }
+}
 @keyframes vt-settle { to { transform: scale(0.97); filter: blur(2px) brightness(0.92); } }
 /* the sun and moon trade places with a spin */
 [data-theme-toggle].swap .i { animation: theme-icon 0.7s var(--spring) both; }
@@ -783,9 +801,14 @@ footer a { color: var(--text-2); text-underline-offset: 3px; }
     root.style.setProperty('--vt-y', y + 'px');
     root.style.setProperty('--vt-reach', reach + 'px');
     root.classList.add('vt-theme');
-    var done = function () { root.classList.remove('vt-theme'); };
+    var ripple = doc.createElement('div');
+    ripple.className = 'theme-ripple';
+    ripple.setAttribute('aria-hidden', 'true');
+    ripple.style.left = x + 'px';
+    ripple.style.top = y + 'px';
+    var done = function () { root.classList.remove('vt-theme'); ripple.remove(); };
     try {
-      var tr = doc.startViewTransition(function () { setTheme(t); spin(); });
+      var tr = doc.startViewTransition(function () { setTheme(t); spin(); doc.body.appendChild(ripple); });
       tr.finished.then(done, done);
     } catch (e) { done(); setTheme(t); spin(); }
   }
