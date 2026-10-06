@@ -1,7 +1,7 @@
 name = "inpriv-admin"
 main = "src/index.js"
 compatibility_date = "2024-11-01"
-workers_dev = true
+workers_dev = false
 
 # routes must stay above the first [table] entry
 routes = [
