@@ -273,6 +273,31 @@ button, .btn, .icon-btn, [role="tab"], [role="switch"] { user-select: none; -web
 .toast-desc { font-size: 12.5px; font-weight: 400; color: var(--text-2); margin-top: 1px; }
 .toast:has(.toast-desc) { border-radius: 22px; }
 
+/* ── theme change ─────────────────────────────────────────────────────── */
+/* The new theme spreads from the tapped button as a soft-edged circle of
+   ink; the old page eases back and blurs slightly underneath it. */
+@property --vt-r { syntax: '<length>'; inherits: true; initial-value: 0px; }
+::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+html.vt-theme::view-transition-new(root) {
+  -webkit-mask: radial-gradient(circle at var(--vt-x) var(--vt-y), #000 calc(var(--vt-r) - 56px), rgb(0 0 0 / 0.55) calc(var(--vt-r) - 20px), transparent var(--vt-r));
+  mask: radial-gradient(circle at var(--vt-x) var(--vt-y), #000 calc(var(--vt-r) - 56px), rgb(0 0 0 / 0.55) calc(var(--vt-r) - 20px), transparent var(--vt-r));
+  animation: vt-spread 0.9s cubic-bezier(0.65, 0, 0.25, 1) both;
+}
+html.vt-theme::view-transition-old(root) {
+  transform-origin: var(--vt-x) var(--vt-y);
+  animation: vt-settle 0.9s cubic-bezier(0.65, 0, 0.25, 1) both;
+}
+@keyframes vt-spread { from { --vt-r: 0px; } to { --vt-r: var(--vt-reach, 150vmax); } }
+@keyframes vt-settle { to { transform: scale(0.97); filter: blur(2px) brightness(0.92); } }
+/* the sun and moon trade places with a spin */
+[data-theme-toggle].swap .i { animation: theme-icon 0.7s var(--spring) both; }
+@keyframes theme-icon { from { opacity: 0; transform: rotate(-150deg) scale(0.3); filter: blur(3px); } }
+/* fallback without View Transitions: everything cross-fades its colours */
+html.theme-fade, html.theme-fade *, html.theme-fade *::before, html.theme-fade *::after {
+  transition: background-color 0.6s var(--out), color 0.6s var(--out), border-color 0.6s var(--out),
+              box-shadow 0.6s var(--out), fill 0.6s var(--out), stroke 0.6s var(--out) !important;
+}
+
 /* ── motion ───────────────────────────────────────────────────────────── */
 .reveal { animation: rise 0.6s var(--out) backwards; }
 .d1 { animation-delay: 40ms; } .d2 { animation-delay: 80ms; } .d3 { animation-delay: 120ms; } .d4 { animation-delay: 160ms; } .d5 { animation-delay: 200ms; }

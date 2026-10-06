@@ -64,8 +64,8 @@ function clearErr() {
 }
 
 // ── theme (the header button is wired by the shared UI core) ─────────────────
-function setTheme(th) {
-  window.InprivUI.setTheme(th);
+function setTheme(th, from) {
+  window.InprivUI.setTheme(th, from);
 }
 window.addEventListener("inpriv:theme", (e) => {
   syncSeg("thDark", "thLight", e.detail === "dark");
@@ -342,8 +342,8 @@ $("recoverySaveBtn").addEventListener("click", async () => {
 });
 
 // theme seg in panel
-$("thDark").addEventListener("click", () => setTheme("dark"));
-$("thLight").addEventListener("click", () => setTheme("light"));
+$("thDark").addEventListener("click", (e) => setTheme("dark", e.currentTarget));
+$("thLight").addEventListener("click", (e) => setTheme("light", e.currentTarget));
 $("avInitials").addEventListener("click", () => { vault.avatar = "initials"; renderProfile(); saveVault(); });
 $("avLeaf").addEventListener("click", () => { vault.avatar = "leaf"; renderProfile(); saveVault(); });
 
