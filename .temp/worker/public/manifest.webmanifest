@@ -5,11 +5,11 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#13140E",
-  "theme_color": "#13140E",
+  "background_color": "#0c0c0b",
+  "theme_color": "#0c0c0b",
   "icons": [
     {
-      "src": "https://hush.best/icon.png",
+      "src": "/icon.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"

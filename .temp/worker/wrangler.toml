@@ -24,11 +24,6 @@ binding = "ID_DB"
 database_name = "inpriv-id"
 database_id = "1cd1ca2e-51fd-40d9-94d8-aa75f989291b"
 
-# Fake identity backend (Inpriv Fake): /fake/api/* is forwarded to this worker
-[[services]]
-binding = "FAKE"
-service = "inpriv-fake"
-
 # Static frontend served from ./public (the single-file temp-mail tool)
 # run_worker_first: the worker MUST run on every request so the kill-switch
 # can replace the page with a maintenance screen

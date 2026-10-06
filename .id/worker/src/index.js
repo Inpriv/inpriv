@@ -17,9 +17,7 @@ const newToken = () => b64(crypto.getRandomValues(new Uint8Array(32)));
 // Services that redeem Quick Sign-In grants (data-service ids). Shown in the
 // Privacy tab under "Connected services" with their consent state.
 const SERVICE_META = {
-  mail: { name: "Inpriv Mail", icon: "mark_email_unread", url: "https://mail.inpriv.xyz" },
-  host: { name: "Inpriv Host", icon: "cloud_upload", url: "https://host.inpriv.xyz" },
-  fake: { name: "Inpriv Fake", icon: "theater_comedy", url: "https://fake.inpriv.xyz" },
+  mail: { name: "Inpriv Mail", icon: "mail", url: "https://mail.inpriv.xyz" },
 };
 
 async function publicUser(env, uid, full = false) {
@@ -771,7 +769,8 @@ export default {
         await env.DB.prepare(
           "INSERT INTO totp_secrets (user_id, secret_enc, confirmed, created_at) VALUES (?,?,0,?) ON CONFLICT(user_id) DO UPDATE SET secret_enc = excluded.secret_enc, confirmed = 0"
         ).bind(me.uid, await sealString(env, secret), now()).run();
-        return out({ secret, otpauth, qr: `https://qr.inpriv.xyz/api/qr?data=${encodeURIComponent(otpauth)}&format=svg&ec=M` }, 200, cors);
+        // the page draws the QR code itself; the secret never goes to another service
+        return out({ secret, otpauth }, 200, cors);
       }
       if (path === "/api/2fa/confirm" && request.method === "POST") {
         const body = await request.json();

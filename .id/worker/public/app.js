@@ -48,14 +48,10 @@ async function api(path, body, method = "POST") {
 }
 
 function toast(msg, ok = true) {
-  const t = $("toast");
-  $("toastMsg").textContent = msg;
-  $("toastIcon").textContent = ok ? "check_circle" : "error";
-  t.classList.toggle("err", !ok);
-  t.classList.add("show");
-  clearTimeout(toast._t);
-  toast._t = setTimeout(() => t.classList.remove("show"), 3200);
+  window.InprivUI.toast(msg, { error: !ok });
 }
+
+const icon = (name) => window.InprivUI.icon(name);
 
 function err(msg) {
   const e = $("formErr");
@@ -67,19 +63,15 @@ function clearErr() {
   $("formErr").classList.remove("show");
 }
 
-// ── theme ────────────────────────────────────────────────────────────────────
-const savedTheme = localStorage.getItem("inpriv-theme");
-if (savedTheme) document.documentElement.dataset.theme = savedTheme;
+// ── theme (the header button is wired by the shared UI core) ─────────────────
 function setTheme(th) {
-  document.documentElement.dataset.theme = th;
-  localStorage.setItem("inpriv-theme", th);
-  $("themeBtn").firstElementChild.textContent = th === "dark" ? "dark_mode" : "light_mode";
-  syncSeg("thDark", "thLight", th === "dark");
+  window.InprivUI.setTheme(th);
 }
-$("themeBtn").addEventListener("click", () => {
-  setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
+window.addEventListener("inpriv:theme", (e) => {
+  syncSeg("thDark", "thLight", e.detail === "dark");
   saveVault();
 });
+window.InprivUI.liquid("#seg, #tabs, .seg.small");
 
 function syncSeg(a, b, aOn) {
   $(a).classList.toggle("on", aOn);
@@ -106,7 +98,7 @@ function switchAuth(mode) {
   $("mfaForm").hidden = true;
   $("mfaRecoveryForm").hidden = true;
   $("authTitle").textContent = mode === "login" ? "Welcome back" : "Create your account";
-  $("authSub").textContent = mode === "login" ? "One private account for every Inpriv tool." : "Get your personal @inpriv.xyz email address. Send and receive private mail.";
+  $("authSub").textContent = mode === "login" ? "Sign in to manage your Inpriv account." : "Get your own @inpriv.xyz address. It's your sign-in for Inpriv Mail.";
 }
 
 // tabs
@@ -188,7 +180,7 @@ $("regForm").addEventListener("submit", async (e) => {
       password: $("regPass").value,
     });
     user = out.user;
-    toast("Account created — welcome to Inpriv!");
+    toast("Account created. Welcome to Inpriv.");
     await enterPanel();
   } catch (ex) {
     err(ex.message);
@@ -302,7 +294,7 @@ function renderProfile() {
   setSwitch("swPrompt", vault.privacy.prompt);
   setSwitch("swVault", vault.privacy.vault);
   setSwitch("swLog", vault.privacy.log);
-  syncSeg("thDark", "thLight", (vault.theme || document.documentElement.dataset.theme) === "dark");
+  syncSeg("thDark", "thLight", window.InprivUI.theme() === "dark");
   syncSeg("avInitials", "avLeaf", vault.avatar === "initials");
 }
 
@@ -320,7 +312,7 @@ async function loadVault() {
 async function saveVault() {
   if (!vault.privacy.vault) return;
   try {
-    vault.theme = document.documentElement.dataset.theme;
+    vault.theme = window.InprivUI.theme();
     await api("/api/vault/set", { vault });
   } catch {}
 }
@@ -350,8 +342,8 @@ $("recoverySaveBtn").addEventListener("click", async () => {
 });
 
 // theme seg in panel
-$("thDark").addEventListener("click", () => { setTheme("dark"); saveVault(); });
-$("thLight").addEventListener("click", () => { setTheme("light"); saveVault(); });
+$("thDark").addEventListener("click", () => setTheme("dark"));
+$("thLight").addEventListener("click", () => setTheme("light"));
 $("avInitials").addEventListener("click", () => { vault.avatar = "initials"; renderProfile(); saveVault(); });
 $("avLeaf").addEventListener("click", () => { vault.avatar = "leaf"; renderProfile(); saveVault(); });
 
@@ -389,7 +381,7 @@ $("verifyConfirmBtn").addEventListener("click", async () => {
     const out = await api("/api/verify/confirm", { code: $("verifyCode").value.trim() });
     user = out.user;
     renderProfile();
-    toast("Recovery email verified ✓");
+    toast("Recovery email verified");
   } catch (ex) {
     toast(ex.message, false);
   }
@@ -414,7 +406,8 @@ $("twoFASetupBtn").addEventListener("click", async () => {
     $("twoFAOffUI").hidden = true;
     $("twoFASetupUI").hidden = false;
     $("totpSecret").textContent = out.secret;
-    $("qrBox").innerHTML = `<img src="${out.qr}" alt="TOTP QR code" width="180" height="180" loading="lazy">`;
+    // drawn here, so the secret never leaves the page
+    $("qrBox").innerHTML = window.InprivQR.svg(out.otpauth);
     $("totpConfirm").focus();
   } catch (ex) {
     toast(ex.message, false);
@@ -489,7 +482,7 @@ async function loadSessions() {
       const row = document.createElement("div");
       row.className = "sess";
       row.innerHTML = `
-        <span class="ms">devices</span>
+        ${icon("devices")}
         <div class="sess-body">
           <div class="sess-label">${esc(s.label || "Session")} ${s.current ? '<span class="sess-current">· this device</span>' : ""}</div>
           <div class="sess-meta">${esc(s.ip_prefix || "")} · last active ${timeAgo(s.last_used)}</div>
@@ -535,7 +528,7 @@ async function loadEvents() {
       const row = document.createElement("div");
       row.className = "sess";
       row.innerHTML = `
-        <span class="ms">${eventIcon(ev.kind)}</span>
+        ${icon(eventIcon(ev.kind))}
         <div class="sess-body">
           <div class="sess-label">${eventLabel(ev.kind)}</div>
           <div class="sess-meta">${esc(ev.ip_prefix || "")} · ${timeAgo(ev.at)}</div>
@@ -596,12 +589,12 @@ async function loadServices() {
     services = null;
   }
   if (!services) {
-    box.innerHTML = '<p class="empty">Could not load services</p>';
+    box.innerHTML = '<p class="empty">Could not load connected apps</p>';
     return;
   }
   box.innerHTML = "";
   if (!services.length) {
-    box.innerHTML = '<p class="empty">No services support Quick Sign-In yet</p>';
+    box.innerHTML = '<p class="empty">No connected apps yet</p>';
     return;
   }
   services
@@ -611,11 +604,11 @@ async function loadServices() {
       const row = document.createElement("div");
       row.className = "row";
       const badge = s.connected
-        ? `<span class="sess-meta" style="margin-left:2px">Quick Sign-In · last used ${timeAgo(s.last_used)}</span>`
+        ? `<span class="sess-meta">Connected · last used ${timeAgo(s.last_used)}</span>`
         : "";
       row.innerHTML = `
-        <div style="display:flex;align-items:center;gap:10px">
-          <span class="ms" style="color:var(--md-primary)">${s.icon}</span>
+        <div style="display:flex;align-items:center;gap:12px;min-width:0">
+          ${icon(s.icon)}
           <div>
             <div class="row-label">${esc(s.name)}</div>
             ${badge}

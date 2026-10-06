@@ -1,5 +1,5 @@
 // Inpriv Temp — service worker (app shell only; /api is never cached)
-const CACHE = 'inpriv-temp-v4';
+const CACHE = 'inpriv-temp-v5';
 
 self.addEventListener('install', () => self.skipWaiting());
 

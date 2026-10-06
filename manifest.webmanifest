@@ -1,15 +1,15 @@
 {
-  "name": "Inpriv — Private Tools Suite",
+  "name": "Inpriv — Private email",
   "short_name": "Inpriv",
-  "description": "Zero-knowledge privacy utilities. Everything runs in your browser — data never leaves your device.",
+  "description": "A permanent end-to-end encrypted mailbox, or a disposable inbox that deletes itself after 24 hours.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#13140E",
-  "theme_color": "#13140E",
+  "background_color": "#0c0c0b",
+  "theme_color": "#0c0c0b",
   "lang": "en",
   "dir": "ltr",
-  "categories": ["privacy", "security", "utilities"],
+  "categories": ["privacy", "productivity", "utilities"],
   "icons": [
     {
       "src": "/assets/icons/pwa/icon-192.png",
