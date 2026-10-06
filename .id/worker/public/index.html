@@ -235,7 +235,16 @@ button, .btn, .icon-btn, [role="tab"], [role="switch"] { user-select: none; -web
   white-space: nowrap; min-width: 0;
 }
 .brand span span { color: var(--text-3); }
+.brand { flex: 0 1 auto; overflow: hidden; }
+.brand > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .top-actions { display: flex; align-items: center; gap: 8px; flex: none; }
+/* phones: on Mail and Temp the switcher already names the app, so the brand
+   drops its second word instead of running into the switcher */
+@media (max-width: 480px) {
+  .top:has(.switcher [aria-current="page"]) .brand span span { display: none; }
+  .top { gap: 8px; }
+  .top-actions { gap: 4px; }
+}
 
 /* corner app switcher: Mail ⇄ Temp, a liquid segmented pill */
 .switcher {
