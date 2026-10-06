@@ -111,7 +111,7 @@ Each app lives in its own directory prefixed with `.`, with its page and its Clo
     └── wrangler.toml
 ```
 
-Preview a Worker without touching production: copy `wrangler.toml`, remove the `routes` block (and `[triggers]`), then `npx wrangler deploy -c <that file> --name inpriv-<app>-preview`.
+Preview a Worker without touching production: copy `wrangler.toml`, remove the `routes` block (and `[triggers]`), set `workers_dev = true` in the copy, then `npx wrangler deploy -c <that file> --name inpriv-<app>-preview`. Production Workers answer only on their inpriv.xyz domains. Delete the preview when you're done, and don't paste its workers.dev address anywhere public.
 
 ---
 

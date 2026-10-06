@@ -1,7 +1,7 @@
 name = "inpriv"
 main = "src/index.js"
 compatibility_date = "2024-11-01"
-workers_dev = true
+workers_dev = false
 
 # Custom domain — the Inpriv suite landing page
 routes = [

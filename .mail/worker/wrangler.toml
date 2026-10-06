@@ -1,7 +1,7 @@
 name = "inpriv-mail"
 main = "src/index.js"
 compatibility_date = "2025-08-01"
-workers_dev = true
+workers_dev = false
 
 # Custom domain — permanent mailboxes on mail.inpriv.xyz
 # (routes MUST stay above the first [table])
