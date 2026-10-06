@@ -158,9 +158,10 @@
       var r = from.getBoundingClientRect();
       if (r.width) { x = r.left + r.width / 2; y = r.top + r.height / 2; }
     }
-    var reach = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y)) + 64;
+    // + room for the address bar area the Android snapshot also covers
+    var reach = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y)) + 160;
     root.style.setProperty('--vt-x', x + 'px');
-    root.style.setProperty('--vt-y', y + 'px');
+    root.style.setProperty('--vt-yb', (innerHeight - y) + 'px');
     root.style.setProperty('--vt-reach', reach + 'px');
     root.classList.add('vt-theme');
     var ripple = doc.createElement('div');
