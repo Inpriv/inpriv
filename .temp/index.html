@@ -475,11 +475,11 @@ button, .btn, .icon-btn, [role="tab"], [role="switch"] { user-select: none; -web
 footer { padding: 6px 2px 0; color: var(--text-3); font-size: 12.5px; text-align: center; }
 footer a { color: var(--text-2); text-underline-offset: 3px; }
 
-/* ── message viewer ── */
+/* ── message viewer: a near full-page reader; the mail sits on paper ── */
 .modal-backdrop {
   position: fixed; inset: 0; z-index: 90;
-  display: none; align-items: flex-end; justify-content: center;
-  padding: 12px 12px max(12px, var(--safe-bottom));
+  display: none; align-items: center; justify-content: center;
+  padding: 24px;
   background: var(--scrim);
   -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
 }
@@ -487,19 +487,34 @@ footer a { color: var(--text-2); text-underline-offset: 3px; }
 @keyframes fade { from { opacity: 0; } }
 .modal {
   position: relative; isolation: isolate;
-  width: 100%; max-width: 680px; max-height: min(calc(100dvh - 24px), 760px);
-  display: flex; flex-direction: column;
-  padding: 20px; border-radius: 32px;
+  width: 100%; max-width: 860px; height: calc(100dvh - 48px);
+  display: flex; flex-direction: column; overflow: hidden;
+  border-radius: 32px;
   background: var(--glass-tint), color-mix(in srgb, var(--bg) 88%, transparent);
   box-shadow: inset 0 1px 0.5px var(--spec), var(--shadow-lg);
   animation: card-rise 0.45s var(--spring) backwards;
 }
-@media (min-width: 600px) { .modal-backdrop { align-items: center; padding: 24px; } .modal { padding: 24px; } }
-.modal-head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 14px; }
+.modal-head {
+  display: flex; align-items: center; gap: 8px; flex: none;
+  padding: 12px 12px 12px 8px;
+  box-shadow: 0 1px 0 var(--hairline);
+}
 .modal-title { flex: 1; min-width: 0; }
-.modal-title h3 { margin: 0; font: 660 20px/1.25 var(--font-display); letter-spacing: -0.02em; word-break: break-word; }
-.msg-detail { margin-top: 4px; color: var(--text-3); font-size: 13px; word-break: break-all; }
-.modal-body { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; }
+.modal-title h3 {
+  margin: 0; font: 660 18px/1.25 var(--font-display); letter-spacing: -0.02em; word-break: break-word;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.modal-body {
+  flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 14px 22px 18px; scrollbar-width: thin;
+}
+.from-row { display: flex; align-items: center; gap: 12px; }
+.from-row .msg-avatar { width: 44px; height: 44px; }
+.from-text { flex: 1; min-width: 0; }
+.from-name { font-weight: 650; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.from-addr { color: var(--text-3); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.from-time { flex: none; align-self: flex-start; padding-top: 3px; color: var(--text-3); font-size: 12.5px; font-variant-numeric: tabular-nums; }
 .tabs {
   display: inline-flex; align-self: flex-start; padding: 3px; border-radius: 999px;
   background: var(--well); box-shadow: inset 0 0 0 1px var(--hairline);
@@ -510,10 +525,16 @@ footer a { color: var(--text-2); text-underline-offset: 3px; }
   transition: color 0.2s;
 }
 .tab.active { color: var(--text); }
-.viewer-frame { flex: 1; width: 100%; min-height: 260px; border: 0; border-radius: 20px; background: #fff; }
+/* paper: HTML mail keeps its own colours, the way it was designed */
+.viewer-frame {
+  display: block; flex: none; width: 100%; min-height: 200px; border: 0;
+  border-radius: 20px; background: #fff;
+  box-shadow: 0 0 0 1px var(--hairline), var(--shadow-sm);
+  animation: pop-in 0.35s var(--out) backwards;
+}
 .viewer-text {
-  flex: 1; overflow: auto; min-height: 220px; margin: 0;
-  padding: 14px 16px; border-radius: 20px;
+  flex: none; overflow: auto; min-height: 200px; margin: 0;
+  padding: 16px 18px; border-radius: 20px;
   background: var(--well); box-shadow: inset 0 0 0 1px var(--hairline);
   font: 13px/1.65 var(--font-mono); white-space: pre-wrap; word-break: break-word;
 }
@@ -532,7 +553,14 @@ footer a { color: var(--text-2); text-underline-offset: 3px; }
 .att-chip .name { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 550; }
 .att-chip .size { color: var(--text-3); font-size: 12px; font-variant-numeric: tabular-nums; }
 .att-chip.dropped { opacity: 0.5; cursor: not-allowed; }
-.modal-foot { display: flex; justify-content: flex-end; }
+@media (max-width: 600px) {
+  .modal-backdrop { padding: 8px 8px max(8px, var(--safe-bottom)); }
+  .modal { height: calc(100dvh - 16px); border-radius: 26px; }
+  .modal-head { padding: 8px 6px; }
+  .modal-title h3 { font-size: 17px; }
+  .modal-body { padding: 12px 12px 14px; }
+  .viewer-frame { border-radius: 16px; }
+}
 
 .banner {
   display: flex; gap: 10px; align-items: flex-start;
@@ -1047,23 +1075,30 @@ footer a { color: var(--text-2); text-underline-offset: 3px; }
 <div class="modal-backdrop" id="viewerBackdrop">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="vSubject">
     <div class="modal-head">
+      <button class="icon-btn" id="vClose" type="button" aria-label="Back"><i data-icon="arrow-left"></i></button>
       <div class="modal-title">
         <h3 id="vSubject"></h3>
-        <div class="msg-detail" id="vDetail"></div>
       </div>
-      <button class="icon-btn" id="vClose" type="button" aria-label="Close"><i data-icon="close"></i></button>
+      <button class="icon-btn" id="vDelete" type="button" aria-label="Delete message" title="Delete message"><i data-icon="trash"></i></button>
     </div>
     <div class="modal-body">
+      <div class="from-row">
+        <div class="msg-avatar" id="vAvatar">·</div>
+        <div class="from-text">
+          <div class="from-name" id="vFromName"></div>
+          <div class="from-addr" id="vFromAddr"></div>
+        </div>
+        <div class="from-time" id="vTime"></div>
+      </div>
       <div class="tabs" id="vTabs" role="tablist">
         <button class="tab active" data-tab="rendered" type="button" role="tab">Rendered</button>
         <button class="tab" data-tab="text" type="button" role="tab">Plain text</button>
       </div>
-      <iframe class="viewer-frame" id="vFrame" sandbox="allow-popups allow-popups-to-escape-sandbox" title="Email content"></iframe>
+      <!-- allow-same-origin lets the page measure the mail to fit it; scripts
+           in the mail still never run (no allow-scripts) -->
+      <iframe class="viewer-frame" id="vFrame" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox" referrerpolicy="no-referrer" title="Email content"></iframe>
       <pre class="viewer-text" id="vText" hidden></pre>
       <div class="att-strip" id="vAtts" hidden></div>
-      <div class="modal-foot">
-        <button class="text-btn danger" id="vDelete" type="button"><i data-icon="trash"></i><span>Delete message</span></button>
-      </div>
     </div>
   </div>
 </div>
@@ -1283,17 +1318,27 @@ footer a { color: var(--text-2); text-underline-offset: 3px; }
     currentMsg = data;
 
     $('vSubject').textContent = data.subject || '(no subject)';
-    const from = data.from_name ? `${data.from_name} <${data.from_addr}>` : data.from_addr;
-    $('vDetail').textContent = `From ${from} · ${new Date(data.received_at).toLocaleString()}`;
+    $('vFromName').textContent = data.from_name || data.from_addr || 'Unknown sender';
+    $('vFromAddr').textContent = data.from_name ? data.from_addr : '';
+    $('vAvatar').textContent = (data.from_name || data.from_addr || '?').trim().charAt(0) || '?';
+    $('vTime').textContent = timeAgo(data.received_at);
+    $('vTime').title = new Date(data.received_at).toLocaleString();
 
     const hasHtml = !!data.html;
     document.querySelector('[data-tab="rendered"]').style.display = hasHtml ? '' : 'none';
     setTab(hasHtml ? 'rendered' : 'text');
 
     if (hasHtml) {
-      const doc = data.html.includes('<base')
-        ? data.html
-        : '<base target="_blank">' + data.html;
+      // white "paper" defaults for mails that don't set their own; links open
+      // in a new tab unless the mail sets a <base> of its own
+      const paper = '<meta name="color-scheme" content="light"><style>'
+        + 'html{background:#fff;-webkit-text-size-adjust:100%;text-size-adjust:100%}'
+        + 'body{margin:0;padding:24px 26px;background:#fff;color:#1d1d1b;'
+        + 'font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;overflow-wrap:break-word}'
+        + 'img{max-width:100%;height:auto}a{color:#1f5fbf}pre{white-space:pre-wrap}'
+        + '@media (max-width:600px){body{padding:16px}}</style>';
+      const doc = (data.html.includes('<base') ? '' : '<base target="_blank">') + paper + data.html;
+      $('vFrame').style.height = '';
       $('vFrame').srcdoc = doc;
     }
     $('vText').textContent = data.text || '';
@@ -1319,8 +1364,44 @@ footer a { color: var(--text-2); text-underline-offset: 3px; }
     lastFocus = document.activeElement;
     $('viewerBackdrop').classList.add('open');
     $('vClose').focus();
+    $('viewerBackdrop').querySelector('.modal-body').scrollTop = 0;
+    queueFit();
     refresh(); // mark read immediately in the list
   }
+
+  // Fit the frame to the mail: wide layouts (600px+ newsletters) are scaled
+  // down to the available width instead of being cut off, and the frame takes
+  // the scaled height so the reader scrolls as one page.
+  function fitFrame() {
+    const frame = $('vFrame');
+    try {
+      const d = frame.contentDocument;
+      if (!d || !d.body || frame.hidden || !$('viewerBackdrop').classList.contains('open')) return;
+      const root = d.documentElement;
+      root.style.zoom = '';
+      const avail = frame.clientWidth;
+      const w = Math.max(root.scrollWidth, d.body.scrollWidth);
+      const h = Math.max(root.scrollHeight, d.body.scrollHeight);
+      const r = avail && w > avail + 1 ? avail / w : 1;
+      if (r < 1) root.style.zoom = String(r);
+      if (h) frame.style.height = Math.max(200, Math.ceil(h * r)) + 'px';
+    } catch (e) { /* frame not ready yet */ }
+  }
+  let fitQueued = false;
+  function queueFit() {
+    if (fitQueued) return;
+    fitQueued = true;
+    requestAnimationFrame(() => { fitQueued = false; fitFrame(); });
+  }
+  $('vFrame').addEventListener('load', () => {
+    fitFrame();
+    try {
+      $('vFrame').contentDocument.querySelectorAll('img').forEach((img) => {
+        if (!img.complete) img.addEventListener('load', queueFit, { once: true });
+      });
+    } catch (e) { /* frame not ready */ }
+  });
+  window.addEventListener('resize', queueFit);
 
   function closeViewer() {
     $('viewerBackdrop').classList.remove('open');
@@ -1334,6 +1415,7 @@ footer a { color: var(--text-2); text-underline-offset: 3px; }
     });
     $('vFrame').hidden = name !== 'rendered';
     $('vText').hidden = name !== 'text';
+    if (name === 'rendered') queueFit();
   }
   document.querySelectorAll('#vTabs .tab').forEach((t) => t.addEventListener('click', () => setTab(t.dataset.tab)));
 
