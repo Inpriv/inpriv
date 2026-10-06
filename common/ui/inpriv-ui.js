@@ -163,9 +163,14 @@
     root.style.setProperty('--vt-y', y + 'px');
     root.style.setProperty('--vt-reach', reach + 'px');
     root.classList.add('vt-theme');
-    var done = function () { root.classList.remove('vt-theme'); };
+    var ripple = doc.createElement('div');
+    ripple.className = 'theme-ripple';
+    ripple.setAttribute('aria-hidden', 'true');
+    ripple.style.left = x + 'px';
+    ripple.style.top = y + 'px';
+    var done = function () { root.classList.remove('vt-theme'); ripple.remove(); };
     try {
-      var tr = doc.startViewTransition(function () { setTheme(t); spin(); });
+      var tr = doc.startViewTransition(function () { setTheme(t); spin(); doc.body.appendChild(ripple); });
       tr.finished.then(done, done);
     } catch (e) { done(); setTheme(t); spin(); }
   }
