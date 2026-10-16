@@ -756,13 +756,25 @@ export default {
         ).bind(username, `${username}@${DOMAIN}`).first();
 
         if (user) {
-          const ph = await passHash(password, user.auth_salt, user.priv_iter || PASS_ITERS);
-          if (constantTimeEq(ph, user.auth_hash)) {
+          // A mailbox that belongs to an Inpriv ID signs in with the ID's
+          // current password; Mail's own hash is only a copy from key setup
+          // and goes stale when the password is changed on id.inpriv.xyz.
+          const idUser = env.ID_DB ? await env.ID_DB.prepare(
+            "SELECT id, nick, pass_hash, pass_salt, pass_iters, totp_enabled FROM users WHERE username = ?"
+          ).bind(user.username).first() : null;
+          const mailMatch = constantTimeEq(
+            await passHash(password, user.auth_salt, user.priv_iter || PASS_ITERS), user.auth_hash);
+          let ok = mailMatch;
+          if (idUser) {
+            ok = constantTimeEq(
+              await passHash(password, idUser.pass_salt, idUser.pass_iters || PASS_ITERS), idUser.pass_hash);
+            if (!ok && mailMatch) {
+              return bad("your Inpriv ID password was changed — sign in with your new password", 401, cors);
+            }
+          }
+          if (ok) {
             // A mailbox that belongs to an Inpriv ID with 2FA needs the second
             // factor on every password sign-in, not just at first key init.
-            const idUser = env.ID_DB ? await env.ID_DB.prepare(
-              "SELECT id, nick, totp_enabled FROM users WHERE username = ?"
-            ).bind(user.username).first() : null;
             if (idUser && idUser.totp_enabled) {
               const code = String(body.code || "").trim();
               const recovery = String(body.recovery || "").toLowerCase().trim();
@@ -778,7 +790,8 @@ export default {
             ).bind(await sha256hex(token), user.id, now(), now() + SESSION_TTL_MS, ua(request)).run();
             await env.DB.prepare("UPDATE users SET last_login = ? WHERE id = ?").bind(now(), user.id).run();
             ctx.waitUntil(syncIdConsent(env, user.username, true));
-            return json({ token, user: publicUser(user, { inpriv_id_synced: true }) }, 200, cors);
+            // rekey: the mailbox key is still locked with the previous password
+            return json({ token, user: publicUser(user, { inpriv_id_synced: true }), rekey: !mailMatch }, 200, cors);
           }
           return bad("invalid credentials", 401, cors);
         }
@@ -878,7 +891,9 @@ export default {
           ).bind(await sha256hex(token), mailbox.id, now(), now() + SESSION_TTL_MS, ua(request)).run();
           await env.DB.prepare("UPDATE users SET last_login = ? WHERE id = ?").bind(now(), mailbox.id).run();
           ctx.waitUntil(syncIdConsent(env, idUser.username, true));
-          return json({ status: "ok", token, user: publicUser(mailbox, { inpriv_id_synced: true }), locked: true }, 200, cors);
+          const rekey = !!password && !constantTimeEq(
+            await passHash(password, mailbox.auth_salt, mailbox.priv_iter || PASS_ITERS), mailbox.auth_hash);
+          return json({ status: "ok", token, user: publicUser(mailbox, { inpriv_id_synced: true }), locked: true, rekey }, 200, cors);
         }
 
         // single-use, 10-minute ticket proves "password (+2FA) just passed"
@@ -1102,6 +1117,67 @@ export default {
 
       const me = await authUser(request, env);
       if (!me) return bad("unauthorized — session invalid or expired", 401, cors);
+
+      // ── Is this the account's current password, and is the key stale? ─────
+      // Used by the unlock screen when the password doesn't open the key:
+      // valid + stale means the ID password changed and the key needs a
+      // re-lock rather than a "wrong password" error.
+      if (path === "/api/v1/password-check" && request.method === "POST") {
+        if (!(await rateLimit(env.DB, `pwcheck:${me.id}`, 10, 15 * 60_000))) {
+          return bad("too many attempts — please wait 15 minutes", 429, cors);
+        }
+        const body = await request.json().catch(() => ({}));
+        const password = String(body.password || "");
+        const mailMatch = !!password && constantTimeEq(
+          await passHash(password, me.auth_salt, me.priv_iter || PASS_ITERS), me.auth_hash);
+        const idUser = env.ID_DB ? await env.ID_DB.prepare(
+          "SELECT pass_hash, pass_salt, pass_iters FROM users WHERE username = ?"
+        ).bind(me.username).first() : null;
+        const valid = idUser
+          ? !!password && constantTimeEq(await passHash(password, idUser.pass_salt, idUser.pass_iters || PASS_ITERS), idUser.pass_hash)
+          : mailMatch;
+        return json({ valid, stale: valid && !mailMatch }, 200, cors);
+      }
+
+      // ── Re-lock the mailbox key after a password change ──────────────────
+      // The browser unwrapped the private key with the previous password (or
+      // the Quick Unlock DEK) and re-wrapped it under the current one. Only
+      // the wrapped key and its KDF parameters change; the key pair, and so
+      // every stored message, stays the same. Old Quick Unlock wraps are
+      // dropped because they hold the previous DEK.
+      if (path === "/api/v1/rekey" && request.method === "POST") {
+        if (!(await rateLimit(env.DB, `rekey:${me.id}`, 10, 15 * 60_000))) {
+          return bad("too many attempts — please wait 15 minutes", 429, cors);
+        }
+        const body = await request.json().catch(() => ({}));
+        const password = String(body.password || "");
+        const epk = String(body.encrypted_private_key || "");
+        const privIv = String(body.priv_iv || "");
+        const privSalt = String(body.priv_salt || "");
+        const privIter = parseInt(body.priv_iter, 10) || PASS_ITERS;
+        if (!password || !epk || !privIv || !privSalt) return bad("missing key envelope or password", 400, cors);
+        if (epk.length > 8000) return bad("wrapped key too large", 413, cors);
+
+        const idUser = env.ID_DB ? await env.ID_DB.prepare(
+          "SELECT pass_hash, pass_salt, pass_iters FROM users WHERE username = ?"
+        ).bind(me.username).first() : null;
+        const ok = idUser
+          ? constantTimeEq(await passHash(password, idUser.pass_salt, idUser.pass_iters || PASS_ITERS), idUser.pass_hash)
+          : constantTimeEq(await passHash(password, me.auth_salt, me.priv_iter || PASS_ITERS), me.auth_hash);
+        if (!ok) return bad("invalid password", 401, cors);
+
+        const authSalt = b64(crypto.getRandomValues(new Uint8Array(16)));
+        const authHash = await passHash(password, authSalt, privIter);
+        await ensureDeviceKeys(env);
+        await env.DB.batch([
+          env.DB.prepare(
+            "UPDATE users SET encrypted_private_key = ?, priv_iv = ?, priv_salt = ?, priv_iter = ?, auth_hash = ?, auth_salt = ? WHERE id = ?"
+          ).bind(epk, privIv, privSalt, privIter, authHash, authSalt, me.id),
+          env.DB.prepare("DELETE FROM device_keys WHERE user_id = ?").bind(me.id),
+        ]);
+        const user = await env.DB.prepare("SELECT * FROM users WHERE id = ?").bind(me.id).first();
+        return json({ ok: true, user: publicUser(user, { inpriv_id_synced: true }) }, 200, cors);
+      }
 
       // ── Quick Unlock device keys (opt-in master-password bypass) ─────────
       // The browser stores a random device key locally; here we keep only the
