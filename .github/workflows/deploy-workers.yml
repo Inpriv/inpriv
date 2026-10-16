@@ -1,0 +1,90 @@
+# Deploys each Cloudflare Worker when its folder (or the shared common/ code)
+# changes on main. Run it by hand from the Actions tab to redeploy one or all.
+#
+# Needs two repository secrets:
+#   CLOUDFLARE_API_TOKEN   token from the "Edit Cloudflare Workers" template
+#   CLOUDFLARE_ACCOUNT_ID  the Cloudflare account the Workers live in
+#
+# Pages are deployed exactly as committed. After editing common/ui or a page
+# source, run `node common/ui/sync.mjs` and commit the copies it writes.
+name: Deploy Workers
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      worker:
+        description: Worker to deploy
+        type: choice
+        default: all
+        options: [all, inpriv, inpriv-admin, inpriv-id, inpriv-mail, inpriv-temp]
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      workers: ${{ steps.pick.outputs.workers }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        if: github.event_name == 'push'
+        with:
+          filters: |
+            inpriv:
+              - 'worker/**'
+              - 'common/*.js'
+            inpriv-admin:
+              - '.admin/worker/**'
+              - 'common/*.js'
+            inpriv-id:
+              - '.id/worker/**'
+              - 'common/*.js'
+            inpriv-mail:
+              - '.mail/worker/**'
+              - 'common/*.js'
+            inpriv-temp:
+              - '.temp/worker/**'
+              - 'common/*.js'
+      - id: pick
+        env:
+          CHANGED: ${{ steps.filter.outputs.changes }}
+          CHOSEN: ${{ inputs.worker }}
+        run: |
+          all='["inpriv","inpriv-admin","inpriv-id","inpriv-mail","inpriv-temp"]'
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            if [ "$CHOSEN" = "all" ]; then echo "workers=$all"; else echo "workers=[\"$CHOSEN\"]"; fi
+          else
+            echo "workers=${CHANGED:-[]}"
+          fi >> "$GITHUB_OUTPUT"
+
+  deploy:
+    needs: changes
+    if: needs.changes.outputs.workers != '[]' && needs.changes.outputs.workers != ''
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        worker: ${{ fromJSON(needs.changes.outputs.workers) }}
+    concurrency:
+      group: deploy-${{ matrix.worker }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - id: dir
+        run: |
+          case "${{ matrix.worker }}" in
+            inpriv)       echo "path=worker" ;;
+            inpriv-admin) echo "path=.admin/worker" ;;
+            inpriv-id)    echo "path=.id/worker" ;;
+            inpriv-mail)  echo "path=.mail/worker" ;;
+            inpriv-temp)  echo "path=.temp/worker" ;;
+          esac >> "$GITHUB_OUTPUT"
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4.83.0"
+          workingDirectory: ${{ steps.dir.outputs.path }}
+          command: deploy
