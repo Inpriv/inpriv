@@ -213,14 +213,22 @@ async function enterPanel() {
 // the wrapped device keys so nothing can decrypt without the master password.
 let quickUnlock = true;
 async function loadSettings() {
+  let devices = 0;
   try {
     const out = await api("/api/settings", null, "GET");
     quickUnlock = !!(out.settings && out.settings.quick_unlock);
+    devices = (out.settings && out.settings.devices) || 0;
   } catch {
     quickUnlock = true; // endpoint unavailable → keep the historical default
   }
   setSwitch("swQuickUnlock", quickUnlock);
+  const el = $("quDevices");
+  if (el) el.textContent = quickUnlock && devices ? `On ${devices} device${devices === 1 ? "" : "s"}.` : "";
 }
+// the same switch can be flipped in Mail: re-read it when this tab returns
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && $("swQuickUnlock") && $("swQuickUnlock").offsetParent) loadSettings();
+});
 function bindQuickUnlock() {
   const el = $("swQuickUnlock");
   if (!el) return;
@@ -233,10 +241,11 @@ function bindQuickUnlock() {
       if (!on) {
         // remove wrapped device keys on every service + the ID-side blob
         try { await api("/api/quick-unlock/clear", {}); } catch {}
-        toast("Quick Unlock off — master password required everywhere");
+        toast("Skip master password: off — needed on every device");
       } else {
-        toast("Quick Unlock on — sign in once per service to re-enable it");
+        toast("Skip master password: on — unlock Mail once on each device");
       }
+      loadSettings();
     } catch (ex) {
       setSwitch("swQuickUnlock", quickUnlock); // revert
       toast(ex.message, false);
