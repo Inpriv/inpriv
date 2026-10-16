@@ -1983,55 +1983,62 @@ async function handleLogin(username, password) {
     }
 
     if (res.status === 'totp_required') {
-      // 2FA on the Inpriv ID account — ask for the authenticator code now,
-      // then continue straight into key init with the proof ticket.
-      await promptTwoFactor(res.username, res.nick || res.username, password);
+      // 2FA on the Inpriv ID account — ask for the authenticator code now.
+      // An existing mailbox signs in with it; a new one continues into key
+      // init with the proof ticket.
+      await promptTwoFactor(res.username, res.nick || res.username, password, !!res.mailbox);
       return;
     }
 
-    state.token = res.token;
-    state.user = res.user;
-    localStorage.setItem('inpriv_token', res.token);
-
-    // Derive AES key & unwrap private RSA key. The unwrap is best-effort:
-    // some accounts (notably Fake identities created on fake.inpriv.xyz before
-    // a Mail-side compatibility fix lands) may have an envelope that fails to
-    // decrypt even when the password is correct — usually because the account
-    // was created by a different client whose envelope format we don't yet
-    // fully match. The API session is valid either way, so log the user in and
-    // let them read messages; they'll only see a warning when they try to
-    // send (no private key → can't sign/encrypt outbound mail).
-    let unwrapFailed = false;
-    try {
-      const aesKey = await deriveAesFromPassword(password, res.user.priv_salt, res.user.priv_iter);
-      state.dek = aesKey; // kept for Quick Unlock re-enrolment from settings
-      state.privKey = await unwrapPrivateKey(res.user.encrypted_private_key, res.user.priv_iv, aesKey);
-      state.pubKey = await crypto.subtle.importKey('spki', b64.dec(res.user.public_key), { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['encrypt']);
-      state.unlocked = true;
-    } catch (e) {
-      unwrapFailed = true;
-      console.warn('Key unwrap failed — inbox will be read-only:', e);
-    }
-
-    if (state.unlocked) {
-      // Quick Unlock enrolment: wrap the freshly derived DEK under this
-      // device's key so future visits skip the master password (the account
-      // setting is checked inside the helper).
-      try { await enrolQuickUnlock(state.dek); } catch (e) { /* best-effort; password login still works */ }
-      toast('Mailbox unlocked', `Signed in as ${res.user.email}`);
-    } else {
-      state.token = res.token;
-      toast('Signed in', `Read-only — couldn't unlock encryption keys. You can view messages but can't send.`);
-    }
-    renderDashboard();
-    if (unwrapFailed) {
-      // Persistent reminder at the top of the inbox so the user knows why
-      // some actions (reply, compose) may fail.
-      setTimeout(() => toast('Keys unavailable', 'Inbox is in read-only mode until the next sign-in', 'error'), 400);
-    }
+    finishPasswordLogin(res, password);
   } catch (e) {
     toast('Login failed', e.message, 'error');
     if (btn) { btn.disabled = false; btn.innerHTML = `<span>Unlock Mailbox</span> ${mkIcon('lock_open')}`; }
+  }
+}
+
+/* Session issued for a password sign-in: unwrap the mailbox key with the
+   password and open the inbox. */
+async function finishPasswordLogin(res, password) {
+  state.token = res.token;
+  state.user = res.user;
+  localStorage.setItem('inpriv_token', res.token);
+
+  // Derive AES key & unwrap private RSA key. The unwrap is best-effort:
+  // some accounts (notably Fake identities created on fake.inpriv.xyz before
+  // a Mail-side compatibility fix lands) may have an envelope that fails to
+  // decrypt even when the password is correct — usually because the account
+  // was created by a different client whose envelope format we don't yet
+  // fully match. The API session is valid either way, so log the user in and
+  // let them read messages; they'll only see a warning when they try to
+  // send (no private key → can't sign/encrypt outbound mail).
+  let unwrapFailed = false;
+  try {
+    const aesKey = await deriveAesFromPassword(password, res.user.priv_salt, res.user.priv_iter);
+    state.dek = aesKey; // kept for Quick Unlock re-enrolment from settings
+    state.privKey = await unwrapPrivateKey(res.user.encrypted_private_key, res.user.priv_iv, aesKey);
+    state.pubKey = await crypto.subtle.importKey('spki', b64.dec(res.user.public_key), { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['encrypt']);
+    state.unlocked = true;
+  } catch (e) {
+    unwrapFailed = true;
+    console.warn('Key unwrap failed — inbox will be read-only:', e);
+  }
+
+  if (state.unlocked) {
+    // Quick Unlock enrolment: wrap the freshly derived DEK under this
+    // device's key so future visits skip the master password (the account
+    // setting is checked inside the helper).
+    try { await enrolQuickUnlock(state.dek); } catch (e) { /* best-effort; password login still works */ }
+    toast('Mailbox unlocked', `Signed in as ${res.user.email}`);
+  } else {
+    state.token = res.token;
+    toast('Signed in', `Read-only — couldn't unlock encryption keys. You can view messages but can't send.`);
+  }
+  renderDashboard();
+  if (unwrapFailed) {
+    // Persistent reminder at the top of the inbox so the user knows why
+    // some actions (reply, compose) may fail.
+    setTimeout(() => toast('Keys unavailable', 'Inbox is in read-only mode until the next sign-in', 'error'), 400);
   }
 }
 
@@ -2040,7 +2047,7 @@ async function handleLogin(username, password) {
    mailbox keys can be created. Verifies password+code in one call
    (/api/v1/id-init), which mints a single-use init ticket, then runs the
    regular key-init flow with that ticket attached. */
-async function promptTwoFactor(username, nick, password) {
+async function promptTwoFactor(username, nick, password, mailbox = false) {
   const area = $('#authFormArea');
   if (!area) { renderAuth('login'); return; }
   area.innerHTML = `
@@ -2066,8 +2073,10 @@ async function promptTwoFactor(username, nick, password) {
     </form>
   `;
   toast('Two-factor required', 'Enter your authenticator code to continue.');
+  let useRecovery = false;
   $('#mfaRecoveryLink').addEventListener('click', () => {
     const inp = $('#mfaCode');
+    useRecovery = true;
     if (inp) { inp.removeAttribute('maxlength'); inp.removeAttribute('pattern'); inp.placeholder = 'Recovery code'; inp.focus(); }
   });
   $('#mfaForm').addEventListener('submit', async (e) => {
@@ -2075,14 +2084,32 @@ async function promptTwoFactor(username, nick, password) {
     const btn = $('#mfaSubmitBtn');
     btn.disabled = true;
     btn.innerHTML = `<span class="spinner"></span> <span>Verifying…</span>`;
+    const value = $('#mfaCode').value.trim();
+    const factor = useRecovery ? { recovery: value } : { code: value };
     try {
+      if (mailbox) {
+        // existing mailbox: password + code open a normal session
+        const r = await api('/login', { method: 'POST', body: JSON.stringify({ username, password, ...factor }) });
+        await finishPasswordLogin(r, password);
+        return;
+      }
       // SSO path (no password in memory): send only the code — the server
       // accepts it when it already issued a totp_sso ticket for this user.
       // Password path: password+code verified together (id-init).
       const payload = password
-        ? { username, password, code: $('#mfaCode').value.trim() }
-        : { username, code: $('#mfaCode').value.trim(), sso_ticket: state.ssoRedeemToken };
+        ? { username, password, ...factor }
+        : { username, ...factor, sso_ticket: state.ssoRedeemToken };
       const r = await api('/id-init', { method: 'POST', body: JSON.stringify(payload) });
+      if (r.token) {
+        // mailbox already exists: the server opened a session instead of a
+        // key-init ticket; unlock it with the device key or the password
+        state.token = r.token;
+        state.user = r.user;
+        localStorage.setItem('inpriv_token', r.token);
+        if (password) await finishPasswordLogin(r, password);
+        else if (state.tryQuickUnlock) await state.tryQuickUnlock();
+        return;
+      }
       await initializeInprivIdKeys(r.username, password, r.id_init_ticket);
     } catch (ex) {
       toast('Verification failed', ex.message, 'error');
@@ -3148,6 +3175,8 @@ async function bootstrap() {
      in purely locally) we fall back to the server-side policy, which knows
      the same setting through the ID database. Falls back to the unlock
      screen when unavailable/disabled. */
+  // the 2FA prompt lives outside bootstrap and needs this after Quick Sign-In
+  state.tryQuickUnlock = tryQuickUnlock;
   async function tryQuickUnlock() {
     let allowed = state.idUser
       ? state.idUser.quick_unlock !== false
