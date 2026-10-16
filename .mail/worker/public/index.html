@@ -683,6 +683,24 @@ html, body { overscroll-behavior-y: contain; }
   flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
   padding: 0 22px; gap: 12px; scrollbar-width: thin;
 }
+/* The sheet is a height-capped flex column that scrolls as one page: its
+   children must keep their natural height. Without this the body box / rich
+   frame get squeezed to their min-height — plain text then spills out of its
+   box under the action bar and the rich frame is clipped mid-mail. */
+.reader .view-sheet > * { flex-shrink: 0; }
+/* short mail: keep Copy/Reply at the bottom of the sheet, not mid-screen */
+.reader .view-sheet > .view-actions-bar { margin-top: auto; }
+/* plain view: long tracking URLs become short, tappable links */
+.view-body-box a.pl-link {
+  color: var(--accent); text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 40%, transparent);
+  text-underline-offset: 2px; word-break: break-all;
+}
+.view-body-box .pl-img {
+  display: inline-flex; align-items: center; gap: 4px; vertical-align: 1px;
+  padding: 0 8px; border-radius: 999px; font-size: 12px; line-height: 20px;
+  color: var(--text-3); background: var(--fill-2); box-shadow: inset 0 0 0 1px var(--hairline);
+  text-decoration: none; white-space: nowrap;
+}
 .reader .view-header {
   position: sticky; top: 0; z-index: 2;
   margin: 0 -22px; padding: 14px 16px 12px;
@@ -2431,6 +2449,61 @@ function renderMessageCards() {
 /* ============================================================================
    MESSAGE READER VIEW
    ========================================================================== */
+// Plain view: render the text part with tappable links. Newsletter text parts
+// are walls of tracking URLs ("[https://…/banner.png] https://…?t=…&mem=…"),
+// so each URL is shown as a short host/path label (full URL on hover/long-press)
+// and bracketed image references become a small "Image" chip. Built with DOM
+// nodes only (no innerHTML); only http(s) URLs are ever turned into links.
+const PLAIN_URL_RE = /\[(https?:\/\/[^\s\]]+)\]|(https?:\/\/[^\s<>"'\]]+)/g;
+function shortUrlLabel(url) {
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace(/^www\./, '');
+    const path = u.pathname === '/' ? '' : u.pathname;
+    const label = host + path;
+    if (label.length > 40) return label.slice(0, 38) + '…';
+    return u.search || u.hash ? label + '…' : label;
+  } catch (_) {
+    return url.length > 42 ? url.slice(0, 40) + '…' : url;
+  }
+}
+function renderPlainBody(el, text) {
+  el.textContent = '';
+  const src = String(text || '').replace(/\r\n?/g, '\n').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+  const frag = document.createDocumentFragment();
+  let last = 0;
+  for (const m of src.matchAll(PLAIN_URL_RE)) {
+    if (m.index > last) frag.appendChild(document.createTextNode(src.slice(last, m.index)));
+    let url = m[1] || m[2];
+    let tail = '';
+    if (!m[1]) {
+      // keep trailing sentence punctuation out of the link
+      const t = url.match(/[.,;:!?)]+$/);
+      if (t && !(t[0].startsWith(')') && url.includes('('))) { tail = t[0]; url = url.slice(0, -tail.length); }
+    }
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.referrerPolicy = 'no-referrer';
+    a.title = url;
+    if (m[1]) {
+      const isImg = /\.(png|jpe?g|gif|webp|svg|bmp|avif)(\?|#|$)/i.test(url);
+      a.className = 'pl-img';
+      a.textContent = isImg ? 'Image' : shortUrlLabel(url);
+    } else {
+      a.className = 'pl-link';
+      a.textContent = shortUrlLabel(url);
+    }
+    frag.appendChild(a);
+    if (m[1] && /\S/.test(src.charAt(m.index + m[0].length))) frag.appendChild(document.createTextNode(' '));
+    if (tail) frag.appendChild(document.createTextNode(tail));
+    last = m.index + m[0].length;
+  }
+  if (last < src.length) frag.appendChild(document.createTextNode(src.slice(last)));
+  el.appendChild(frag);
+}
+
 async function openMessageView(id) {
   const container = $('#modalContainer');
   const overlay = document.createElement('div');
@@ -2568,7 +2641,8 @@ async function openMessageView(id) {
 
     const bodyEl = $('#viewBody');
     bodyEl.classList.remove('decrypting');
-    bodyEl.textContent = decryptedText;
+    if (decryptFailed) bodyEl.textContent = decryptedText;
+    else renderPlainBody(bodyEl, decryptedText);
     if (decryptFailed) {
       bodyEl.innerHTML = `<span style="color:var(--md-error)">${mkIcon('error')} ${escapeHtml(decryptedText)}</span>`;
     }
@@ -2609,10 +2683,13 @@ async function openMessageView(id) {
           root.style.zoom = '';
           const avail = frame.clientWidth;
           const w = Math.max(root.scrollWidth, d.body.scrollWidth);
-          const h = Math.max(root.scrollHeight, d.body.scrollHeight);
           const r = avail && w > avail + 1 ? avail / w : 1;
           if (r < 1) root.style.zoom = String(r);
-          if (h) frame.style.height = Math.max(200, Math.ceil(h * r)) + 'px';
+          // Height of the content itself (the body), measured after zooming —
+          // not the root's scrollHeight, which never drops below the frame's
+          // current height and so only ever lets the frame grow.
+          const h = d.body.getBoundingClientRect().height;
+          if (h) frame.style.height = Math.max(120, Math.ceil(h)) + 'px';
         } catch (e) { /* sandboxed doc not ready yet */ }
       };
       let fitQueued = false;
