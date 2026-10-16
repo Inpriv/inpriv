@@ -1578,6 +1578,17 @@ async function getDeviceKey(create) {
   _deviceKeyCache = key;
   return key;
 }
+// Random id for this browser so every device keeps its own wrapped key on
+// the server (Quick Unlock on the phone and the PC at the same time).
+const DEVICE_ID_NAME = 'inpriv_device_id';
+function getDeviceId() {
+  let id = localStorage.getItem(DEVICE_ID_NAME);
+  if (!id || !/^[A-Za-z0-9_-]{16,64}$/.test(id)) {
+    id = b64.enc(crypto.getRandomValues(new Uint8Array(18))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    localStorage.setItem(DEVICE_ID_NAME, id);
+  }
+  return id;
+}
 function clearDeviceKey() {
   localStorage.removeItem(DEVICE_KEY_NAME);
   localStorage.removeItem(DEVICE_PUB_NAME);
@@ -1615,7 +1626,7 @@ async function enrolQuickUnlock(dek) {
   if (!qu) return false;
   const dk = await getDeviceKey(true);
   const wrapped = await wrapRawDek(dek, dk);
-  await api('/device-key/set', { method: 'POST', body: JSON.stringify({ wrapped_dek: wrapped }) });
+  await api('/device-key/set', { method: 'POST', body: JSON.stringify({ wrapped_dek: wrapped, device_id: getDeviceId() }) });
   return true;
 }
 
@@ -3002,8 +3013,8 @@ function renderAccountScreen() {
 
       <div class="acc-info-row" style="align-items:flex-start">
         <div style="flex:1;min-width:0;padding-top:2px">
-          <div class="label">Quick Unlock on this device</div>
-          <div class="qu-row-sub">Skip the master password when returning to this mailbox — the unlock key is wrapped to this device and never leaves it encrypted. Applies to every service signed in with Inpriv ID.</div>
+          <div class="label">Skip master password</div>
+          <div class="qu-row-sub">After you unlock Mail once on a device, it opens there without your master password. Same switch as on Inpriv ID. <span id="quDevices"></span></div>
         </div>
         <div class="switch${state.user && state.user.quick_unlock !== false ? ' on' : ''}" id="swQuickUnlock" role="switch" aria-checked="${state.user && state.user.quick_unlock !== false}" tabindex="0" style="margin-left:12px;margin-top:4px"></div>
       </div>
@@ -3044,6 +3055,27 @@ function renderAccountScreen() {
       swQU.classList.toggle('on', !!on);
       swQU.setAttribute('aria-checked', String(!!on));
     };
+    // the switch lives in Inpriv ID: read it fresh when this view opens and
+    // whenever the tab comes back, so a change made on id.inpriv.xyz shows
+    const refreshQU = async () => {
+      try {
+        const me = await api('/me', { method: 'GET' });
+        state.user.quick_unlock = me.quick_unlock;
+        if (state.idUser) state.idUser.quick_unlock = me.quick_unlock;
+        setSw(me.quick_unlock !== false);
+        const n = me.quick_unlock !== false ? (me.quick_unlock_devices || 0) : 0;
+        const el = $('#quDevices');
+        if (el) el.textContent = n ? `On ${n} device${n === 1 ? '' : 's'}.` : '';
+      } catch (e) { /* keep what is shown */ }
+    };
+    refreshQU();
+    if (!state.quVisBound) {
+      state.quVisBound = true;
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && state.refreshQU && document.getElementById('swQuickUnlock')) state.refreshQU();
+      });
+    }
+    state.refreshQU = refreshQU;
     const flipQU = async () => {
       const on = !swQU.classList.contains('on');
       setSw(on);
@@ -3054,7 +3086,7 @@ function renderAccountScreen() {
         if (!on) {
           // forget the local device key — it can no longer unwrap anything
           clearDeviceKey();
-          toast('Quick Unlock off', 'Master password required on every sign-in.');
+          toast('Skip master password: off', 'Your master password is needed on every device.');
         } else {
           // re-enrol this device immediately when the DEK is still in memory
           let enrolled = false;
@@ -3062,14 +3094,15 @@ function renderAccountScreen() {
             try {
               const dk = await getDeviceKey(true);
               const wrapped = await wrapRawDek(state.dek, dk);
-              await api('/device-key/set', { method: 'POST', body: JSON.stringify({ wrapped_dek: wrapped }) });
+              await api('/device-key/set', { method: 'POST', body: JSON.stringify({ wrapped_dek: wrapped, device_id: getDeviceId() }) });
               enrolled = true;
             } catch (e) { /* enrolment retried on next password unlock */ }
           }
-          toast('Quick Unlock on', enrolled
-            ? 'This device will skip the master password.'
-            : 'Enter your master password once to enable it on this device.');
+          toast('Skip master password: on', enrolled
+            ? 'This device opens Mail without your master password.'
+            : 'Unlock once with your master password on each device.');
         }
+        refreshQU();
       } catch (e) {
         setSw(!on);
         toast('Could not save setting', e.message, 'error');
@@ -3192,7 +3225,7 @@ async function bootstrap() {
       try {
         const dk = await getDeviceKey(false);
         if (dk) {
-          const kd = await api('/device-key/get', { method: 'GET' });
+          const kd = await api('/device-key/get?device=' + encodeURIComponent(getDeviceId()), { method: 'GET' });
           if (kd && kd.wrapped_dek) {
             const dek = await unwrapRawDek(kd.wrapped_dek, dk);
             if (dek) {
