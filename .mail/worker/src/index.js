@@ -548,6 +548,25 @@ async function openIdSecret(env, envelopeJson) {
   }
 }
 
+// Second factor for an Inpriv ID account: a 6-digit TOTP code or a single-use
+// recovery code. Returns "ok", "missing" (nothing usable sent yet) or "bad".
+async function checkIdSecondFactor(env, idUserId, code, recovery) {
+  if (recovery) {
+    const rc = await env.ID_DB.prepare(
+      "SELECT id FROM recovery_codes WHERE user_id = ? AND code_hash = ? AND used_at IS NULL"
+    ).bind(idUserId, await sha256hex(recovery)).first();
+    if (!rc) return "bad";
+    await env.ID_DB.prepare("UPDATE recovery_codes SET used_at = ? WHERE id = ?").bind(now(), rc.id).run();
+    return "ok";
+  }
+  if (!/^\d{6}$/.test(code)) return "missing";
+  const trow = await env.ID_DB.prepare(
+    "SELECT secret_enc FROM totp_secrets WHERE user_id = ? AND confirmed = 1"
+  ).bind(idUserId).first();
+  const secret = trow ? await openIdSecret(env, trow.secret_enc) : null;
+  return secret && (await idVerifyTOTP(code, idBase32Decode(secret), now())) ? "ok" : "bad";
+}
+
 // ── Quick Sign-In TOTP tickets ─────────────────────────────────────────────
 // grant/redeem mints one for 2FA accounts (password verified by the ID
 // backend); /api/v1/id-init consumes it so the TOTP code alone can complete
@@ -739,6 +758,20 @@ export default {
         if (user) {
           const ph = await passHash(password, user.auth_salt, user.priv_iter || PASS_ITERS);
           if (constantTimeEq(ph, user.auth_hash)) {
+            // A mailbox that belongs to an Inpriv ID with 2FA needs the second
+            // factor on every password sign-in, not just at first key init.
+            const idUser = env.ID_DB ? await env.ID_DB.prepare(
+              "SELECT id, nick, totp_enabled FROM users WHERE username = ?"
+            ).bind(user.username).first() : null;
+            if (idUser && idUser.totp_enabled) {
+              const code = String(body.code || "").trim();
+              const recovery = String(body.recovery || "").toLowerCase().trim();
+              const f = await checkIdSecondFactor(env, idUser.id, code, recovery);
+              if (f === "missing") {
+                return json({ status: "totp_required", mailbox: true, username: user.username, nick: idUser.nick || user.username }, 200, cors);
+              }
+              if (f === "bad") return bad(recovery ? "invalid recovery code" : "invalid two-factor code", 401, cors);
+            }
             const token = b64(crypto.getRandomValues(new Uint8Array(32)));
             await env.DB.prepare(
               "INSERT INTO sessions (id, user_id, created_at, expires_at, ua) VALUES (?,?,?,?,?)"
@@ -829,23 +862,23 @@ export default {
 
         // TOTP second factor (required whenever enabled — no bypass path)
         if (idUser.totp_enabled) {
-          if (recovery) {
-            const hash = await sha256hex(recovery);
-            const rc = await env.ID_DB.prepare(
-              "SELECT id FROM recovery_codes WHERE user_id = ? AND code_hash = ? AND used_at IS NULL"
-            ).bind(idUser.id, hash).first();
-            if (!rc) return bad("invalid recovery code", 401, cors);
-            await env.ID_DB.prepare("UPDATE recovery_codes SET used_at = ? WHERE id = ?").bind(now(), rc.id).run();
-          } else {
-            if (!/^\d{6}$/.test(code)) return json({ status: "totp_required", username: idUser.username, nick: idUser.nick || idUser.username }, 200, cors);
-            const trow = await env.ID_DB.prepare(
-              "SELECT secret_enc FROM totp_secrets WHERE user_id = ? AND confirmed = 1"
-            ).bind(idUser.id).first();
-            const secret = trow ? await openIdSecret(env, trow.secret_enc) : null;
-            if (!secret || !(await idVerifyTOTP(code, idBase32Decode(secret), now()))) {
-              return bad("invalid two-factor code", 401, cors);
-            }
-          }
+          const f = await checkIdSecondFactor(env, idUser.id, code, recovery);
+          if (f === "missing") return json({ status: "totp_required", username: idUser.username, nick: idUser.nick || idUser.username }, 200, cors);
+          if (f === "bad") return bad(recovery ? "invalid recovery code" : "invalid two-factor code", 401, cors);
+        }
+
+        // Mailbox already set up (e.g. Quick Sign-In on a 2FA account): open a
+        // session instead of minting a key-init ticket — creating new keys here
+        // would leave every existing message unreadable.
+        const mailbox = await env.DB.prepare("SELECT * FROM users WHERE username = ?").bind(idUser.username).first();
+        if (mailbox && mailbox.public_key) {
+          const token = b64(crypto.getRandomValues(new Uint8Array(32)));
+          await env.DB.prepare(
+            "INSERT INTO sessions (id, user_id, created_at, expires_at, ua) VALUES (?,?,?,?,?)"
+          ).bind(await sha256hex(token), mailbox.id, now(), now() + SESSION_TTL_MS, ua(request)).run();
+          await env.DB.prepare("UPDATE users SET last_login = ? WHERE id = ?").bind(now(), mailbox.id).run();
+          ctx.waitUntil(syncIdConsent(env, idUser.username, true));
+          return json({ status: "ok", token, user: publicUser(mailbox, { inpriv_id_synced: true }), locked: true }, 200, cors);
         }
 
         // single-use, 10-minute ticket proves "password (+2FA) just passed"
@@ -908,8 +941,12 @@ export default {
           if (!v) return bad("two-factor verification required — sign in again and enter your authenticator code", 401, cors);
         }
 
-        // Check if already in Mail DB
+        // Check if already in Mail DB. Never replace keys of a live mailbox:
+        // the old private key is the only way to read mail sent to it.
         const existing = await env.DB.prepare("SELECT * FROM users WHERE username = ?").bind(idUser.username).first();
+        if (existing && existing.public_key) {
+          return bad("this mailbox is already set up — sign in with your password instead", 409, cors);
+        }
         const authSalt = b64(crypto.getRandomValues(new Uint8Array(16)));
         const authHash = await passHash(password, authSalt, privIter);
         const address = `${idUser.username}@${DOMAIN}`;
