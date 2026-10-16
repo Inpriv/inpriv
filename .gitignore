@@ -53,11 +53,7 @@ target/
 .zcode/
 **/.zcode/
 
-# ─── Nested repositories ───
-.cftcfg/github/
-
 # ─── Test artifacts ───
-.zero/gui-test-screenshots/
 **/screenshots/
 
 # ─── Databases ───

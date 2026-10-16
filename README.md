@@ -39,12 +39,11 @@ inpriv/
 ├── .temp/                Inpriv Temp: page + Worker (D1, inbound webhook, hourly cleanup)
 ├── .id/                  Inpriv ID: Worker + page (worker/public/)
 ├── .admin/               admin.inpriv.xyz: maintenance switches
-├── common/
+└── common/
 │   ├── ui/               shared design core: inpriv-ui.css, inpriv-ui.js, sync.mjs
 │   ├── page.js           styles for Worker-rendered pages
 │   ├── errors.js         404/410/429/500 pages
 │   └── gate.js           maintenance gate
-└── .hush/                Hush (now its own service at hush.best)
 ```
 
 ## Design
