@@ -662,16 +662,36 @@ html.theme-fade, html.theme-fade *, html.theme-fade *::before, html.theme-fade *
       for (var i = 0; i < o.length; i++) if (isOn(o[i])) return o[i];
       return null;
     }
+    // Track bounds: the thumb never leaves the strip of options (except the
+    // deliberate rubber-band while it is being dragged).
+    var minL = 0, maxR = 0;
+    function bounds() {
+      var o = options();
+      if (o.length) { minL = o[0].offsetLeft; maxR = o[o.length - 1].offsetLeft + o[o.length - 1].offsetWidth; }
+    }
     function render() {
+      var dragging = drag && drag.active;
+      var rx = x, rw = w;
+      if (!dragging && maxR > minL) {
+        rw = Math.min(rw, maxR - minL);
+        rx = Math.max(minL, Math.min(rx, maxR - rw));
+      }
       var stretch = Math.min(0.16, Math.abs(vx) / 6000);
-      thumb.style.width = w + 'px';
+      var sx = s * (1 + stretch);
+      if (!dragging && maxR > minL && rw > 0) {
+        // the stretch grows from the centre: cap it so neither end pokes out
+        var c = rx + rw / 2, room = Math.min(c - minL, maxR - c);
+        sx = Math.max(Math.min(1, s), Math.min(sx, (2 * room) / rw));
+      }
+      thumb.style.width = rw + 'px';
       thumb.style.height = h + 'px';
-      thumb.style.transform = 'translate3d(' + x + 'px,' + y + 'px,0) scale(' + (s * (1 + stretch)) + ',' + (s * (1 - stretch / 2)) + ')';
+      thumb.style.transform = 'translate3d(' + rx + 'px,' + y + 'px,0) scale(' + sx + ',' + (s * (1 - stretch / 2)) + ')';
     }
     function settle(snap) {
       var el = current();
       if (!el) { thumb.style.opacity = '0'; placed = false; return; }
       thumb.style.opacity = '1';
+      bounds();
       tx = el.offsetLeft; tw = el.offsetWidth; y = el.offsetTop; h = el.offsetHeight;
       if (snap || !placed || reduced) { x = tx; w = tw; vx = vw = 0; placed = true; render(); return; }
       kick();
@@ -682,8 +702,10 @@ html.theme-fade, html.theme-fade *, html.theme-fade *::before, html.theme-fade *
       while (dt > 0) {
         var d = Math.min(dt, STEP);
         dt -= d;
-        if (!drag || !drag.active) { vx += (520 * (tx - x) - 28 * vx) * d; x += vx * d; }
-        vw += (520 * (tw - w) - 28 * vw) * d; w += vw * d;
+        // Critically damped (c = 2·√k): the thumb glides in and stops on the
+        // option instead of overshooting past it and bouncing back.
+        if (!drag || !drag.active) { vx += (560 * (tx - x) - 48 * vx) * d; x += vx * d; }
+        vw += (560 * (tw - w) - 48 * vw) * d; w += vw * d;
         vs += (700 * (ts - s) - 22 * vs) * d; s += vs * d;
       }
       render();
