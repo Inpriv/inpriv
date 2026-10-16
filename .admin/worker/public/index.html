@@ -429,14 +429,16 @@ input:focus, textarea:focus { box-shadow: inset 0 0 0 1.5px var(--focus), 0 0 0 
 /* login */
 #login-view { display: grid; place-items: center; min-height: calc(100dvh - 140px); padding-bottom: 24px; }
 .login-card { width: 100%; max-width: 420px; padding: 26px 22px 24px; border-radius: 32px; }
+/* icon tile beside the title, like the choice cards on inpriv.xyz */
+.login-head { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
 .tile {
-  width: 44px; height: 44px; flex: none; border-radius: 14px; margin-bottom: 16px;
+  width: 44px; height: 44px; flex: none; border-radius: 14px;
   display: grid; place-items: center;
   background: var(--fill-2); color: var(--text);
   box-shadow: inset 0 1px 0.5px var(--spec), inset 0 0 0 1px var(--hairline);
 }
 .tile .i { width: 20px; height: 20px; }
-.login-card h1 { margin: 0 0 8px; font: 660 26px/1.12 var(--font-display); letter-spacing: -0.03em; }
+.login-card h1 { margin: 0; font: 660 26px/1.12 var(--font-display); letter-spacing: -0.03em; }
 .login-card h1 span { color: var(--text-3); }
 .login-card .lead { margin: 0 0 20px; color: var(--text-2); font-size: 14.5px; }
 .login-error { min-height: 1.3em; margin: -4px 0 12px; color: var(--danger); font-size: 13.5px; text-align: center; }
@@ -524,6 +526,7 @@ input:focus, textarea:focus { box-shadow: inset 0 0 0 1.5px var(--focus), 0 0 0 
 
 @media (max-width: 440px) {
   .card, .login-card { padding: 18px; border-radius: 28px; }
+  .login-card h1 { font-size: 22px; }
   .svc-msg { grid-column: 1 / -1; }
 }
 </style>
@@ -1029,8 +1032,10 @@ input:focus, textarea:focus { box-shadow: inset 0 0 0 1.5px var(--focus), 0 0 0 
   <!-- ═══ LOGIN ═══ -->
   <div id="login-view">
     <form class="login-card glass reveal d2" id="login-form" autocomplete="off">
-      <span class="tile"><i data-icon="shield"></i></span>
-      <h1>Control panel.<br><span>Sign in with your code.</span></h1>
+      <div class="login-head">
+        <span class="tile"><i data-icon="shield"></i></span>
+        <h1>Control panel.<br><span>Sign in with your code.</span></h1>
+      </div>
       <p class="lead">Kill switches and notices for every Inpriv service.</p>
       <div class="field">
         <label for="l-user">Username</label>
