@@ -451,8 +451,16 @@ async function ensureDeviceKeys(env) {
     ),
     env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_device_keys_user ON device_keys(user_id)"),
   ]);
+  // one row per device (random id kept in the browser); rows from before
+  // this column have device_id NULL and still work as a fallback
+  try { await env.DB.prepare("ALTER TABLE device_keys ADD COLUMN device_id TEXT").run(); } catch { /* already there */ }
+  await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_device_keys_dev ON device_keys(user_id, device_id)").run();
   _dkReady = true;
 }
+
+// Quick Unlock keeps one wrapped key per device, newest first, up to this many.
+const MAX_DEVICE_KEYS = 10;
+const validDeviceId = (v) => typeof v === "string" && /^[A-Za-z0-9_-]{16,64}$/.test(v);
 
 // ── Inpriv ID cross-database verification (shared D1) ─────────────────────
 // Mail and ID share the same D1 database, so password verification and the
@@ -1188,10 +1196,16 @@ export default {
         // must never hand out the stored wrapped key
         if (!(await quickUnlockPolicy(env, me.username)))
           return bad("quick unlock disabled on this account", 403, cors);
-        const rows = await env.DB.prepare(
-          "SELECT id, wrapped_dek FROM device_keys WHERE user_id = ? ORDER BY created_at DESC LIMIT 1"
-        ).bind(me.id).all();
-        return json({ wrapped_dek: rows.results && rows.results[0] ? rows.results[0].wrapped_dek : null }, 200, cors);
+        // this device's own key; a device without one may still own the
+        // single key stored before keys were kept per device
+        const device = url.searchParams.get("device") || "";
+        const row = (validDeviceId(device) && await env.DB.prepare(
+          "SELECT id, wrapped_dek FROM device_keys WHERE user_id = ? AND device_id = ?"
+        ).bind(me.id, device).first()) || await env.DB.prepare(
+          "SELECT id, wrapped_dek FROM device_keys WHERE user_id = ? AND device_id IS NULL ORDER BY created_at DESC LIMIT 1"
+        ).bind(me.id).first();
+        if (row) ctx.waitUntil(env.DB.prepare("UPDATE device_keys SET last_used = ? WHERE id = ?").bind(now(), row.id).run());
+        return json({ wrapped_dek: row ? row.wrapped_dek : null }, 200, cors);
       }
       if (path === "/api/v1/device-key/set" && request.method === "POST") {
         // same policy as get: don't accept new wrapped keys while disabled
@@ -1201,16 +1215,29 @@ export default {
         const wrapped = typeof body.wrapped_dek === "string" ? body.wrapped_dek : "";
         if (!wrapped) return bad("wrapped_dek required", 400, cors);
         if (wrapped.length > 8000) return bad("wrapped key too large", 413, cors);
+        if (!validDeviceId(body.device_id)) return bad("device_id required", 400, cors);
         await ensureDeviceKeys(env);
+        // replace only this device's key, keep the others, drop the oldest
+        // beyond the cap
         await env.DB.batch([
-          env.DB.prepare("DELETE FROM device_keys WHERE user_id = ?").bind(me.id),
-          env.DB.prepare("INSERT INTO device_keys (user_id, wrapped_dek, created_at) VALUES (?,?,?)").bind(me.id, wrapped, now()),
+          env.DB.prepare("DELETE FROM device_keys WHERE user_id = ? AND device_id = ?").bind(me.id, body.device_id),
+          env.DB.prepare("INSERT INTO device_keys (user_id, device_id, wrapped_dek, created_at, last_used) VALUES (?,?,?,?,?)")
+            .bind(me.id, body.device_id, wrapped, now(), now()),
+          env.DB.prepare(
+            "DELETE FROM device_keys WHERE user_id = ? AND id NOT IN (SELECT id FROM device_keys WHERE user_id = ? ORDER BY COALESCE(last_used, created_at) DESC LIMIT ?)"
+          ).bind(me.id, me.id, MAX_DEVICE_KEYS),
         ]);
         return json({ ok: true }, 200, cors);
       }
       if (path === "/api/v1/device-key/clear" && request.method === "POST") {
+        // with a device_id: forget just that device; without: every device
+        const body = await request.json().catch(() => ({}));
         await ensureDeviceKeys(env);
-        await env.DB.prepare("DELETE FROM device_keys WHERE user_id = ?").bind(me.id).run();
+        if (validDeviceId(body.device_id)) {
+          await env.DB.prepare("DELETE FROM device_keys WHERE user_id = ? AND device_id = ?").bind(me.id, body.device_id).run();
+        } else {
+          await env.DB.prepare("DELETE FROM device_keys WHERE user_id = ?").bind(me.id).run();
+        }
         return json({ ok: true }, 200, cors);
       }
 
@@ -1248,11 +1275,13 @@ export default {
         // setting) so the client can attempt the device-key path without
         // waiting for the SSO widget
         const qu = await quickUnlockPolicy(env, me.username);
+        await ensureDeviceKeys(env);
+        const dc = await env.DB.prepare("SELECT COUNT(*) AS n FROM device_keys WHERE user_id = ?").bind(me.id).first();
         // Throttled consent mirror: browsers restoring a local session never
         // pass through grant/redeem, so this keeps the ID panel's
         // "Connected services" card truthful (≤1 write/hour per account).
         ctx.waitUntil(syncIdConsent(env, me.username, false));
-        return json(publicUser(me, { quick_unlock: qu }), 200, cors);
+        return json(publicUser(me, { quick_unlock: qu, quick_unlock_devices: dc ? dc.n : 0 }), 200, cors);
       }
 
       // ── Logout ────────────────────────────────────────────────────────────

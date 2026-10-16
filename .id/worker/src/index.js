@@ -204,6 +204,26 @@ function isReservedUsername(username) {
   return false;
 }
 
+// Quick Unlock keys live in Mail (device_keys, one row per device). The
+// switch here counts them and, when turned off, removes them through the
+// shared Mail database. Best-effort: the table may not exist yet.
+async function mailDeviceKeys(env, uid, op) {
+  try {
+    if (!env.MAIL_DB) return op === "count" ? 0 : undefined;
+    const u = await env.DB.prepare("SELECT username FROM users WHERE id = ?").bind(uid).first();
+    const mu = u && await env.MAIL_DB.prepare("SELECT id FROM users WHERE username = ?").bind(u.username).first();
+    if (!mu) return op === "count" ? 0 : undefined;
+    if (op === "clear") {
+      await env.MAIL_DB.prepare("DELETE FROM device_keys WHERE user_id = ?").bind(mu.id).run();
+      return;
+    }
+    const r = await env.MAIL_DB.prepare("SELECT COUNT(*) AS n FROM device_keys WHERE user_id = ?").bind(mu.id).first();
+    return r ? r.n : 0;
+  } catch {
+    return op === "count" ? 0 : undefined;
+  }
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -509,7 +529,7 @@ export default {
             nick: u.nick || u.username,
           },
           state: g.state || "",
-          quick_unlock: !!(settings && settings.quick_unlock === 1),
+          quick_unlock: !(settings && settings.quick_unlock === 0), // no row = on, as everywhere
           totp_enabled: !!u.totp_enabled, // service must enforce 2FA fallback
         }, 200, cors);
       }
@@ -520,12 +540,13 @@ export default {
         if (!sme) return bad("unauthorized", 401);
         await ensureTables(env);
         const s = await env.DB.prepare("SELECT quick_unlock FROM user_settings WHERE user_id = ?").bind(sme.uid).first();
+        const devices = await mailDeviceKeys(env, sme.uid, "count");
         const h = { ...cors };
         if (sme.token) {
           h["X-Inpriv-Token"] = sme.token;
           if (sme.via === "cookie") h["Set-Cookie"] = sessionCookie(sme.token);
         }
-        return json({ settings: { quick_unlock: !(s && s.quick_unlock === 0) } }, 200, h);
+        return json({ settings: { quick_unlock: !(s && s.quick_unlock === 0), devices } }, 200, h);
       }
       if (path === "/api/settings" && request.method === "POST") {
         const sme = await authUser(request, env, true);
@@ -537,6 +558,12 @@ export default {
           "INSERT INTO user_settings (user_id, quick_unlock, updated_at) VALUES (?,?,?) " +
           "ON CONFLICT(user_id) DO UPDATE SET quick_unlock = excluded.quick_unlock, updated_at = excluded.updated_at"
         ).bind(sme.uid, body.quick_unlock ? 1 : 0, now()).run();
+        if (!body.quick_unlock) {
+          // off means off everywhere: no device keeps a key it could reuse
+          // when the switch is turned back on
+          await env.DB.prepare("DELETE FROM quick_unlock WHERE user_id = ?").bind(sme.uid).run();
+          await mailDeviceKeys(env, sme.uid, "clear");
+        }
         const h = { ...cors };
         if (sme.token) {
           h["X-Inpriv-Token"] = sme.token;
@@ -673,13 +700,15 @@ export default {
       if (path === "/api/public/me" && request.method === "GET") {
         if (!me) return out({ user: null }, 200, cors);
         const pub = await publicUser(env, me.uid);
-        // quick_unlock drives the cross-service master-password bypass;
-        // TOTP users always see false (second factor can never be skipped)
+        // quick_unlock drives the cross-service master-password bypass. It
+        // only skips the master password after a full sign-in (which already
+        // asked for the 2FA code), so 2FA accounts get the real setting too —
+        // otherwise Mail and this page would disagree about the switch.
         try {
           await ensureTables(env);
           const st = await env.DB.prepare("SELECT quick_unlock FROM user_settings WHERE user_id = ?").bind(me.uid).first();
-          pub.quick_unlock = pub.totp_enabled ? false : !(st && st.quick_unlock === 0);
-        } catch { pub.quick_unlock = !pub.totp_enabled; }
+          pub.quick_unlock = !(st && st.quick_unlock === 0);
+        } catch { pub.quick_unlock = true; }
         return out({ user: pub }, 200, cors);
       }
 
