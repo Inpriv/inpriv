@@ -2066,7 +2066,7 @@ async function finishPasswordLogin(res, password) {
 async function startRekey(newPassword) {
   try {
     const dk = await getDeviceKey(false);
-    const kd = dk ? await api('/device-key/get', { method: 'GET' }) : null;
+    const kd = dk ? await api('/device-key/get?device=' + encodeURIComponent(getDeviceId()), { method: 'GET' }) : null;
     const dek = kd && kd.wrapped_dek ? await unwrapRawDek(kd.wrapped_dek, dk) : null;
     if (dek) {
       const priv = await unwrapPrivateKey(state.user.encrypted_private_key, state.user.priv_iv, dek);
