@@ -270,6 +270,7 @@ button, .btn, .icon-btn, [role="tab"], [role="switch"] { user-select: none; -web
   color: var(--text); font-size: 14px; font-weight: 550; line-height: 1.3;
   animation: toast-in 0.46s var(--spring) backwards;
   pointer-events: auto;
+  touch-action: none; -webkit-user-select: none; user-select: none; cursor: grab;
 }
 .toast.out { animation: toast-out 0.28s ease-in forwards; }
 .toast .i { color: var(--text-2); }
