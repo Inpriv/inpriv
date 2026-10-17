@@ -1,0 +1,6 @@
+User-agent: *
+Content-Signal: search=yes, ai-input=no
+Allow: /
+Disallow: /api/
+
+Sitemap: https://id.inpriv.xyz/sitemap.xml

@@ -8,11 +8,14 @@
 // Every request passes the admin kill-switch (global or "landing" service).
 import { maintenanceGate, maintenancePage } from "../../common/gate.js";
 import { notFound } from "../../common/errors.js";
+import { canonicalRedirect } from "../../common/canonical.js";
 
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const path = url.pathname;
+    const moved = canonicalRedirect(request);
+    if (moved) return moved;
 
     const gate = await maintenanceGate("landing");
     if (gate.locked) return maintenancePage("Inpriv", gate.message);

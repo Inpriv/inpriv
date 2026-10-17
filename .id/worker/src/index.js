@@ -4,6 +4,7 @@
 import { maintenanceGate, maintenancePage } from "../../../common/gate.js";
 import { logAccess } from "../../../common/access-log.js";
 import { notFound } from "../../../common/errors.js";
+import { canonicalRedirect } from "../../../common/canonical.js";
 import {
   SESSION_TTL_MS, PASS_ITERS,
   b64, now, uuid, sha256hex, json, bad, corsFor,
@@ -273,6 +274,8 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
     const cors = corsFor(request);
+    const moved = canonicalRedirect(request);
+    if (moved) return moved;
 
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
 

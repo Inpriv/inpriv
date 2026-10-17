@@ -22,15 +22,10 @@
 # each content signal on this website.
 
 User-agent: *
-Disallow:
-
-# Search: permitted
-Content-Signal: search: yes
-Content-Signal: ai-input: no
-
-# Private surfaces — never indexed
-User-agent: *
+Content-Signal: search=yes, ai-input=no
+Allow: /
 Disallow: /api/
-Noindex: admin.inpriv.xyz
 
+# Each Inpriv site has its own robots.txt and sitemap:
+# mail.inpriv.xyz, temp.inpriv.xyz, id.inpriv.xyz (admin.inpriv.xyz is closed to crawlers)
 Sitemap: https://inpriv.xyz/sitemap.xml

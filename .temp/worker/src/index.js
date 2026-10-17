@@ -10,6 +10,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { notFound } from "../../../common/errors.js";
+import { canonicalRedirect } from "../../../common/canonical.js";
 import { logAccess, purgeAccessLog } from "../../../common/access-log.js";
 import { maintenancePage as sharedMaintenancePage } from "../../../common/gate.js";
 
@@ -81,7 +82,7 @@ const NOUNS = [
 
 export default {
   async fetch(request, env, ctx) {
-    return handleFetch(request, env, ctx);
+    return canonicalRedirect(request) || handleFetch(request, env, ctx);
   },
   async scheduled(event, env, ctx) {
     return handleScheduled(event, env, ctx);

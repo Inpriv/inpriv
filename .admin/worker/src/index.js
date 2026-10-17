@@ -13,6 +13,7 @@
 //   GET /public/state → { global, info, services, ts }
 
 import { kvGet as driveGet } from "../../../common/drive.js";
+import { canonicalRedirect } from "../../../common/canonical.js";
 
 // ── config ───────────────────────────────────────────────────────────────────
 // The services that check this panel's kill-switches (common/gate.js ids).
@@ -40,6 +41,12 @@ export default {
       "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
     };
     if (method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
+    const moved = canonicalRedirect(request);
+    if (moved) return moved;
+    // private panel: keep every crawler out
+    if (path === "/robots.txt") {
+      return new Response("User-agent: *\nDisallow: /\n", { headers: { "content-type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" } });
+    }
 
     // keep background promises alive past the response (a bare floating
     // promise is cancelled once fetch returns — that is what dropped the

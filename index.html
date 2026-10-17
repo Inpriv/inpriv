@@ -26,8 +26,8 @@
       .catch(function () { clearTimeout(timer); show(); });
   })();
 </script>
-<title>Inpriv — Private email, kept or thrown away</title>
-<meta name="description" content="Inpriv gives you a private @inpriv.xyz address. Mail is permanent and end-to-end encrypted; Temp is a disposable inbox that deletes itself after 24 hours. No ads, no trackers.">
+<title>Inpriv: free private email and temp mail</title>
+<meta name="description" content="Free private email on @inpriv.xyz: an end-to-end encrypted mailbox to keep, or a temp mail inbox that deletes itself after 24 hours. No ads, no trackers.">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <link rel="canonical" href="https://inpriv.xyz/">
 <meta name="color-scheme" content="dark light">
@@ -39,42 +39,175 @@
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://inpriv.xyz/">
 <meta property="og:site_name" content="Inpriv">
-<meta property="og:title" content="Inpriv — Private email, kept or thrown away">
-<meta property="og:description" content="A permanent, end-to-end encrypted @inpriv.xyz mailbox, or a disposable inbox that deletes itself after 24 hours.">
+<meta property="og:title" content="Inpriv: private email, kept or thrown away">
+<meta property="og:description" content="A free end-to-end encrypted @inpriv.xyz mailbox, or a temp mail inbox that deletes itself after 24 hours. No ads, no trackers.">
 <meta property="og:image" content="https://inpriv.xyz/og/landing.png?v=3">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Inpriv — Private email">
+<meta property="og:image:alt" content="Inpriv: private email">
 <meta property="og:locale" content="en_US">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Inpriv — Private email, kept or thrown away">
-<meta name="twitter:description" content="A permanent, end-to-end encrypted @inpriv.xyz mailbox, or a disposable inbox that deletes itself after 24 hours.">
+<meta name="twitter:title" content="Inpriv: private email, kept or thrown away">
+<meta name="twitter:description" content="A free end-to-end encrypted @inpriv.xyz mailbox, or a temp mail inbox that deletes itself after 24 hours. No ads, no trackers.">
 <meta name="twitter:image" content="https://inpriv.xyz/og/landing.png?v=3">
 <link rel="icon" type="image/png" href="/icon.png">
 <link rel="apple-touch-icon" href="/icon.png">
 <link rel="manifest" href="/manifest.webmanifest">
-<script type="application/ld+json">{
+<script type="application/ld+json">
+{
   "@context": "https://schema.org",
   "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://inpriv.xyz/#org",
+      "name": "Inpriv",
+      "legalName": "Inpriv Labs",
+      "url": "https://inpriv.xyz/",
+      "logo": "https://inpriv.xyz/icon.png",
+      "sameAs": [
+        "https://github.com/Inpriv/inpriv"
+      ],
+      "contactPoint": [
+        {
+          "@type": "ContactPoint",
+          "contactType": "customer support",
+          "email": "support@inpriv.xyz"
+        }
+      ]
+    },
     {
       "@type": "WebSite",
       "@id": "https://inpriv.xyz/#website",
       "url": "https://inpriv.xyz/",
       "name": "Inpriv",
-      "description": "Private email: a permanent end-to-end encrypted mailbox or a disposable inbox.",
-      "publisher": { "@type": "Organization", "name": "Inpriv Labs", "url": "https://inpriv.xyz/" },
+      "description": "Free private email: an end-to-end encrypted mailbox to keep, or a temp mail inbox that deletes itself after 24 hours.",
+      "publisher": {
+        "@id": "https://inpriv.xyz/#org"
+      },
       "inLanguage": "en"
     },
     {
       "@type": "ItemList",
-      "name": "Inpriv",
+      "name": "Inpriv services",
       "itemListElement": [
-        { "@type": "ListItem", "position": 1, "item": { "@type": "WebApplication", "name": "Inpriv Mail", "url": "https://mail.inpriv.xyz/", "applicationCategory": "CommunicationApplication", "operatingSystem": "All", "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" } } },
-        { "@type": "ListItem", "position": 2, "item": { "@type": "WebApplication", "name": "Inpriv Temp", "url": "https://temp.inpriv.xyz/", "applicationCategory": "CommunicationApplication", "operatingSystem": "All", "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" } } }
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "item": {
+            "@type": "WebApplication",
+            "name": "Inpriv Mail",
+            "url": "https://mail.inpriv.xyz/",
+            "description": "Free end-to-end encrypted email with your own @inpriv.xyz address.",
+            "applicationCategory": "CommunicationApplication",
+            "operatingSystem": "Any",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            }
+          }
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "item": {
+            "@type": "WebApplication",
+            "name": "Inpriv Temp",
+            "url": "https://temp.inpriv.xyz/",
+            "description": "Free temp mail: a disposable inbox that deletes itself after 24 hours. No sign-up.",
+            "applicationCategory": "CommunicationApplication",
+            "operatingSystem": "Any",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            }
+          }
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "item": {
+            "@type": "WebApplication",
+            "name": "Inpriv ID",
+            "url": "https://id.inpriv.xyz/",
+            "description": "One private account for Inpriv Mail, with two-factor sign-in.",
+            "applicationCategory": "SecurityApplication",
+            "operatingSystem": "Any",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://inpriv.xyz/#faq",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Is Inpriv free?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Inpriv Mail, Inpriv Temp and Inpriv ID are free, with no ads and no trackers."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What does end-to-end encrypted mean in Inpriv Mail?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Messages between Inpriv users are encrypted in your browser before they leave it (RSA-2048 and AES-256-GCM), so the server only ever stores ciphertext it can't read. Mail from outside senders is encrypted to your key as soon as it arrives."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is a temp mail address?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "A disposable email address for sign-ups, codes and newsletters you don't want tied to your real inbox. Inpriv Temp gives you one instantly, with no account, and deletes it with all its messages after 24 hours."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can someone else read my Temp inbox?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Only the browser that created it can open it: it holds a secret key, and knowing the address isn't enough. Temp isn't end-to-end encrypted, though, and an expired address can later go to someone else, so don't use Temp for accounts you need to keep."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Do I need an account?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Not for Temp. Inpriv Mail uses Inpriv ID: one account with your own @inpriv.xyz address, two-factor sign-in and recovery codes."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What does Inpriv keep about me?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "As little as it can. Sign-ins and account changes are kept for 90 days for security and abuse handling, and Temp inboxes are deleted after 24 hours. The privacy policy lists everything that's stored and everything that isn't."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is Inpriv open source?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. The code for every Inpriv site is on GitHub under the MIT license."
+          }
+        }
       ]
     }
   ]
-}</script>
+}
+</script>
 <style id="inpriv-ui">
 /* Inpriv UI core — tokens, glass, backdrop, header, liquid pill, motion.
    Source of truth for every page. `node common/ui/sync.mjs` copies it into
@@ -539,6 +672,22 @@ html.theme-fade, html.theme-fade *, html.theme-fade *::before, html.theme-fade *
     color: var(--text); text-decoration: none; font-size: 12.5px; font-weight: 600;
   }
   .badge .i { width: 16px; height: 16px; }
+
+  /* questions: native details, chevron turns when open */
+  .faq { display: flex; flex-direction: column; gap: 8px; }
+  .faq h2 { margin: 6px 2px 4px; font: 660 20px/1.2 var(--font-display); letter-spacing: -0.02em; }
+  .faq details { border-radius: 20px; background: var(--fill); box-shadow: inset 0 0 0 1px var(--hairline); }
+  .faq summary {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 14px 16px; cursor: pointer; list-style: none;
+    color: var(--text); font-size: 15px; font-weight: 600; border-radius: 20px;
+  }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary .i { flex: none; color: var(--text-3); transform: rotate(90deg); transition: transform 0.25s var(--out, ease); }
+  .faq details[open] summary .i { transform: rotate(-90deg); }
+  .faq summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .faq p { margin: 0; padding: 0 16px 16px; color: var(--text-2); font-size: 14px; }
+  .faq p a { color: var(--text); text-underline-offset: 3px; }
 
   footer {
     display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px;
@@ -1194,6 +1343,38 @@ html.theme-fade, html.theme-fade *, html.theme-fade *::before, html.theme-fade *
   </main>
 
   <p class="note reveal d5"><i data-icon="info"></i><span>Temp inboxes aren't end-to-end encrypted: messages sit on the server in readable form until the inbox expires or you delete it. Use Temp for things that matter for minutes, not for anything you need to keep.</span></p>
+
+  <section class="faq reveal d5" aria-labelledby="faq-title">
+    <h2 id="faq-title">Questions</h2>
+    <details>
+      <summary>Is Inpriv free?<i data-icon="chevron"></i></summary>
+      <p>Yes. Inpriv Mail, Inpriv Temp and Inpriv ID are free, with no ads and no trackers.</p>
+    </details>
+    <details>
+      <summary>What does end-to-end encrypted mean in Inpriv Mail?<i data-icon="chevron"></i></summary>
+      <p>Messages between Inpriv users are encrypted in your browser before they leave it (RSA-2048 and AES-256-GCM), so the server only ever stores ciphertext it can't read. Mail from outside senders is encrypted to your key as soon as it arrives.</p>
+    </details>
+    <details>
+      <summary>What is a temp mail address?<i data-icon="chevron"></i></summary>
+      <p>A disposable email address for sign-ups, codes and newsletters you don't want tied to your real inbox. Inpriv Temp gives you one instantly, with no account, and deletes it with all its messages after 24 hours.</p>
+    </details>
+    <details>
+      <summary>Can someone else read my Temp inbox?<i data-icon="chevron"></i></summary>
+      <p>Only the browser that created it can open it: it holds a secret key, and knowing the address isn't enough. Temp isn't end-to-end encrypted, though, and an expired address can later go to someone else, so don't use Temp for accounts you need to keep.</p>
+    </details>
+    <details>
+      <summary>Do I need an account?<i data-icon="chevron"></i></summary>
+      <p>Not for Temp. Inpriv Mail uses Inpriv ID: one account with your own @inpriv.xyz address, two-factor sign-in and recovery codes.</p>
+    </details>
+    <details>
+      <summary>What does Inpriv keep about me?<i data-icon="chevron"></i></summary>
+      <p>As little as it can. Sign-ins and account changes are kept for 90 days for security and abuse handling, and Temp inboxes are deleted after 24 hours. The <a href="/privacy">privacy policy</a> lists everything that's stored and everything that isn't.</p>
+    </details>
+    <details>
+      <summary>Is Inpriv open source?<i data-icon="chevron"></i></summary>
+      <p>Yes. The code for every Inpriv site is <a href="https://github.com/Inpriv/inpriv" target="_blank" rel="noopener noreferrer">on GitHub</a> under the MIT license.</p>
+    </details>
+  </section>
 
   <footer class="reveal d5">
     <span>&copy; 2026 Inpriv Labs</span>
