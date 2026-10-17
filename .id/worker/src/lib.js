@@ -256,6 +256,11 @@ export const emailShell = (title, body, preheader = "") =>
   `<a href="https://inpriv.xyz/privacy" style="color:inherit">Privacy</a></td></tr>` +
   `</table></td></tr></table></body></html>`;
 
+// An address in the text. Mail apps (Gmail) turn bare addresses into blue
+// links; making it our own link in the text colour keeps it on-brand.
+export const emailAddr = (addr) =>
+  `<a class="ip-t1" href="mailto:${esc(addr)}" style="color:#f2f1ed;text-decoration:none;font-weight:700">${esc(addr)}</a>`;
+
 export const codeBlock = (code) =>
   `<div class="ip-code" style="margin:22px 0;padding:18px 12px;border-radius:16px;background:#0c0c0b;border:1px solid #2a2a27;` +
   `color:#f2f1ed;text-align:center;font:700 34px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:10px">${esc(code)}</div>`;

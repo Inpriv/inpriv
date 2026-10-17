@@ -9,7 +9,7 @@ import {
   b64, now, uuid, sha256hex, json, bad, corsFor,
   passHash, constantTimeEq, sealString, openString,
   base32Decode, base32Encode, verifyTOTP,
-  rateLimit, parseUA, ipPrefix, sendMail, emailShell, emailEsc, codeBlock,
+  rateLimit, parseUA, ipPrefix, sendMail, emailShell, emailAddr, codeBlock,
   sessionCookie, clearCookie,
 } from "./lib.js";
 
@@ -369,7 +369,7 @@ export default {
             `${code} is your Inpriv verification code`,
             `Confirm ${recoveryEmail} as the recovery email for ${inprivEmail}.\n\nYour code: ${code}\n\nEnter it on id.inpriv.xyz. It expires in 15 minutes.\n\nDidn't ask for this? You can ignore this email.`,
             emailShell("Confirm your recovery email",
-              `Enter this code on <a href="https://id.inpriv.xyz" style="color:inherit">id.inpriv.xyz</a> to use <strong>${emailEsc(recoveryEmail)}</strong> as the recovery email for <strong>${emailEsc(inprivEmail)}</strong>.` +
+              `Enter this code on <a href="https://id.inpriv.xyz" style="color:inherit">id.inpriv.xyz</a> to use ${emailAddr(recoveryEmail)} as the recovery email for ${emailAddr(inprivEmail)}.` +
               `${codeBlock(code)}It expires in 15 minutes.`,
               `Your code: ${code}. It expires in 15 minutes.`)
           );
@@ -774,7 +774,7 @@ export default {
         const sent = await sendMail(env, targetEmail, `${code} is your Inpriv verification code`,
           `Confirm ${targetEmail} as the recovery email for ${user.email}.\n\nYour code: ${code}\n\nEnter it on id.inpriv.xyz. It expires in 15 minutes.\n\nDidn't ask for this? You can ignore this email.`,
           emailShell("Confirm your recovery email",
-            `Enter this code on <a href="https://id.inpriv.xyz" style="color:inherit">id.inpriv.xyz</a> to use <strong>${emailEsc(targetEmail)}</strong> as the recovery email for <strong>${emailEsc(user.email)}</strong>.` +
+            `Enter this code on <a href="https://id.inpriv.xyz" style="color:inherit">id.inpriv.xyz</a> to use ${emailAddr(targetEmail)} as the recovery email for ${emailAddr(user.email)}.` +
             `${codeBlock(code)}It expires in 15 minutes.`,
             `Your code: ${code}. It expires in 15 minutes.`));
         if (!sent.ok) {
