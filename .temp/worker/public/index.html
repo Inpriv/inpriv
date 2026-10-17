@@ -357,7 +357,16 @@ html.vt-theme::view-transition-old(root) {
 @keyframes vt-settle { to { transform: scale(0.97); filter: blur(2px) brightness(0.92); } }
 /* the sun and moon trade places with a spin */
 [data-theme-toggle].swap .i { animation: theme-icon 0.7s var(--spring) both; }
-@keyframes theme-icon { from { opacity: 0; transform: rotate(-150deg) scale(0.3); filter: blur(3px); } }
+@keyframes theme-icon { from { opacity: 0; transform: rotate(-150deg) scale(0.3); } }
+
+/* ── lite: weaker devices (html.lite, set by inpriv-ui.js) ──────────────
+   Live backdrop blur over a drifting background has to be re-rendered on
+   every frame. Lite keeps the look but uses a solid tint instead of blur
+   and holds the backdrop still. */
+html.lite .track { animation: none; }
+html.lite *, html.lite *::before, html.lite *::after { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+html.lite .glass { background: var(--bg); background: color-mix(in srgb, var(--bg) 86%, var(--text) 7%); }
+html.lite .glass::after { display: none; }
 /* fallback without View Transitions: everything cross-fades its colours */
 html.theme-fade, html.theme-fade *, html.theme-fade *::before, html.theme-fade *::after {
   transition: background-color 0.6s var(--out), color 0.6s var(--out), border-color 0.6s var(--out),
@@ -367,12 +376,12 @@ html.theme-fade, html.theme-fade *, html.theme-fade *::before, html.theme-fade *
 /* ── motion ───────────────────────────────────────────────────────────── */
 .reveal { animation: rise 0.6s var(--out) backwards; }
 .d1 { animation-delay: 40ms; } .d2 { animation-delay: 80ms; } .d3 { animation-delay: 120ms; } .d4 { animation-delay: 160ms; } .d5 { animation-delay: 200ms; }
-@keyframes rise { from { opacity: 0; transform: translateY(10px); filter: blur(8px); } }
-@keyframes pop-in { from { opacity: 0; transform: translateY(8px); filter: blur(6px); } }
-@keyframes pop-out { to { opacity: 0; transform: scale(0.97); filter: blur(5px); } }
-@keyframes card-rise { from { opacity: 0; transform: translateY(18px) scale(0.97); filter: blur(6px); } }
-@keyframes toast-in { from { opacity: 0; transform: translateY(18px) scale(0.94); filter: blur(10px); } }
-@keyframes toast-out { to { opacity: 0; transform: translateY(12px) scale(0.96); filter: blur(6px); } }
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } }
+@keyframes pop-in { from { opacity: 0; transform: translateY(8px); } }
+@keyframes pop-out { to { opacity: 0; transform: scale(0.97); } }
+@keyframes card-rise { from { opacity: 0; transform: translateY(18px) scale(0.97); } }
+@keyframes toast-in { from { opacity: 0; transform: translateY(18px) scale(0.94); } }
+@keyframes toast-out { to { opacity: 0; transform: translateY(12px) scale(0.96); } }
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes sweep { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
 
@@ -838,25 +847,60 @@ footer a { color: var(--text-2); text-underline-offset: 3px; }
   // ── pointer sheen on glass (mouse only, one update per frame) ──────────
   function bindSheen() {
     if (!window.matchMedia || !matchMedia('(hover: hover) and (pointer: fine)').matches) return;
-    var px = 0, py = 0, pending = false;
+    var px = 0, py = 0, target = null, lit = null, pending = false;
     window.addEventListener('pointermove', function (e) {
       if (e.pointerType !== 'mouse') return;
       px = e.clientX; py = e.clientY;
+      target = e.target && e.target.closest ? e.target.closest('.glass') : null;
       if (pending) return;
       pending = true;
       requestAnimationFrame(function () {
         pending = false;
-        doc.querySelectorAll('.glass').forEach(function (g) {
+        var g = doc.documentElement.classList.contains('lite') ? null : target;
+        if (lit && lit !== g) lit.style.setProperty('--sheen', '0');
+        if (g) {
           var r = g.getBoundingClientRect();
-          var near = px > r.left - 60 && px < r.right + 60 && py > r.top - 60 && py < r.bottom + 60;
-          if (near) {
-            g.style.setProperty('--mx', (px - r.left) + 'px');
-            g.style.setProperty('--my', (py - r.top) + 'px');
-          }
-          if ((g.style.getPropertyValue('--sheen') === '1') !== near) g.style.setProperty('--sheen', near ? '1' : '0');
-        });
+          g.style.setProperty('--mx', (px - r.left) + 'px');
+          g.style.setProperty('--my', (py - r.top) + 'px');
+          if (lit !== g) g.style.setProperty('--sheen', '1');
+        }
+        lit = g;
       });
     }, { passive: true });
+  }
+
+  // ── lite mode for weaker devices ───────────────────────────────────────
+  // Device hints (2 GB of memory or less, 2 cores or fewer, Data Saver)
+  // switch it on at once; otherwise a 2 s frame-time check after the page
+  // settles does (median frame over 24 ms = under ~42 fps). The result is
+  // remembered on the device for 7 days.
+  var PERF_KEY = 'inpriv_perf';
+  function setLite(on) {
+    doc.documentElement.classList.toggle('lite', !!on);
+    try { localStorage.setItem(PERF_KEY, JSON.stringify({ lite: !!on, until: Date.now() + 7 * 864e5 })); } catch (e) {}
+  }
+  function detectLite() {
+    var saved = null;
+    try { saved = JSON.parse(localStorage.getItem(PERF_KEY) || 'null'); } catch (e) {}
+    if (saved && saved.until > Date.now()) { doc.documentElement.classList.toggle('lite', !!saved.lite); return; }
+    var n = navigator, c = n.connection || {};
+    if ((n.deviceMemory && n.deviceMemory <= 2) || (n.hardwareConcurrency && n.hardwareConcurrency <= 2) || c.saveData === true) {
+      setLite(true);
+      return;
+    }
+    setTimeout(function () {
+      if (doc.hidden) return;
+      var times = [], last = 0, end = 0;
+      requestAnimationFrame(function tick(now) {
+        if (last) times.push(now - last);
+        last = now;
+        if (!end) end = now + 2000;
+        if (now < end && !doc.hidden) { requestAnimationFrame(tick); return; }
+        if (times.length < 20) return; // tab hidden or throttled: no verdict
+        times.sort(function (a, b) { return a - b; });
+        setLite(times[times.length >> 1] > 24);
+      });
+    }, 2500);
   }
 
   // ── liquid pill ────────────────────────────────────────────────────────
@@ -1140,6 +1184,7 @@ footer a { color: var(--text-2); text-underline-offset: 3px; }
   };
 
   function boot() {
+    detectLite();
     injectSprite();
     hydrateIcons(doc);
     fillTicker();
