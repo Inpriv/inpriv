@@ -1,5 +1,6 @@
 // ── Inpriv Admin — private control plane ────────────────────────────────────
-// admin.inpriv.xyz — TOTP login (single user: saloyek), service kill-switches,
+// admin.inpriv.xyz — TOTP login (one admin, username in the ADMIN_USER
+// secret), service kill-switches,
 // global info banner, rate limiting, audit log. All state in the inpriv-id
 // D1 database (ID_DB), table admin_kv (k → JSON v, optional expiry):
 //   state                → { global, info, services, audit }  (one read/write)
@@ -10,64 +11,17 @@
 // still empty.
 // Public read-only (used by tool workers, cached 2s on the edge):
 //   GET /public/state → { global, info, services, ts }
-// Hourly cron sweeps expired sessions and stale rate-limit files.
 
 import { kvGet as driveGet } from "../../../common/drive.js";
 
 // ── config ───────────────────────────────────────────────────────────────────
-const SERVICES = [
-  "landing",
-  "temp",
-  "mail",
-  "burn",
-  "qr",
-  "stego",
-  "brute",
-  "compress",
-  "trace",
-  "hash",
-  "keyring",
-  "pay",
-  "totp",
-  "wipe",
-  "censor",
-  "account",
-  "host",
-  "fake",
-  "share",
-  "labs",
-  "status",
-  "amber",
-  "check",
-  "air",
-  "null",
-];
+// The services that check this panel's kill-switches (common/gate.js ids).
+const SERVICES = ["landing", "mail", "temp", "account"];
 const SERVICES_META = {
-  landing:  { name: "Landing (inpriv.xyz)", url: "https://inpriv.xyz", icon: "home" },
-  temp:     { name: "Temp Mail", url: "https://temp.inpriv.xyz", icon: "mark_email_unread" },
-  mail:     { name: "Mail", url: "https://mail.inpriv.xyz", icon: "mail_lock" },
-  burn:     { name: "Burn Messages", url: "https://burn.inpriv.xyz", icon: "local_fire_department" },
-  qr:       { name: "Private QR", url: "https://qr.inpriv.xyz", icon: "qr_code_2" },
-  stego:    { name: "Steganography", url: "https://stego.inpriv.xyz", icon: "visibility_off" },
-  brute:    { name: "Brute / Password", url: "https://brute.inpriv.xyz", icon: "shield" },
-  compress: { name: "Compress", url: "https://compress.inpriv.xyz", icon: "folder_zip" },
-  trace:    { name: "Trace (IP · DNS · WebRTC)", url: "https://trace.inpriv.xyz", icon: "travel_explore" },
-  hash:     { name: "Hash & Checksum", url: "https://hash.inpriv.xyz", icon: "tag" },
-  keyring:  { name: "Keyring", url: "https://keyring.inpriv.xyz", icon: "vpn_key" },
-  pay:      { name: "Crypto Pay", url: "https://pay.inpriv.xyz", icon: "payments" },
-  totp:      { name: "TOTP / 2FA", url: "https://totp.inpriv.xyz", icon: "pin" },
-  wipe:     { name: "Metadata Wipe", url: "https://wipe.inpriv.xyz", icon: "auto_fix_high" },
-  censor:   { name: "Censor (screenshot redactor)", url: "https://censor.inpriv.xyz", icon: "privacy_tip" },
-  account:  { name: "Inpriv ID (accounts)", url: "https://id.inpriv.xyz", icon: "badge" },
-  host:     { name: "Host (static files)", url: "https://host.inpriv.xyz", icon: "cloud_upload" },
-  fake:     { name: "Fake (disposable identities)", url: "https://fake.inpriv.xyz", icon: "theater_comedy" },
-  share:    { name: "Share (P2P files)", url: "https://share.inpriv.xyz", icon: "swap_horiz" },
-  labs:     { name: "Labs (experiments)", url: "https://labs.inpriv.xyz", icon: "science" },
-  status:   { name: "Status (service health)", url: "https://status.inpriv.xyz", icon: "monitor_heart" },
-  amber:    { name: "Amber (web archive)", url: "https://amber.inpriv.xyz", icon: "history_edu" },
-  check:    { name: "Check (code security)", url: "https://check.inpriv.xyz", icon: "fact_check" },
-  air:      { name: "air (Wi-Fi auditor)", url: "https://air.inpriv.xyz", icon: "wifi_tethering" },
-  null:     { name: "null (puzzle game)", url: "https://null.inpriv.xyz", icon: "extension_off" },
+  landing: { name: "Landing (inpriv.xyz)", url: "https://inpriv.xyz", icon: "home" },
+  mail:    { name: "Mail", url: "https://mail.inpriv.xyz", icon: "mail_lock" },
+  temp:    { name: "Temp Mail", url: "https://temp.inpriv.xyz", icon: "mark_email_unread" },
+  account: { name: "Inpriv ID (accounts)", url: "https://id.inpriv.xyz", icon: "badge" },
 };
 const SESSION_TTL = 7 * 24 * 3600; // seconds
 const COOKIE = "inpriv_admin";
@@ -98,27 +52,11 @@ export default {
       if (path === "/public/state") return await publicState(env, cors, request);
       if (path === "/api/login" && method === "POST") return await login(request, env, cors, waitUntil);
 
-      // cross-service sweep trigger (shared secret, called from dashboard or scripts)
+      // expired-row sweep trigger (shared secret, for scripts)
       if (path === "/api/sweep" && method === "POST") {
         const h = request.headers.get("X-Sweep-Secret") || "";
         if (!env.SWEEP_SECRET || h !== env.SWEEP_SECRET) return json({ error: "unauthorized" }, 401, cors);
-        const own = await sweepOwn(env);
-        const targets = [
-          "https://burn.inpriv.xyz/api/sweep",
-          "https://share.inpriv.xyz/api/sweep",
-          "https://status.inpriv.xyz/api/sweep",
-        ];
-        const results = {};
-        for (const t of targets) {
-          const key = t.replace("https://", "").split(".")[0];
-          try {
-            const res = await fetch(t, { method: "POST", headers: { "X-Sweep-Secret": env.SWEEP_SECRET } });
-            results[key] = res.ok ? await res.json() : { error: res.status };
-          } catch (e) {
-            results[key] = { error: String(e?.message || e) };
-          }
-        }
-        return json({ ok: true, admin: { removed: own }, ...results }, 200, cors);
+        return json({ ok: true, admin: { removed: await sweepOwn(env) } }, 200, cors);
       }
 
       const sess = await authed(request, env);
@@ -142,25 +80,10 @@ export default {
     }
   },
 
-  // No cron slot on the Free plan — own sweep runs lazily on authed requests.
+  // No cron slot on the Free plan — the sweep runs lazily on authed requests.
   // The scheduled handler stays for when a slot frees up.
   async scheduled(controller, env, ctx) {
     await sweepOwn(env);
-    const secret = env.SWEEP_SECRET || "";
-    if (!secret) return;
-    const targets = [
-      "https://burn.inpriv.xyz/api/sweep",
-      "https://share.inpriv.xyz/api/sweep",
-      "https://status.inpriv.xyz/api/sweep",
-    ];
-    for (const t of targets) {
-      try {
-        const res = await fetch(t, { method: "POST", headers: { "X-Sweep-Secret": secret } });
-        console.log("sweep →", t, res.status);
-      } catch (e) {
-        console.log("sweep failed →", t, String(e?.message || e));
-      }
-    }
   },
 };
 
@@ -314,7 +237,7 @@ async function login(request, env, cors, waitUntil) {
   const code = String(body.code || "").replace(/\s/g, "");
 
   let failReason = null;
-  if (user !== "saloyek" || !/^\d{6}$/.test(code)) failReason = "invalid_credentials";
+  if (!env.ADMIN_USER || user !== env.ADMIN_USER || !/^\d{6}$/.test(code)) failReason = "invalid_credentials";
   else if (!(await verifyTOTP(code, env.TOTP_SECRET, now))) failReason = "invalid_code";
 
   if (failReason) {

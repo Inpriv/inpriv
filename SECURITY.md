@@ -1,65 +1,68 @@
 # Security Policy
 
-## Reporting a Vulnerability
+## Reporting a vulnerability
 
-Inpriv is a privacy-first project — we take security reports seriously.
+**Please don't open a public GitHub issue for security problems.**
 
-**Do NOT open a public GitHub issue for security vulnerabilities.**
+Email **security@inpriv.xyz** with:
 
-Instead, please report privately:
+- what you found and where (service, endpoint or file),
+- steps to reproduce,
+- the impact you expect,
+- a suggested fix, if you have one.
 
-1. **Email:** security@inpriv.xyz
-2. **Subject:** `[SECURITY] Inpriv — <brief description>`
-3. Include: description, steps to reproduce, impact assessment, and suggested fix (if any).
-
-### Response Timeline
+If your report contains something sensitive, say so in the first message and we'll agree on how to exchange it.
 
 | Stage | Target |
-|-------|--------|
-| Acknowledgement | Within 48 hours |
-| Initial assessment | Within 5 business days |
-| Fix or mitigation | Within 30 days (severity-dependent) |
-| Public disclosure | After fix is released, coordinated with reporter |
+|---|---|
+| Acknowledgement | within 72 hours |
+| First assessment | within 7 days |
+| Fix or mitigation | depends on severity; critical issues first |
+| Public disclosure | after the fix ships, coordinated with you |
 
-## Security Model
+We don't run a paid bug bounty. We're happy to credit you in the fix's release notes unless you'd rather stay anonymous.
 
-Inpriv tools are designed around **zero-knowledge architecture**:
+### Safe harbour
 
-- **Client-side only** — all cryptographic operations happen in your browser via the Web Crypto API
-- **No servers processing your data** — static HTML/JS served from Cloudflare's edge
-- **No telemetry, analytics, or tracking** — verified by design, not by promise
-- **No accounts or databases** (except Hush signaling and Burn ephemeral notes, which store only encrypted blobs)
+We won't take action against research that:
 
-### Cryptographic Primitives
+- only uses accounts you own or test accounts you created,
+- doesn't read, change or delete other people's data,
+- doesn't degrade the service for others (no load testing, spam or social engineering of users or staff),
+- gives us reasonable time to fix the problem before you publish.
+
+## Scope
+
+In scope: `inpriv.xyz`, `mail.inpriv.xyz`, `temp.inpriv.xyz`, `id.inpriv.xyz`, `admin.inpriv.xyz` and the code in this repository.
+
+Out of scope: third-party services we rely on (Cloudflare, Resend), missing security headers without a demonstrated impact, self-XSS, and reports from automated scanners without a working proof of concept.
+
+## How Inpriv is built
+
+All services run as Cloudflare Workers with Cloudflare D1 databases. The full description of what is stored, and what isn't, is in the [Privacy Policy](https://inpriv.xyz/privacy).
+
+| Service | What the server can read | What it can't read |
+|---|---|---|
+| **Mail**, Inpriv → Inpriv | sender, recipient, subject, time, size | the message body (encrypted in the sender's browser) |
+| **Mail**, from outside | the message while it's received; it's then stored encrypted to your key | the stored body afterwards |
+| **Mail**, to outside | the message while it's handed to the mail relay | — (regular email is not end-to-end encrypted) |
+| **Temp** | everything in the inbox (not end-to-end encrypted, deleted after 24 h) | — |
+| **Inpriv ID** | username, recovery email, sign-in records | your password (only a salted hash is stored) |
+
+### Cryptography
 
 | Purpose | Algorithm |
-|---------|-----------|
-| Key exchange | X25519 (ECDH) |
-| Symmetric encryption | AES-256-GCM |
-| Key derivation | HKDF-SHA-256, PBKDF2 (100k iterations) |
-| Wallet key derivation | BIP39 → BIP44 (Ed25519) |
-| Wallet encryption | AES-256-GCM + Argon2id |
-| Randomness | `crypto.getRandomValues()` / `crypto.subtle.generateKey()` |
+|---|---|
+| Mailbox key pair | RSA-OAEP 2048, SHA-256 |
+| Message encryption | AES-256-GCM, a fresh key per message |
+| Private-key protection | AES-256-GCM with a key from PBKDF2-SHA-256 (300,000 iterations) of your password |
+| Password storage | chained PBKDF2-SHA-256 (300,000 iterations), 16-byte random salt |
+| Two-factor | TOTP (RFC 6238), secret sealed with AES-256-GCM at rest |
+| Sessions | random 32-byte tokens, stored as SHA-256 hashes |
+| Randomness | `crypto.getRandomValues()` / Web Crypto |
 
-### Modules with Server Components
+Your private key and the password-derived key never leave your browser. "Skip master password" stores the mailbox key wrapped with a key that exists only on that device.
 
-| Module | What the server sees | What it never sees |
-|--------|---------------------|-------------------|
-| **Hush** (E2E chat) | Encrypted message routing, signaling | Plaintext, keys, metadata content |
-| **Burn** (ephemeral notes) | Encrypted note blobs (auto-deleted) | Plaintext, encryption keys |
-| **OSINT** (intelligence engine) | Query routing via SearXNG | Personal data about the user |
+## Dependencies
 
-## Dependency Policy
-
-- Minimize external dependencies — prefer vanilla browser APIs
-- All dependencies are pinned in lockfiles
-- Python backends use pinned versions in `requirements.txt`
-- No CDN-loaded scripts at runtime (self-hosted fonts and assets only)
-
-## Disclosure Credits
-
-We credit security researchers who report valid vulnerabilities (unless they prefer to remain anonymous).
-
----
-
-*Built with paranoia. © 2026 Inpriv Labs.*
+The pages and Workers use no frameworks and load no third-party scripts at runtime. The only build tool is `wrangler` (pinned in the deploy workflow).
