@@ -344,7 +344,14 @@ $("recoverySaveBtn").addEventListener("click", async () => {
     const out = await api("/api/recovery-email/set", { recovery_email: $("recoveryInput").value.trim() });
     user = out.user;
     renderProfile();
-    toast(user.recovery_email ? "Recovery email updated — send code to verify" : "Recovery email removed");
+    if (!user.recovery_email) { toast("Recovery email removed"); return; }
+    // send the verification code straight away
+    try {
+      await api("/api/verify/send", {});
+      toast(`Code sent to ${user.recovery_email} — enter it below`);
+    } catch (ex2) {
+      toast(`Saved, but the code wasn't sent: ${ex2.message}`, false);
+    }
   } catch (ex) {
     toast(ex.message, false);
   }
