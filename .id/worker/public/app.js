@@ -297,6 +297,7 @@ function renderProfile() {
 
   $("twoFAOffUI").hidden = user.totp_enabled;
   $("twoFAOnUI").hidden = !user.totp_enabled;
+  if (user.totp_enabled && !recoveryCodes.length) loadRecoveryInfo();
 
   // privacy switches
   setSwitch("swNick", vault.privacy.nick);
@@ -439,6 +440,7 @@ $("twoFAConfirmBtn").addEventListener("click", async () => {
     renderCodes();
     $("twoFASetupUI").hidden = true;
     $("codesBox").hidden = false;
+    loadRecoveryInfo();
     toast("2FA enabled — save your recovery codes");
   } catch (ex) {
     toast(ex.message, false);
@@ -456,10 +458,29 @@ function renderCodes() {
   });
 }
 
+// Codes are stored hashed: they can only be shown right after they're made.
+async function loadRecoveryInfo() {
+  try {
+    const r = await api("/api/2fa/recovery", null, "GET");
+    $("recoveryInfo").textContent = `${r.remaining} of 10 left · shown only once`;
+  } catch { /* keep the default text */ }
+}
 $("showCodesBtn").addEventListener("click", () => {
-  $("codesBox").hidden = !$("codesBox").hidden;
-  if (!$("codesBox").hidden && !recoveryCodes.length) {
-    toast("Recovery codes were shown once at setup", false);
+  $("newCodesUI").hidden = !$("newCodesUI").hidden;
+  if (!$("newCodesUI").hidden) $("newCodesPw").focus();
+});
+$("newCodesConfirm").addEventListener("click", async () => {
+  try {
+    const out = await api("/api/2fa/recovery/new", { password: $("newCodesPw").value });
+    recoveryCodes = out.recovery_codes || [];
+    $("newCodesPw").value = "";
+    $("newCodesUI").hidden = true;
+    renderCodes();
+    $("codesBox").hidden = false;
+    loadRecoveryInfo();
+    toast("New recovery codes — save them now");
+  } catch (ex) {
+    toast(ex.message, false);
   }
 });
 
@@ -477,6 +498,7 @@ $("twoFADisableConfirm").addEventListener("click", async () => {
     await api("/api/2fa/disable", { password: $("twoFAPw").value });
     user.totp_enabled = false;
     recoveryCodes = [];
+    $("codesBox").hidden = true;
     renderProfile();
     toast("2FA disabled");
   } catch (ex) {
