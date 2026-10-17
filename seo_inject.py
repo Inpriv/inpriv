@@ -9,26 +9,7 @@ BASE = os.path.dirname(os.path.abspath(__file__))
 SERVICES = {
     "id":       ("id.inpriv.xyz",       "id",       "index, follow", "SecurityApplication", "One private account for the whole Inpriv suite. Encrypted vault, @inpriv.xyz address, single sign-on."),
     "mail":     ("mail.inpriv.xyz",     "mail",     "index, follow", "SecurityApplication", "Zero-knowledge encrypted email. RSA-2048 + AES-GCM end-to-end, synchronized with Inpriv ID."),
-    "temp":     ("temp.inpriv.xyz",     "temp",     "index, follow", "SecurityApplication", "Disposable email on inpriv.xyz. Random inbox, instant receive, one-click shred. No signup, no logs."),
-    "fake":     ("fake.inpriv.xyz",     "fake",     "index, follow", "SecurityApplication", "Time-limited identities with burnable credentials. Private aliases that self-destruct."),
-    "host":     ("host.inpriv.xyz",     "host",     "index, follow", "SecurityApplication", "Private static hosting with a privacy shield. Guest uploads, custom links, link scanner."),
-    "share":    ("share.inpriv.xyz",    "share",    "index, follow", "SecurityApplication", "End-to-end encrypted peer-to-peer file transfer. Files never touch a server. No accounts, no size limits."),
-    "trace":    ("trace.inpriv.xyz",    "trace",    "index, follow", "SecurityApplication", "IP, DNS and WebRTC leak test. See exactly what your browser reveals. Runs fully client-side."),
-    "censor":   ("censor.inpriv.xyz",   "censor",   "index, follow", "SecurityApplication", "Screenshot redaction with on-device ML detection. Blur faces and text before you share."),
-    "burn":     ("burn.inpriv.xyz",     "burn",     "index, follow", "SecurityApplication", "Zero-knowledge ephemeral notes. AES-256-GCM encrypted in your browser. Read once, then gone."),
-    "qr":       ("qr.inpriv.xyz",       "qr",       "index, follow", "UtilitiesApplication", "Generate and read QR codes entirely in your browser. No uploads, no tracking."),
-    "wipe":     ("wipe.inpriv.xyz",     "wipe",     "index, follow", "SecurityApplication", "EXIF metadata inspector and sanitizer. Strip GPS and device data from images before sharing."),
-    "compress": ("compress.inpriv.xyz", "compress", "index, follow", "UtilitiesApplication", "Private image compression. Everything happens on your device - no server uploads."),
-    "hash":     ("hash.inpriv.xyz",     "hash",     "index, follow", "UtilitiesApplication", "Client-side checksum and digest tool. MD5, SHA-1, SHA-256 and more, computed locally."),
-    "keyring":  ("keyring.inpriv.xyz",  "keyring",  "index, follow", "SecurityApplication", "Zero-knowledge encrypted secret vault. Your keys and passwords, sealed in your browser."),
-    "brute":    ("brute.inpriv.xyz",    "brute",    "index, follow", "SecurityApplication", "Hash brute force matcher. Recover forgotten hashes locally, fully offline."),
-    "totp":     ("totp.inpriv.xyz",     "totp",     "index, follow", "SecurityApplication", "TOTP authenticator and 2FA codes. Secrets never leave your device."),
-    "pay":      ("pay.inpriv.xyz",      "pay",      "index, follow", "FinanceApplication", "Encrypted payment links. Share payment details without exposing them."),
-    "stego":    ("stego.inpriv.xyz",    "stego",    "index, follow", "SecurityApplication", "Hide secret messages inside ordinary images with LSB steganography. Invisible ink for the web."),
-    "status":   ("status.inpriv.xyz",   "status",   "noindex, nofollow", "WebApplication", "Live health and 7-day uptime of every Inpriv service."),
-    "amber":    ("amber.inpriv.xyz",    "amber",    "index, follow", "WebApplication", "Personal web archive. Capture any page, browse it by date and read it offline - snapshots stored on your own Google Drive."),
-    "labs":     ("labs.inpriv.xyz",     "labs",     "noindex, nofollow", "WebApplication", "Experiments and concepts from Inpriv Labs."),
-    "hush":     ("hush.best",           "hush",     "index, follow", "SecurityApplication", "End-to-end encrypted chat. No logs, no servers, no traces."),
+    "temp":     ("temp.inpriv.xyz",     "temp",     "index, follow", "SecurityApplication", "Disposable email on inpriv.xyz. Random inbox, instant receive, one-click shred. No signup."),
 }
 
 OG_IMG = "https://inpriv.xyz/og/{k}.png"

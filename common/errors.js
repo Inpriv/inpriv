@@ -127,7 +127,7 @@ export function serverErrorPage(serviceName, reason) {
     title: `Something went wrong — ${serviceName}`,
     heading: "Something went wrong",
     intro:
-      'That\'s on our side, not yours. Your data was not affected.<br>If it keeps happening, check <a href="https://status.inpriv.xyz">status.inpriv.xyz</a>.',
+      'That\'s on our side, not yours. Your data was not affected.<br>If it keeps happening, write to <a href="mailto:support@inpriv.xyz">support@inpriv.xyz</a>.',
     extra: reason,
     primary: RETRY,
   });

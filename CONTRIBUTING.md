@@ -1,124 +1,73 @@
 # Contributing to Inpriv
 
-First off — thank you for considering a contribution. Inpriv is built with care, and we hold every contribution to the same standard.
+Thanks for helping. Inpriv is small on purpose, and every change is held to the same rules.
 
----
+## Principles (non-negotiable)
 
-## Design Principles (Non-Negotiable)
+1. **Nothing phones home.** No analytics, telemetry, trackers, third-party fonts, CDNs or remote scripts. Everything a page needs is inlined or served by its own Worker.
+2. **Encryption happens in the browser.** Private keys and password-derived keys never reach a server. Don't add a code path that could.
+3. **Say what is stored.** If a change stores or logs anything new about users, update the [Privacy Policy](worker/public/privacy.html) in the same pull request.
+4. **No features that enable abuse:** no bulk sending, no hiding the sender of outgoing mail, nothing that helps someone get into accounts that aren't theirs.
 
-These principles define what Inpriv IS. Violating them means the PR will be rejected.
+## Layout
 
-1. **Zero-knowledge by design** — nothing may ever phone home. No analytics, no telemetry, no remote logging. If your change sends user data to a server, it doesn't belong here.
-2. **Client-side first** — all processing happens in the browser. Server components exist only for encrypted relay (Hush), ephemeral encrypted storage (Burn), or query routing (OSINT).
-3. **No malicious features** — modules that enable unauthorized access, surveillance, or harm to users will be rejected.
-4. **Privacy is not optional** — privacy features cannot be "opt-in." They are the default and the only option.
+```
+inpriv/
+├── index.html            landing page source → copied to worker/public/index.html
+├── worker/               Worker "inpriv": inpriv.xyz, legal pages, sitemap, robots
+├── .mail/                Inpriv Mail: page (index.html) + Worker (worker/)
+├── .temp/                Inpriv Temp: page + Worker
+├── .id/                  Inpriv ID: Worker; its page is worker/public/
+├── .admin/               admin.inpriv.xyz: kill-switches, team mailboxes, records
+└── common/               shared by every Worker: gate, error pages, UI core
+```
 
----
+Folders starting with a dot are ordinary project folders.
 
-## Design System
+## Design
 
-Every page uses the shared core in [`common/ui/`](common/ui/): ink-and-paper colours with one warm accent, liquid glass over faint drifting text, system fonts, inline SVG icons and spring motion. Components use tokens only (`--bg`, `--text`, `--text-2`, `--text-3`, `--fill*`, `--well`, `--hairline`, `--accent`, `--danger`); dark is the default and light follows the system.
+Every page inlines the shared UI core from `common/ui/` (`inpriv-ui.css`, `inpriv-ui.js`): ink-and-paper colours with one warm accent, glass panels, system fonts, inline SVG icons and spring motion. Use the tokens (`--bg`, `--text`, `--text-2`, `--text-3`, `--fill*`, `--well`, `--hairline`, `--accent`, `--danger`). Dark is the default; light follows the system.
 
 | Token | Dark | Light |
-|-------|------|-------|
+|---|---|---|
 | `--bg` | `#0c0c0b` | `#ebe9e4` |
 | `--text` | `#f2f1ed` | `#141412` |
 | `--accent` | `#ff6a2b` | `#e4511b` |
 
 Use the accent for one thing per screen at most. Respect `prefers-reduced-motion`, keep focus visible, and keep inputs at 16px so iOS doesn't zoom.
 
-After changing the core or a page source, run `node common/ui/sync.mjs`.
+Edit the **source** page (`index.html`, `.mail/index.html`, `.temp/index.html`), never the served copy. `node common/ui/sync.mjs` refreshes the UI core in every page and copies each source page to the folder its Worker serves; commit the files it writes.
 
----
-
-## How to Contribute
-
-### 1. Open an issue first
-
-For anything beyond a typo fix, open an issue describing what you want to build/change. We'll discuss the approach before you write code.
-
-### 2. Fork & branch
+## Running locally
 
 ```bash
-git clone https://github.com/salo-yek/inpriv.git
-cd inpriv
-git checkout -b feat/your-feature-name
+cd .mail/worker
+npx wrangler d1 execute inpriv-mail --local --file ../schema.sql
+npx wrangler d1 execute inpriv-id   --local --file ../../.id/schema.sql
+npx wrangler dev
 ```
 
-### 3. Build & test locally
+Put local-only secrets in `.dev.vars` (gitignored), for example `ID_ENC_KEY=<32 random characters>`. Never use production data or keys for local testing.
 
-```bash
-# Serve the suite locally
-python -m http.server 8080
+## Pull requests
 
-# Or run a specific micro-service backend
-cd .hush && python server.py
-```
+1. For anything bigger than a small fix, open an issue first so we can agree on the approach.
+2. Branch from `main`, keep the change focused, and match the style around it: vanilla HTML/CSS/JS, no frameworks, no build step.
+3. Test it: `node --check` your Worker, run it with `wrangler dev`, and for login, 2FA, password or key changes describe what you tested before and after.
+4. Fill in the pull request template.
 
-### 4. Code style
+Merging to `main` deploys the changed Workers automatically (`.github/workflows/deploy-workers.yml`).
 
-- **HTML/CSS/JS** — vanilla, no build step required (except `.zero` which uses esbuild)
-- **Python** — PEP 8, type hints where practical
-- **Rust** — `cargo fmt`, `cargo clippy`
-- **No inline event handlers** — use `addEventListener`
-- **CSP-compliant** — no `eval()`, no inline scripts, no `unsafe-inline`
+### Checklist
 
-### 5. Commit format
-
-```
-<type>(<scope>): <description>
-
-feat(totp): add QR code import
-fix(hush): handle WebSocket reconnect on mobile
-docs(readme): update live tools list
-chore(gitignore): add .venv pattern
-```
-
-Types: `feat`, `fix`, `docs`, `chore`, `refactor`, `security`
-
-### 6. Security checklist
-
-Before opening a PR, verify:
-
-- [ ] No secrets, API keys, or credentials in the diff
-- [ ] No `console.log` with sensitive data
-- [ ] No external CDN dependencies added
-- [ ] No `eval()`, `innerHTML` with user input, or `document.write()`
-- [ ] New dependencies are pinned and necessary
-- [ ] `.env.example` updated if new env vars are needed
-
-### 7. Submit
-
-Open a PR against `main`. Include:
-
-- Summary of changes
-- Which micro-service(s) affected
-- Security implications (if any)
-- Screenshots (if UI changes)
-
----
-
-## Layout
-
-Each app lives in its own directory prefixed with `.`, with its page and its Cloudflare Worker:
-
-```
-.temp/
-├── index.html          # page source
-└── worker/
-    ├── public/         # what the Worker serves (index.html is a synced copy)
-    ├── src/index.js    # Worker entry
-    └── wrangler.toml
-```
-
-Preview a Worker without touching production: copy `wrangler.toml`, remove the `routes` block (and `[triggers]`), set `workers_dev = true` in the copy, then `npx wrangler deploy -c <that file> --name inpriv-<app>-preview`. Production Workers answer only on their inpriv.xyz domains. Delete the preview when you're done, and don't paste its workers.dev address anywhere public.
-
----
+- [ ] No secrets, keys or personal data in the diff
+- [ ] No new third-party requests
+- [ ] No `eval()`, and no `innerHTML` with unescaped user input
+- [ ] Privacy Policy updated if anything new is stored or logged
+- [ ] Tested locally
 
 ## License
 
-By contributing, you agree your contributions are licensed under the MIT License.
+By contributing, you agree that your contributions are licensed under the [MIT License](LICENSE).
 
----
-
-*Questions? Open an issue or reach the team at hello@inpriv.xyz.*
+Questions: open an issue, or write to support@inpriv.xyz. Security problems go to security@inpriv.xyz — see [SECURITY.md](SECURITY.md).
