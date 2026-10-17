@@ -74,6 +74,7 @@ export default {
       if (path === "/api/audit") return await getAudit(env, cors);
       if (path === "/api/records" && method === "GET") return await records(url, env, cors);
       if (path.startsWith("/api/team")) return await team(request, url, env, cors);
+      if (path === "/api/temp" || path.startsWith("/api/temp/")) return await temp(request, url, env, cors);
 
       if (path === "/" || path === "/index.html") return dashboard();
       return json({ error: "not found" }, 404, cors);
@@ -541,4 +542,67 @@ async function team(request, url, env, cors) {
   } catch (e) {
     return json({ error: String(e?.message || e) }, 400, cors);
   }
+}
+
+// ── Temp inboxes ─────────────────────────────────────────────────────────────
+// Live overview of temp.inpriv.xyz: active inboxes and message metadata (no
+// bodies, same as Records). Deleting an inbox removes it and its messages
+// right away; the Temp page then gets a 401 and starts a new inbox. Opening
+// and deleting an inbox go to the audit log.
+const TEMP_LIST_LIMIT = 200;
+const likeEsc = (v) => v.replace(/[\\%_]/g, (c) => "\\" + c);
+
+async function temp(request, url, env, cors) {
+  if (!env.TEMP_DB) return json({ error: "Temp isn't connected" }, 503, cors);
+  const path = url.pathname, method = request.method, now = Date.now(), day = now - 86400000;
+
+  if (path === "/api/temp" && method === "GET") {
+    const q = String(url.searchParams.get("q") || "").trim().toLowerCase().slice(0, 120);
+    const n = async (db, sql, ...a) => ((await row(db, sql, ...a)) || {}).n || 0;
+    const [active, messages, received, created] = await Promise.all([
+      n(env.TEMP_DB, "SELECT COUNT(*) AS n FROM mailboxes WHERE expires_at > ?", now),
+      n(env.TEMP_DB, "SELECT COUNT(*) AS n FROM messages"),
+      n(env.TEMP_DB, "SELECT COUNT(*) AS n FROM messages WHERE received_at > ?", day),
+      n(env.ID_DB, "SELECT COUNT(*) AS n FROM access_log WHERE service = 'temp' AND event = 'inbox_created' AND at > ?", day),
+    ]);
+    const inboxes = await rows(env.TEMP_DB,
+      `SELECT m.address, m.created_at, m.expires_at, COUNT(x.id) AS messages, MAX(x.received_at) AS last_at
+         FROM mailboxes m LEFT JOIN messages x ON x.mailbox = m.address
+        WHERE m.expires_at > ? AND m.address LIKE ? ESCAPE '\\'
+        GROUP BY m.address ORDER BY m.created_at DESC LIMIT ?`,
+      now, `%${likeEsc(q)}%`, TEMP_LIST_LIMIT);
+    return json({ stats: { active, messages, received_24h: received, created_24h: created }, inboxes, limit: TEMP_LIST_LIMIT }, 200, cors);
+  }
+
+  if (path === "/api/temp/inbox" && method === "GET") {
+    const address = String(url.searchParams.get("address") || "").trim().toLowerCase();
+    const inbox = await row(env.TEMP_DB, "SELECT address, created_at, expires_at FROM mailboxes WHERE address = ?", address);
+    if (!inbox) return json({ error: "This inbox is gone (expired or deleted)" }, 404, cors);
+    const [messages, created_from] = await Promise.all([
+      rows(env.TEMP_DB,
+        "SELECT received_at, from_addr, from_name, subject, att_count, size FROM messages WHERE mailbox = ? ORDER BY received_at DESC LIMIT ?",
+        address, RECORD_LIMIT),
+      row(env.ID_DB,
+        "SELECT ip, country, asn, ua FROM access_log WHERE service = 'temp' AND event = 'inbox_created' AND account = ? ORDER BY at DESC LIMIT 1",
+        address),
+    ]);
+    await audit(env, "temp_view", { message: address });
+    return json({ inbox, messages, created_from }, 200, cors);
+  }
+
+  if (path === "/api/temp/delete" && method === "POST") {
+    const b = await request.json().catch(() => ({}));
+    const address = String(b.address || "").trim().toLowerCase();
+    if (!/^[a-z0-9._-]+@inpriv\.xyz$/.test(address)) return json({ error: "not a Temp address" }, 400, cors);
+    const out = await env.TEMP_DB.batch([
+      env.TEMP_DB.prepare("DELETE FROM messages WHERE mailbox = ?").bind(address),
+      env.TEMP_DB.prepare("DELETE FROM sends WHERE mailbox = ?").bind(address),
+      env.TEMP_DB.prepare("DELETE FROM mailboxes WHERE address = ?").bind(address),
+    ]);
+    const removed = out[2]?.meta?.changes || 0;
+    if (!removed) return json({ error: "This inbox is gone (expired or deleted)" }, 404, cors);
+    await audit(env, "temp_delete", { message: `${address} (${out[0]?.meta?.changes || 0} messages)` });
+    return json({ ok: true }, 200, cors);
+  }
+  return json({ error: "not found" }, 404, cors);
 }
