@@ -239,16 +239,24 @@ export const emailShell = (title, body, preheader = "") =>
   `@media (prefers-color-scheme: light){` +
   `.ip-bg{background:#ebe9e4!important}.ip-card{background:#ffffff!important;border-color:#dcd9d2!important}` +
   `.ip-t1{color:#141412!important}.ip-t2{color:#55534d!important}.ip-t3{color:#8a877f!important}` +
-  `.ip-code{background:#f2f0eb!important;color:#141412!important;border-color:#dcd9d2!important}}` +
+  `.ip-code{background:#f2f0eb!important;color:#141412!important;border-color:#dcd9d2!important}` +
+  `.ip-up{border-bottom-color:#141412!important}.ip-dn{border-top-color:#141412!important}}` +
   `</style></head>` +
   `<body class="ip-bg" style="margin:0;padding:0;background:#0c0c0b">` +
   (preheader ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0">${esc(preheader)}</div>` : "") +
   `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="ip-bg" style="background:#0c0c0b">` +
   `<tr><td align="center" style="padding:40px 16px">` +
   `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:460px">` +
-  // wordmark: the Inpriv mark (two stacked triangles) + name
-  `<tr><td class="ip-t1" style="padding:0 6px 18px;color:#f2f1ed;font:700 19px/1 ${EMAIL_FONT};letter-spacing:-0.3px">` +
-  `<span style="display:inline-block;vertical-align:-3px;width:14px;margin-right:7px;font-size:9px;line-height:9px;text-align:center">&#9650;<br>&#9660;</span>Inpriv</td></tr>` +
+  // wordmark: the Inpriv mark (two stacked triangles, same proportions as the
+  // site's SVG logo) + name. Drawn with CSS borders because mail apps drop SVG
+  // and text glyphs like ▲▼ come out as a small sort arrow.
+  `<tr><td style="padding:0 6px 18px"><table role="presentation" cellpadding="0" cellspacing="0"><tr>` +
+  `<td style="padding-right:9px;vertical-align:middle">` +
+  `<div class="ip-up" style="width:0;height:0;font-size:0;line-height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:9px solid #f2f1ed"></div>` +
+  `<div style="height:1px;font-size:0;line-height:0"></div>` +
+  `<div class="ip-dn" style="width:0;height:0;font-size:0;line-height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:9px solid #f2f1ed"></div></td>` +
+  `<td class="ip-t1" style="vertical-align:middle;color:#f2f1ed;font:700 19px/1 ${EMAIL_FONT};letter-spacing:-0.3px">Inpriv</td>` +
+  `</tr></table></td></tr>` +
   `<tr><td class="ip-card" style="background:#171716;border:1px solid #2a2a27;border-radius:24px;padding:30px 28px">` +
   `<h1 class="ip-t1" style="margin:0 0 10px;color:#f2f1ed;font:700 22px/1.25 ${EMAIL_FONT};letter-spacing:-0.4px">${esc(title)}</h1>` +
   `<div class="ip-t2" style="color:#a8a69f;font:400 15px/1.6 ${EMAIL_FONT}">${body}</div>` +
