@@ -204,25 +204,60 @@
   // ── pointer sheen on glass (mouse only, one update per frame) ──────────
   function bindSheen() {
     if (!window.matchMedia || !matchMedia('(hover: hover) and (pointer: fine)').matches) return;
-    var px = 0, py = 0, pending = false;
+    var px = 0, py = 0, target = null, lit = null, pending = false;
     window.addEventListener('pointermove', function (e) {
       if (e.pointerType !== 'mouse') return;
       px = e.clientX; py = e.clientY;
+      target = e.target && e.target.closest ? e.target.closest('.glass') : null;
       if (pending) return;
       pending = true;
       requestAnimationFrame(function () {
         pending = false;
-        doc.querySelectorAll('.glass').forEach(function (g) {
+        var g = doc.documentElement.classList.contains('lite') ? null : target;
+        if (lit && lit !== g) lit.style.setProperty('--sheen', '0');
+        if (g) {
           var r = g.getBoundingClientRect();
-          var near = px > r.left - 60 && px < r.right + 60 && py > r.top - 60 && py < r.bottom + 60;
-          if (near) {
-            g.style.setProperty('--mx', (px - r.left) + 'px');
-            g.style.setProperty('--my', (py - r.top) + 'px');
-          }
-          if ((g.style.getPropertyValue('--sheen') === '1') !== near) g.style.setProperty('--sheen', near ? '1' : '0');
-        });
+          g.style.setProperty('--mx', (px - r.left) + 'px');
+          g.style.setProperty('--my', (py - r.top) + 'px');
+          if (lit !== g) g.style.setProperty('--sheen', '1');
+        }
+        lit = g;
       });
     }, { passive: true });
+  }
+
+  // ── lite mode for weaker devices ───────────────────────────────────────
+  // Device hints (2 GB of memory or less, 2 cores or fewer, Data Saver)
+  // switch it on at once; otherwise a 2 s frame-time check after the page
+  // settles does (median frame over 24 ms = under ~42 fps). The result is
+  // remembered on the device for 7 days.
+  var PERF_KEY = 'inpriv_perf';
+  function setLite(on) {
+    doc.documentElement.classList.toggle('lite', !!on);
+    try { localStorage.setItem(PERF_KEY, JSON.stringify({ lite: !!on, until: Date.now() + 7 * 864e5 })); } catch (e) {}
+  }
+  function detectLite() {
+    var saved = null;
+    try { saved = JSON.parse(localStorage.getItem(PERF_KEY) || 'null'); } catch (e) {}
+    if (saved && saved.until > Date.now()) { doc.documentElement.classList.toggle('lite', !!saved.lite); return; }
+    var n = navigator, c = n.connection || {};
+    if ((n.deviceMemory && n.deviceMemory <= 2) || (n.hardwareConcurrency && n.hardwareConcurrency <= 2) || c.saveData === true) {
+      setLite(true);
+      return;
+    }
+    setTimeout(function () {
+      if (doc.hidden) return;
+      var times = [], last = 0, end = 0;
+      requestAnimationFrame(function tick(now) {
+        if (last) times.push(now - last);
+        last = now;
+        if (!end) end = now + 2000;
+        if (now < end && !doc.hidden) { requestAnimationFrame(tick); return; }
+        if (times.length < 20) return; // tab hidden or throttled: no verdict
+        times.sort(function (a, b) { return a - b; });
+        setLite(times[times.length >> 1] > 24);
+      });
+    }, 2500);
   }
 
   // ── liquid pill ────────────────────────────────────────────────────────
@@ -506,6 +541,7 @@
   };
 
   function boot() {
+    detectLite();
     injectSprite();
     hydrateIcons(doc);
     fillTicker();
