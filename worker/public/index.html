@@ -683,8 +683,10 @@ html.theme-fade, html.theme-fade *, html.theme-fade *::before, html.theme-fade *
     color: var(--text); font-size: 15px; font-weight: 600; border-radius: 20px;
   }
   .faq summary::-webkit-details-marker { display: none; }
-  .faq summary .i { flex: none; color: var(--text-3); transform: rotate(90deg); transition: transform 0.25s var(--out, ease); }
+  .faq summary .i { flex: none; color: var(--text-3); transform: rotate(90deg); transition: transform 0.32s var(--out, ease); }
   .faq details[open] summary .i { transform: rotate(-90deg); }
+  .faq details.closing summary .i { transform: rotate(90deg); }
+  .faq-a { overflow: hidden; }
   .faq summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .faq p { margin: 0; padding: 0 16px 16px; color: var(--text-2); font-size: 14px; }
   .faq p a { color: var(--text); text-underline-offset: 3px; }
@@ -1348,31 +1350,31 @@ html.theme-fade, html.theme-fade *, html.theme-fade *::before, html.theme-fade *
     <h2 id="faq-title">Questions</h2>
     <details>
       <summary>Is Inpriv free?<i data-icon="chevron"></i></summary>
-      <p>Yes. Inpriv Mail, Inpriv Temp and Inpriv ID are free, with no ads and no trackers.</p>
+      <div class="faq-a"><p>Yes. Inpriv Mail, Inpriv Temp and Inpriv ID are free, with no ads and no trackers.</p></div>
     </details>
     <details>
       <summary>What does end-to-end encrypted mean in Inpriv Mail?<i data-icon="chevron"></i></summary>
-      <p>Messages between Inpriv users are encrypted in your browser before they leave it (RSA-2048 and AES-256-GCM), so the server only ever stores ciphertext it can't read. Mail from outside senders is encrypted to your key as soon as it arrives.</p>
+      <div class="faq-a"><p>Messages between Inpriv users are encrypted in your browser before they leave it (RSA-2048 and AES-256-GCM), so the server only ever stores ciphertext it can't read. Mail from outside senders is encrypted to your key as soon as it arrives.</p></div>
     </details>
     <details>
       <summary>What is a temp mail address?<i data-icon="chevron"></i></summary>
-      <p>A disposable email address for sign-ups, codes and newsletters you don't want tied to your real inbox. Inpriv Temp gives you one instantly, with no account, and deletes it with all its messages after 24 hours.</p>
+      <div class="faq-a"><p>A disposable email address for sign-ups, codes and newsletters you don't want tied to your real inbox. Inpriv Temp gives you one instantly, with no account, and deletes it with all its messages after 24 hours.</p></div>
     </details>
     <details>
       <summary>Can someone else read my Temp inbox?<i data-icon="chevron"></i></summary>
-      <p>Only the browser that created it can open it: it holds a secret key, and knowing the address isn't enough. Temp isn't end-to-end encrypted, though, and an expired address can later go to someone else, so don't use Temp for accounts you need to keep.</p>
+      <div class="faq-a"><p>Only the browser that created it can open it: it holds a secret key, and knowing the address isn't enough. Temp isn't end-to-end encrypted, though, and an expired address can later go to someone else, so don't use Temp for accounts you need to keep.</p></div>
     </details>
     <details>
       <summary>Do I need an account?<i data-icon="chevron"></i></summary>
-      <p>Not for Temp. Inpriv Mail uses Inpriv ID: one account with your own @inpriv.xyz address, two-factor sign-in and recovery codes.</p>
+      <div class="faq-a"><p>Not for Temp. Inpriv Mail uses Inpriv ID: one account with your own @inpriv.xyz address, two-factor sign-in and recovery codes.</p></div>
     </details>
     <details>
       <summary>What does Inpriv keep about me?<i data-icon="chevron"></i></summary>
-      <p>As little as it can. Sign-ins and account changes are kept for 90 days for security and abuse handling, and Temp inboxes are deleted after 24 hours. The <a href="/privacy">privacy policy</a> lists everything that's stored and everything that isn't.</p>
+      <div class="faq-a"><p>As little as it can. Sign-ins and account changes are kept for 90 days for security and abuse handling, and Temp inboxes are deleted after 24 hours. The <a href="/privacy">privacy policy</a> lists everything that's stored and everything that isn't.</p></div>
     </details>
     <details>
       <summary>Is Inpriv open source?<i data-icon="chevron"></i></summary>
-      <p>Yes. The code for every Inpriv site is <a href="https://github.com/Inpriv/inpriv" target="_blank" rel="noopener noreferrer">on GitHub</a> under the MIT license.</p>
+      <div class="faq-a"><p>Yes. The code for every Inpriv site is <a href="https://github.com/Inpriv/inpriv" target="_blank" rel="noopener noreferrer">on GitHub</a> under the MIT license.</p></div>
     </details>
   </section>
 
@@ -1387,6 +1389,36 @@ html.theme-fade, html.theme-fade *, html.theme-fade *::before, html.theme-fade *
 </div>
 
 <script>
+  // Questions: slide the answer open and shut instead of jumping.
+  // The click is taken over so <details> stays open while it closes; reduced
+  // motion (or no Web Animations) falls back to the instant native toggle.
+  (function () {
+    var still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    document.querySelectorAll('.faq details').forEach(function (d) {
+      var sum = d.querySelector('summary'), body = d.querySelector('.faq-a'), anim = null;
+      if (!sum || !body || !body.animate) return;
+      sum.addEventListener('click', function (e) {
+        if (still) return;
+        e.preventDefault();
+        var opening = !d.open || d.classList.contains('closing');
+        var from = d.open ? body.getBoundingClientRect().height : 0;
+        var fade = d.open ? getComputedStyle(body).opacity : '0';
+        if (anim) anim.cancel();
+        d.classList.toggle('closing', !opening);
+        d.open = true;
+        var to = opening ? body.scrollHeight : 0;
+        anim = body.animate(
+          [{ height: from + 'px', opacity: fade }, { height: to + 'px', opacity: opening ? 1 : 0 }],
+          { duration: 340, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' }
+        );
+        anim.onfinish = function () {
+          anim = null;
+          if (!opening) { d.open = false; d.classList.remove('closing'); }
+        };
+      });
+    });
+  })();
+
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () { navigator.serviceWorker.register('/sw.js').catch(function () {}); });
   }
