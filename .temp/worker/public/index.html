@@ -12,11 +12,11 @@
   try { var t = localStorage.getItem('inpriv_theme') || localStorage.getItem('inpriv-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}
 </script>
 <title>Inpriv Temp — Disposable Email</title>
-<meta name="description" content="Inpriv Temp gives you a random disposable email address on inpriv.xyz. Mail arrives in seconds; the inbox deletes itself after 24 hours or when you say so. No sign-up.">
+<meta name="description" content="Inpriv Temp gives you a random disposable email address on inpriv.xyz. Only your browser can open the inbox. Mail arrives in seconds; the inbox deletes itself after 24 hours or when you say so. No sign-up.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Inpriv">
 <meta property="og:title" content="Inpriv Temp — Disposable Email">
-<meta property="og:description" content="A random disposable address on inpriv.xyz. Mail arrives in seconds; the inbox deletes itself after 24 hours. No sign-up.">
+<meta property="og:description" content="A random disposable address on inpriv.xyz that only your browser can open. Mail arrives in seconds; the inbox deletes itself after 24 hours. No sign-up.">
 <meta property="og:url" content="https://temp.inpriv.xyz/">
 <meta property="og:image" content="https://inpriv.xyz/og/temp.png?v=3">
 <meta property="og:image:width" content="1200">
@@ -25,7 +25,7 @@
 <meta property="og:locale" content="en_US">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Inpriv Temp — Disposable Email">
-<meta name="twitter:description" content="A random disposable address on inpriv.xyz. Mail arrives in seconds; the inbox deletes itself after 24 hours. No sign-up.">
+<meta name="twitter:description" content="A random disposable address on inpriv.xyz that only your browser can open. Mail arrives in seconds; the inbox deletes itself after 24 hours. No sign-up.">
 <meta name="twitter:image" content="https://inpriv.xyz/og/temp.png?v=3">
 <meta name="twitter:image:alt" content="Inpriv Temp — Disposable Email">
 <link rel="canonical" href="https://temp.inpriv.xyz/">
@@ -1244,7 +1244,7 @@ footer a { color: var(--text-2); text-underline-offset: 3px; }
       <button class="btn btn-glass" id="newBtn" type="button"><i data-icon="dice"></i>New address</button>
       <button class="text-btn danger" id="deleteBtn" type="button"><i data-icon="trash"></i><span>Delete inbox</span></button>
     </div>
-    <p class="hint">Use it anywhere you don't want to give your real address. Mail shows up below within seconds. The inbox deletes itself after 24 hours, or as soon as you delete it.</p>
+    <p class="hint">Use it anywhere you don't want to give your real address. Only this browser can open the inbox: knowing the address isn't enough. Mail shows up below within seconds, and everything is deleted after 24 hours, or as soon as you delete it.</p>
   </section>
 
   <section class="reveal d3" aria-labelledby="inboxTitle">
@@ -1263,7 +1263,7 @@ footer a { color: var(--text-2); text-underline-offset: 3px; }
     <p>Paste the address wherever a throwaway email is needed. New mail appears here on its own.</p>
   </div>
 
-  <footer class="reveal d4">Part of <a href="https://inpriv.xyz/?home">Inpriv</a>. Messages expire after 24 hours. Temp inboxes aren't end-to-end encrypted. <a href="https://inpriv.xyz/terms">Terms</a> · <a href="https://inpriv.xyz/privacy">Privacy</a></footer>
+  <footer class="reveal d4">Part of <a href="https://inpriv.xyz/?home">Inpriv</a>. Messages expire after 24 hours. Temp inboxes aren't end-to-end encrypted, and an expired address can later go to someone else, so don't use Temp for accounts you need to keep. <a href="https://inpriv.xyz/terms">Terms</a> · <a href="https://inpriv.xyz/privacy">Privacy</a></footer>
 </div>
 
 <!-- message viewer -->
