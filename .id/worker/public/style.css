@@ -196,6 +196,15 @@ main { display: flex; flex-direction: column; }
 
 /* lists: sessions and the security log */
 .list { display: flex; flex-direction: column; gap: 8px; }
+/* long lists (security log) scroll inside the card: about five rows show */
+.scroll-list {
+  max-height: 336px; overflow-y: auto; overscroll-behavior: contain;
+  margin-right: -6px; padding-right: 6px;
+  scrollbar-width: thin; scrollbar-color: var(--fill-2) transparent;
+}
+.scroll-list::-webkit-scrollbar { width: 6px; }
+.scroll-list::-webkit-scrollbar-thumb { background: var(--fill-2); border-radius: 3px; }
+.scroll-list:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 16px; }
 .sess {
   display: flex; align-items: center; gap: 12px;
   padding: 10px 12px; border-radius: 16px;

@@ -563,11 +563,13 @@ input:focus, textarea:focus { box-shadow: inset 0 0 0 1.5px var(--focus), 0 0 0 
 .rec-kv { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; font-size: 13.5px; }
 .rec-kv dt { color: var(--text-3); }
 .rec-kv dd { margin: 0; overflow-wrap: anywhere; }
-.rec-scroll { overflow-x: auto; border-radius: 14px; box-shadow: inset 0 0 0 1px var(--hairline); }
+.rec-scroll { overflow: auto; max-height: 360px; overscroll-behavior: contain; border-radius: 14px; box-shadow: inset 0 0 0 1px var(--hairline); scrollbar-width: thin; }
+.rec-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+.rec-scroll::-webkit-scrollbar-thumb { background: var(--fill-3); border-radius: 3px; }
 .rec-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 .rec-table th, .rec-table td { padding: 7px 10px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--hairline); white-space: nowrap; }
 .rec-table td.wrap { white-space: normal; overflow-wrap: anywhere; min-width: 180px; }
-.rec-table th { color: var(--text-3); font-weight: 600; }
+.rec-table th { color: var(--text-3); font-weight: 600; position: sticky; top: 0; z-index: 1; background: var(--bg); }
 .rec-empty { color: var(--text-3); font-size: 13.5px; }
 .rec-note { color: var(--text-2); font-size: 13px; margin: 6px 0 0; }
 .rec-note li { margin: 2px 0; }
