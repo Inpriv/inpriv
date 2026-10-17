@@ -2014,6 +2014,11 @@ async function finishPasswordLogin(res, password) {
   state.token = res.token;
   state.user = res.user;
   localStorage.setItem('inpriv_token', res.token);
+  if (res.rekey) {
+    // the Inpriv ID password changed since the key was locked
+    await startRekey(password);
+    return;
+  }
 
   // Derive AES key & unwrap private RSA key. The unwrap is best-effort:
   // some accounts (notably Fake identities created on fake.inpriv.xyz before
@@ -2051,6 +2056,99 @@ async function finishPasswordLogin(res, password) {
     // some actions (reply, compose) may fail.
     setTimeout(() => toast('Keys unavailable', 'Inbox is in read-only mode until the next sign-in', 'error'), 400);
   }
+}
+
+/* ---------- Re-lock after an Inpriv ID password change ----------
+   The private key is still wrapped with the previous password. Open it with
+   this device's Quick Unlock key when there is one, otherwise ask for the
+   previous password once, then wrap it under the current password. The key
+   pair itself never changes, so every stored message stays readable. */
+async function startRekey(newPassword) {
+  try {
+    const dk = await getDeviceKey(false);
+    const kd = dk ? await api('/device-key/get?device=' + encodeURIComponent(getDeviceId()), { method: 'GET' }) : null;
+    const dek = kd && kd.wrapped_dek ? await unwrapRawDek(kd.wrapped_dek, dk) : null;
+    if (dek) {
+      const priv = await unwrapPrivateKey(state.user.encrypted_private_key, state.user.priv_iv, dek);
+      await finishRekey(newPassword, priv);
+      return;
+    }
+  } catch (e) { /* fall back to the previous password */ }
+  promptPreviousPassword(newPassword);
+}
+
+async function finishRekey(newPassword, privKey) {
+  const salt = b64.enc(crypto.getRandomValues(new Uint8Array(16)).buffer);
+  const aesKey = await deriveAesFromPassword(newPassword, salt, PASS_ITERS);
+  const { wrapped, iv } = await wrapPrivateKey(privKey, aesKey);
+  const r = await api('/rekey', {
+    method: 'POST',
+    body: JSON.stringify({ password: newPassword, encrypted_private_key: wrapped, priv_iv: iv, priv_salt: salt, priv_iter: PASS_ITERS })
+  });
+  state.user = r.user;
+  state.dek = aesKey;
+  state.privKey = privKey;
+  state.pubKey = await crypto.subtle.importKey('spki', b64.dec(state.user.public_key), { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['encrypt']);
+  state.unlocked = true;
+  try { await enrolQuickUnlock(aesKey); } catch (e) {}
+  toast('Mailbox updated', 'Your mailbox now opens with your new Inpriv ID password.');
+  renderDashboard();
+}
+
+function promptPreviousPassword(newPassword) {
+  $('#bottomNavContainer').innerHTML = '';
+  $('#fabContainer').innerHTML = '';
+  $('#mainView').innerHTML = `
+    <div class="auth-container">
+      <div class="auth-box glass">
+        <div class="auth-header">
+          <div class="auth-header-icon">${mkIcon('key')}</div>
+          <h1 class="auth-title">Your password changed.<br><span>Update your mailbox key once.</span></h1>
+          <p class="auth-subtitle">Your mailbox key is still locked with your previous Inpriv ID password. Enter it once and the key is re-locked with your new one, on this device.</p>
+        </div>
+        <form id="rekeyForm">
+          <div class="field">
+            <label>Previous password</label>
+            <div class="input-wrap">
+              <input type="password" id="rekeyOldPw" placeholder="Previous password" autocomplete="off" required autofocus>
+              <button type="button" class="eye-toggle" data-target="rekeyOldPw">${mkIcon('visibility')}</button>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block" id="rekeyBtn">
+            <span>Update mailbox key</span> ${mkIcon('lock_open')}
+          </button>
+          <div style="text-align:center;margin-top:14px">
+            <button type="button" class="btn btn-text" id="rekeySkipBtn">Skip — open read-only</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+  bindEyeToggles();
+  $('#rekeySkipBtn').addEventListener('click', () => {
+    toast('Signed in', `Read-only — couldn't unlock encryption keys. You can view messages but can't send.`);
+    renderDashboard();
+  });
+  $('#rekeyForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = $('#rekeyBtn');
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner"></span> <span>Updating…</span>`;
+    let priv = null;
+    try {
+      const oldKey = await deriveAesFromPassword($('#rekeyOldPw').value, state.user.priv_salt, state.user.priv_iter);
+      priv = await unwrapPrivateKey(state.user.encrypted_private_key, state.user.priv_iv, oldKey);
+    } catch (err) {
+      toast('Not your previous password', 'That password does not open your mailbox key.', 'error');
+    }
+    try {
+      if (priv) { await finishRekey(newPassword, priv); return; }
+    } catch (err) {
+      toast('Update failed', err.message, 'error');
+    }
+    btn.disabled = false;
+    btn.innerHTML = `<span>Update mailbox key</span> ${mkIcon('lock_open')}`;
+  });
 }
 
 /* ---------- Two-Factor prompt for Inpriv ID key init ----------
@@ -3350,6 +3448,11 @@ function promptUnlockSession() {
       toast('Unlocked', 'Private key decrypted in memory.');
       renderDashboard();
     } catch (err) {
+      // the current Inpriv ID password after a change: re-lock, not an error
+      try {
+        const chk = await api('/password-check', { method: 'POST', body: JSON.stringify({ password: pw }) });
+        if (chk.valid && chk.stale) { await startRekey(pw); return; }
+      } catch (e) {}
       toast('Invalid password', 'Could not decrypt private key.', 'error');
       btn.disabled = false;
       btn.innerHTML = `<span>Unlock Private Key</span> ${mkIcon('lock_open')}`;

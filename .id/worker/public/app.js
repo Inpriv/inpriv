@@ -402,7 +402,7 @@ $("pwChangeBtn").addEventListener("click", async () => {
   try {
     await api("/api/password/change", { current: $("pwCurrent").value, next: $("pwNext").value });
     $("pwCurrent").value = $("pwNext").value = "";
-    toast("Password changed — other sessions signed out");
+    toast("Password changed — other sessions signed out. Inpriv Mail will ask for your previous password once to update your mailbox key.");
   } catch (ex) {
     toast(ex.message, false);
   }
