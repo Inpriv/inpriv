@@ -654,13 +654,15 @@ async function loadEvents() {
 function eventIcon(kind) {
   return { login: "login", login_fail: "gpp_bad", logout: "logout", register: "person_add",
     totp_on: "add_moderator", totp_off: "remove_moderator", pass_change: "lock_reset",
-    recovery_used: "vpn_key" }[kind] || "info";
+    recovery_used: "vpn_key", recovery_new: "vpn_key", sso: "login", recovery_set: "mail",
+    recovery_removed: "mail" }[kind] || "info";
 }
 
 function eventLabel(kind) {
   return { login: "Signed in", login_fail: "Failed sign-in", logout: "Signed out", register: "Account created",
     totp_on: "2FA enabled", totp_off: "2FA disabled", pass_change: "Password changed",
-    recovery_used: "Recovery code used" }[kind] || kind;
+    recovery_used: "Recovery code used", recovery_new: "New recovery codes", sso: "Signed in with Inpriv ID",
+    recovery_set: "Recovery email changed", recovery_removed: "Recovery email removed" }[kind] || "Account activity";
 }
 
 function timeAgo(ts) {
