@@ -288,19 +288,16 @@ function renderProfile() {
   $("badge2fa").hidden = !user.totp_enabled;
   
   $("nickInput").value = user.nick || "";
-  $("recoveryInput").value = user.recovery_email || "";
-  
-  const verifySec = $("verifySection");
-  if (verifySec) {
-    // the recovery address's own flag (email_verified also counts other checks)
-    const pending = hasRecovery && !user.recovery_email_verified;
-    verifySec.style.display = pending ? "flex" : "none";
-    $("recoveryDesc").textContent = !hasRecovery
-      ? "An outside address for password resets and security notices."
-      : pending
-        ? `Not confirmed yet. Enter the 6-digit code we sent to ${user.recovery_email}.`
-        : `${user.recovery_email} is confirmed.`;
-  }
+  if (document.activeElement !== $("recoveryInput")) $("recoveryInput").value = user.recovery_email || "";
+  // the recovery address's own flag (email_verified also counts other checks)
+  const pending = hasRecovery && !user.recovery_email_verified;
+  setVerifyOpen(pending);
+  $("recoveryDesc").textContent = !hasRecovery
+    ? "An outside address for password resets and security notices."
+    : pending
+      ? "Not confirmed yet. Enter the code from the email we sent."
+      : "Confirmed. Used for password resets and security notices.";
+  syncRecoveryButton();
 
   $("twoFAOffUI").hidden = user.totp_enabled;
   $("twoFAOnUI").hidden = !user.totp_enabled;
@@ -347,21 +344,73 @@ $("nickSave").addEventListener("click", async () => {
 });
 
 // profile: recovery email
+// ── recovery email: Verify → code panel → Confirm ──
+var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+var resendTimer = 0;
+function setVerifyOpen(open, focus = false) {
+  const sec = $("verifySection");
+  if (sec.classList.contains("open") !== open) {
+    sec.classList.toggle("open", open);
+    sec.setAttribute("aria-hidden", String(!open));
+    if (!open) $("verifyCode").value = "";
+  }
+  sec.inert = !open;
+  if (open && focus) setTimeout(() => $("verifyCode").focus({ preventScroll: true }), 220);
+}
+// the button says what it will do: Verify, Remove, or Verified (nothing to do)
+function syncRecoveryButton() {
+  const btn = $("recoverySaveBtn");
+  if (btn.dataset.busy) return;
+  const v = $("recoveryInput").value.trim().toLowerCase();
+  const saved = (user && user.recovery_email || "").toLowerCase();
+  let label = "Verify", off = false;
+  if (!v) { if (saved) label = "Remove"; else off = true; }
+  else if (v === saved && user.recovery_email_verified) { label = "Verified"; off = true; }
+  else if (!EMAIL_RE.test(v)) off = true;
+  btn.textContent = label;
+  btn.disabled = off;
+}
+function startResendCooldown(sec = 60) {
+  clearInterval(resendTimer);
+  const btn = $("verifySendBtn"), txt = $("verifySendTxt");
+  let left = sec;
+  const tick = () => {
+    if (left <= 0) { clearInterval(resendTimer); btn.disabled = false; txt.textContent = "Resend"; return; }
+    btn.disabled = true;
+    txt.textContent = `Resend in ${left}s`;
+    left--;
+  };
+  tick();
+  resendTimer = setInterval(tick, 1000);
+}
+function codeSent() {
+  toast("Code sent");
+  $("verifyCode").value = "";
+  setVerifyOpen(true, true);
+  startResendCooldown();
+}
+
+$("recoveryInput").addEventListener("input", syncRecoveryButton);
+$("recoveryInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !$("recoverySaveBtn").disabled) { e.preventDefault(); $("recoverySaveBtn").click(); }
+});
 $("recoverySaveBtn").addEventListener("click", async () => {
+  const btn = $("recoverySaveBtn");
+  const value = $("recoveryInput").value.trim();
+  btn.dataset.busy = "1";
+  btn.disabled = true;
+  btn.textContent = value ? "Sending…" : "Removing…";
   try {
-    const out = await api("/api/recovery-email/set", { recovery_email: $("recoveryInput").value.trim() });
+    const out = await api("/api/recovery-email/set", { recovery_email: value });
     user = out.user;
-    renderProfile();
-    if (!user.recovery_email) { toast("Recovery email removed"); return; }
-    // send the verification code straight away
-    try {
-      await api("/api/verify/send", {});
-      toast(`Code sent to ${user.recovery_email} — enter it below`);
-    } catch (ex2) {
-      toast(`Saved, but the code wasn't sent: ${ex2.message}`, false);
-    }
+    if (!value) { toast("Recovery email removed"); return; }
+    if (out.code_sent) codeSent();
+    else if (out.error) toast(out.error, false);
   } catch (ex) {
     toast(ex.message, false);
+  } finally {
+    delete btn.dataset.busy;
+    renderProfile();
   }
 });
 
@@ -394,22 +443,41 @@ function setSwitch(id, on) {
 // verification
 $("verifySendBtn").addEventListener("click", async () => {
   try {
-    await api("/api/verify/send", {});
-    toast("Code sent to recovery email");
+    const out = await api("/api/verify/send", {});
+    if (out.already) { toast("Already confirmed"); return; }
+    codeSent();
   } catch (ex) {
     toast(ex.message, false);
   }
 });
-$("verifyConfirmBtn").addEventListener("click", async () => {
+var confirming = false;
+async function confirmCode() {
+  const code = $("verifyCode").value.trim();
+  if (!/^\d{6}$/.test(code) || confirming) { if (!confirming) toast("Enter the 6-digit code", false); return; }
+  confirming = true;
+  $("verifyConfirmBtn").disabled = true;
   try {
-    const out = await api("/api/verify/confirm", { code: $("verifyCode").value.trim() });
+    const out = await api("/api/verify/confirm", { code });
     user = out.user;
+    clearInterval(resendTimer);
     renderProfile();
-    toast("Recovery email verified");
+    toast("Recovery email confirmed");
   } catch (ex) {
     toast(ex.message, false);
+    $("verifyCode").select();
+  } finally {
+    confirming = false;
+    $("verifyConfirmBtn").disabled = false;
   }
+}
+$("verifyConfirmBtn").addEventListener("click", confirmCode);
+// digits only; the 6th digit confirms on its own
+$("verifyCode").addEventListener("input", (e) => {
+  const v = e.target.value.replace(/\D/g, "").slice(0, 6);
+  if (v !== e.target.value) e.target.value = v;
+  if (v.length === 6) confirmCode();
 });
+$("verifyCode").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); confirmCode(); } });
 
 // password change
 $("pwChangeBtn").addEventListener("click", async () => {

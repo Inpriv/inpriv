@@ -97,6 +97,35 @@ async function logEvent(db, uid, kind, req) {
   await logAccess(db, req, "id", kind, u ? u.username : uid);
 }
 
+// Recovery-email code. Earlier unused codes are deleted first, so the only
+// valid code is the latest one, for the address currently on the account.
+async function sendRecoveryCode(env, uid) {
+  const u = await env.DB.prepare("SELECT email, recovery_email, recovery_email_verified FROM users WHERE id = ?").bind(uid).first();
+  if (!u || !u.recovery_email) return { ok: false, status: 400, error: "add a recovery email first" };
+  if (u.recovery_email_verified) return { ok: true, already: true };
+  if (!(await rateLimit(env.DB, `verify:${uid}`, 5, 3_600_000))) {
+    return { ok: false, status: 429, error: "too many codes — try again in an hour" };
+  }
+  const code = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1_000_000).padStart(6, "0");
+  await env.DB.batch([
+    env.DB.prepare("DELETE FROM email_codes WHERE user_id = ? AND purpose = 'verify' AND used_at IS NULL").bind(uid),
+    env.DB.prepare("INSERT INTO email_codes (id, user_id, code_hash, purpose, expires_at) VALUES (?,?,?,?,?)")
+      .bind(uuid(), uid, await sha256hex(code), "verify", now() + 15 * 60_000),
+  ]);
+  const to = u.recovery_email;
+  const sent = await sendMail(env, to, `${code} is your Inpriv verification code`,
+    `Confirm ${to} as the recovery email for ${u.email}.\n\nYour code: ${code}\n\nEnter it on id.inpriv.xyz. It expires in 15 minutes.\n\nDidn't ask for this? You can ignore this email.`,
+    emailShell("Confirm your recovery email",
+      `Enter this code on <a href="https://id.inpriv.xyz" style="color:inherit">id.inpriv.xyz</a> to use ${emailAddr(to)} as the recovery email for ${emailAddr(u.email)}.` +
+      `${codeBlock(code)}It expires in 15 minutes.`,
+      `Your code: ${code}. It expires in 15 minutes.`));
+  if (!sent.ok) {
+    console.error("recovery code: mail not sent", sent.reason);
+    return { ok: false, status: 502, error: "couldn't send the code right now — try again in a few minutes" };
+  }
+  return { ok: true };
+}
+
 async function createSession(db, userId, req, totpOk) {
   const token = newToken();
   const id = await sha256hex(token);
@@ -763,30 +792,17 @@ export default {
 
       // ── e-mail verification (recovery email) ──
       if (path === "/api/verify/send" && request.method === "POST") {
-        if (!(await rateLimit(env.DB, `verify:${me.uid}`, 5, 3_600_000))) return bad("limit reached — try again in an hour", 429);
-        const user = await env.DB.prepare("SELECT email, recovery_email, recovery_email_verified FROM users WHERE id = ?").bind(me.uid).first();
-        const targetEmail = user.recovery_email;
-        if (!targetEmail) return bad("no recovery email configured", 400);
-        if (user.recovery_email_verified) return out({ ok: true, already: true }, 200, cors);
-        const code = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1_000_000).padStart(6, "0");
-        await env.DB.prepare("INSERT INTO email_codes (id, user_id, code_hash, purpose, expires_at) VALUES (?,?,?,?,?)"
-        ).bind(uuid(), me.uid, await sha256hex(code), "verify", now() + 15 * 60_000).run();
-        const sent = await sendMail(env, targetEmail, `${code} is your Inpriv verification code`,
-          `Confirm ${targetEmail} as the recovery email for ${user.email}.\n\nYour code: ${code}\n\nEnter it on id.inpriv.xyz. It expires in 15 minutes.\n\nDidn't ask for this? You can ignore this email.`,
-          emailShell("Confirm your recovery email",
-            `Enter this code on <a href="https://id.inpriv.xyz" style="color:inherit">id.inpriv.xyz</a> to use ${emailAddr(targetEmail)} as the recovery email for ${emailAddr(user.email)}.` +
-            `${codeBlock(code)}It expires in 15 minutes.`,
-            `Your code: ${code}. It expires in 15 minutes.`));
-        if (!sent.ok) {
-          console.error("verify/send: mail not sent", sent.reason);
-          return out({ error: "couldn't send the code right now — try again in a few minutes" }, 502, cors);
-        }
-        return out({ ok: true }, 200, cors);
+        const r = await sendRecoveryCode(env, me.uid);
+        if (!r.ok) return out({ error: r.error }, r.status, cors);
+        return out({ ok: true, already: !!r.already }, 200, cors);
       }
       if (path === "/api/verify/confirm" && request.method === "POST") {
         const body = await request.json();
         const code = String(body.code || "").trim();
         if (!/^\d{6}$/.test(code)) return bad("enter the 6-digit code");
+        if (!(await rateLimit(env.DB, `vconfirm:${me.uid}`, 8, 15 * 60_000))) {
+          return bad("too many tries — wait 15 minutes, then ask for a new code", 429);
+        }
         const hash = await sha256hex(code);
         const row = await env.DB.prepare(
           "SELECT id, expires_at, used_at FROM email_codes WHERE user_id = ? AND purpose = 'verify' AND code_hash = ? ORDER BY expires_at DESC LIMIT 1"
@@ -807,17 +823,38 @@ export default {
           if (recoveryEmail.endsWith("@inpriv.xyz")) {
             return bad("recovery email must be an external address");
           }
-          if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(recoveryEmail)) {
+          if (recoveryEmail.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(recoveryEmail)) {
             return bad("invalid recovery email address");
           }
         } else {
           recoveryEmail = null;
         }
-        await env.DB.prepare("UPDATE users SET recovery_email = ?, recovery_email_verified = 0 WHERE id = ?")
-          .bind(recoveryEmail, me.uid).run();
-        return out({ ok: true, user: await publicUser(env, me.uid, true) }, 200, cors);
+        const cur = await env.DB.prepare("SELECT recovery_email, recovery_email_verified FROM users WHERE id = ?").bind(me.uid).first();
+        // same address again: keep its status; if it's still waiting, send a fresh code
+        if ((cur.recovery_email || null) === recoveryEmail) {
+          if (!recoveryEmail || cur.recovery_email_verified) {
+            return out({ ok: true, user: await publicUser(env, me.uid, true), code_sent: false }, 200, cors);
+          }
+          const r = await sendRecoveryCode(env, me.uid);
+          if (!r.ok) return out({ error: r.error }, r.status, cors);
+          return out({ ok: true, user: await publicUser(env, me.uid, true), code_sent: true }, 200, cors);
+        }
+        if (recoveryEmail) {
+          const taken = await env.DB.prepare(
+            "SELECT 1 FROM users WHERE id != ? AND (recovery_email = ? OR email = ?)"
+          ).bind(me.uid, recoveryEmail, recoveryEmail).first();
+          if (taken) return bad("this email is already used by another Inpriv account", 409);
+        }
+        await env.DB.batch([
+          env.DB.prepare("UPDATE users SET recovery_email = ?, recovery_email_verified = 0, email_verified = 0 WHERE id = ?")
+            .bind(recoveryEmail, me.uid),
+          env.DB.prepare("DELETE FROM email_codes WHERE user_id = ? AND purpose = 'verify' AND used_at IS NULL").bind(me.uid),
+        ]);
+        await logEvent(env.DB, me.uid, recoveryEmail ? "recovery_set" : "recovery_removed", request);
+        if (!recoveryEmail) return out({ ok: true, user: await publicUser(env, me.uid, true), code_sent: false }, 200, cors);
+        const r = await sendRecoveryCode(env, me.uid);
+        return out({ ok: true, user: await publicUser(env, me.uid, true), code_sent: r.ok, error: r.ok ? undefined : r.error }, 200, cors);
       }
-
 
       if (path === "/api/2fa/setup" && request.method === "POST") {
         if (!(await rateLimit(env.DB, `tsetup:${me.uid}`, 5, 3_600_000))) return bad("try again later", 429);
