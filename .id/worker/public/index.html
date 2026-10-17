@@ -1156,11 +1156,16 @@ html.theme-fade, html.theme-fade *, html.theme-fade *::before, html.theme-fade *
                 <span class="badge"><i data-icon="shield-check"></i>On</span>
               </div>
               <div class="row">
-                <div><div class="row-label">Recovery codes</div><div class="row-sub" id="recoveryInfo">10 single-use codes</div></div>
-                <button class="mini-btn" id="showCodesBtn" type="button">View</button>
+                <div><div class="row-label">Recovery codes</div><div class="row-sub" id="recoveryInfo">Single-use codes, shown only once</div></div>
+                <button class="mini-btn" id="showCodesBtn" type="button">New codes</button>
               </div>
             </div>
+            <div id="newCodesUI" hidden class="confirm-box">
+              <div class="field"><label for="newCodesPw">Confirm your password. Your current codes stop working.</label><input id="newCodesPw" type="password" autocomplete="current-password"></div>
+              <button class="mini-btn" id="newCodesConfirm" type="button">Create 10 new codes</button>
+            </div>
             <div id="codesBox" hidden>
+              <p class="row-sub" style="margin:0 0 8px">Save these now. They won't be shown again.</p>
               <div class="code-grid" id="codeGrid"></div>
               <button class="btn btn-glass wide" id="copyCodesBtn" type="button"><i data-icon="copy"></i>Copy all codes</button>
             </div>

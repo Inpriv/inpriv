@@ -848,6 +848,31 @@ export default {
         await logEvent(env.DB, me.uid, "totp_on", request);
         return out({ ok: true, recovery_codes: codes }, 200, cors);
       }
+      // Recovery codes are stored hashed, so they can't be shown again; this
+      // replaces them with 10 new ones (shown once) after a password check.
+      if (path === "/api/2fa/recovery" && request.method === "GET") {
+        const r = await env.DB.prepare("SELECT COUNT(*) AS n FROM recovery_codes WHERE user_id = ? AND used_at IS NULL").bind(me.uid).first();
+        return out({ remaining: r ? r.n : 0 }, 200, cors);
+      }
+      if (path === "/api/2fa/recovery/new" && request.method === "POST") {
+        if (!(await rateLimit(env.DB, `rcnew:${me.uid}`, 5, 3_600_000))) return bad("try again later", 429);
+        const body = await request.json().catch(() => ({}));
+        const u = await env.DB.prepare("SELECT pass_hash, pass_salt, pass_iters, totp_enabled FROM users WHERE id = ?").bind(me.uid).first();
+        if (!u.totp_enabled) return bad("turn on 2FA first", 400);
+        const candidate = await passHash(String(body.password || ""), u.pass_salt, u.pass_iters);
+        if (!constantTimeEq(candidate, u.pass_hash)) return bad("wrong password", 401);
+        const codes = [];
+        const stmts = [env.DB.prepare("DELETE FROM recovery_codes WHERE user_id = ?").bind(me.uid)];
+        for (let i = 0; i < 10; i++) {
+          const raw = newToken().slice(0, 4) + "-" + newToken().slice(0, 4);
+          codes.push(raw);
+          stmts.push(env.DB.prepare("INSERT INTO recovery_codes (id, user_id, code_hash) VALUES (?,?,?)")
+            .bind(uuid(), me.uid, await sha256hex(raw.toLowerCase())));
+        }
+        await env.DB.batch(stmts);
+        await logEvent(env.DB, me.uid, "recovery_new", request);
+        return out({ ok: true, recovery_codes: codes }, 200, cors);
+      }
       if (path === "/api/2fa/disable" && request.method === "POST") {
         const body = await request.json();
         const u = await env.DB.prepare("SELECT pass_hash, pass_salt, pass_iters FROM users WHERE id = ?").bind(me.uid).first();
