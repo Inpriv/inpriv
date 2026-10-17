@@ -2,6 +2,7 @@
 // See lib.js for crypto/CORS/mail helpers and schema.sql for the data model.
 
 import { maintenanceGate, maintenancePage } from "../../../common/gate.js";
+import { logAccess } from "../../../common/access-log.js";
 import { notFound } from "../../../common/errors.js";
 import {
   SESSION_TTL_MS, PASS_ITERS,
@@ -82,6 +83,9 @@ async function logEvent(db, uid, kind, req) {
     .prepare("INSERT INTO auth_events (id, user_id, kind, ip_prefix, ula, at) VALUES (?,?,?,?,?,?)")
     .bind(uuid(), uid, kind, ipPrefix(req), parseUA(req.headers.get("User-Agent")).slice(0, 80), now())
     .run();
+  // full record for abuse reports and legal requests (common/access-log.js)
+  const u = await db.prepare("SELECT username FROM users WHERE id = ?").bind(uid).first().catch(() => null);
+  await logAccess(db, req, "id", kind, u ? u.username : uid);
 }
 
 async function createSession(db, userId, req, totpOk) {

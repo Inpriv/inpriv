@@ -10,6 +10,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { notFound } from "../../../common/errors.js";
+import { logAccess, purgeAccessLog } from "../../../common/access-log.js";
 import { maintenancePage as sharedMaintenancePage } from "../../../common/gate.js";
 
 const MAILBOX_TTL_MS = 24 * 60 * 60 * 1000; // 24 h, then cron sweeps it away
@@ -297,6 +298,7 @@ async function createMailbox(request, env) {
         .prepare("INSERT INTO mailboxes (address, token_hash, created_at, expires_at) VALUES (?, ?, ?, ?)")
         .bind(address, await sha256Hex(token), now, expiresAt)
         .run();
+      await logAccess(env.ID_DB, request, "temp", "inbox_created", address);
       return json({ address, token, created_at: now, expires_at: expiresAt }, 201);
     } catch (err) {
       const msg = String(err?.message || err);
@@ -598,6 +600,8 @@ function timingSafeEqualStr(a, b) {
 
 async function handleScheduled(_event, env) {
   const now = Date.now();
+  // access-log retention for every service (common/access-log.js)
+  await purgeAccessLog(env.ID_DB);
   const staleMessageCutoff = now - MESSAGE_RETENTION_MS;
 
   const expired = await env.DB

@@ -29,6 +29,17 @@ binding = "ID_DB"
 database_name = "inpriv-id"
 database_id = "1cd1ca2e-51fd-40d9-94d8-aa75f989291b"
 
+# Records (read-only lookups) and team mailboxes
+[[d1_databases]]
+binding = "MAIL_DB"
+database_name = "inpriv-mail"
+database_id = "d5c75cf0-46ba-4721-99fc-da18d2ccbabe"
+
+[[d1_databases]]
+binding = "TEMP_DB"
+database_name = "inpriv-temp"
+database_id = "4fd698d2-c51e-4390-8f6b-9968f5da902d"
+
 # secrets (wrangler secret put …):
 #   ADMIN_USER   — the admin sign-in username
 #   TOTP_SECRET  — base32 secret for Google Authenticator
