@@ -295,7 +295,8 @@ button, .btn, .icon-btn, [role="tab"], [role="switch"] { user-select: none; -web
   will-change: transform;
 }
 .liquid.dragging .liquid-thumb { box-shadow: inset 0 1px 0.5px var(--spec), inset 0 0 0 1px var(--hairline), 0 10px 22px -8px rgb(0 0 0 / 0.6); }
-.liquid { touch-action: pan-y; }
+.liquid { touch-action: pan-y; -webkit-user-select: none; user-select: none; }
+.liquid a, .liquid img { -webkit-user-drag: none; }
 
 /* ── toast ────────────────────────────────────────────────────────────── */
 .toaster {
@@ -479,8 +480,7 @@ html.theme-fade, html.theme-fade *, html.theme-fade *::before, html.theme-fade *
   font-size: 12px; font-weight: 650; font-variant-numeric: tabular-nums;
 }
 .live { margin-left: auto; display: inline-flex; align-items: center; gap: 7px; color: var(--text-3); font-size: 12.5px; font-weight: 550; }
-.live::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); animation: breathe 2.4s ease-in-out infinite; }
-@keyframes breathe { 50% { opacity: 0.3; } }
+.live::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
 
 .msg-list { display: flex; flex-direction: column; gap: 8px; }
 .msg-row {
@@ -880,6 +880,7 @@ footer a { color: var(--text-2); text-underline-offset: 3px; }
     var x = 0, w = 0, y = 0, h = 0, vx = 0, vw = 0, tx = 0, tw = 0;
     var s = 1, vs = 0, ts = 1;
     var placed = false, raf = 0, last = 0, drag = null, swallowUntil = 0;
+    var lo = 0, right = 0; // first option's left edge, last option's right edge
 
     function options() {
       var out = [];
@@ -905,6 +906,8 @@ footer a { color: var(--text-2); text-underline-offset: 3px; }
       if (!el) { thumb.style.opacity = '0'; placed = false; return; }
       thumb.style.opacity = '1';
       tx = el.offsetLeft; tw = el.offsetWidth; y = el.offsetTop; h = el.offsetHeight;
+      var o = options();
+      lo = o[0].offsetLeft; right = o[o.length - 1].offsetLeft + o[o.length - 1].offsetWidth;
       if (snap || !placed || reduced) { x = tx; w = tw; vx = vw = 0; placed = true; render(); return; }
       kick();
     }
@@ -914,7 +917,12 @@ footer a { color: var(--text-2); text-underline-offset: 3px; }
       while (dt > 0) {
         var d = Math.min(dt, STEP);
         dt -= d;
-        if (!drag || !drag.active) { vx += (520 * (tx - x) - 28 * vx) * d; x += vx * d; }
+        if (!drag || !drag.active) {
+          vx += (520 * (tx - x) - 28 * vx) * d; x += vx * d;
+          // the pill's ends are walls: bounce back instead of sliding past
+          if (x < lo) { x = lo; vx = -vx * 0.3; }
+          else if (x > right - w) { x = right - w; vx = -vx * 0.3; }
+        }
         vw += (520 * (tw - w) - 28 * vw) * d; w += vw * d;
         vs += (700 * (ts - s) - 22 * vs) * d; s += vs * d;
       }
@@ -936,7 +944,7 @@ footer a { color: var(--text-2); text-underline-offset: 3px; }
       var lx = e.clientX - r.left;
       if (lx < x || lx > x + w) return;           // only the thumb itself drags
       drag = { id: e.pointerId, sx: e.clientX, x0: x, lx: e.clientX, lt: performance.now(), active: false };
-      ts = 1.1; kick();
+      ts = 1.05; kick();
     });
     seg.addEventListener('pointermove', function (e) {
       if (!drag || e.pointerId !== drag.id) return;
@@ -950,12 +958,12 @@ footer a { color: var(--text-2); text-underline-offset: 3px; }
       var o = options();
       if (!o.length) return;
       var min = o[0].offsetLeft, max = o[o.length - 1].offsetLeft + o[o.length - 1].offsetWidth - w;
-      var raw = drag.x0 + dx, limit = Math.min(14, w * 0.2), nx = raw;
-      if (raw < min) nx = min - limit * (1 - Math.exp(-(min - raw) / 40));
-      else if (raw > max) nx = max + limit * (1 - Math.exp(-(raw - max) / 40));
+      // the thumb stops at the ends of the pill instead of sliding past them
+      var raw = drag.x0 + dx, nx = Math.max(min, Math.min(max, raw));
       var now = performance.now();
       vx = (e.clientX - drag.lx) / Math.max(1, now - drag.lt) * 1000;
       drag.lx = e.clientX; drag.lt = now;
+      if (nx !== raw) vx = 0; // pressed against a wall: no stretch
       x = nx;
       // width follows the option underneath
       var mid = x + w / 2, best = o[0], bd = Infinity;
@@ -980,6 +988,10 @@ footer a { color: var(--text-2); text-underline-offset: 3px; }
     }
     seg.addEventListener('pointerup', release);
     seg.addEventListener('pointercancel', release);
+    // desktop: stop the browser from picking up the link itself (a native
+    // link drag cancels the pointer and the thumb never moves)
+    seg.addEventListener('dragstart', function (e) { e.preventDefault(); });
+    options().forEach(function (el) { el.setAttribute('draggable', 'false'); });
     seg.addEventListener('click', function (e) {
       if (e.isTrusted && performance.now() < swallowUntil) { e.preventDefault(); e.stopPropagation(); }
     }, true);

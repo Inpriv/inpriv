@@ -49,8 +49,7 @@ p a{color:var(--text);text-underline-offset:3px}
 .msg{margin-top:14px;padding:11px 14px;border-radius:16px;background:var(--fill);box-shadow:inset 0 0 0 1px var(--hairline);color:var(--text);word-break:break-word}
 .pill{display:inline-flex;align-items:center;gap:8px;margin-top:16px;height:30px;padding:0 12px;border-radius:999px;
 background:var(--fill);box-shadow:inset 0 0 0 1px var(--hairline);color:var(--text-2);font-size:13px;font-weight:550}
-.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--accent);animation:breathe 2.4s ease-in-out infinite}
-@keyframes breathe{50%{opacity:.3}}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--accent)}
 .actions{display:flex;gap:10px;margin-top:22px;flex-wrap:wrap}
 .btn{position:relative;isolation:isolate;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;gap:9px;
 height:52px;padding:0 22px;border:0;border-radius:999px;font-size:15.5px;font-weight:600;letter-spacing:-.01em;text-decoration:none;cursor:pointer;

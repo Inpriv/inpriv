@@ -247,6 +247,7 @@
     var x = 0, w = 0, y = 0, h = 0, vx = 0, vw = 0, tx = 0, tw = 0;
     var s = 1, vs = 0, ts = 1;
     var placed = false, raf = 0, last = 0, drag = null, swallowUntil = 0;
+    var lo = 0, right = 0; // first option's left edge, last option's right edge
 
     function options() {
       var out = [];
@@ -272,6 +273,8 @@
       if (!el) { thumb.style.opacity = '0'; placed = false; return; }
       thumb.style.opacity = '1';
       tx = el.offsetLeft; tw = el.offsetWidth; y = el.offsetTop; h = el.offsetHeight;
+      var o = options();
+      lo = o[0].offsetLeft; right = o[o.length - 1].offsetLeft + o[o.length - 1].offsetWidth;
       if (snap || !placed || reduced) { x = tx; w = tw; vx = vw = 0; placed = true; render(); return; }
       kick();
     }
@@ -281,7 +284,12 @@
       while (dt > 0) {
         var d = Math.min(dt, STEP);
         dt -= d;
-        if (!drag || !drag.active) { vx += (520 * (tx - x) - 28 * vx) * d; x += vx * d; }
+        if (!drag || !drag.active) {
+          vx += (520 * (tx - x) - 28 * vx) * d; x += vx * d;
+          // the pill's ends are walls: bounce back instead of sliding past
+          if (x < lo) { x = lo; vx = -vx * 0.3; }
+          else if (x > right - w) { x = right - w; vx = -vx * 0.3; }
+        }
         vw += (520 * (tw - w) - 28 * vw) * d; w += vw * d;
         vs += (700 * (ts - s) - 22 * vs) * d; s += vs * d;
       }
@@ -303,7 +311,7 @@
       var lx = e.clientX - r.left;
       if (lx < x || lx > x + w) return;           // only the thumb itself drags
       drag = { id: e.pointerId, sx: e.clientX, x0: x, lx: e.clientX, lt: performance.now(), active: false };
-      ts = 1.1; kick();
+      ts = 1.05; kick();
     });
     seg.addEventListener('pointermove', function (e) {
       if (!drag || e.pointerId !== drag.id) return;
@@ -317,12 +325,12 @@
       var o = options();
       if (!o.length) return;
       var min = o[0].offsetLeft, max = o[o.length - 1].offsetLeft + o[o.length - 1].offsetWidth - w;
-      var raw = drag.x0 + dx, limit = Math.min(14, w * 0.2), nx = raw;
-      if (raw < min) nx = min - limit * (1 - Math.exp(-(min - raw) / 40));
-      else if (raw > max) nx = max + limit * (1 - Math.exp(-(raw - max) / 40));
+      // the thumb stops at the ends of the pill instead of sliding past them
+      var raw = drag.x0 + dx, nx = Math.max(min, Math.min(max, raw));
       var now = performance.now();
       vx = (e.clientX - drag.lx) / Math.max(1, now - drag.lt) * 1000;
       drag.lx = e.clientX; drag.lt = now;
+      if (nx !== raw) vx = 0; // pressed against a wall: no stretch
       x = nx;
       // width follows the option underneath
       var mid = x + w / 2, best = o[0], bd = Infinity;
@@ -347,6 +355,10 @@
     }
     seg.addEventListener('pointerup', release);
     seg.addEventListener('pointercancel', release);
+    // desktop: stop the browser from picking up the link itself (a native
+    // link drag cancels the pointer and the thumb never moves)
+    seg.addEventListener('dragstart', function (e) { e.preventDefault(); });
+    options().forEach(function (el) { el.setAttribute('draggable', 'false'); });
     seg.addEventListener('click', function (e) {
       if (e.isTrusted && performance.now() < swallowUntil) { e.preventDefault(); e.stopPropagation(); }
     }, true);
