@@ -1,15 +1,18 @@
 // ── Inpriv Admin — private control plane ────────────────────────────────────
 // admin.inpriv.xyz — TOTP login (single user: saloyek), service kill-switches,
-// global info banner, rate limiting, audit log. All state on Google Drive
-// (folder "inpriv/.admin"):
-//   state.json           → { global, info, services, audit }  (one read/write)
-//   sess_<id>.json       → { user, exp }                      sessions (7d)
-//   rl_<ip>.json         → { a, f, reset, block }             login rate limit
+// global info banner, rate limiting, audit log. All state in the inpriv-id
+// D1 database (ID_DB), table admin_kv (k → JSON v, optional expiry):
+//   state                → { global, info, services, audit }  (one read/write)
+//   sess:<sha256(sid)>   → { user, exp }                      sessions (7d)
+//   rl:<ip>              → { a, f, reset, block }             login rate limit
+// It used to live in Google Drive files, which cost several slow Drive
+// round-trips per login; state.json is imported from Drive once if D1 is
+// still empty.
 // Public read-only (used by tool workers, cached 2s on the edge):
 //   GET /public/state → { global, info, services, ts }
 // Hourly cron sweeps expired sessions and stale rate-limit files.
 
-import { kvPut, kvGet, kvDelete, kvDeleteId, kvList } from "../../../common/drive.js";
+import { kvGet as driveGet } from "../../../common/drive.js";
 
 // ── config ───────────────────────────────────────────────────────────────────
 const SERVICES = [
@@ -142,7 +145,7 @@ export default {
   // No cron slot on the Free plan — own sweep runs lazily on authed requests.
   // The scheduled handler stays for when a slot frees up.
   async scheduled(controller, env, ctx) {
-    await this.sweepOwn(env);
+    await sweepOwn(env);
     const secret = env.SWEEP_SECRET || "";
     if (!secret) return;
     const targets = [
@@ -159,36 +162,58 @@ export default {
       }
     }
   },
-
-  async sweepOwn(env) {
-    try {
-      const nowS = Math.floor(Date.now() / 1000);
-      let removed = 0;
-      for (const f of await kvList(env, "sess_")) {
-        try {
-          const rec = JSON.parse(await kvGet(env, f.name));
-          if (!rec || (rec.exp || 0) < nowS) { await kvDeleteId(env, f.id); removed++; }
-        } catch { await kvDeleteId(env, f.id); removed++; }
-      }
-      for (const f of await kvList(env, "rl_")) {
-        try {
-          const rl = JSON.parse(await kvGet(env, f.name));
-          if (!rl || ((rl.reset || 0) < nowS - 3600 && (rl.block || 0) < nowS)) {
-            await kvDeleteId(env, f.id); removed++;
-          }
-        } catch { await kvDeleteId(env, f.id); removed++; }
-      }
-      console.log(`admin sweep: removed ${removed} stale files`);
-    } catch (e) {
-      console.log("admin sweep failed:", String(e?.message || e));
-    }
-  },
 };
 
-// ── state.json (single-file state) ───────────────────────────────────────────
-// Cached in isolate memory for 15 s — /public/state (hit by every tool worker
-// every few seconds) and the dashboard no longer touch Drive on each call.
-const STATE_CACHE_TTL = 15_000;
+// Removes expired sessions and rate-limit rows. Module-level so fetch()
+// can call it (it used to be a method that fetch referenced by bare name).
+async function sweepOwn(env) {
+  try {
+    await ensureKv(env);
+    const r = await env.ID_DB.prepare("DELETE FROM admin_kv WHERE exp IS NOT NULL AND exp < ?")
+      .bind(Math.floor(Date.now() / 1000)).run();
+    const removed = (r.meta && r.meta.changes) || 0;
+    console.log(`admin sweep: removed ${removed} stale rows`);
+    return removed;
+  } catch (e) {
+    console.log("admin sweep failed:", String(e?.message || e));
+    return 0;
+  }
+}
+
+// ── storage: admin_kv in D1 ──────────────────────────────────────────────────
+let _kvReady = false;
+async function ensureKv(env) {
+  if (_kvReady) return;
+  await env.ID_DB.prepare(
+    "CREATE TABLE IF NOT EXISTS admin_kv (k TEXT PRIMARY KEY, v TEXT NOT NULL, exp INTEGER)"
+  ).run();
+  _kvReady = true;
+}
+async function kvGet(env, k) {
+  await ensureKv(env);
+  const row = await env.ID_DB.prepare("SELECT v, exp FROM admin_kv WHERE k = ?").bind(k).first();
+  if (!row || (row.exp && row.exp < Date.now() / 1000)) return null;
+  return row.v;
+}
+async function kvPut(env, k, v, exp = null) {
+  await ensureKv(env);
+  await env.ID_DB.prepare(
+    "INSERT INTO admin_kv (k, v, exp) VALUES (?,?,?) ON CONFLICT(k) DO UPDATE SET v = excluded.v, exp = excluded.exp"
+  ).bind(k, v, exp == null ? null : Math.ceil(exp)).run();
+}
+async function kvDelete(env, k) {
+  await ensureKv(env);
+  await env.ID_DB.prepare("DELETE FROM admin_kv WHERE k = ?").bind(k).run();
+}
+async function sidKey(sid) {
+  const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(sid));
+  return "sess:" + [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+// ── kill-switch state (one row) ──────────────────────────────────────────────
+// Cached in isolate memory for a few seconds — /public/state is hit by every
+// tool worker; writes from this isolate update the cache at once.
+const STATE_CACHE_TTL = 3_000;
 let _stateCache = { data: null, until: 0 };
 
 function defaultState() {
@@ -203,7 +228,19 @@ function defaultState() {
 async function readState(env) {
   const now = Date.now();
   if (_stateCache.data && _stateCache.until > now) return _stateCache.data;
-  const raw = await kvGet(env, "state.json");
+  let raw = await kvGet(env, "state");
+  if (raw == null) {
+    // first run on D1: bring the Drive state over once (kill-switches,
+    // notice, audit) so nothing that is switched on gets lost
+    // A Drive error leaves D1 empty so the import is retried; "no file"
+    // stores the default so Drive isn't asked again.
+    let imported = false;
+    try {
+      raw = env.DRIVE_OAUTH ? await driveGet(env, "state.json") : null;
+      imported = true;
+    } catch { raw = null; }
+    if (raw || imported) await kvPut(env, "state", raw || JSON.stringify(defaultState()));
+  }
   let st;
   if (raw) {
     try { st = JSON.parse(raw); } catch { st = defaultState(); }
@@ -214,13 +251,12 @@ async function readState(env) {
 }
 
 async function writeState(env, st) {
-  await kvPut(env, "state.json", JSON.stringify(st));
-  _stateCache = { data: st, until: 0 }; // invalidate — next read hits Drive
+  await kvPut(env, "state", JSON.stringify(st));
+  _stateCache = { data: st, until: Date.now() + STATE_CACHE_TTL };
 }
 
 // ── auth: TOTP + sessions ────────────────────────────────────────────────────
-// Session cache (per isolate, 60 s) — the dashboard polls authed endpoints;
-// without this every poll pays 1–2 Drive round-trips.
+// Session cache (per isolate, 60 s) — the dashboard polls authed endpoints.
 const _sessCache = new Map(); // sid -> rec | null
 const SESS_CACHE_TTL = 60_000;
 
@@ -232,16 +268,14 @@ async function authed(request, env) {
   const now = Date.now();
   const hit = _sessCache.get(sid);
   if (hit && hit.until > now) return hit.rec;
-  const recRaw = await kvGet(env, `sess_${sid}.json`);
-  if (!recRaw) return null; // never cache misses: right after login the file
-                            // may not be visible yet (Drive read-after-write
-                            // lag) — a cached null would keep the user logged
-                            // out for the whole TTL
+  const recRaw = await kvGet(env, await sidKey(sid));
+  if (!recRaw) return null; // misses aren't cached: a login on another isolate
+                            // must work straight away
   let rec;
   try { rec = JSON.parse(recRaw); } catch { return null; }
   if (rec.exp < now / 1000) {
     _sessCache.set(sid, { rec: null, until: now + SESS_CACHE_TTL }); // expired: safe to cache
-    kvDelete(env, `sess_${sid}.json`).catch(() => {});
+    sidKey(sid).then((k) => kvDelete(env, k)).catch(() => {});
     return null;
   }
   _sessCache.set(sid, { rec, until: now + SESS_CACHE_TTL });
@@ -252,7 +286,7 @@ async function login(request, env, cors, waitUntil) {
   const ip = request.headers.get("CF-Connecting-IP") || "0.0.0.0";
 
   // rate limit: 10 attempts / 5 min / IP; 30 fails / 5 min → 15 min block
-  const rlName = `rl_${ip}.json`;
+  const rlName = `rl:${ip}`;
   const rlRaw = await kvGet(env, rlName);
   let rl = null;
   try { rl = rlRaw ? JSON.parse(rlRaw) : null; } catch { rl = null; }
@@ -271,7 +305,7 @@ async function login(request, env, cors, waitUntil) {
   rl.a += 1;
   if (rl.a > 10) {
     rl.block = now + 900;
-    await kvPut(env, rlName, JSON.stringify(rl));
+    await kvPut(env, rlName, JSON.stringify(rl), rl.block + 3600);
     return json({ error: "too_many_attempts", retry_after: 900 }, 429, cors, { "Retry-After": "900" });
   }
 
@@ -287,23 +321,22 @@ async function login(request, env, cors, waitUntil) {
     rl.f += 1;
     if (rl.f >= 30) rl.block = now + 900;
     // persist the failure counter — queued so the response stays fast
-    waitUntil(kvPut(env, rlName, JSON.stringify(rl)));
+    waitUntil(kvPut(env, rlName, JSON.stringify(rl), Math.max(rl.reset, rl.block) + 3600));
     return json({ error: failReason }, 401, cors);
   }
 
   waitUntil(kvDelete(env, rlName)); // clear the counter on success
   const sid = crypto.randomUUID().replace(/-/g, "");
   const rec = { user, exp: now + SESSION_TTL };
-  // The session MUST exist before the cookie reaches the browser: the client
-  // immediately calls /api/state, and Drive writes take ~300–500 ms. This
-  // exact gap is what logged the user out half a second after login.
+  // The session must exist before the cookie reaches the browser: the client
+  // calls /api/state right away.
   try {
-    await kvPut(env, `sess_${sid}.json`, JSON.stringify(rec));
+    await kvPut(env, await sidKey(sid), JSON.stringify(rec), rec.exp);
   } catch (e) {
     return json({ error: "session_write_failed" }, 503, cors);
   }
   // one audit record → one state read+write; queued so the login response
-  // never waits on the second Drive round-trip
+  // doesn't wait for it
   waitUntil(audit(env, "login", { ip }));
   return json({ ok: true, user }, 200, cors, {
     "Set-Cookie": `${COOKIE}=${sid}; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=${SESSION_TTL}`,
@@ -313,7 +346,10 @@ async function login(request, env, cors, waitUntil) {
 async function logout(request, env, cors) {
   const raw = request.headers.get("Cookie") || "";
   const m = raw.match(/inpriv_admin=([A-Za-z0-9_-]{20,})/);
-  if (m) await kvDelete(env, `sess_${m[1]}.json`);
+  if (m) {
+    await kvDelete(env, await sidKey(m[1]));
+    _sessCache.delete(m[1]);
+  }
   return json({ ok: true }, 200, cors, {
     "Set-Cookie": `${COOKIE}=; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=0`,
   });
@@ -382,8 +418,8 @@ async function getState(env) {
 }
 
 async function publicState(env, cors, request) {
-  // Edge-cache the public state for 5 s: gate checks from every tool worker
-  // hammer this endpoint; without caching each miss pays ~2 s of Drive reads.
+  // Edge-cache the public state briefly: gate checks from every tool worker
+  // hit this endpoint.
   const cache = caches.default;
   const cacheKey = new Request("https://cache.local/public/state", request);
   let res = await cache.match(cacheKey);

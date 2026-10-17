@@ -16,13 +16,14 @@ routes = [
 directory = "./public"
 not_found_handling = "single-page-application"
 
-# Storage: Google Drive folder "inpriv/.admin" (user OAuth).
-# state.json + per-session/rate-limit files. Replaces the old MAINTENANCE KV.
+# Storage: table admin_kv in the inpriv-id D1 database (ID_DB binding below).
+# Google Drive ("inpriv/.admin", user OAuth) is only read once, to import the
+# old state.json when admin_kv is still empty.
 [vars]
 DRIVE_PARENT = "1yLBrRjNDorTiBgGwQ12krHavKGLshFmV"
 DRIVE_FOLDER_NAME = ".admin"
 
-# Resolve requesters to usernames (accounts live in Inpriv ID)
+# Admin storage (admin_kv) and Inpriv ID accounts
 [[d1_databases]]
 binding = "ID_DB"
 database_name = "inpriv-id"
