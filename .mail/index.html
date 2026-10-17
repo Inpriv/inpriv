@@ -1370,6 +1370,8 @@ html, body { overscroll-behavior-y: contain; }
 'use strict';
 
 const API = '/api/v1';
+// Accounts are Inpriv IDs. Local dev (wrangler dev) runs ID on port 8798.
+const ID_API = /(^|\.)inpriv\.xyz$/.test(location.hostname) ? 'https://id.inpriv.xyz' : `http://${location.hostname}:8798`;
 const DOMAIN = 'inpriv.xyz';
 const PASS_ITERS = 300000;
 const PBKDF2_CAP = 100000;
@@ -1929,15 +1931,23 @@ function renderAuthForm(mode) {
           </div>
         </div>
 
+        <div class="field">
+          <label>Recovery email <span style="opacity:0.7">(optional)</span></label>
+          <div class="input-wrap">
+            <input type="email" id="regRecovery" placeholder="you@gmail.com" autocomplete="email" autocapitalize="none" spellcheck="false">
+          </div>
+          <div class="field-hint" style="font-size:12px;color:var(--md-on-surface-variant);margin-top:4px">For password resets. We send it a code to confirm.</div>
+        </div>
+
         <div class="sec-badge">
           ${mkIcon('key')}
-          <span>Generates RSA-2048 keypair + AES-GCM vault client-side</span>
+          <span>Creates your Inpriv ID, then your mailbox keys on this device</span>
         </div>
 
         <div id="regStatus" style="font-size:12.5px;color:var(--md-primary);margin-bottom:10px;text-align:center"></div>
 
         <button type="submit" class="btn btn-primary btn-block" id="regSubmitBtn">
-          <span>Create & Generate Keys</span> ${mkIcon('arrow_forward')}
+          <span>Create account</span> ${mkIcon('arrow_forward')}
         </button>
       </form>
     `;
@@ -1954,7 +1964,8 @@ function renderAuthForm(mode) {
       const u = $('#regUsername').value.trim().toLowerCase();
       const p = $('#regPassword').value;
       const pc = $('#regPasswordConfirm').value;
-      await handleRegister(u, p, pc);
+      const rec = ($('#regRecovery').value || '').trim().toLowerCase();
+      await handleRegister(u, p, pc, rec);
     });
   }
 }
@@ -2014,6 +2025,9 @@ async function finishPasswordLogin(res, password) {
   state.token = res.token;
   state.user = res.user;
   localStorage.setItem('inpriv_token', res.token);
+  if (res.migrated) {
+    setTimeout(() => toast('Your account is now an Inpriv ID', 'Same password. Add 2FA and a recovery email at id.inpriv.xyz.'), 600);
+  }
   if (res.rekey) {
     // the Inpriv ID password changed since the key was locked
     await startRekey(password);
@@ -2270,8 +2284,12 @@ async function initializeInprivIdKeys(username, password, initTicket) {
   }
 }
 
-/* ---------- Registration Flow ---------- */
-async function handleRegister(username, password, confirm) {
+/* ---------- Registration Flow ----------
+   One account for Mail and ID: create the Inpriv ID on id.inpriv.xyz
+   (same checks, optional recovery email with a verification code, signs
+   you in there too), then activate the mailbox like any ID: /login answers
+   needs_init and the keys are generated here. */
+async function handleRegister(username, password, confirm, recoveryEmail) {
   if (password !== confirm) {
     toast('Passwords mismatch', 'Please re-type password identically.', 'error');
     return;
@@ -2286,43 +2304,23 @@ async function handleRegister(username, password, confirm) {
   if (btn) btn.disabled = true;
 
   try {
-    if (status) status.innerHTML = `<span class="spinner"></span> Generating RSA-2048 keypair…`;
-    const kp = await generateKeyPair();
-
-    if (status) status.innerHTML = `<span class="spinner"></span> Deriving 300,000 PBKDF2 iterations…`;
-    const salt = crypto.getRandomValues(new Uint8Array(16));
-    const saltB64 = b64.enc(salt.buffer);
-    const aesKey = await deriveAesFromPassword(password, saltB64, PASS_ITERS);
-
-    if (status) status.innerHTML = `<span class="spinner"></span> Sealing private key…`;
-    const pubB64 = await exportPublicKey(kp.publicKey);
-    const { wrapped, iv } = await wrapPrivateKey(kp.privateKey, aesKey);
-    state.dek = aesKey; // kept for Quick Unlock re-enrolment from settings
-
-    if (status) status.innerHTML = `<span class="spinner"></span> Registering mailbox…`;
-    const res = await api('/register', {
+    if (status) status.innerHTML = `<span class="spinner"></span> Creating your Inpriv ID…`;
+    const r = await fetch(ID_API + '/api/register', {
       method: 'POST',
-      body: JSON.stringify({
-        username,
-        password,
-        password_confirm: confirm,
-        public_key: pubB64,
-        encrypted_private_key: wrapped,
-        priv_iv: iv,
-        priv_salt: saltB64,
-        priv_iter: PASS_ITERS
-      })
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password, recovery_email: recoveryEmail || undefined })
     });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || 'could not create the account');
 
-    state.token = res.token;
-    state.user = res.user;
-    state.privKey = kp.privateKey;
-    state.pubKey = kp.publicKey;
-    state.unlocked = true;
-    localStorage.setItem('inpriv_token', res.token);
-
-    toast('Account created', `Your address is ${res.user.email}`);
-    renderDashboard();
+    if (status) status.innerHTML = `<span class="spinner"></span> Generating your mailbox keys…`;
+    await handleLogin(username, password);
+    if (state.token) {
+      toast('Account created', d.verification_sent
+        ? `Your address is ${username}@${DOMAIN}. Check ${recoveryEmail} for the code.`
+        : `Your address is ${username}@${DOMAIN}. One account for Mail and Inpriv ID.`);
+    }
   } catch (e) {
     toast('Registration failed', e.message, 'error');
     if (btn) btn.disabled = false;

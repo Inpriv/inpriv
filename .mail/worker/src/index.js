@@ -556,6 +556,30 @@ async function openIdSecret(env, envelopeJson) {
   }
 }
 
+// Mail-only mailboxes (created on mail.inpriv.xyz before sign-up moved to
+// Inpriv ID) become an Inpriv ID the next time they're used. Mail's hash is
+// the same chained PBKDF2 as ID's, so it's copied as is and the password
+// keeps working; 2FA, recovery email and sessions then live on
+// id.inpriv.xyz. Returns true when the ID was created now.
+async function ensureIdAccount(env, mailUser) {
+  if (!env.ID_DB || !mailUser || !mailUser.username) return false;
+  try {
+    const username = String(mailUser.username).toLowerCase();
+    const email = `${username}@${DOMAIN}`;
+    const taken = await env.ID_DB.prepare(
+      "SELECT 1 FROM users WHERE username = ? OR email = ? OR recovery_email = ?"
+    ).bind(username, email, email).first();
+    if (taken) return false;
+    await env.ID_DB.prepare(
+      "INSERT INTO users (id, username, email, nick, pass_hash, pass_salt, pass_iters, created_at) VALUES (?,?,?,?,?,?,?,?)"
+    ).bind(crypto.randomUUID(), username, email, username, mailUser.auth_hash, mailUser.auth_salt,
+      mailUser.priv_iter || PASS_ITERS, mailUser.created_at || now()).run();
+    return true;
+  } catch {
+    return false; // never block mail on this; it's retried on the next use
+  }
+}
+
 // Second factor for an Inpriv ID account: a 6-digit TOTP code or a single-use
 // recovery code. Returns "ok", "missing" (nothing usable sent yet) or "bad".
 async function checkIdSecondFactor(env, idUserId, code, recovery) {
@@ -797,9 +821,10 @@ export default {
               "INSERT INTO sessions (id, user_id, created_at, expires_at, ua) VALUES (?,?,?,?,?)"
             ).bind(await sha256hex(token), user.id, now(), now() + SESSION_TTL_MS, ua(request)).run();
             await env.DB.prepare("UPDATE users SET last_login = ? WHERE id = ?").bind(now(), user.id).run();
+            const migrated = !idUser && (await ensureIdAccount(env, user));
             ctx.waitUntil(syncIdConsent(env, user.username, true));
             // rekey: the mailbox key is still locked with the previous password
-            return json({ token, user: publicUser(user, { inpriv_id_synced: true }), rekey: !mailMatch }, 200, cors);
+            return json({ token, user: publicUser(user, { inpriv_id_synced: true }), rekey: !mailMatch, migrated }, 200, cors);
           }
           return bad("invalid credentials", 401, cors);
         }
@@ -1002,69 +1027,11 @@ export default {
       }
 
       // ── Register New Account ──────────────────────────────────────────────
+      // Accounts are Inpriv IDs now: the page creates the ID on
+      // id.inpriv.xyz, then activates the mailbox (/login → /init-keys).
+      // Kept only to answer pages loaded before the switch.
       if (path === "/api/v1/register" && request.method === "POST") {
-        if (!(await rateLimit(env.DB, `reg:${ipKey(request)}`, 5, 3_600_000))) {
-          return bad("too many registrations — please try again later", 429, cors);
-        }
-
-        const body = await request.json();
-        let username = String(body.username || "").toLowerCase().trim();
-        if (username.endsWith("@inpriv.xyz")) username = username.slice(0, -"@inpriv.xyz".length).trim();
-        const password = String(body.password || "");
-        const passwordConfirm = String(body.password_confirm || body.passwordConfirm || "");
-
-        if (!/^[a-z0-9](?:[a-z0-9._-]{1,30}[a-z0-9])?$/.test(username)) {
-          return bad("invalid username (2-32 chars: a-z 0-9 . _ -)", 400, cors);
-        }
-        if (isReservedLocal(username)) {
-          return bad("this address is reserved", 409, cors);
-        }
-        if (password.length < 10) return bad("password too short (minimum 10 characters)", 400, cors);
-        if (passwordConfirm && password !== passwordConfirm) return bad("passwords do not match", 400, cors);
-
-        const pubkey = String(body.public_key || "");
-        const epk = String(body.encrypted_private_key || "");
-        const privIv = String(body.priv_iv || "");
-        const privSalt = String(body.priv_salt || "");
-        const privIter = parseInt(body.priv_iter, 10) || PASS_ITERS;
-
-        if (!pubkey || !epk || !privIv || !privSalt) {
-          return bad("missing client crypto envelope", 400, cors);
-        }
-
-        const address = `${username}@${DOMAIN}`;
-
-        // Check if username taken in Mail
-        const dupMail = await env.DB.prepare("SELECT 1 FROM users WHERE username = ? OR address = ?")
-          .bind(username, address).first();
-        if (dupMail) return bad("username already registered on Inpriv Mail", 409, cors);
-
-        // Check if username taken in Inpriv ID
-        if (env.ID_DB) {
-          const dupId = await env.ID_DB.prepare("SELECT 1 FROM users WHERE username = ? OR email = ?")
-            .bind(username, address).first();
-          if (dupId) {
-            return bad("username belongs to an Inpriv ID account. Please sign in with your Inpriv ID password to activate your mailbox.", 409, cors);
-          }
-        }
-
-        const authSalt = b64(crypto.getRandomValues(new Uint8Array(16)));
-        const authHash = await passHash(password, authSalt, privIter);
-
-        const res = await env.DB.prepare(
-          `INSERT INTO users (username, address, auth_hash, auth_salt, public_key,
-                              encrypted_private_key, priv_iv, priv_salt, priv_iter, created_at, last_login)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?)`
-        ).bind(username, address, authHash, authSalt, pubkey, epk, privIv, privSalt, privIter, now(), now()).run();
-        const uid = res.meta?.last_row_id;
-
-        const token = b64(crypto.getRandomValues(new Uint8Array(32)));
-        await env.DB.prepare(
-          "INSERT INTO sessions (id, user_id, created_at, expires_at, ua) VALUES (?,?,?,?,?)"
-        ).bind(await sha256hex(token), uid, now(), now() + SESSION_TTL_MS, ua(request)).run();
-
-        const user = await env.DB.prepare("SELECT * FROM users WHERE id = ?").bind(uid).first();
-        return json({ token, user: publicUser(user) }, 200, cors);
+        return bad("Mail accounts are Inpriv IDs now — reload the page and create your account again", 410, cors);
       }
 
       // ── Search Users / Autocomplete ───────────────────────────────────────
@@ -1274,6 +1241,7 @@ export default {
         // include the Quick Unlock policy (mirrors the Inpriv ID account
         // setting) so the client can attempt the device-key path without
         // waiting for the SSO widget
+        const migrated = await ensureIdAccount(env, me);
         const qu = await quickUnlockPolicy(env, me.username);
         await ensureDeviceKeys(env);
         const dc = await env.DB.prepare("SELECT COUNT(*) AS n FROM device_keys WHERE user_id = ?").bind(me.id).first();
@@ -1281,7 +1249,7 @@ export default {
         // pass through grant/redeem, so this keeps the ID panel's
         // "Connected services" card truthful (≤1 write/hour per account).
         ctx.waitUntil(syncIdConsent(env, me.username, false));
-        return json(publicUser(me, { quick_unlock: qu, quick_unlock_devices: dc ? dc.n : 0 }), 200, cors);
+        return json(publicUser(me, { quick_unlock: qu, quick_unlock_devices: dc ? dc.n : 0, migrated }), 200, cors);
       }
 
       // ── Logout ────────────────────────────────────────────────────────────
