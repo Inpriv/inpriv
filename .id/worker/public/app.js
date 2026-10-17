@@ -292,7 +292,14 @@ function renderProfile() {
   
   const verifySec = $("verifySection");
   if (verifySec) {
-    verifySec.style.display = (hasRecovery && !user.email_verified) ? "flex" : "none";
+    // the recovery address's own flag (email_verified also counts other checks)
+    const pending = hasRecovery && !user.recovery_email_verified;
+    verifySec.style.display = pending ? "flex" : "none";
+    $("recoveryDesc").textContent = !hasRecovery
+      ? "An outside address for password resets and security notices."
+      : pending
+        ? `Not confirmed yet. Enter the 6-digit code we sent to ${user.recovery_email}.`
+        : `${user.recovery_email} is confirmed.`;
   }
 
   $("twoFAOffUI").hidden = user.totp_enabled;

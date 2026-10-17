@@ -215,18 +215,50 @@ export async function sendMail(env, to, subject, text, html) {
   }
 }
 
-export const emailShell = (title, body) =>
-  `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f4f3e7;font-family:'Roboto',Segoe UI,Arial,sans-serif">` +
-  `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f3e7;padding:32px 12px"><tr><td align="center">` +
-  `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:440px;background:#ffffff;border-radius:24px;padding:36px 32px;text-align:center">` +
-  `<tr><td style="padding-bottom:8px"><div style="width:52px;height:52px;border-radius:16px;background:#C7EFA0;display:inline-block;line-height:52px;font-size:26px">&#127807;</div></td></tr>` +
-  `<tr><td style="font-size:20px;font-weight:700;color:#1A1C17;padding:8px 0 4px">${title}</td></tr>` +
-  `<tr><td style="font-size:14px;color:#43483D;line-height:1.6;padding-bottom:20px">${body}</td></tr>` +
-  `<tr><td style="font-size:11px;color:#74796C;padding-top:16px;border-top:1px solid #C3C8B6">Inpriv &mdash; privacy-first tools &middot; <a href="https://inpriv.xyz" style="color:#466E47">inpriv.xyz</a></td></tr>` +
+// ── Inpriv emails ───────────────────────────────────────────────────────────
+// Same look as the sites: ink background, one warm accent, system fonts.
+// Dark by default; mail apps that follow a light system theme get the light
+// palette from the media query (apps that ignore it, like Gmail, stay dark).
+// No images or remote resources, so opening the mail loads nothing.
+const EMAIL_FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+const esc = (v) => String(v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+// title: plain text. body: trusted HTML built by the caller (escape any user
+// value with emailEsc). preheader: the preview line shown in inbox lists.
+export const emailEsc = esc;
+export const emailShell = (title, body, preheader = "") =>
+  `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">` +
+  `<meta name="viewport" content="width=device-width,initial-scale=1">` +
+  `<meta name="color-scheme" content="dark light"><meta name="supported-color-schemes" content="dark light">` +
+  `<title>${esc(title)}</title><style>` +
+  `:root{color-scheme:dark light;supported-color-schemes:dark light}` +
+  `a{color:inherit}` +
+  `@media (prefers-color-scheme: light){` +
+  `.ip-bg{background:#ebe9e4!important}.ip-card{background:#ffffff!important;border-color:#dcd9d2!important}` +
+  `.ip-t1{color:#141412!important}.ip-t2{color:#55534d!important}.ip-t3{color:#8a877f!important}` +
+  `.ip-code{background:#f2f0eb!important;color:#141412!important;border-color:#dcd9d2!important}}` +
+  `</style></head>` +
+  `<body class="ip-bg" style="margin:0;padding:0;background:#0c0c0b">` +
+  (preheader ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0">${esc(preheader)}</div>` : "") +
+  `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="ip-bg" style="background:#0c0c0b">` +
+  `<tr><td align="center" style="padding:40px 16px">` +
+  `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:460px">` +
+  // wordmark: the Inpriv mark (two stacked triangles) + name
+  `<tr><td class="ip-t1" style="padding:0 6px 18px;color:#f2f1ed;font:700 19px/1 ${EMAIL_FONT};letter-spacing:-0.3px">` +
+  `<span style="display:inline-block;vertical-align:-3px;width:14px;margin-right:7px;font-size:9px;line-height:9px;text-align:center">&#9650;<br>&#9660;</span>Inpriv</td></tr>` +
+  `<tr><td class="ip-card" style="background:#171716;border:1px solid #2a2a27;border-radius:24px;padding:30px 28px">` +
+  `<h1 class="ip-t1" style="margin:0 0 10px;color:#f2f1ed;font:700 22px/1.25 ${EMAIL_FONT};letter-spacing:-0.4px">${esc(title)}</h1>` +
+  `<div class="ip-t2" style="color:#a8a69f;font:400 15px/1.6 ${EMAIL_FONT}">${body}</div>` +
+  `</td></tr>` +
+  `<tr><td class="ip-t3" style="padding:18px 6px 0;color:#6f6d67;font:400 12px/1.6 ${EMAIL_FONT}">` +
+  `Didn't ask for this? You can ignore this email. Nothing changes until the code is entered.<br>` +
+  `<span style="color:#ff6a2b">&#9679;</span>&nbsp;Inpriv &middot; <a href="https://inpriv.xyz" style="color:inherit">inpriv.xyz</a> &middot; ` +
+  `<a href="https://inpriv.xyz/privacy" style="color:inherit">Privacy</a></td></tr>` +
   `</table></td></tr></table></body></html>`;
 
 export const codeBlock = (code) =>
-  `<div style="font-size:30px;font-weight:800;letter-spacing:6px;color:#1A1C17;padding:14px 0">${code}</div>`;
+  `<div class="ip-code" style="margin:22px 0;padding:18px 12px;border-radius:16px;background:#0c0c0b;border:1px solid #2a2a27;` +
+  `color:#f2f1ed;text-align:center;font:700 34px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:10px">${esc(code)}</div>`;
 
 export function sessionCookie(token) {
   return `${COOKIE_NAME}=${token}; Path=/; Max-Age=${SESSION_TTL_MS / 1000}; Secure; HttpOnly; SameSite=None; Partitioned`;
