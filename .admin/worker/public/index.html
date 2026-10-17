@@ -1824,9 +1824,16 @@ async function loadTemp() {
         <span class="snip">${b.messages} message${b.messages === 1 ? "" : "s"}${b.last_at ? ` · last ${fmtWhen(b.last_at)}` : ""} · ${fmtLeft(b.expires_at)}</span>
       </button>`).join("") + (d.inboxes.length >= d.limit ? `<p class="rec-note">Showing the newest ${d.limit}. Filter to find others.</p>` : "")
       : `<p class="rec-empty">${$("temp-q").value.trim() ? "No live inbox matches." : "No live inboxes right now."}</p>`;
-    $("temp-list").querySelectorAll(".team-item").forEach((el) => el.addEventListener("click", () => openTemp(el.dataset.addr)));
+    // clicking the open inbox again closes it
+    $("temp-list").querySelectorAll(".team-item").forEach((el) => el.addEventListener("click", () =>
+      el.dataset.addr === tempOpen ? closeTemp() : openTemp(el.dataset.addr)));
   } catch (ex) { toast(ex.message, true); }
   finally { busy(false); }
+}
+function closeTemp() {
+  tempOpen = null;
+  $("temp-pane").innerHTML = "";
+  $("temp-list").querySelectorAll(".team-item.on").forEach((el) => el.classList.remove("on"));
 }
 async function openTemp(address) {
   try {
@@ -1845,15 +1852,13 @@ async function openTemp(address) {
     ])) + `<div class="rec-actions">
         <button class="btn btn-tonal btn-sm" type="button" id="temp-records">${icon("search")} Open in Records</button>
         <button class="btn btn-error btn-sm" type="button" id="temp-del">${icon("trash")} Delete inbox</button>
-        <button class="btn btn-tonal btn-sm" type="button" id="temp-close">Close</button>
       </div>`;
-    $("temp-close").onclick = () => { tempOpen = null; $("temp-pane").innerHTML = ""; loadTemp(); };
     $("temp-records").onclick = () => { showTab("records"); $("rec-q").value = address; $("rec-form").requestSubmit(); };
     $("temp-del").onclick = async () => {
       if (!(await confirmBox("Delete this inbox?", "The inbox and all its messages are removed now. Whoever is using it gets a new address. This can't be undone."))) return;
       try {
         await teamApi("/api/temp/delete", { address });
-        tempOpen = null; $("temp-pane").innerHTML = ""; toast("Inbox deleted"); loadTemp();
+        closeTemp(); toast("Inbox deleted"); loadTemp();
       } catch (ex) { toast(ex.message, true); }
     };
     $("temp-pane").scrollIntoView({ behavior: "smooth", block: "nearest" });
