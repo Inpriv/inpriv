@@ -1562,12 +1562,9 @@ const LOG_COLS = [
   { key: "ua", label: "Browser", wrap: true },
 ];
 
-function renderRecord(d) {
+// the record as blocks of HTML; shared by the screen view and the print sheet
+function recordParts(d) {
   const parts = [];
-  parts.push(`<div class="rec-actions">
-    <button class="btn btn-tonal btn-sm" type="button" id="rec-json">${icon("download")} Download JSON</button>
-    <button class="btn btn-tonal btn-sm" type="button" id="rec-print">Print</button>
-  </div>`);
   if (d.account) {
     const a = d.account;
     parts.push(block("Inpriv ID account", kv([
@@ -1607,10 +1604,18 @@ function renderRecord(d) {
   if (d.accounts_seen) parts.push(block("Accounts seen from this IP", d.accounts_seen.length ? kv(d.accounts_seen.map((a) => ["Account", a])) : `<p class="rec-empty">None.</p>`));
   parts.push(block("Access log (last 90 days)", table(d.access_log, LOG_COLS)));
   if (!d.account && !d.mailbox && !(d.temp_inboxes || []).length && !(d.access_log || []).length) {
-    parts.splice(1, 0, `<p class="rec-note">Nothing is stored for <strong>${escapeHtml(d.query)}</strong>.</p>`);
+    parts.unshift(`<p class="rec-note">Nothing is stored for <strong>${escapeHtml(d.query)}</strong>.</p>`);
   }
   parts.push(block("Never held", `<ul class="rec-note">${(d.never_held || []).map((x) => `<li>${escapeHtml(x)}</li>`).join("")}</ul>`));
-  $("rec-out").innerHTML = parts.join("");
+  return parts;
+}
+
+const PRINT_ICON = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9V3h10v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v7H7z"/></svg>';
+function renderRecord(d) {
+  $("rec-out").innerHTML = `<div class="rec-actions">
+    <button class="btn btn-tonal btn-sm" type="button" id="rec-json">${icon("download")} Download JSON</button>
+    <button class="btn btn-tonal btn-sm" type="button" id="rec-print">${PRINT_ICON} Print</button>
+  </div>` + recordParts(d).join("");
   $("rec-json").onclick = () => {
     const blob = new Blob([JSON.stringify(d, null, 2)], { type: "application/json" });
     const a = document.createElement("a");
@@ -1619,7 +1624,55 @@ function renderRecord(d) {
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   };
-  $("rec-print").onclick = () => window.print();
+  $("rec-print").onclick = () => printRecord(d);
+}
+
+// Print sheet: its own plain page in a hidden frame, so the result is the same
+// in dark or light theme. White paper, black text, thin grey rules, no fills,
+// so it is readable and uses almost no ink.
+const PRINT_CSS = `
+@page { size: A4; margin: 14mm 12mm; }
+* { box-sizing: border-box; }
+html, body { margin: 0; background: #fff; color: #111; }
+body { font: 9.5pt/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+header { border-bottom: 1.5pt solid #111; padding-bottom: 8pt; margin-bottom: 14pt; }
+header .brand { font-weight: 700; font-size: 10pt; letter-spacing: .02em; }
+header h1 { margin: 4pt 0 2pt; font-size: 16pt; font-weight: 700; overflow-wrap: anywhere; }
+header .meta { color: #444; font-size: 8.5pt; }
+.rec-block { margin: 0 0 14pt; break-inside: auto; }
+.rec-block h3 { margin: 0 0 5pt; font-size: 10.5pt; font-weight: 700; break-after: avoid; }
+.rec-kv { display: grid; grid-template-columns: max-content 1fr; gap: 2pt 14pt; margin: 0; }
+.rec-kv dt { color: #555; }
+.rec-kv dd { margin: 0; overflow-wrap: anywhere; }
+.rec-table { width: 100%; border-collapse: collapse; font-size: 8pt; table-layout: auto; }
+.rec-table thead { display: table-header-group; }
+.rec-table th { text-align: left; font-weight: 700; border-bottom: 1pt solid #111; padding: 3pt 5pt 3pt 0; }
+.rec-table td { vertical-align: top; border-bottom: .5pt solid #bbb; padding: 3pt 6pt 3pt 0; white-space: nowrap; }
+.rec-table td.wrap { white-space: normal; overflow-wrap: anywhere; min-width: 30mm; }
+.rec-table tr { break-inside: avoid; }
+.rec-empty, .rec-note { color: #444; margin: 0; }
+.rec-note { padding-left: 14pt; }
+footer { margin-top: 18pt; padding-top: 6pt; border-top: .5pt solid #bbb; color: #555; font-size: 8pt; }
+`;
+function printRecord(d) {
+  const when = fmtTime(Date.parse(d.generated_at));
+  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Inpriv records - ${escapeHtml(d.query)}</title><style>${PRINT_CSS}</style></head><body>
+<header><div class="brand">Inpriv &middot; Records</div><h1>${escapeHtml(d.query)}</h1><div class="meta">Generated ${escapeHtml(when)} &middot; Confidential: for abuse reports and valid legal requests only</div></header>
+${recordParts(d).join("")}
+<footer>Times are UTC. Message bodies in Inpriv Mail are end-to-end encrypted and are not available to Inpriv.</footer>
+</body></html>`;
+  const old = document.getElementById("rec-print-frame");
+  if (old) old.remove();
+  const f = document.createElement("iframe");
+  f.id = "rec-print-frame";
+  f.setAttribute("aria-hidden", "true");
+  f.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
+  f.onload = () => {
+    f.contentWindow.focus();
+    f.contentWindow.print();
+  };
+  f.srcdoc = html;
+  document.body.appendChild(f);
 }
 
 $("rec-form").addEventListener("submit", async (e) => {
