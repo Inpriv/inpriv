@@ -564,7 +564,12 @@ input:focus, textarea:focus { box-shadow: inset 0 0 0 1.5px var(--focus), 0 0 0 
 .temp-list .team-item { width: 100%; }
 .temp-list .team-item.on { background: var(--fill-3); }
 #temp-pane:not(:empty) { margin-top: 12px; padding: 14px; border-radius: 18px; background: var(--well); box-shadow: inset 0 0 0 1px var(--hairline); }
-#temp-pane h3 { margin: 0 0 10px; font: 650 16px/1.3 var(--font-display); overflow-wrap: anywhere; }
+/* the open inbox's address: a lighter bar that closes it */
+.temp-head { display: flex; align-items: center; gap: 10px; width: 100%; margin: 0 0 12px; padding: 10px 12px; border: 0; border-radius: 14px; cursor: pointer; background: var(--fill-2); color: var(--text); text-align: left; font: 650 16px/1.3 var(--font-display); transition: background 0.15s; }
+.temp-head:hover { background: var(--fill-3); }
+.temp-head:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.temp-head span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.temp-head .i { flex: none; color: var(--text-2); }
 
 /* records */
 .rec-search { display: flex; gap: 8px; }
@@ -1841,7 +1846,7 @@ async function openTemp(address) {
     tempOpen = address;
     $("temp-list").querySelectorAll(".team-item").forEach((el) => el.classList.toggle("on", el.dataset.addr === address));
     const c = d.created_from;
-    $("temp-pane").innerHTML = `<h3>${escapeHtml(d.inbox.address)}</h3>` + kv([
+    $("temp-pane").innerHTML = `<button type="button" class="temp-head" id="temp-head" title="Close" aria-label="Close ${escapeHtml(d.inbox.address)}"><span>${escapeHtml(d.inbox.address)}</span>${icon("close")}</button>` + kv([
       ["Created", fmtTime(d.inbox.created_at)], ["Expires", `${fmtTime(d.inbox.expires_at)} (${fmtLeft(d.inbox.expires_at)})`],
       ["Created from", c ? [c.ip, c.country, c.asn].filter(Boolean).join(" · ") : null], ["Browser", c && c.ua],
     ]) + block(`Messages (${d.messages.length})`, table(d.messages, [
@@ -1853,6 +1858,7 @@ async function openTemp(address) {
         <button class="btn btn-tonal btn-sm" type="button" id="temp-records">${icon("search")} Open in Records</button>
         <button class="btn btn-error btn-sm" type="button" id="temp-del">${icon("trash")} Delete inbox</button>
       </div>`;
+    $("temp-head").onclick = closeTemp;
     $("temp-records").onclick = () => { showTab("records"); $("rec-q").value = address; $("rec-form").requestSubmit(); };
     $("temp-del").onclick = async () => {
       if (!(await confirmBox("Delete this inbox?", "The inbox and all its messages are removed now. Whoever is using it gets a new address. This can't be undone."))) return;
