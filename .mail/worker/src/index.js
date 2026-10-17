@@ -4,6 +4,7 @@
 import { maintenanceGate, maintenancePage } from "../../../common/gate.js";
 import { notFound } from "../../../common/errors.js";
 import { logAccess } from "../../../common/access-log.js";
+import { WorkerEntrypoint } from "cloudflare:workers";
 
 const DOMAIN = "inpriv.xyz";
 
@@ -29,7 +30,9 @@ const RESERVED_PREFIXES = [
   "register", "root", "sales", "sample", "secure", "security", "self",
   "server", "service", "signin", "signup", "smtp", "ssl", "staff", "status",
   "support", "sysop", "team", "temp", "test", "tls", "user", "vpn", "webmaster",
-  "welcome", "www", "zero"
+  "welcome", "www", "zero",
+  // team mailboxes and legal contacts
+  "dmca", "copyright", "police", "lawenforcement", "law-enforcement"
 ];
 
 function isReservedLocal(local) {
@@ -266,6 +269,28 @@ function sanitizeEmailHtml(html) {
     .trim();
 }
 
+// ── Team mailboxes (support@, abuse@, dmca@ …) ─────────────────────────────
+// Operator addresses read and answered in admin.inpriv.xyz (through the
+// TeamMail entrypoint below — a Worker-to-Worker binding, not reachable from
+// the internet). They're operator mail, not user mailboxes, so they're
+// stored as received (not end-to-end encrypted); D1 encrypts at rest.
+export const TEAM_MAILBOXES = ["support", "abuse", "dmca", "legal", "privacy", "security", "admin", "hello"];
+const TEAM_LABELS = {
+  support: "Inpriv Support", abuse: "Inpriv Abuse", dmca: "Inpriv Copyright", legal: "Inpriv Legal",
+  privacy: "Inpriv Privacy", security: "Inpriv Security", admin: "Inpriv", hello: "Inpriv",
+};
+let _teamReady = false;
+async function ensureTeam(env) {
+  if (_teamReady) return;
+  await env.DB.batch([
+    env.DB.prepare(
+      "CREATE TABLE IF NOT EXISTS team_messages (id INTEGER PRIMARY KEY AUTOINCREMENT, mailbox TEXT NOT NULL, direction TEXT NOT NULL, from_addr TEXT, from_name TEXT, to_addr TEXT, subject TEXT, text TEXT, attachments TEXT, is_read INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL, resend_id TEXT)"
+    ),
+    env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_team_box ON team_messages(mailbox, created_at)"),
+  ]);
+  _teamReady = true;
+}
+
 async function handleInbound(request, env) {
   const secret = env.RESEND_WEBHOOK_SECRET;
   if (!secret) {
@@ -304,15 +329,20 @@ async function handleInbound(request, env) {
     ...(Array.isArray(d.received_for) ? d.received_for : []),
   ].map((s) => String(s).trim().toLowerCase()).filter(Boolean);
 
-  let target = null;
+  let target = null, team = null;
   for (const r of recipients) {
+    if (!r.endsWith("@" + DOMAIN)) continue;
+    const local = r.slice(0, -("@" + DOMAIN).length);
+    if (TEAM_MAILBOXES.includes(local)) { team = local; break; }
+  }
+  for (const r of team ? [] : recipients) {
     if (!r.endsWith("@" + DOMAIN)) continue;
     const row = await env.DB.prepare(
       "SELECT id, username, address, public_key FROM users WHERE address = ?"
     ).bind(r).first();
     if (row) { target = row; break; }
   }
-  if (!target) return json({ ok: true, ignored: "no such mailbox" }); // 200 → no retry, no enumeration
+  if (!target && !team) return json({ ok: true, ignored: "no such mailbox" }); // 200 → no retry, no enumeration
 
   // Webhooks carry metadata only — fetch the body via the Received emails API
   // (needs a read-capable key; metadata-only fallback if missing/unauthorized).
@@ -354,6 +384,25 @@ async function handleInbound(request, env) {
       return `• ${a.filename || "attachment"} (${a.content_type || "file"}, ~${kb} KB)`;
     });
     plaintext += `\n\n— Attachments (${atts.length}) —\n${lines.join("\n")}\n(Attachment downloads are not supported yet; only the list is stored.)`;
+  }
+
+  // Team mailbox: store as received, for the admin panel.
+  if (team) {
+    try {
+      await ensureTeam(env);
+      await env.DB.prepare(
+        "INSERT INTO team_messages (mailbox, direction, from_addr, from_name, to_addr, subject, text, attachments, created_at) VALUES (?,?,?,?,?,?,?,?,?)"
+      ).bind(
+        team, "in", String(d.from || "unknown@unknown").toLowerCase().slice(0, 320), fromName,
+        `${team}@${DOMAIN}`, String(d.subject || "(no subject)").slice(0, 500), plaintext,
+        atts.length ? JSON.stringify(atts.map((a) => ({ name: a.filename || "attachment", type: a.content_type || "", size: a.size || 0 }))) : null,
+        now()
+      ).run();
+    } catch (err) {
+      console.error("inbound: team store failed", err);
+      return json({ error: "storage failure" }, 500);
+    }
+    return json({ ok: true, stored: true, team });
   }
 
   // Rich part: sanitized HTML (script/iframe/event-handler free), sealed in
@@ -1433,3 +1482,71 @@ export default {
     ]);
   },
 };
+
+// ── TeamMail: the team mailboxes, for admin.inpriv.xyz ───────────────────────
+// Only reachable through admin's service binding (entrypoint "TeamMail");
+// admin checks its own session before calling any of this.
+export class TeamMail extends WorkerEntrypoint {
+  async summary() {
+    await ensureTeam(this.env);
+    const r = await this.env.DB.prepare(
+      "SELECT mailbox, COUNT(*) AS total, SUM(CASE WHEN direction = 'in' AND is_read = 0 THEN 1 ELSE 0 END) AS unread FROM team_messages GROUP BY mailbox"
+    ).all();
+    const by = new Map((r.results || []).map((x) => [x.mailbox, x]));
+    return TEAM_MAILBOXES.map((m) => ({
+      mailbox: m, address: `${m}@${DOMAIN}`, label: TEAM_LABELS[m],
+      total: (by.get(m) || {}).total || 0, unread: (by.get(m) || {}).unread || 0,
+    }));
+  }
+
+  async list(mailbox, limit = 100) {
+    if (!TEAM_MAILBOXES.includes(mailbox)) throw new Error("unknown mailbox");
+    await ensureTeam(this.env);
+    const r = await this.env.DB.prepare(
+      "SELECT id, direction, from_addr, from_name, to_addr, subject, substr(text, 1, 160) AS snippet, is_read, created_at FROM team_messages WHERE mailbox = ? ORDER BY created_at DESC LIMIT ?"
+    ).bind(mailbox, Math.min(500, Math.max(1, limit | 0))).all();
+    return r.results || [];
+  }
+
+  async get(id) {
+    await ensureTeam(this.env);
+    const m = await this.env.DB.prepare("SELECT * FROM team_messages WHERE id = ?").bind(id | 0).first();
+    if (m && !m.is_read) await this.env.DB.prepare("UPDATE team_messages SET is_read = 1 WHERE id = ?").bind(m.id).run();
+    return m || null;
+  }
+
+  async setRead(id, read) {
+    await ensureTeam(this.env);
+    await this.env.DB.prepare("UPDATE team_messages SET is_read = ? WHERE id = ?").bind(read ? 1 : 0, id | 0).run();
+    return true;
+  }
+
+  async remove(id) {
+    await ensureTeam(this.env);
+    await this.env.DB.prepare("DELETE FROM team_messages WHERE id = ?").bind(id | 0).run();
+    return true;
+  }
+
+  async send({ mailbox, to, subject, text }) {
+    if (!TEAM_MAILBOXES.includes(mailbox)) throw new Error("unknown mailbox");
+    to = String(to || "").trim().toLowerCase();
+    if (!/^[^\s@<>,;]+@[^\s@<>,;]+\.[a-z]{2,}$/.test(to)) throw new Error("invalid recipient address");
+    subject = String(subject || "").slice(0, 300) || "(no subject)";
+    text = String(text || "").slice(0, 50_000);
+    if (!text.trim()) throw new Error("the message is empty");
+    const key = this.env.RESEND_API_KEY || this.env.RESEND_KEY;
+    if (!key) throw new Error("sending isn't configured (RESEND_API_KEY)");
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ from: `${TEAM_LABELS[mailbox]} <${mailbox}@${DOMAIN}>`, to, subject, text }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error("mail relay error: " + (body.message || res.status));
+    await ensureTeam(this.env);
+    const r = await this.env.DB.prepare(
+      "INSERT INTO team_messages (mailbox, direction, from_addr, from_name, to_addr, subject, text, is_read, created_at, resend_id) VALUES (?,?,?,?,?,?,?,1,?,?)"
+    ).bind(mailbox, "out", `${mailbox}@${DOMAIN}`, TEAM_LABELS[mailbox], to, subject, text, now(), body.id || null).run();
+    return { ok: true, id: r.meta && r.meta.last_row_id };
+  }
+}

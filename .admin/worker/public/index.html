@@ -412,7 +412,7 @@ html.theme-fade, html.theme-fade *, html.theme-fade *::before, html.theme-fade *
 /* fields */
 .field { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
 .field label { font-size: 13.5px; font-weight: 600; color: var(--text-2); }
-input[type="text"], input[type="password"], input[type="number"], textarea {
+input[type="text"], input[type="password"], input[type="number"], input[type="email"], textarea {
   width: 100%; min-width: 0; height: 48px; padding: 0 16px;
   border: 0; border-radius: 16px; outline: none;
   background: var(--well); color: var(--text); font-size: 16px;
@@ -562,6 +562,27 @@ input:focus, textarea:focus { box-shadow: inset 0 0 0 1.5px var(--focus), 0 0 0 
 .rec-empty { color: var(--text-3); font-size: 13.5px; }
 .rec-note { color: var(--text-2); font-size: 13px; margin: 6px 0 0; }
 .rec-note li { margin: 2px 0; }
+/* team mailboxes */
+.team-boxes { display: flex; gap: 6px; flex-wrap: wrap; }
+.team-box { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 14px; border: 0; border-radius: 999px; cursor: pointer; background: var(--fill); box-shadow: inset 0 0 0 1px var(--hairline); color: var(--text-2); font-size: 13.5px; font-weight: 600; }
+.team-box.on { background: var(--fill-3); color: var(--text); }
+.team-box .n { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--accent); color: #fff; font-size: 11px; line-height: 18px; text-align: center; }
+.team-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 14px 0 8px; }
+.team-bar .addr { color: var(--text-3); font-size: 13px; overflow-wrap: anywhere; }
+.team-list { display: flex; flex-direction: column; gap: 6px; }
+.team-item { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 11px 14px; border-radius: 16px; cursor: pointer; background: var(--fill); box-shadow: inset 0 0 0 1px var(--hairline); text-align: left; border: 0; color: var(--text); font: inherit; }
+.team-item.unread .who, .team-item.unread .subj { font-weight: 700; }
+.team-item .who { font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.team-item .when { color: var(--text-3); font-size: 12px; white-space: nowrap; }
+.team-item .subj { grid-column: 1 / -1; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.team-item .snip { grid-column: 1 / -1; color: var(--text-3); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.team-reader { margin-top: 12px; padding: 14px; border-radius: 18px; background: var(--well); box-shadow: inset 0 0 0 1px var(--hairline); }
+.team-reader h3 { margin: 0 0 6px; font: 650 16px/1.3 var(--font-display); overflow-wrap: anywhere; }
+.team-reader .meta { color: var(--text-3); font-size: 12.5px; margin-bottom: 10px; overflow-wrap: anywhere; }
+.team-reader pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font: 14px/1.55 var(--font); color: var(--text); max-height: 60vh; overflow-y: auto; }
+.team-compose { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.team-compose textarea { min-height: 180px; padding: 12px 16px; resize: vertical; font: 15px/1.5 var(--font); }
+.team-compose .row { display: flex; gap: 8px; flex-wrap: wrap; }
 </style>
 </head>
 <body>
@@ -1142,6 +1163,7 @@ input:focus, textarea:focus { box-shadow: inset 0 0 0 1.5px var(--focus), 0 0 0 
 
     <div class="admin-tabs reveal d1" id="admin-tabs" role="tablist">
       <button type="button" class="on" data-show="switches" role="tab" aria-selected="true">Switches</button>
+      <button type="button" data-show="mail" role="tab" aria-selected="false">Mailboxes</button>
       <button type="button" data-show="records" role="tab" aria-selected="false">Records</button>
     </div>
 
@@ -1184,6 +1206,22 @@ input:focus, textarea:focus { box-shadow: inset 0 0 0 1.5px var(--focus), 0 0 0 
       <h2><i data-icon="grid"></i> Services</h2>
       <p class="sub">Each switch locks one service. The field under a service sets its own message.</p>
       <div id="services-list" class="svc-list"></div>
+    </section>
+
+    <!-- team mailboxes -->
+    <section class="card glass" id="card-team" data-tab="mail" hidden>
+      <h2><i data-icon="mail"></i> Team mailboxes</h2>
+      <p class="sub">Mail sent to Inpriv's own addresses. Pick a mailbox to read it and reply from that address.</p>
+      <div class="team-boxes" id="team-boxes"></div>
+      <div class="team-bar">
+        <span class="addr" id="team-addr"></span>
+        <span style="display:flex;gap:6px">
+          <button class="btn btn-tonal btn-sm" type="button" id="team-refresh">Refresh</button>
+          <button class="btn btn-filled btn-sm" type="button" id="team-new">New message</button>
+        </span>
+      </div>
+      <div id="team-pane"></div>
+      <div class="team-list" id="team-list"></div>
     </section>
 
     <!-- records -->
@@ -1546,6 +1584,95 @@ $("rec-form").addEventListener("submit", async (e) => {
     toast(ex.message || "Lookup failed", true);
   } finally { busy(false); }
 });
+// ── team mailboxes ──
+let teamBox = "support", teamBoxes = [];
+const fmtWhen = (ms) => { const d = new Date(ms); return d.toDateString() === new Date().toDateString() ? d.toTimeString().slice(0, 5) : d.toISOString().slice(0, 10); };
+async function teamApi(path, body) {
+  const res = await fetch(`${API}${path}`, body ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : {});
+  if (res.status === 401) { backToLogin(); throw new Error("Session expired"); }
+  const d = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(d.error || "request failed");
+  return d;
+}
+function renderBoxes() {
+  $("team-boxes").innerHTML = teamBoxes.map((b) =>
+    `<button type="button" class="team-box${b.mailbox === teamBox ? " on" : ""}" data-box="${b.mailbox}">${escapeHtml(b.mailbox)}${b.unread ? `<span class="n">${b.unread}</span>` : ""}</button>`).join("");
+  $("team-boxes").querySelectorAll("button").forEach((el) => el.addEventListener("click", () => { teamBox = el.dataset.box; $("team-pane").innerHTML = ""; loadTeam(); }));
+  $("team-addr").textContent = `${teamBox}@inpriv.xyz`;
+}
+async function loadTeam() {
+  busy(true);
+  try {
+    teamBoxes = (await teamApi("/api/team")).mailboxes;
+    renderBoxes();
+    const list = (await teamApi(`/api/team/list?box=${encodeURIComponent(teamBox)}`)).messages;
+    $("team-list").innerHTML = list.length ? list.map((m) => `
+      <button type="button" class="team-item${m.direction === "in" && !m.is_read ? " unread" : ""}" data-id="${m.id}">
+        <span class="who">${m.direction === "out" ? "To " + escapeHtml(m.to_addr || "") : escapeHtml(m.from_name ? `${m.from_name} <${m.from_addr}>` : m.from_addr || "")}</span>
+        <span class="when">${fmtWhen(m.created_at)}</span>
+        <span class="subj">${escapeHtml(m.subject || "(no subject)")}</span>
+        <span class="snip">${escapeHtml(m.snippet || "")}</span>
+      </button>`).join("") : `<p class="rec-empty">No messages in ${escapeHtml(teamBox)}@inpriv.xyz yet.</p>`;
+    $("team-list").querySelectorAll(".team-item").forEach((el) => el.addEventListener("click", () => openTeam(Number(el.dataset.id))));
+  } catch (ex) { toast(ex.message, true); }
+  finally { busy(false); }
+}
+async function openTeam(id) {
+  try {
+    const m = (await teamApi(`/api/team/msg?id=${id}`)).message;
+    const atts = m.attachments ? JSON.parse(m.attachments) : [];
+    $("team-pane").innerHTML = `
+      <div class="team-reader">
+        <h3>${escapeHtml(m.subject || "(no subject)")}</h3>
+        <div class="meta">${m.direction === "out" ? "Sent" : "From"} ${escapeHtml(m.direction === "out" ? `to ${m.to_addr}` : (m.from_name ? `${m.from_name} <${m.from_addr}>` : m.from_addr))} · ${escapeHtml(new Date(m.created_at).toISOString().replace("T", " ").slice(0, 16))} UTC${atts.length ? ` · ${atts.length} attachment(s): ${escapeHtml(atts.map((a) => a.name).join(", "))}` : ""}</div>
+        <pre>${escapeHtml(m.text || "")}</pre>
+        <div class="rec-actions">
+          ${m.direction === "in" ? `<button class="btn btn-filled btn-sm" type="button" id="team-reply">Reply</button>` : ""}
+          <button class="btn btn-tonal btn-sm" type="button" id="team-unread">Mark unread</button>
+          <button class="btn btn-error btn-sm" type="button" id="team-del">Delete</button>
+        </div>
+      </div>`;
+    if (m.direction === "in") $("team-reply").onclick = () => composeTeam(m.from_addr, /^re:/i.test(m.subject || "") ? m.subject : `Re: ${m.subject || ""}`,
+      `\n\n— On ${new Date(m.created_at).toISOString().slice(0, 16).replace("T", " ")} UTC, ${m.from_addr} wrote:\n` + String(m.text || "").split("\n").map((l) => "> " + l).join("\n"));
+    $("team-unread").onclick = async () => { await teamApi("/api/team/read", { id: m.id, read: false }); $("team-pane").innerHTML = ""; loadTeam(); };
+    $("team-del").onclick = async () => {
+      if (!confirm("Delete this message for good?")) return;
+      await teamApi("/api/team/delete", { id: m.id }); $("team-pane").innerHTML = ""; toast("Deleted"); loadTeam();
+    };
+    loadTeam();
+    $("team-pane").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  } catch (ex) { toast(ex.message, true); }
+}
+function composeTeam(to = "", subject = "", quote = "") {
+  $("team-pane").innerHTML = `
+    <form class="team-compose" id="team-form">
+      <input type="text" value="From: ${escapeHtml(teamBox)}@inpriv.xyz" disabled>
+      <input type="email" id="tc-to" placeholder="To" value="${escapeHtml(to)}" required>
+      <input type="text" id="tc-subj" placeholder="Subject" maxlength="300" value="${escapeHtml(subject)}">
+      <textarea id="tc-text" placeholder="Message" required>${escapeHtml(quote)}</textarea>
+      <div class="row">
+        <button class="btn btn-filled btn-sm" type="submit">Send from ${escapeHtml(teamBox)}@</button>
+        <button class="btn btn-tonal btn-sm" type="button" id="tc-cancel">Cancel</button>
+      </div>
+    </form>`;
+  $("tc-cancel").onclick = () => { $("team-pane").innerHTML = ""; };
+  $("team-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    busy(true);
+    try {
+      await teamApi("/api/team/send", { mailbox: teamBox, to: $("tc-to").value, subject: $("tc-subj").value, text: $("tc-text").value });
+      toast("Sent");
+      $("team-pane").innerHTML = "";
+      loadTeam();
+    } catch (ex) { toast(ex.message, true); }
+    finally { busy(false); }
+  });
+  const ta = $("tc-text");
+  if (quote) { ta.focus(); ta.setSelectionRange(0, 0); } else (to ? ta : $("tc-to")).focus();
+}
+$("team-refresh").addEventListener("click", loadTeam);
+$("team-new").addEventListener("click", () => composeTeam());
+document.querySelector('#admin-tabs button[data-show="mail"]').addEventListener("click", loadTeam);
 </script>
 </body>
 </html>
