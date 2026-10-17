@@ -23,7 +23,7 @@ body { margin: 0; background: var(--bg); color: var(--text); font: 400 16px/1.65
 .wrap { width: min(100% - 32px, 760px); margin: 0 auto; padding: max(20px, env(safe-area-inset-top)) 0 64px; }
 header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 36px; }
 .brand { display: inline-flex; align-items: center; gap: 9px; color: var(--text); text-decoration: none; font: 680 19px/1 var(--display); letter-spacing: -.03em; }
-.brand svg { width: 18px; height: 22px; }
+.brand svg { width: 22px; height: 22px; flex: none; }
 nav.top { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
 nav.top a { color: var(--text-2); text-decoration: none; font-size: 13.5px; font-weight: 600; padding: 6px 10px; border-radius: 999px; }
 nav.top a[aria-current] { color: var(--text); background: var(--fill); box-shadow: inset 0 0 0 1px var(--hairline); }
@@ -63,7 +63,7 @@ code { font: 13.5px ui-monospace, "SF Mono", Consolas, monospace; background: va
 <body>
 <div class="wrap">
 <header>
-  <a class="brand" href="https://inpriv.xyz/?home"><svg viewBox="0 0 18 22" aria-hidden="true"><path fill="currentColor" d="M9 0 18 9H0z"/><path fill="currentColor" d="M0 13h18L9 22z"/></svg><span>Inpriv</span></a>
+  <a class="brand" href="https://inpriv.xyz/?home"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2.4 18 11.4H6Z"/><path fill="currentColor" d="M6 12.6h12L12 21.6Z"/></svg><span>Inpriv</span></a>
   <nav class="top" aria-label="Legal"><a href="/terms">Terms</a><a href="/privacy" aria-current="page">Privacy</a><a href="/acceptable-use">Acceptable use</a><a href="/dmca">Copyright</a><a href="/law-enforcement">Law enforcement</a></nav>
 </header>
 <main>

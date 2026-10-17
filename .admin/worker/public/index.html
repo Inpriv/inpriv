@@ -592,6 +592,13 @@ input:focus, textarea:focus { box-shadow: inset 0 0 0 1.5px var(--focus), 0 0 0 
 .team-compose { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
 .team-compose textarea { min-height: 180px; padding: 12px 16px; resize: vertical; font: 15px/1.5 var(--font); }
 .team-compose .row { display: flex; gap: 8px; flex-wrap: wrap; }
+/* confirm dialog (instead of the browser's confirm()) */
+.confirm-scrim { position: fixed; inset: 0; z-index: 300; display: grid; place-items: center; padding: 16px; background: rgb(0 0 0 / 0.6); animation: fade-in 0.18s ease both; }
+.confirm-box { width: min(100%, 380px); padding: 22px; border-radius: 26px; animation: pop-in 0.28s var(--spring) both; background: var(--bg); background: color-mix(in srgb, var(--bg) 90%, var(--text) 7%); }
+.confirm-box h3 { margin: 0 0 6px; font: 660 18px/1.3 var(--font-display); }
+.confirm-box p { margin: 0 0 18px; color: var(--text-2); font-size: 14px; }
+.confirm-box .row { display: flex; gap: 8px; justify-content: flex-end; }
+@keyframes fade-in { from { opacity: 0; } }
 </style>
 </head>
 <body>
@@ -1681,7 +1688,7 @@ async function openTeam(id) {
       `\n\n— On ${new Date(m.created_at).toISOString().slice(0, 16).replace("T", " ")} UTC, ${m.from_addr} wrote:\n` + String(m.text || "").split("\n").map((l) => "> " + l).join("\n"));
     $("team-unread").onclick = async () => { await teamApi("/api/team/read", { id: m.id, read: false }); $("team-pane").innerHTML = ""; loadTeam(); };
     $("team-del").onclick = async () => {
-      if (!confirm("Delete this message for good?")) return;
+      if (!(await confirmBox("Delete this message?", "It's removed from this team mailbox for good. This can't be undone."))) return;
       await teamApi("/api/team/delete", { id: m.id }); $("team-pane").innerHTML = ""; toast("Deleted"); loadTeam();
     };
     loadTeam();
@@ -1718,6 +1725,23 @@ function composeTeam(to = "", subject = "", quote = "") {
 $("team-refresh").addEventListener("click", loadTeam);
 $("team-new").addEventListener("click", () => composeTeam());
 document.querySelector('#admin-tabs button[data-show="mail"]').addEventListener("click", loadTeam);
+// ── confirm dialog: Inpriv-styled replacement for window.confirm() ──
+function confirmBox(title, desc, okLabel = "Delete") {
+  return new Promise((resolve) => {
+    const scrim = document.createElement("div");
+    scrim.className = "confirm-scrim";
+    scrim.innerHTML = `<div class="confirm-box glass" role="alertdialog" aria-modal="true" aria-labelledby="cb-t">
+      <h3 id="cb-t">${escapeHtml(title)}</h3><p>${escapeHtml(desc)}</p>
+      <div class="row"><button class="btn btn-tonal btn-sm" type="button" data-v="0">Cancel</button>
+      <button class="btn btn-error btn-sm" type="button" data-v="1">${escapeHtml(okLabel)}</button></div></div>`;
+    const done = (v) => { document.removeEventListener("keydown", onKey); scrim.remove(); resolve(v); };
+    const onKey = (e) => { if (e.key === "Escape") done(false); if (e.key === "Enter") done(true); };
+    scrim.addEventListener("click", (e) => { if (e.target === scrim) done(false); const b = e.target.closest("[data-v]"); if (b) done(b.dataset.v === "1"); });
+    document.addEventListener("keydown", onKey);
+    document.body.appendChild(scrim);
+    scrim.querySelector('[data-v="0"]').focus();
+  });
+}
 </script>
 </body>
 </html>

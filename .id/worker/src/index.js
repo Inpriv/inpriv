@@ -771,7 +771,11 @@ export default {
         ).bind(uuid(), me.uid, await sha256hex(code), "verify", now() + 15 * 60_000).run();
         const sent = await sendMail(env, targetEmail, "Your Inpriv verification code",
           `Code: ${code}`, emailShell("Verify your recovery email", `Your Inpriv account recovery verification code:${codeBlock(code)}Expires in 15 minutes.`));
-        return out({ ok: sent.ok, detail: sent.ok ? undefined : sent.reason }, 200, cors);
+        if (!sent.ok) {
+          console.error("verify/send: mail not sent", sent.reason);
+          return out({ error: "couldn't send the code right now — try again in a few minutes" }, 502, cors);
+        }
+        return out({ ok: true }, 200, cors);
       }
       if (path === "/api/verify/confirm" && request.method === "POST") {
         const body = await request.json();
