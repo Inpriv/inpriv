@@ -642,11 +642,30 @@ async function checkIdSecondFactor(env, idUserId, code, recovery) {
     return "ok";
   }
   if (!/^\d{6}$/.test(code)) return "missing";
-  const trow = await env.ID_DB.prepare(
-    "SELECT secret_enc FROM totp_secrets WHERE user_id = ? AND confirmed = 1"
-  ).bind(idUserId).first();
-  const secret = trow ? await openIdSecret(env, trow.secret_enc) : null;
-  return secret && (await idVerifyTOTP(code, idBase32Decode(secret), now())) ? "ok" : "bad";
+  // The TOTP secret is sealed with ID's ID_ENC_KEY. Open it here when this
+  // Worker has the key; otherwise ask ID to check the code (service-to-
+  // service, SERVICE_KEY), so the key only has to live on ID.
+  if (env.ID_ENC_KEY) {
+    const trow = await env.ID_DB.prepare(
+      "SELECT secret_enc FROM totp_secrets WHERE user_id = ? AND confirmed = 1"
+    ).bind(idUserId).first();
+    const secret = trow ? await openIdSecret(env, trow.secret_enc) : null;
+    return secret && (await idVerifyTOTP(code, idBase32Decode(secret), now())) ? "ok" : "bad";
+  }
+  if (!env.SERVICE_KEY) return "bad";
+  const u = await env.ID_DB.prepare("SELECT username FROM users WHERE id = ?").bind(idUserId).first();
+  if (!u) return "bad";
+  try {
+    const r = await fetch(`${env.ID_ORIGIN || "https://id.inpriv.xyz"}/api/totp/verify`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Inpriv-Service": env.SERVICE_KEY },
+      body: JSON.stringify({ username: u.username, code }),
+    });
+    const d = await r.json().catch(() => ({}));
+    return r.ok && d.ok === true ? "ok" : "bad";
+  } catch {
+    return "bad";
+  }
 }
 
 // ── Quick Sign-In TOTP tickets ─────────────────────────────────────────────
