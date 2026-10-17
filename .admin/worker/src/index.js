@@ -72,6 +72,7 @@ export default {
       if (path === "/api/info" && method === "POST") return await setInfo(request, env, cors);
       if (path === "/api/service" && method === "POST") return await setService(request, env, cors);
       if (path === "/api/audit") return await getAudit(env, cors);
+      if (path === "/api/records" && method === "GET") return await records(url, env, cors);
 
       if (path === "/" || path === "/index.html") return dashboard();
       return json({ error: "not found" }, 404, cors);
@@ -439,3 +440,71 @@ function dashboard() {
 
 // exported for tests
 export { verifyTOTP, hotp, base32Decode, timingSafeEq };
+
+// ── records: what Inpriv holds about an account, address or IP ───────────────
+// For abuse reports and valid legal requests. Read-only, and every lookup
+// is written to the audit log. Message bodies in Mail are end-to-end
+// encrypted and are never returned (the server can't read them); Temp
+// inboxes are listed by metadata only.
+const RECORD_LIMIT = 500;
+const NEVER_HELD = [
+  "Mail message bodies between Inpriv users (end-to-end encrypted in the browser)",
+  "Stored Mail message bodies from outside senders (encrypted to the user's key when received)",
+  "Passwords (only salted hashes), private keys and password-derived keys",
+  "Anything typed into a page that wasn't submitted",
+  "Access-log rows older than 90 days",
+];
+
+async function rows(db, sql, ...args) {
+  if (!db) return [];
+  try { return (await db.prepare(sql).bind(...args).all()).results || []; } catch { return []; }
+}
+async function row(db, sql, ...args) {
+  if (!db) return null;
+  try { return await db.prepare(sql).bind(...args).first(); } catch { return null; }
+}
+
+async function records(url, env, cors) {
+  let q = String(url.searchParams.get("q") || "").trim().toLowerCase();
+  if (!q || q.length > 320) return json({ error: "enter a username, an address or an IP" }, 400, cors);
+  const isIp = /^[0-9.]+$/.test(q) || (q.includes(":") && /^[0-9a-f:]+$/.test(q));
+  const local = q.endsWith("@inpriv.xyz") ? q.slice(0, -"@inpriv.xyz".length) : (q.includes("@") ? null : q);
+  const address = local ? `${local}@inpriv.xyz` : q;
+  const out = { query: q, generated_at: new Date().toISOString(), never_held: NEVER_HELD };
+
+  if (isIp) {
+    out.access_log = await rows(env.ID_DB,
+      "SELECT at, service, event, account, detail, ip, country, asn, ua FROM access_log WHERE ip = ? ORDER BY at DESC LIMIT ?", q, RECORD_LIMIT * 2);
+    out.accounts_seen = [...new Set(out.access_log.map((r) => r.account).filter(Boolean))];
+  } else {
+    const acc = local && await row(env.ID_DB,
+      "SELECT id, username, email, recovery_email, recovery_email_verified, nick, totp_enabled, created_at, last_login FROM users WHERE username = ?", local);
+    if (acc) {
+      out.account = acc;
+      out.id_sessions = await rows(env.ID_DB,
+        "SELECT label, ip_prefix, created_at, last_used, expires_at FROM sessions WHERE user_id = ? ORDER BY last_used DESC LIMIT 50", acc.id);
+      out.id_events = await rows(env.ID_DB,
+        "SELECT kind, ip_prefix, ula, at FROM auth_events WHERE user_id = ? ORDER BY at DESC LIMIT ?", acc.id, RECORD_LIMIT);
+    }
+    const mb = local && await row(env.MAIL_DB,
+      "SELECT id, username, address, created_at, last_login FROM users WHERE username = ?", local);
+    if (mb) {
+      out.mailbox = mb;
+      out.mailbox.quick_unlock_devices = (await row(env.MAIL_DB, "SELECT COUNT(*) AS n FROM device_keys WHERE user_id = ?", mb.id) || {}).n || 0;
+      out.mail_sessions = await rows(env.MAIL_DB,
+        "SELECT created_at, expires_at, ua FROM sessions WHERE user_id = ? ORDER BY created_at DESC LIMIT 50", mb.id);
+      // metadata only: the bodies are ciphertext the server can't open
+      out.mail_messages = await rows(env.MAIL_DB,
+        "SELECT direction, peer_address, subject, created_at, length(ciphertext) AS encrypted_size FROM messages WHERE owner_id = ? ORDER BY created_at DESC LIMIT ?", mb.id, RECORD_LIMIT);
+    }
+    out.temp_inboxes = await rows(env.TEMP_DB,
+      "SELECT address, created_at, expires_at FROM mailboxes WHERE address = ?", address);
+    out.temp_messages = await rows(env.TEMP_DB,
+      "SELECT from_addr, to_addr, subject, size, received_at FROM messages WHERE mailbox = ? ORDER BY received_at DESC LIMIT ?", address, RECORD_LIMIT);
+    out.access_log = await rows(env.ID_DB,
+      "SELECT at, service, event, account, detail, ip, country, asn, ua FROM access_log WHERE account = ? OR account = ? ORDER BY at DESC LIMIT ?",
+      local || q, address, RECORD_LIMIT * 2);
+  }
+  await audit(env, "records_lookup", { message: q });
+  return json(out, 200, cors);
+}

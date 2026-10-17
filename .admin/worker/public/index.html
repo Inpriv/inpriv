@@ -539,6 +539,29 @@ input:focus, textarea:focus { box-shadow: inset 0 0 0 1.5px var(--focus), 0 0 0 
   .card, .login-card { padding: 18px; border-radius: 28px; }
   .svc-msg { grid-column: 1 / -1; }
 }
+/* tabs: Switches / Mailboxes / Records */
+.admin-tabs { display: flex; padding: 4px; border-radius: 999px; background: var(--well); box-shadow: inset 0 0 0 1px var(--hairline); }
+.admin-tabs button { flex: 1; min-width: 0; height: 40px; padding: 0 12px; border: 0; border-radius: 999px; background: transparent; cursor: pointer; color: var(--text-2); font-size: 14px; font-weight: 600; white-space: nowrap; }
+.admin-tabs button.on { color: var(--text); }
+[data-tab][hidden] { display: none !important; }
+
+/* records */
+.rec-search { display: flex; gap: 8px; }
+.rec-search input { flex: 1; }
+.rec-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.rec-block { margin-top: 14px; }
+.rec-block h3 { margin: 0 0 8px; font: 650 15px/1.3 var(--font-display); }
+.rec-kv { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; font-size: 13.5px; }
+.rec-kv dt { color: var(--text-3); }
+.rec-kv dd { margin: 0; overflow-wrap: anywhere; }
+.rec-scroll { overflow-x: auto; border-radius: 14px; box-shadow: inset 0 0 0 1px var(--hairline); }
+.rec-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.rec-table th, .rec-table td { padding: 7px 10px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--hairline); white-space: nowrap; }
+.rec-table td.wrap { white-space: normal; overflow-wrap: anywhere; min-width: 180px; }
+.rec-table th { color: var(--text-3); font-weight: 600; }
+.rec-empty { color: var(--text-3); font-size: 13.5px; }
+.rec-note { color: var(--text-2); font-size: 13px; margin: 6px 0 0; }
+.rec-note li { margin: 2px 0; }
 </style>
 </head>
 <body>
@@ -1117,8 +1140,13 @@ input:focus, textarea:focus { box-shadow: inset 0 0 0 1.5px var(--focus), 0 0 0 
       <h1>Control panel.<br><span>Everything in one place.</span></h1>
     </div>
 
+    <div class="admin-tabs reveal d1" id="admin-tabs" role="tablist">
+      <button type="button" class="on" data-show="switches" role="tab" aria-selected="true">Switches</button>
+      <button type="button" data-show="records" role="tab" aria-selected="false">Records</button>
+    </div>
+
     <!-- global kill -->
-    <section class="card glass reveal d2" id="card-global">
+    <section class="card glass reveal d2" id="card-global" data-tab="switches">
       <h2><i data-icon="lock"></i> Global kill switch</h2>
       <p class="sub">Locks <strong>every service at once</strong>. Overrides the switches below.</p>
       <div class="lock-row">
@@ -1135,7 +1163,7 @@ input:focus, textarea:focus { box-shadow: inset 0 0 0 1.5px var(--focus), 0 0 0 
     </section>
 
     <!-- global info -->
-    <section class="card glass reveal d3" id="card-info">
+    <section class="card glass reveal d3" id="card-info" data-tab="switches">
       <h2><i data-icon="megaphone"></i> Global notice</h2>
       <p class="sub">A banner shown on every page. It <strong>doesn't block</strong> anything.</p>
       <div class="lock-row">
@@ -1152,14 +1180,25 @@ input:focus, textarea:focus { box-shadow: inset 0 0 0 1.5px var(--focus), 0 0 0 
     </section>
 
     <!-- services -->
-    <section class="card glass reveal d3" id="card-services">
+    <section class="card glass reveal d3" id="card-services" data-tab="switches">
       <h2><i data-icon="grid"></i> Services</h2>
       <p class="sub">Each switch locks one service. The field under a service sets its own message.</p>
       <div id="services-list" class="svc-list"></div>
     </section>
 
+    <!-- records -->
+    <section class="card glass" id="card-records" data-tab="records" hidden>
+      <h2><i data-icon="search"></i> Records</h2>
+      <p class="sub">What Inpriv holds about a <strong>username</strong>, an <strong>@inpriv.xyz address</strong> or an <strong>IP address</strong>. For abuse reports and valid legal requests only. Every lookup is written to the audit log.</p>
+      <form class="rec-search" id="rec-form" autocomplete="off">
+        <input type="text" id="rec-q" maxlength="320" placeholder="username, name@inpriv.xyz or 203.0.113.7" spellcheck="false" autocapitalize="none">
+        <button class="btn btn-filled btn-sm" type="submit">Look up</button>
+      </form>
+      <div id="rec-out"></div>
+    </section>
+
     <!-- audit -->
-    <section class="card glass reveal d5" id="card-audit">
+    <section class="card glass reveal d5" id="card-audit" data-tab="switches">
       <h2><i data-icon="history"></i> Audit log</h2>
       <p class="sub">The last 50 events: sign-ins, locks and message changes.</p>
       <div id="audit-list"></div>
@@ -1391,6 +1430,122 @@ setInterval(async () => {
     if (res.ok) await enterApp();
   } catch { /* login view stays */ }
 })();
+// ── tabs ──
+function showTab(name) {
+  document.querySelectorAll("#admin-tabs button").forEach((b) => {
+    const on = b.dataset.show === name;
+    b.classList.toggle("on", on);
+    b.setAttribute("aria-selected", String(on));
+  });
+  document.querySelectorAll("#app-view [data-tab]").forEach((el) => { el.hidden = el.dataset.tab !== name; });
+}
+document.querySelectorAll("#admin-tabs button").forEach((b) => b.addEventListener("click", () => showTab(b.dataset.show)));
+InprivUI.liquid("#admin-tabs");
+
+// ── records ──
+let lastRecord = null;
+const fmtTime = (ms) => ms ? new Date(ms).toISOString().replace("T", " ").slice(0, 19) + " UTC" : "—";
+function kv(pairs) {
+  return `<dl class="rec-kv">${pairs.map(([k, v]) => `<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v == null || v === "" ? "—" : String(v))}</dd>`).join("")}</dl>`;
+}
+function table(rows, cols) {
+  if (!rows || !rows.length) return `<p class="rec-empty">Nothing stored.</p>`;
+  const head = cols.map((c) => `<th>${escapeHtml(c.label)}</th>`).join("");
+  const body = rows.map((r) => `<tr>${cols.map((c) => {
+    const v = c.fmt ? c.fmt(r[c.key], r) : r[c.key];
+    return `<td${c.wrap ? ' class="wrap"' : ""}>${escapeHtml(v == null || v === "" ? "—" : String(v))}</td>`;
+  }).join("")}</tr>`).join("");
+  return `<div class="rec-scroll"><table class="rec-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+}
+function block(title, html) { return `<div class="rec-block"><h3>${escapeHtml(title)}</h3>${html}</div>`; }
+const LOG_COLS = [
+  { key: "at", label: "Time", fmt: fmtTime },
+  { key: "service", label: "Service" },
+  { key: "event", label: "Event" },
+  { key: "account", label: "Account" },
+  { key: "detail", label: "Detail", wrap: true },
+  { key: "ip", label: "IP" },
+  { key: "country", label: "Country" },
+  { key: "asn", label: "ASN" },
+  { key: "ua", label: "Browser", wrap: true },
+];
+
+function renderRecord(d) {
+  const parts = [];
+  parts.push(`<div class="rec-actions">
+    <button class="btn btn-tonal btn-sm" type="button" id="rec-json">${icon("download")} Download JSON</button>
+    <button class="btn btn-tonal btn-sm" type="button" id="rec-print">Print</button>
+  </div>`);
+  if (d.account) {
+    const a = d.account;
+    parts.push(block("Inpriv ID account", kv([
+      ["Username", a.username], ["Address", a.email], ["Display name", a.nick],
+      ["Recovery email", a.recovery_email ? `${a.recovery_email}${a.recovery_email_verified ? " (verified)" : " (not verified)"}` : null],
+      ["Two-factor", a.totp_enabled ? "on" : "off"],
+      ["Created", fmtTime(a.created_at)], ["Last sign-in", fmtTime(a.last_login)],
+    ])));
+    parts.push(block("ID sessions (IP shortened)", table(d.id_sessions, [
+      { key: "label", label: "Device" }, { key: "ip_prefix", label: "IP prefix" },
+      { key: "created_at", label: "Created", fmt: fmtTime }, { key: "last_used", label: "Last used", fmt: fmtTime },
+      { key: "expires_at", label: "Expires", fmt: fmtTime },
+    ])));
+  }
+  if (d.mailbox) {
+    const m = d.mailbox;
+    parts.push(block("Mailbox", kv([
+      ["Address", m.address], ["Created", fmtTime(m.created_at)], ["Last sign-in", fmtTime(m.last_login)],
+      ["Devices that skip the master password", m.quick_unlock_devices],
+    ])));
+    parts.push(block("Mail messages — metadata only (bodies are end-to-end encrypted)", table(d.mail_messages, [
+      { key: "created_at", label: "Time", fmt: fmtTime }, { key: "direction", label: "Direction" },
+      { key: "peer_address", label: "Other party" }, { key: "subject", label: "Subject", wrap: true },
+      { key: "encrypted_size", label: "Encrypted size (chars)" },
+    ])));
+  }
+  if (d.temp_inboxes && d.temp_inboxes.length) {
+    parts.push(block("Temp inbox", table(d.temp_inboxes, [
+      { key: "address", label: "Address" }, { key: "created_at", label: "Created", fmt: fmtTime },
+      { key: "expires_at", label: "Expires", fmt: fmtTime },
+    ])));
+    parts.push(block("Temp messages — metadata", table(d.temp_messages, [
+      { key: "received_at", label: "Time", fmt: fmtTime }, { key: "from_addr", label: "From" },
+      { key: "to_addr", label: "To" }, { key: "subject", label: "Subject", wrap: true }, { key: "size", label: "Size (bytes)" },
+    ])));
+  }
+  if (d.accounts_seen) parts.push(block("Accounts seen from this IP", d.accounts_seen.length ? kv(d.accounts_seen.map((a) => ["Account", a])) : `<p class="rec-empty">None.</p>`));
+  parts.push(block("Access log (last 90 days)", table(d.access_log, LOG_COLS)));
+  if (!d.account && !d.mailbox && !(d.temp_inboxes || []).length && !(d.access_log || []).length) {
+    parts.splice(1, 0, `<p class="rec-note">Nothing is stored for <strong>${escapeHtml(d.query)}</strong>.</p>`);
+  }
+  parts.push(block("Never held", `<ul class="rec-note">${(d.never_held || []).map((x) => `<li>${escapeHtml(x)}</li>`).join("")}</ul>`));
+  $("rec-out").innerHTML = parts.join("");
+  $("rec-json").onclick = () => {
+    const blob = new Blob([JSON.stringify(d, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `inpriv-records-${d.query.replace(/[^a-z0-9._@-]/gi, "_")}-${d.generated_at.slice(0, 10)}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  };
+  $("rec-print").onclick = () => window.print();
+}
+
+$("rec-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const q = $("rec-q").value.trim();
+  if (!q) return;
+  busy(true);
+  try {
+    const res = await fetch(`${API}/api/records?q=${encodeURIComponent(q)}`);
+    if (res.status === 401) { backToLogin(); return; }
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.error || "lookup failed");
+    lastRecord = d;
+    renderRecord(d);
+  } catch (ex) {
+    toast(ex.message || "Lookup failed", true);
+  } finally { busy(false); }
+});
 </script>
 </body>
 </html>

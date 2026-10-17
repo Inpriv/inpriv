@@ -3,6 +3,7 @@
 
 import { maintenanceGate, maintenancePage } from "../../../common/gate.js";
 import { notFound } from "../../../common/errors.js";
+import { logAccess } from "../../../common/access-log.js";
 
 const DOMAIN = "inpriv.xyz";
 
@@ -760,6 +761,7 @@ export default {
           "INSERT INTO sessions (id, user_id, created_at, expires_at, ua) VALUES (?,?,?,?,?)"
         ).bind(await sha256hex(token), existing.id, now(), now() + SESSION_TTL_MS, ua(request)).run();
         await env.DB.prepare("UPDATE users SET last_login = ? WHERE id = ?").bind(now(), existing.id).run();
+        ctx.waitUntil(logAccess(env.ID_DB, request, "mail", "sso_login", existing.username));
 
         return json({
           token,
@@ -823,6 +825,7 @@ export default {
             await env.DB.prepare("UPDATE users SET last_login = ? WHERE id = ?").bind(now(), user.id).run();
             const migrated = !idUser && (await ensureIdAccount(env, user));
             ctx.waitUntil(syncIdConsent(env, user.username, true));
+            ctx.waitUntil(logAccess(env.ID_DB, request, "mail", "login", user.username));
             // rekey: the mailbox key is still locked with the previous password
             return json({ token, user: publicUser(user, { inpriv_id_synced: true }), rekey: !mailMatch, migrated }, 200, cors);
           }
@@ -924,6 +927,7 @@ export default {
           ).bind(await sha256hex(token), mailbox.id, now(), now() + SESSION_TTL_MS, ua(request)).run();
           await env.DB.prepare("UPDATE users SET last_login = ? WHERE id = ?").bind(now(), mailbox.id).run();
           ctx.waitUntil(syncIdConsent(env, idUser.username, true));
+          ctx.waitUntil(logAccess(env.ID_DB, request, "mail", "login_2fa", idUser.username));
           const rekey = !!password && !constantTimeEq(
             await passHash(password, mailbox.auth_salt, mailbox.priv_iter || PASS_ITERS), mailbox.auth_hash);
           return json({ status: "ok", token, user: publicUser(mailbox, { inpriv_id_synced: true }), locked: true, rekey }, 200, cors);
@@ -1023,6 +1027,7 @@ export default {
 
         const user = await env.DB.prepare("SELECT * FROM users WHERE id = ?").bind(uid).first();
         ctx.waitUntil(syncIdConsent(env, idUser.username, true));
+        ctx.waitUntil(logAccess(env.ID_DB, request, "mail", "mailbox_created", idUser.username));
         return json({ token, user: publicUser(user, { inpriv_id_synced: true }) }, 200, cors);
       }
 
@@ -1360,6 +1365,7 @@ export default {
              VALUES (?,?,?,?,?,?,?,?,?,?,1)`
           ).bind(me.id, "outbound", toEmail, peerLabel, subject, sndEak, iv, ct, tag, t).run();
 
+          ctx.waitUntil(logAccess(env.ID_DB, request, "mail", "send_external", me.username, toEmail));
           return json({ ok: true, id: r1.meta?.last_row_id, external: true, resend_id: resendRes.body?.id }, 200, cors);
         }
 
@@ -1396,6 +1402,7 @@ export default {
            VALUES (?,?,?,?,?,?,?,?,?,?,0)`
         ).bind(target.id, "inbound", me.address, me.username, subject, recEak, iv, ct, tag, t).run();
 
+        ctx.waitUntil(logAccess(env.ID_DB, request, "mail", "send", me.username, target.address));
         return json({ ok: true, id: r1.meta?.last_row_id, external: false }, 200, cors);
       }
 
