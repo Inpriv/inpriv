@@ -1094,13 +1094,18 @@ html.theme-fade, html.theme-fade *, html.theme-fade *::before, html.theme-fade *
           <h3><i data-icon="at"></i>Recovery email</h3>
           <p class="desc" id="recoveryDesc">An outside address for password resets and security notices.</p>
           <div class="inline-form">
-            <input id="recoveryInput" class="input" type="email" placeholder="you@proton.me">
-            <button class="btn btn-glass" id="recoverySaveBtn" type="button">Save</button>
+            <input id="recoveryInput" class="input" type="email" placeholder="you@proton.me" autocomplete="email" spellcheck="false" autocapitalize="none" maxlength="254">
+            <button class="btn btn-glass" id="recoverySaveBtn" type="button" disabled>Verify</button>
           </div>
-          <div id="verifySection" class="inline-form" style="display:none;margin-top:12px">
-            <input id="verifyCode" class="input code-input" type="text" inputmode="numeric" maxlength="6" placeholder="••••••">
-            <button class="btn btn-glass" id="verifyConfirmBtn" type="button">Verify code</button>
-            <button class="text-btn" id="verifySendBtn" type="button"><i data-icon="send"></i>Resend</button>
+          <div class="collapse" id="verifySection" aria-hidden="true" inert>
+            <div class="collapse-inner">
+              <p class="verify-hint">Enter the 6-digit code from the email. It expires in 15 minutes.</p>
+              <div class="inline-form">
+                <input id="verifyCode" class="input code-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" spellcheck="false" placeholder="••••••" aria-label="Verification code">
+                <button class="btn btn-primary" id="verifyConfirmBtn" type="button">Confirm</button>
+                <button class="text-btn" id="verifySendBtn" type="button"><i data-icon="send"></i><span id="verifySendTxt">Resend</span></button>
+              </div>
+            </div>
           </div>
         </div>
         <div class="card glass">

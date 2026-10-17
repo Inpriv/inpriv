@@ -240,3 +240,18 @@ main { display: flex; flex-direction: column; }
   background: var(--well); box-shadow: inset 0 0 0 1px var(--hairline);
   font: 600 15px/1.2 var(--font-mono); letter-spacing: 0.06em;
 }
+
+/* recovery-email code panel: opens and closes by animating its row height */
+.collapse {
+  display: grid; grid-template-rows: 0fr; opacity: 0;
+  transition: grid-template-rows 0.34s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.22s ease;
+}
+.collapse.open { grid-template-rows: 1fr; opacity: 1; }
+.collapse-inner { min-height: 0; overflow: hidden; }
+.collapse.open .collapse-inner { overflow: visible; }
+.verify-hint { margin: 14px 0 10px; color: var(--text-2); font-size: 13.5px; }
+#recoverySaveBtn:disabled { opacity: 0.45; cursor: default; }
+#verifySendBtn:disabled { opacity: 0.55; cursor: default; }
+#verifySection .inline-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
+#verifySection .code-input { width: 100%; }
+#verifySection #verifySendBtn { grid-column: 1 / -1; justify-self: start; }

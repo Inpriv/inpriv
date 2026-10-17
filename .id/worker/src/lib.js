@@ -201,6 +201,9 @@ export function ipPrefix(req) {
 
 // ── e-mail via Resend ───────────────────────────────────────────────────────
 export async function sendMail(env, to, subject, text, html) {
+  // local development only (set in .dev.vars, never in production): log
+  // instead of sending, so the flows can be tested without a mail key
+  if (env.DEV_MAIL_LOG === "1") { console.log(`[dev mail] to=${to} subject=${subject}`); return { ok: true }; }
   if (!env.RESEND_API_KEY) return { ok: false, reason: "no key" };
   try {
     const r = await fetch("https://api.resend.com/emails", {
