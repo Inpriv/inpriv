@@ -73,6 +73,7 @@ export default {
       if (path === "/api/service" && method === "POST") return await setService(request, env, cors);
       if (path === "/api/audit") return await getAudit(env, cors);
       if (path === "/api/records" && method === "GET") return await records(url, env, cors);
+      if (path.startsWith("/api/team")) return await team(request, url, env, cors);
 
       if (path === "/" || path === "/index.html") return dashboard();
       return json({ error: "not found" }, 404, cors);
@@ -507,4 +508,37 @@ async function records(url, env, cors) {
   }
   await audit(env, "records_lookup", { message: q });
   return json(out, 200, cors);
+}
+
+// ── team mailboxes (support@, abuse@, dmca@ …) ───────────────────────────────
+// Stored and sent by Mail (TeamMail entrypoint); admin only relays, behind
+// its own session check. Sends and deletions go to the audit log.
+async function team(request, url, env, cors) {
+  if (!env.TEAM) return json({ error: "team mailboxes aren't connected" }, 503, cors);
+  const path = url.pathname, method = request.method;
+  try {
+    if (path === "/api/team" && method === "GET") return json({ mailboxes: await env.TEAM.summary() }, 200, cors);
+    if (path === "/api/team/list" && method === "GET") {
+      return json({ messages: await env.TEAM.list(String(url.searchParams.get("box") || ""), 200) }, 200, cors);
+    }
+    if (path === "/api/team/msg" && method === "GET") {
+      const m = await env.TEAM.get(Number(url.searchParams.get("id")));
+      return m ? json({ message: m }, 200, cors) : json({ error: "not found" }, 404, cors);
+    }
+    const b = method === "POST" ? await request.json().catch(() => ({})) : {};
+    if (path === "/api/team/send" && method === "POST") {
+      const r = await env.TEAM.send({ mailbox: b.mailbox, to: b.to, subject: b.subject, text: b.text });
+      await audit(env, "team_send", { message: `${b.mailbox}@ → ${String(b.to || "").slice(0, 120)}` });
+      return json(r, 200, cors);
+    }
+    if (path === "/api/team/read" && method === "POST") return json({ ok: await env.TEAM.setRead(Number(b.id), !!b.read) }, 200, cors);
+    if (path === "/api/team/delete" && method === "POST") {
+      await env.TEAM.remove(Number(b.id));
+      await audit(env, "team_delete", { message: `message ${Number(b.id)}` });
+      return json({ ok: true }, 200, cors);
+    }
+    return json({ error: "not found" }, 404, cors);
+  } catch (e) {
+    return json({ error: String(e?.message || e) }, 400, cors);
+  }
 }

@@ -40,6 +40,13 @@ binding = "TEMP_DB"
 database_name = "inpriv-temp"
 database_id = "4fd698d2-c51e-4390-8f6b-9968f5da902d"
 
+# Team mailboxes (support@, abuse@ …) live in Mail; admin reaches them through
+# this binding, which isn't reachable from the internet.
+[[services]]
+binding = "TEAM"
+service = "inpriv-mail"
+entrypoint = "TeamMail"
+
 # secrets (wrangler secret put …):
 #   ADMIN_USER   — the admin sign-in username
 #   TOTP_SECRET  — base32 secret for Google Authenticator

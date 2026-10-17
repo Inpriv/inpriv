@@ -190,7 +190,9 @@ const RESERVED_PREFIXES = [
   "register", "root", "sales", "sample", "secure", "security", "self",
   "server", "service", "signin", "signup", "smtp", "ssl", "staff", "status",
   "support", "sysop", "team", "temp", "test", "tls", "user", "vpn", "webmaster",
-  "welcome", "www", "zero"
+  "welcome", "www", "zero",
+  // team mailboxes and legal contacts
+  "dmca", "copyright", "police", "lawenforcement", "law-enforcement"
 ];
 
 function isReservedUsername(username) {
