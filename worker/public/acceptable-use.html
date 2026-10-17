@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="dark light">
+<title>Acceptable Use Policy — Inpriv</title>
+<meta name="description" content="What you can't use Inpriv for.">
+<link rel="canonical" href="https://inpriv.xyz/acceptable-use">
+<link rel="icon" href="/icon.png">
+<style>
+:root { color-scheme: dark; --bg:#0c0c0b; --text:#f2f1ed; --text-2:rgb(242 241 237/.68); --text-3:rgb(242 241 237/.42);
+  --fill:rgb(255 255 255/.045); --hairline:rgb(255 255 255/.09); --accent:#ff6a2b;
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI Variable Text","Segoe UI",Roboto,sans-serif;
+  --display:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI Variable Display","Segoe UI",Roboto,sans-serif; }
+@media (prefers-color-scheme: light) { :root { color-scheme: light; --bg:#ebe9e4; --text:#141412; --text-2:rgb(20 20 18/.7);
+  --text-3:rgb(20 20 18/.46); --fill:rgb(0 0 0/.035); --hairline:rgb(0 0 0/.09); --accent:#e4511b; } }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 400 16px/1.65 var(--font); }
+.wrap { width: min(100% - 32px, 760px); margin: 0 auto; padding: max(20px, env(safe-area-inset-top)) 0 64px; }
+header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 36px; }
+.brand { display: inline-flex; align-items: center; gap: 9px; color: var(--text); text-decoration: none; font: 680 19px/1 var(--display); letter-spacing: -.03em; }
+.brand svg { width: 18px; height: 22px; }
+nav.top { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+nav.top a { color: var(--text-2); text-decoration: none; font-size: 13.5px; font-weight: 600; padding: 6px 10px; border-radius: 999px; }
+nav.top a[aria-current] { color: var(--text); background: var(--fill); box-shadow: inset 0 0 0 1px var(--hairline); }
+h1 { margin: 0 0 6px; font: 680 clamp(30px, 6vw, 40px)/1.08 var(--display); letter-spacing: -.035em; }
+.lead { margin: 0 0 6px; color: var(--text-2); font-size: 17px; }
+.meta { margin: 0 0 30px; color: var(--text-3); font-size: 13.5px; }
+h2 { margin: 38px 0 10px; font: 660 21px/1.25 var(--display); letter-spacing: -.02em; scroll-margin-top: 16px; }
+h3 { margin: 22px 0 6px; font: 650 16.5px/1.3 var(--display); }
+p, ul, ol { margin: 0 0 12px; }
+li { margin: 4px 0; }
+a { color: var(--text); text-decoration-color: var(--text-3); text-underline-offset: 3px; }
+a:hover { text-decoration-color: var(--accent); }
+strong { font-weight: 650; }
+.box { padding: 14px 18px; margin: 16px 0; border-radius: 18px; background: var(--fill); box-shadow: inset 0 0 0 1px var(--hairline); }
+.box p:last-child, .box ul:last-child { margin-bottom: 0; }
+.scroll { overflow-x: auto; margin: 12px 0 16px; border-radius: 16px; box-shadow: inset 0 0 0 1px var(--hairline); }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { padding: 9px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--hairline); }
+th { color: var(--text-3); font-weight: 600; font-size: 13px; }
+tr:last-child td { border-bottom: 0; }
+.toc { columns: 2 220px; padding-left: 18px; color: var(--text-2); font-size: 14.5px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 18px 0; }
+.cards a { display: block; padding: 16px 18px; border-radius: 18px; background: var(--fill); box-shadow: inset 0 0 0 1px var(--hairline); text-decoration: none; }
+.cards a strong { display: block; font: 650 16px/1.3 var(--display); }
+.cards a span { color: var(--text-2); font-size: 14px; }
+footer { margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--hairline); color: var(--text-3); font-size: 13.5px; display: flex; gap: 14px; flex-wrap: wrap; }
+footer a { color: var(--text-2); }
+@media (max-width: 640px) {
+  header { flex-direction: column; align-items: flex-start; gap: 14px; margin-bottom: 28px; }
+  nav.top { width: 100%; justify-content: flex-start; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -4px; }
+  nav.top::-webkit-scrollbar { display: none; }
+  nav.top a { white-space: nowrap; flex: none; }
+}
+code { font: 13.5px ui-monospace, "SF Mono", Consolas, monospace; background: var(--fill); padding: 1px 6px; border-radius: 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <a class="brand" href="https://inpriv.xyz/?home"><svg viewBox="0 0 18 22" aria-hidden="true"><path fill="currentColor" d="M9 0 18 9H0z"/><path fill="currentColor" d="M0 13h18L9 22z"/></svg><span>Inpriv</span></a>
+  <nav class="top" aria-label="Legal"><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/acceptable-use" aria-current="page">Acceptable use</a><a href="/dmca">Copyright</a><a href="/law-enforcement">Law enforcement</a></nav>
+</header>
+<main>
+<h1>Acceptable Use Policy</h1>
+<p class="lead">Private email only works if it isn't a haven for abuse. These rules apply to every Inpriv service and every <code>@inpriv.xyz</code> address.</p>
+<p class="meta">Effective 17 October 2026</p>
+
+<h2>You may not use Inpriv to</h2>
+<h3>Send unwanted or deceptive mail</h3>
+<ul>
+<li>Send spam: bulk or unsolicited commercial mail, mail to purchased or scraped lists, or mail recipients didn't ask for.</li>
+<li>Phish, or impersonate a person, company, bank, government body or Inpriv itself.</li>
+<li>Forge headers, or otherwise hide or misrepresent who a message is from.</li>
+<li>Send malware, or links to malware or phishing pages.</li>
+</ul>
+<h3>Harm people</h3>
+<ul>
+<li>Share, request or trade child sexual abuse material, or sexualise minors in any way. We report it to the competent authorities and close the account. There are no exceptions.</li>
+<li>Harass, threaten, stalk, extort or blackmail anyone, or incite violence against them.</li>
+<li>Publish someone's private information to harm them (doxxing), or share intimate images without consent.</li>
+<li>Coordinate terrorism or violent extremism.</li>
+</ul>
+<h3>Break the law or others' rights</h3>
+<ul>
+<li>Commit fraud or scams, launder money, or trade illegal goods and services.</li>
+<li>Infringe copyright, trademarks or other intellectual property. See <a href="/dmca">Copyright &amp; DMCA</a>.</li>
+<li>Do anything else that is illegal where you are or where your recipients are.</li>
+</ul>
+<h3>Abuse the service</h3>
+<ul>
+<li>Create accounts or Temp inboxes in bulk or with scripts, or register addresses to squat or resell them.</li>
+<li>Use Temp addresses to farm sign-ups, trial accounts, votes, bonuses or referral rewards.</li>
+<li>Get around rate limits, sending limits, suspensions or bans, including by opening new accounts.</li>
+<li>Get into accounts, mailboxes or systems that aren't yours. Probe, scan or load-test Inpriv, except under the safe-harbour rules in <a href="https://github.com/Inpriv/inpriv/blob/main/SECURITY.md">SECURITY.md</a>.</li>
+<li>Interfere with the service, or with other people's use of it.</li>
+</ul>
+
+<h2>What happens if you break these rules</h2>
+<p>Depending on how serious it is, we may:</p>
+<ul>
+<li>warn you;</li>
+<li>limit sending;</li>
+<li>suspend or permanently close the account;</li>
+<li>block addresses, IP ranges or networks;</li>
+<li>keep the relevant records;</li>
+<li>report it to the authorities.</li>
+</ul>
+<p>We don't need to warn you first in serious cases. Message bodies that are end-to-end encrypted stay unreadable to us. We act on reports, metadata and the <a href="/privacy#log">access log</a>.</p>
+
+<h2>Reporting abuse</h2>
+<p>Write to <a href="mailto:abuse@inpriv.xyz">abuse@inpriv.xyz</a> and include:</p>
+<ul>
+<li>the <code>@inpriv.xyz</code> address involved;</li>
+<li>the full message headers (in Gmail: "Show original"; in Outlook: "View message source");</li>
+<li>the date and time, and a short description.</li>
+</ul>
+<p>Reports of illegal content under the EU Digital Services Act can go to the same address. Explain why you think the content is illegal, and include your name and email, unless the report concerns child sexual abuse material.</p>
+<p>We review reports as quickly as we can. If we act on yours, we'll tell you where we can. For copyright, use the <a href="/dmca">DMCA process</a>. Authorities, see the <a href="/law-enforcement">Law Enforcement Guidelines</a>.</p>
+
+<h2>Appeals</h2>
+<p>If you think we closed your account or removed something by mistake, write to <a href="mailto:support@inpriv.xyz">support@inpriv.xyz</a> within 6 months and explain why. A person will review it, and we'll tell you the outcome.</p>
+</main>
+<footer>
+  <a href="/legal">All legal pages</a>
+  <a href="https://github.com/Inpriv/inpriv">Source code</a>
+  <span>Questions: <a href="mailto:legal@inpriv.xyz">legal@inpriv.xyz</a></span>
+</footer>
+</div>
+</body>
+</html>

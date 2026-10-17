@@ -4,4 +4,10 @@
   <url><loc>https://mail.inpriv.xyz/</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
   <url><loc>https://temp.inpriv.xyz/</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
   <url><loc>https://id.inpriv.xyz/</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://inpriv.xyz/legal</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
+  <url><loc>https://inpriv.xyz/terms</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
+  <url><loc>https://inpriv.xyz/privacy</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
+  <url><loc>https://inpriv.xyz/acceptable-use</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://inpriv.xyz/dmca</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://inpriv.xyz/law-enforcement</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
 </urlset>

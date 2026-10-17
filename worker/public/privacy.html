@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="dark light">
+<title>Privacy Policy — Inpriv</title>
+<meta name="description" content="What Inpriv stores, what it doesn't, and why.">
+<link rel="canonical" href="https://inpriv.xyz/privacy">
+<link rel="icon" href="/icon.png">
+<style>
+:root { color-scheme: dark; --bg:#0c0c0b; --text:#f2f1ed; --text-2:rgb(242 241 237/.68); --text-3:rgb(242 241 237/.42);
+  --fill:rgb(255 255 255/.045); --hairline:rgb(255 255 255/.09); --accent:#ff6a2b;
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI Variable Text","Segoe UI",Roboto,sans-serif;
+  --display:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI Variable Display","Segoe UI",Roboto,sans-serif; }
+@media (prefers-color-scheme: light) { :root { color-scheme: light; --bg:#ebe9e4; --text:#141412; --text-2:rgb(20 20 18/.7);
+  --text-3:rgb(20 20 18/.46); --fill:rgb(0 0 0/.035); --hairline:rgb(0 0 0/.09); --accent:#e4511b; } }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 400 16px/1.65 var(--font); }
+.wrap { width: min(100% - 32px, 760px); margin: 0 auto; padding: max(20px, env(safe-area-inset-top)) 0 64px; }
+header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 36px; }
+.brand { display: inline-flex; align-items: center; gap: 9px; color: var(--text); text-decoration: none; font: 680 19px/1 var(--display); letter-spacing: -.03em; }
+.brand svg { width: 18px; height: 22px; }
+nav.top { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+nav.top a { color: var(--text-2); text-decoration: none; font-size: 13.5px; font-weight: 600; padding: 6px 10px; border-radius: 999px; }
+nav.top a[aria-current] { color: var(--text); background: var(--fill); box-shadow: inset 0 0 0 1px var(--hairline); }
+h1 { margin: 0 0 6px; font: 680 clamp(30px, 6vw, 40px)/1.08 var(--display); letter-spacing: -.035em; }
+.lead { margin: 0 0 6px; color: var(--text-2); font-size: 17px; }
+.meta { margin: 0 0 30px; color: var(--text-3); font-size: 13.5px; }
+h2 { margin: 38px 0 10px; font: 660 21px/1.25 var(--display); letter-spacing: -.02em; scroll-margin-top: 16px; }
+h3 { margin: 22px 0 6px; font: 650 16.5px/1.3 var(--display); }
+p, ul, ol { margin: 0 0 12px; }
+li { margin: 4px 0; }
+a { color: var(--text); text-decoration-color: var(--text-3); text-underline-offset: 3px; }
+a:hover { text-decoration-color: var(--accent); }
+strong { font-weight: 650; }
+.box { padding: 14px 18px; margin: 16px 0; border-radius: 18px; background: var(--fill); box-shadow: inset 0 0 0 1px var(--hairline); }
+.box p:last-child, .box ul:last-child { margin-bottom: 0; }
+.scroll { overflow-x: auto; margin: 12px 0 16px; border-radius: 16px; box-shadow: inset 0 0 0 1px var(--hairline); }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { padding: 9px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--hairline); }
+th { color: var(--text-3); font-weight: 600; font-size: 13px; }
+tr:last-child td { border-bottom: 0; }
+.toc { columns: 2 220px; padding-left: 18px; color: var(--text-2); font-size: 14.5px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 18px 0; }
+.cards a { display: block; padding: 16px 18px; border-radius: 18px; background: var(--fill); box-shadow: inset 0 0 0 1px var(--hairline); text-decoration: none; }
+.cards a strong { display: block; font: 650 16px/1.3 var(--display); }
+.cards a span { color: var(--text-2); font-size: 14px; }
+footer { margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--hairline); color: var(--text-3); font-size: 13.5px; display: flex; gap: 14px; flex-wrap: wrap; }
+footer a { color: var(--text-2); }
+@media (max-width: 640px) {
+  header { flex-direction: column; align-items: flex-start; gap: 14px; margin-bottom: 28px; }
+  nav.top { width: 100%; justify-content: flex-start; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -4px; }
+  nav.top::-webkit-scrollbar { display: none; }
+  nav.top a { white-space: nowrap; flex: none; }
+}
+code { font: 13.5px ui-monospace, "SF Mono", Consolas, monospace; background: var(--fill); padding: 1px 6px; border-radius: 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <a class="brand" href="https://inpriv.xyz/?home"><svg viewBox="0 0 18 22" aria-hidden="true"><path fill="currentColor" d="M9 0 18 9H0z"/><path fill="currentColor" d="M0 13h18L9 22z"/></svg><span>Inpriv</span></a>
+  <nav class="top" aria-label="Legal"><a href="/terms">Terms</a><a href="/privacy" aria-current="page">Privacy</a><a href="/acceptable-use">Acceptable use</a><a href="/dmca">Copyright</a><a href="/law-enforcement">Law enforcement</a></nav>
+</header>
+<main>
+<h1>Privacy Policy</h1>
+<p class="lead">What Inpriv stores, what it never stores, how long it keeps things, and who else handles your data.</p>
+<p class="meta">Effective 17 October 2026</p>
+
+<div class="box">
+<p><strong>The short version</strong></p>
+<ul>
+<li>Mail between Inpriv users is <strong>end-to-end encrypted</strong> in your browser. We can't read it.</li>
+<li>Mail from or to other providers (Gmail, Outlook…) passes through our mail relay in readable form; incoming mail is then stored encrypted to your key.</li>
+<li>Subject lines, sender and recipient addresses and times are <strong>not</strong> end-to-end encrypted. We need them to deliver and list your mail.</li>
+<li><strong>Temp</strong> inboxes are not encrypted and are deleted about 24 hours after creation.</li>
+<li>We keep an <strong>access log</strong> (IP address, country, network, browser, time, what happened) for <strong>90 days</strong>, to stop abuse and answer valid legal requests.</li>
+<li>No ads, no analytics, no tracking cookies, no data sales. The code is <a href="https://github.com/Inpriv/inpriv">open source</a>, so you can check all of this.</li>
+</ul>
+</div>
+
+<ol class="toc">
+<li><a href="#who">Who we are</a></li>
+<li><a href="#never">What we never have</a></li>
+<li><a href="#id">Inpriv ID</a></li>
+<li><a href="#mail">Inpriv Mail</a></li>
+<li><a href="#temp">Inpriv Temp</a></li>
+<li><a href="#log">Access log</a></li>
+<li><a href="#device">On your device</a></li>
+<li><a href="#team">Mail you send to us</a></li>
+<li><a href="#processors">Who else handles data</a></li>
+<li><a href="#retention">How long we keep it</a></li>
+<li><a href="#share">When we share data</a></li>
+<li><a href="#bases">Legal bases</a></li>
+<li><a href="#rights">Your rights</a></li>
+<li><a href="#security">Security</a></li>
+<li><a href="#children">Children</a></li>
+<li><a href="#changes">Changes</a></li>
+</ol>
+
+<h2 id="who">1. Who we are</h2>
+<p>"Inpriv", "we" and "us" mean the operator of the Inpriv services at <code>inpriv.xyz</code>, <code>mail.inpriv.xyz</code>, <code>temp.inpriv.xyz</code> and <code>id.inpriv.xyz</code>. We are the controller of the personal data described here. Questions and requests: <a href="mailto:privacy@inpriv.xyz">privacy@inpriv.xyz</a>.</p>
+
+<h2 id="never">2. What we never have</h2>
+<ul>
+<li>The <strong>content of mail between Inpriv users</strong>. It's encrypted in the sender's browser with the recipient's public key (RSA-OAEP 2048 + AES-256-GCM) before it reaches us.</li>
+<li>The <strong>content of stored mail from outside senders</strong> after it's been received. It's encrypted to your public key on arrival, and only your browser can open it.</li>
+<li>Your <strong>password</strong>. We store only a salted hash (PBKDF2-SHA-256, 300,000 iterations).</li>
+<li>Your <strong>mailbox private key</strong> or the key your password unlocks it with. Both exist only in your browser.</li>
+<li>Anything you type into a page and don't submit, and any analytics, advertising or tracking data. We don't run analytics or ads.</li>
+</ul>
+<p>Because we can't read this content, we also can't recover it. If you forget your password, mail encrypted to your old key can't be opened again.</p>
+
+<h2 id="id">3. Inpriv ID (your account)</h2>
+<div class="scroll"><table>
+<tr><th>Data</th><th>Why</th></tr>
+<tr><td>Username and your <code>@inpriv.xyz</code> address</td><td>Identify your account and deliver your mail</td></tr>
+<tr><td>Display name (optional)</td><td>Shown to people you write to</td></tr>
+<tr><td>Recovery email (optional), whether it's verified, and short-lived hashed verification codes</td><td>Confirm that the address is yours. We don't use it for marketing.</td></tr>
+<tr><td>Password hash and salt</td><td>Check your password when you sign in</td></tr>
+<tr><td>Two-factor secret (encrypted at rest) and hashed one-time recovery codes</td><td>Two-factor authentication, if you turn it on</td></tr>
+<tr><td>Sessions: device and browser name, the first part of your IP address (e.g. <code>203.0</code>), created / last used / expiry times</td><td>Keep you signed in, and let you see and sign out sessions</td></tr>
+<tr><td>Security events: type (sign-in, failed sign-in, password change, 2FA change…), the first part of your IP address, browser name, time</td><td>Your "security log" on id.inpriv.xyz, and protecting your account</td></tr>
+<tr><td>Settings ("Skip master password"), connected services and profile preferences (encrypted at rest)</td><td>Make the services behave the way you chose</td></tr>
+<tr><td>Rate-limit counters keyed by the first part of your IP address</td><td>Slow down password guessing and mass sign-ups; they expire within an hour</td></tr>
+</table></div>
+
+<h2 id="mail">4. Inpriv Mail</h2>
+<div class="scroll"><table>
+<tr><th>Data</th><th>Readable by us?</th></tr>
+<tr><td>Your public key, and your private key <em>encrypted with your password</em></td><td>Public key: yes. Private key: no.</td></tr>
+<tr><td>A copy of your password hash</td><td>No (it's a hash)</td></tr>
+<tr><td>For each message: the other party's address and display name, the <strong>subject</strong>, the time, read/unread, direction, and the encrypted size</td><td><strong>Yes</strong>. This is metadata needed to list and deliver mail.</td></tr>
+<tr><td>For each message: the body and its formatting</td><td><strong>No</strong>. It's encrypted to your key.</td></tr>
+<tr><td>Sessions: browser name (user agent), created and expiry times</td><td>Yes</td></tr>
+<tr><td>"Skip master password": one wrapped key per device and a random device id</td><td>No. It can only be unwrapped with a key stored on that device.</td></tr>
+</table></div>
+<h3>Mail to and from other providers</h3>
+<ul>
+<li><strong>Incoming:</strong> mail from Gmail, Outlook and others arrives over normal email, unencrypted, through our mail provider Resend. Our server encrypts it to your public key before storing it. While it's received, it's readable to Resend and to our server.</li>
+<li><strong>Outgoing:</strong> mail you send to other providers is handed to Resend as normal email. It's readable to Resend, to the recipient's provider, and to our server while it's sent. An encrypted copy is kept in your Sent box.</li>
+</ul>
+
+<h2 id="temp">5. Inpriv Temp</h2>
+<ul>
+<li><strong>The inbox:</strong> its random address, a hash of the access token your browser holds, and created and expiry times.</li>
+<li><strong>Messages:</strong> sender, recipient, subject, text and HTML body, attachments (up to 512 KB each, 2 MB per message), size and time. These are stored <strong>unencrypted</strong>, so don't use Temp for anything sensitive.</li>
+<li><strong>Deletion:</strong> everything is deleted when the inbox expires, 24 hours after it's created. Cleanup runs every hour. Messages are never kept longer than 7 days in any case. You can also delete an inbox yourself at any time.</li>
+<li><strong>Logging:</strong> creating an inbox is written to the access log (section 6).</li>
+</ul>
+
+<h2 id="log">6. Access log</h2>
+<p>To fight abuse and to answer valid legal requests, we keep an access log. Each entry has:</p>
+<ul>
+<li>the time, the service, and what happened, for example "Mail sign-in" or "message sent";</li>
+<li>the account (username or Temp address);</li>
+<li>for sent mail, the <strong>recipient address</strong>;</li>
+<li>the <strong>full IP address</strong>, the country and network (ASN) derived from it, and the browser's user-agent string.</li>
+</ul>
+<p>It's written when you create, sign in to or change your Inpriv ID (failed sign-ins included), sign in to Mail, create a mailbox, send a message, or create a Temp inbox. <strong>Entries are deleted after 90 days</strong>, including after you delete your account. The access log never contains message content, passwords or keys.</p>
+
+<h2 id="device">7. On your device</h2>
+<p>We don't use tracking or advertising cookies. The sites store only what they need to work:</p>
+<ul>
+<li><strong>id.inpriv.xyz:</strong> a sign-in cookie (HttpOnly, Secure). Other Inpriv sites ask id.inpriv.xyz whether you're signed in, for Quick Sign-In.</li>
+<li><strong>Mail:</strong> your session token. With "Skip master password" on, also a device key and a random device id. Plus your theme and whether to show the "Mailbox unlocked" message.</li>
+<li><strong>Temp:</strong> the token for your current inbox.</li>
+</ul>
+<p>Clearing your browser's site data removes all of this.</p>
+
+<h2 id="team">8. Mail you send to us</h2>
+<p>Messages to our team addresses (support@, abuse@, dmca@, legal@, privacy@, security@, admin@, hello@) are stored as received, so we can answer them, and kept until we delete them. They aren't end-to-end encrypted.</p>
+
+<h2 id="processors">9. Who else handles data</h2>
+<div class="scroll"><table>
+<tr><th>Provider</th><th>What for</th><th>What it handles</th></tr>
+<tr><td><strong>Cloudflare, Inc.</strong></td><td>Hosting, network, databases (Workers, D1)</td><td>Every request (including your IP address) and all stored data, which is encrypted at rest</td></tr>
+<tr><td><strong>Resend</strong></td><td>Sending and receiving email with other providers; Inpriv ID verification emails</td><td>Mail to and from non-Inpriv addresses and verification emails, including their content</td></tr>
+</table></div>
+<p>These providers process data on our behalf under their own terms and data-processing agreements. They may process it outside your country, including in the United States. Where the law requires, the transfer relies on safeguards those providers offer, such as the European Commission's Standard Contractual Clauses. Their own logs are kept under their policies.</p>
+<p>We don't sell or rent personal data, and we don't share it for advertising.</p>
+
+<h2 id="retention">10. How long we keep it</h2>
+<div class="scroll"><table>
+<tr><th>Data</th><th>Kept until</th></tr>
+<tr><td>Inpriv ID account, mailbox, keys and stored mail</td><td>You delete your account. Deleting your Inpriv ID also deletes your mailbox and all its mail.</td></tr>
+<tr><td>Individual messages</td><td>You delete them</td></tr>
+<tr><td>Sessions</td><td>Expiry (30 days) or sign-out</td></tr>
+<tr><td>ID security events and the access log</td><td>90 days</td></tr>
+<tr><td>Temp inboxes and their messages</td><td>24 hours (at most 7 days for any message)</td></tr>
+<tr><td>Verification codes</td><td>15 minutes</td></tr>
+<tr><td>Mail to our team addresses</td><td>Until we delete it</td></tr>
+</table></div>
+<p>When we receive a valid legal preservation request, we may keep the specific data it covers for longer, only as long as the law requires.</p>
+
+<h2 id="share">11. When we share data</h2>
+<p>Only:</p>
+<ul>
+<li>with the providers in section 9, to run the service;</li>
+<li>when the law requires it, in answer to valid legal process. See the <a href="/law-enforcement">Law Enforcement Guidelines</a> for what can and can't be provided. We notify affected users unless the law forbids it or it would put someone in danger.</li>
+<li>to protect someone's life or physical safety in an emergency;</li>
+<li>to investigate and stop abuse of Inpriv, as described in the <a href="/acceptable-use">Acceptable Use Policy</a>.</li>
+</ul>
+
+<h2 id="bases">12. Legal bases</h2>
+<p>Where the EU or UK GDPR applies, we rely on:</p>
+<ul>
+<li><strong>contract</strong>: your account, mailbox, messages, sessions and settings, which we need to provide the service you signed up for;</li>
+<li><strong>legitimate interests</strong>: the access log, security events and rate limits, to keep the service secure and free of abuse. We limit them to what's needed and delete them after 90 days.</li>
+<li><strong>legal obligation</strong>: responding to valid legal requests and keeping data a preservation request covers;</li>
+<li><strong>consent</strong>: the optional recovery email, which you can remove at any time.</li>
+</ul>
+
+<h2 id="rights">13. Your rights</h2>
+<p>Depending on where you live, you can ask us to:</p>
+<ul>
+<li>give you a copy of your data;</li>
+<li>correct it;</li>
+<li>delete it (you can delete your account yourself in your account settings on id.inpriv.xyz);</li>
+<li>restrict or object to how we use it;</li>
+<li>hand it to you in a portable format.</li>
+</ul>
+<p>Write to <a href="mailto:privacy@inpriv.xyz">privacy@inpriv.xyz</a> from your @inpriv.xyz address, or say how we can verify you. We answer within one month.</p>
+<p>We can't hand over mail content we can't read, but you can open and copy it yourself while you're signed in. You also have the right to complain to your data-protection authority.</p>
+
+<h2 id="security">14. Security</h2>
+<ul>
+<li>All traffic uses HTTPS.</li>
+<li>Passwords are stored as salted hashes, 2FA secrets are encrypted at rest, and session tokens are stored as hashes.</li>
+<li>Mail between Inpriv users is end-to-end encrypted.</li>
+<li>The admin panel needs a separate authenticator code, and every lookup of user records in it is logged.</li>
+</ul>
+<p>If a breach affects your data, we'll tell you and the relevant authority as the law requires. Found a vulnerability? See <a href="https://github.com/Inpriv/inpriv/blob/main/SECURITY.md">SECURITY.md</a>.</p>
+
+<h2 id="children">15. Children</h2>
+<p>Inpriv isn't for children under 16. We don't knowingly hold data about them. If you think a child has an account, write to <a href="mailto:privacy@inpriv.xyz">privacy@inpriv.xyz</a> and we'll delete it.</p>
+
+<h2 id="changes">16. Changes</h2>
+<p>We'll update this page when what we store changes, and change the date at the top. For significant changes we'll also give notice on the site before they take effect. The full history is public in the <a href="https://github.com/Inpriv/inpriv/commits/main/worker/public/privacy.html">source repository</a>.</p>
+</main>
+<footer>
+  <a href="/legal">All legal pages</a>
+  <a href="https://github.com/Inpriv/inpriv">Source code</a>
+  <span>Questions: <a href="mailto:legal@inpriv.xyz">legal@inpriv.xyz</a></span>
+</footer>
+</div>
+</body>
+</html>
