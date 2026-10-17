@@ -52,6 +52,15 @@ async function publicUser(env, uid, full = false) {
 // deploy, so every endpoint that touches them calls this first. D1 keeps the
 // DDL cached; the "already exists" case is a cheap no-op.
 let tablesReady = false;
+// Usernames of deleted accounts. Kept forever so an address is never
+// reassigned (ID sign-up and Temp custom names both check it).
+let _retiredReady = false;
+async function ensureRetired(db) {
+  if (_retiredReady) return;
+  await db.prepare("CREATE TABLE IF NOT EXISTS retired_usernames (username TEXT PRIMARY KEY, retired_at INTEGER NOT NULL)").run();
+  _retiredReady = true;
+}
+
 async function ensureTables(env) {
   if (tablesReady) return;
   // D1 runs batches inside a transaction; SQLite cannot run some DDL there,
@@ -310,6 +319,11 @@ export default {
         if (password.length < 10) return bad("password too short (min 10 characters)");
         if (password.length > 200) return bad("password too long");
         if (nick && !/^[a-zA-Z0-9._\- ]{1,24}$/.test(nick)) return bad("nickname: 1-24 chars");
+
+        await ensureRetired(env.DB);
+        if (await env.DB.prepare("SELECT 1 FROM retired_usernames WHERE username = ?").bind(username).first()) {
+          return bad("this Inpriv ID was used before and can't be registered again", 409);
+        }
 
         const dup = await env.DB.prepare(
           "SELECT 1 FROM users WHERE username = ? OR email = ? OR (recovery_email IS NOT NULL AND recovery_email = ?)"
@@ -911,7 +925,20 @@ export default {
         const u = await env.DB.prepare("SELECT pass_hash, pass_salt, pass_iters FROM users WHERE id = ?").bind(me.uid).first();
         const candidate = await passHash(String(body.password || ""), u.pass_salt, u.pass_iters);
         if (!constantTimeEq(candidate, u.pass_hash)) return bad("wrong password", 401);
+        const gone = await env.DB.prepare("SELECT username FROM users WHERE id = ?").bind(me.uid).first();
+        await logEvent(env.DB, me.uid, "account_delete", request);
         await env.DB.prepare("DELETE FROM users WHERE id = ?").bind(me.uid).run();
+        if (gone && gone.username) {
+          // the address is never handed to anyone else (mail meant for the old
+          // owner must not reach a new one), and the mailbox goes with the ID:
+          // keys, messages, sessions and device keys (ON DELETE CASCADE)
+          await ensureRetired(env.DB);
+          await env.DB.prepare("INSERT OR IGNORE INTO retired_usernames (username, retired_at) VALUES (?, ?)")
+            .bind(gone.username, now()).run();
+          if (env.MAIL_DB) {
+            await env.MAIL_DB.prepare("DELETE FROM users WHERE username = ?").bind(gone.username).run();
+          }
+        }
         return out({ ok: true }, 200, { ...cors, "Set-Cookie": clearCookie() });
       }
 

@@ -48,14 +48,19 @@ export async function logAccess(db, request, service, event, account, detail = n
   } catch { /* never block the request on logging */ }
 }
 
+// Also trims ID's own security-event list (auth_events) to the same 90 days.
 export async function purgeAccessLog(db) {
   if (!db) return 0;
+  const cutoff = Date.now() - ACCESS_LOG_DAYS * 86_400_000;
+  let n = 0;
   try {
     await ensure(db);
-    const r = await db.prepare("DELETE FROM access_log WHERE at < ?")
-      .bind(Date.now() - ACCESS_LOG_DAYS * 86_400_000).run();
-    return (r.meta && r.meta.changes) || 0;
-  } catch {
-    return 0;
-  }
+    const r = await db.prepare("DELETE FROM access_log WHERE at < ?").bind(cutoff).run();
+    n += (r.meta && r.meta.changes) || 0;
+  } catch { /* keep going */ }
+  try {
+    const r = await db.prepare("DELETE FROM auth_events WHERE at < ?").bind(cutoff).run();
+    n += (r.meta && r.meta.changes) || 0;
+  } catch { /* table missing on a fresh database */ }
+  return n;
 }

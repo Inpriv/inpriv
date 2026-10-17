@@ -285,6 +285,12 @@ async function createMailbox(request, env) {
         .bind(customLocal)
         .first();
       if (taken) return json({ error: "That address belongs to an Inpriv ID account" }, 409);
+      const retired = await env.ID_DB
+        .prepare("SELECT 1 FROM retired_usernames WHERE username = ?")
+        .bind(customLocal)
+        .first()
+        .catch(() => null); // table appears with the first deleted account
+      if (retired) return json({ error: "That address is reserved" }, 409);
     }
   }
 

@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="dark light">
+<title>Law Enforcement Guidelines — Inpriv</title>
+<meta name="description" content="How authorities can request data, and what exists to request.">
+<link rel="canonical" href="https://inpriv.xyz/law-enforcement">
+<link rel="icon" href="/icon.png">
+<style>
+:root { color-scheme: dark; --bg:#0c0c0b; --text:#f2f1ed; --text-2:rgb(242 241 237/.68); --text-3:rgb(242 241 237/.42);
+  --fill:rgb(255 255 255/.045); --hairline:rgb(255 255 255/.09); --accent:#ff6a2b;
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI Variable Text","Segoe UI",Roboto,sans-serif;
+  --display:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI Variable Display","Segoe UI",Roboto,sans-serif; }
+@media (prefers-color-scheme: light) { :root { color-scheme: light; --bg:#ebe9e4; --text:#141412; --text-2:rgb(20 20 18/.7);
+  --text-3:rgb(20 20 18/.46); --fill:rgb(0 0 0/.035); --hairline:rgb(0 0 0/.09); --accent:#e4511b; } }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 400 16px/1.65 var(--font); }
+.wrap { width: min(100% - 32px, 760px); margin: 0 auto; padding: max(20px, env(safe-area-inset-top)) 0 64px; }
+header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 36px; }
+.brand { display: inline-flex; align-items: center; gap: 9px; color: var(--text); text-decoration: none; font: 680 19px/1 var(--display); letter-spacing: -.03em; }
+.brand svg { width: 18px; height: 22px; }
+nav.top { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+nav.top a { color: var(--text-2); text-decoration: none; font-size: 13.5px; font-weight: 600; padding: 6px 10px; border-radius: 999px; }
+nav.top a[aria-current] { color: var(--text); background: var(--fill); box-shadow: inset 0 0 0 1px var(--hairline); }
+h1 { margin: 0 0 6px; font: 680 clamp(30px, 6vw, 40px)/1.08 var(--display); letter-spacing: -.035em; }
+.lead { margin: 0 0 6px; color: var(--text-2); font-size: 17px; }
+.meta { margin: 0 0 30px; color: var(--text-3); font-size: 13.5px; }
+h2 { margin: 38px 0 10px; font: 660 21px/1.25 var(--display); letter-spacing: -.02em; scroll-margin-top: 16px; }
+h3 { margin: 22px 0 6px; font: 650 16.5px/1.3 var(--display); }
+p, ul, ol { margin: 0 0 12px; }
+li { margin: 4px 0; }
+a { color: var(--text); text-decoration-color: var(--text-3); text-underline-offset: 3px; }
+a:hover { text-decoration-color: var(--accent); }
+strong { font-weight: 650; }
+.box { padding: 14px 18px; margin: 16px 0; border-radius: 18px; background: var(--fill); box-shadow: inset 0 0 0 1px var(--hairline); }
+.box p:last-child, .box ul:last-child { margin-bottom: 0; }
+.scroll { overflow-x: auto; margin: 12px 0 16px; border-radius: 16px; box-shadow: inset 0 0 0 1px var(--hairline); }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { padding: 9px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--hairline); }
+th { color: var(--text-3); font-weight: 600; font-size: 13px; }
+tr:last-child td { border-bottom: 0; }
+.toc { columns: 2 220px; padding-left: 18px; color: var(--text-2); font-size: 14.5px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 18px 0; }
+.cards a { display: block; padding: 16px 18px; border-radius: 18px; background: var(--fill); box-shadow: inset 0 0 0 1px var(--hairline); text-decoration: none; }
+.cards a strong { display: block; font: 650 16px/1.3 var(--display); }
+.cards a span { color: var(--text-2); font-size: 14px; }
+footer { margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--hairline); color: var(--text-3); font-size: 13.5px; display: flex; gap: 14px; flex-wrap: wrap; }
+footer a { color: var(--text-2); }
+@media (max-width: 640px) {
+  header { flex-direction: column; align-items: flex-start; gap: 14px; margin-bottom: 28px; }
+  nav.top { width: 100%; justify-content: flex-start; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -4px; }
+  nav.top::-webkit-scrollbar { display: none; }
+  nav.top a { white-space: nowrap; flex: none; }
+}
+code { font: 13.5px ui-monospace, "SF Mono", Consolas, monospace; background: var(--fill); padding: 1px 6px; border-radius: 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <a class="brand" href="https://inpriv.xyz/?home"><svg viewBox="0 0 18 22" aria-hidden="true"><path fill="currentColor" d="M9 0 18 9H0z"/><path fill="currentColor" d="M0 13h18L9 22z"/></svg><span>Inpriv</span></a>
+  <nav class="top" aria-label="Legal"><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/acceptable-use">Acceptable use</a><a href="/dmca">Copyright</a><a href="/law-enforcement" aria-current="page">Law enforcement</a></nav>
+</header>
+<main>
+<h1>Law Enforcement Guidelines</h1>
+<p class="lead">For police, prosecutors, courts and other authorities requesting data about Inpriv users. Users can read this page too: we publish it so everyone knows how requests are handled.</p>
+<p class="meta">Effective 17 October 2026</p>
+
+<div class="box">
+<p><strong>Requests go to <a href="mailto:legal@inpriv.xyz">legal@inpriv.xyz</a></strong>, sent from an official government email domain. Emergencies: see <a href="#emergency">below</a>. Requests in English are handled fastest.</p>
+</div>
+
+<h2>What exists, and what doesn't</h2>
+<p>Inpriv is built so that some data never reaches us. We can only provide records we actually hold. The <a href="/privacy">Privacy Policy</a> describes all of them.</p>
+<div class="scroll"><table>
+<tr><th>Record</th><th>Available?</th><th>Kept for</th></tr>
+<tr><td>Account: username, @inpriv.xyz address, display name, created and last sign-in times, whether 2FA is on</td><td>Yes</td><td>Life of the account</td></tr>
+<tr><td>Recovery email address, if the user added one</td><td>Yes</td><td>Until removed or the account is deleted</td></tr>
+<tr><td>Access log: full IP address, country, network (ASN), user agent and time for sign-ins (including failed ones), account changes, mailbox creation, sent messages (with recipient address) and Temp inbox creation</td><td>Yes</td><td>90 days</td></tr>
+<tr><td>Sessions and account security events (with shortened IP and browser name)</td><td>Yes</td><td>Up to 90 days</td></tr>
+<tr><td>Mail metadata: the other party's address, subject line, time and size of each stored message</td><td>Yes, while the user hasn't deleted the message</td><td>Until the user deletes it</td></tr>
+<tr><td>Content of Mail messages (between Inpriv users, and stored mail from outside)</td><td><strong>No.</strong> End-to-end encrypted to the user's key; we can't decrypt it.</td><td>—</td></tr>
+<tr><td>Temp inbox: address, created and expiry times, and received messages, including content</td><td>Only while the inbox exists</td><td>24 hours</td></tr>
+<tr><td>Passwords, private keys</td><td><strong>No.</strong> We never have them.</td><td>—</td></tr>
+<tr><td>Real name, postal address, phone number, payment details, ID documents</td><td><strong>No.</strong> We don't collect them.</td><td>—</td></tr>
+</table></div>
+<p>Mail sent to or received from other providers passes through our email provider Resend and the other provider. They may hold their own records, under their own policies.</p>
+
+<h2>What a request must include</h2>
+<ul>
+<li>the name of the authority, and the name, rank, phone number and official email of the requesting officer;</li>
+<li>the legal basis: a subpoena, court order, warrant or equivalent valid legal process, with a copy attached;</li>
+<li>the exact identifiers: <code>@inpriv.xyz</code> addresses, or IP addresses with exact timestamps and timezone;</li>
+<li>the specific records you're asking for, and the time range;</li>
+<li>any non-disclosure order, and the legal basis for it.</li>
+</ul>
+<p>We review every request for validity and scope. We push back on requests that are overly broad, unclear or not legally valid, and we disclose only the minimum the process requires. Requests from authorities outside the jurisdiction we're bound by may need to go through a mutual legal assistance treaty (MLAT) or a similar channel.</p>
+
+<h2 id="emergency">Emergencies</h2>
+<p>If there's an imminent risk of death or serious physical injury, write to <a href="mailto:legal@inpriv.xyz">legal@inpriv.xyz</a> with the subject <strong>"EMERGENCY DISCLOSURE REQUEST"</strong>. Describe the emergency, explain how the data will help, and include the identifiers. We may voluntarily disclose information that's needed to prevent the harm, where the law allows.</p>
+
+<h2>Preservation</h2>
+<p>We'll preserve specific existing records (for example access-log entries that would otherwise be deleted after 90 days) for <strong>90 days</strong> on receiving an official preservation request, while you obtain formal legal process. We'll extend that once by another 90 days if asked. A preservation request doesn't disclose anything; it only keeps data from being deleted.</p>
+
+<h2>Notifying users</h2>
+<p>We tell users about requests for their data before disclosing it, so they can seek legal advice, unless:</p>
+<ul>
+<li>the law or a court order forbids it;</li>
+<li>it's an emergency;</li>
+<li>notice would endanger someone or seriously harm an investigation.</li>
+</ul>
+<p>When a restriction ends, we'll notify the user.</p>
+
+<h2>Requests we don't accept</h2>
+<ul>
+<li>Requests that don't come from an authority, or don't come through valid legal process. This includes requests from private parties, lawyers or companies for other people's data, unless the law requires us to comply.</li>
+<li>Requests to decrypt content, to weaken encryption, or to add surveillance to the service. We can't decrypt end-to-end encrypted mail, and we won't build a way to.</li>
+</ul>
+
+<h2>Abuse reports</h2>
+<p>If you only want to report abuse, such as spam or phishing from an <code>@inpriv.xyz</code> address, and aren't requesting data, write to <a href="mailto:abuse@inpriv.xyz">abuse@inpriv.xyz</a>. We act on abuse without a legal request; see the <a href="/acceptable-use">Acceptable Use Policy</a>.</p>
+</main>
+<footer>
+  <a href="/legal">All legal pages</a>
+  <a href="https://github.com/Inpriv/inpriv">Source code</a>
+  <span>Questions: <a href="mailto:legal@inpriv.xyz">legal@inpriv.xyz</a></span>
+</footer>
+</div>
+</body>
+</html>

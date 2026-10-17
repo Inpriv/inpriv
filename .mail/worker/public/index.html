@@ -889,6 +889,8 @@ html, body { overscroll-behavior-y: contain; }
 @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 0.8s !important; animation-iteration-count: infinite !important; } }
 #regStatus { display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--text-2) !important; }
 #regStatus:empty { display: none; }
+.legal-note { margin: 12px 0 0; text-align: center; color: var(--text-3); font-size: 12.5px; line-height: 1.5; }
+.legal-note a { color: var(--text-2); }
 .hidden { display: none !important; }
 </style>
 </head>
@@ -2006,6 +2008,7 @@ function renderAuthForm(mode) {
         <button type="submit" class="btn btn-primary btn-block" id="regSubmitBtn">
           <span>Create account</span> ${mkIcon('arrow_forward')}
         </button>
+        <p class="legal-note">By creating an account you agree to the <a href="https://inpriv.xyz/terms" target="_blank" rel="noopener">Terms</a> and the <a href="https://inpriv.xyz/privacy" target="_blank" rel="noopener">Privacy Policy</a>.</p>
       </form>
     `;
 

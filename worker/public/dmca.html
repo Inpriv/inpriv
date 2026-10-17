@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="dark light">
+<title>Copyright & DMCA — Inpriv</title>
+<meta name="description" content="How to report copyright infringement, and how to respond.">
+<link rel="canonical" href="https://inpriv.xyz/dmca">
+<link rel="icon" href="/icon.png">
+<style>
+:root { color-scheme: dark; --bg:#0c0c0b; --text:#f2f1ed; --text-2:rgb(242 241 237/.68); --text-3:rgb(242 241 237/.42);
+  --fill:rgb(255 255 255/.045); --hairline:rgb(255 255 255/.09); --accent:#ff6a2b;
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI Variable Text","Segoe UI",Roboto,sans-serif;
+  --display:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI Variable Display","Segoe UI",Roboto,sans-serif; }
+@media (prefers-color-scheme: light) { :root { color-scheme: light; --bg:#ebe9e4; --text:#141412; --text-2:rgb(20 20 18/.7);
+  --text-3:rgb(20 20 18/.46); --fill:rgb(0 0 0/.035); --hairline:rgb(0 0 0/.09); --accent:#e4511b; } }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 400 16px/1.65 var(--font); }
+.wrap { width: min(100% - 32px, 760px); margin: 0 auto; padding: max(20px, env(safe-area-inset-top)) 0 64px; }
+header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 36px; }
+.brand { display: inline-flex; align-items: center; gap: 9px; color: var(--text); text-decoration: none; font: 680 19px/1 var(--display); letter-spacing: -.03em; }
+.brand svg { width: 18px; height: 22px; }
+nav.top { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+nav.top a { color: var(--text-2); text-decoration: none; font-size: 13.5px; font-weight: 600; padding: 6px 10px; border-radius: 999px; }
+nav.top a[aria-current] { color: var(--text); background: var(--fill); box-shadow: inset 0 0 0 1px var(--hairline); }
+h1 { margin: 0 0 6px; font: 680 clamp(30px, 6vw, 40px)/1.08 var(--display); letter-spacing: -.035em; }
+.lead { margin: 0 0 6px; color: var(--text-2); font-size: 17px; }
+.meta { margin: 0 0 30px; color: var(--text-3); font-size: 13.5px; }
+h2 { margin: 38px 0 10px; font: 660 21px/1.25 var(--display); letter-spacing: -.02em; scroll-margin-top: 16px; }
+h3 { margin: 22px 0 6px; font: 650 16.5px/1.3 var(--display); }
+p, ul, ol { margin: 0 0 12px; }
+li { margin: 4px 0; }
+a { color: var(--text); text-decoration-color: var(--text-3); text-underline-offset: 3px; }
+a:hover { text-decoration-color: var(--accent); }
+strong { font-weight: 650; }
+.box { padding: 14px 18px; margin: 16px 0; border-radius: 18px; background: var(--fill); box-shadow: inset 0 0 0 1px var(--hairline); }
+.box p:last-child, .box ul:last-child { margin-bottom: 0; }
+.scroll { overflow-x: auto; margin: 12px 0 16px; border-radius: 16px; box-shadow: inset 0 0 0 1px var(--hairline); }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { padding: 9px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--hairline); }
+th { color: var(--text-3); font-weight: 600; font-size: 13px; }
+tr:last-child td { border-bottom: 0; }
+.toc { columns: 2 220px; padding-left: 18px; color: var(--text-2); font-size: 14.5px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 18px 0; }
+.cards a { display: block; padding: 16px 18px; border-radius: 18px; background: var(--fill); box-shadow: inset 0 0 0 1px var(--hairline); text-decoration: none; }
+.cards a strong { display: block; font: 650 16px/1.3 var(--display); }
+.cards a span { color: var(--text-2); font-size: 14px; }
+footer { margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--hairline); color: var(--text-3); font-size: 13.5px; display: flex; gap: 14px; flex-wrap: wrap; }
+footer a { color: var(--text-2); }
+@media (max-width: 640px) {
+  header { flex-direction: column; align-items: flex-start; gap: 14px; margin-bottom: 28px; }
+  nav.top { width: 100%; justify-content: flex-start; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -4px; }
+  nav.top::-webkit-scrollbar { display: none; }
+  nav.top a { white-space: nowrap; flex: none; }
+}
+code { font: 13.5px ui-monospace, "SF Mono", Consolas, monospace; background: var(--fill); padding: 1px 6px; border-radius: 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <a class="brand" href="https://inpriv.xyz/?home"><svg viewBox="0 0 18 22" aria-hidden="true"><path fill="currentColor" d="M9 0 18 9H0z"/><path fill="currentColor" d="M0 13h18L9 22z"/></svg><span>Inpriv</span></a>
+  <nav class="top" aria-label="Legal"><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/acceptable-use">Acceptable use</a><a href="/dmca" aria-current="page">Copyright</a><a href="/law-enforcement">Law enforcement</a></nav>
+</header>
+<main>
+<h1>Copyright &amp; DMCA</h1>
+<p class="lead">How to tell us about copyright infringement involving Inpriv, and how to respond if you've received a notice.</p>
+<p class="meta">Effective 17 October 2026</p>
+
+<div class="box">
+<p><strong>Before you send a notice:</strong> Inpriv is an email service, not a hosting or sharing site. Mail between Inpriv users is end-to-end encrypted, so we can't see its contents or search it. We can act on an <code>@inpriv.xyz</code> account that's used to infringe, for example to distribute copies or send infringing links, when you identify the account and give us the information below.</p>
+</div>
+
+<h2>Designated agent</h2>
+<p>Send notices to our copyright agent: <a href="mailto:dmca@inpriv.xyz">dmca@inpriv.xyz</a>, subject line "Copyright notice". Email is the fastest way. We respond to complete notices.</p>
+
+<h2>What a notice must include</h2>
+<p>Under 17 U.S.C. § 512(c)(3), a notice must include:</p>
+<ol>
+<li>your physical or electronic signature, as the copyright owner or someone authorised to act for them;</li>
+<li>a description of the copyrighted work you say is infringed;</li>
+<li>the <code>@inpriv.xyz</code> address involved, and enough detail for us to find the material or activity: dates, message headers or the links that were sent;</li>
+<li>your name, postal address, phone number and email address;</li>
+<li>a statement that you believe in good faith that the use isn't authorised by the copyright owner, its agent or the law;</li>
+<li>a statement that the information in the notice is accurate and, <em>under penalty of perjury</em>, that you're authorised to act for the copyright owner.</li>
+</ol>
+<p>We may forward a copy of your notice, including your name and contact details, to the account holder, and in some cases publish it with personal details removed. Knowingly misrepresenting that something infringes can make you liable for damages under 17 U.S.C. § 512(f).</p>
+
+<h2>What we do</h2>
+<p>When a notice is complete and the account is identified, we may:</p>
+<ul>
+<li>disable access to the material where we technically can;</li>
+<li>warn the account holder;</li>
+<li>limit or suspend the account;</li>
+<li>forward your notice to the account holder.</li>
+</ul>
+<p>We can't remove or inspect end-to-end encrypted message contents.</p>
+
+<h2>Counter-notice</h2>
+<p>If you think we acted on a notice by mistake, or the material was misidentified, you can send a counter-notice to <a href="mailto:dmca@inpriv.xyz">dmca@inpriv.xyz</a>. It must include:</p>
+<ol>
+<li>your physical or electronic signature;</li>
+<li>a description of what was removed or disabled, and where it was before;</li>
+<li>a statement, <em>under penalty of perjury</em>, that you believe in good faith it was removed or disabled by mistake or misidentification;</li>
+<li>your name, address and phone number;</li>
+<li>a statement that you consent to the jurisdiction of the federal district court for your address (or, if you're outside the United States, any judicial district where we can be found), and that you'll accept service of process from the person who sent the notice, or their agent.</li>
+</ol>
+<p>We forward valid counter-notices to the person who sent the original notice. Unless they tell us within 10 business days that they've filed a court action, we restore the material or access 10–14 business days after receiving the counter-notice, where that's technically possible.</p>
+
+<h2>Repeat infringers</h2>
+<p>We close the accounts of users who repeatedly infringe copyright, in appropriate circumstances. Generally that means three valid notices that weren't successfully countered.</p>
+
+<h2>Outside the United States</h2>
+<p>You can use the same address for notices under other laws, such as the EU Digital Services Act or national copyright laws. Include the information above, adapted to the law you rely on.</p>
+</main>
+<footer>
+  <a href="/legal">All legal pages</a>
+  <a href="https://github.com/Inpriv/inpriv">Source code</a>
+  <span>Questions: <a href="mailto:legal@inpriv.xyz">legal@inpriv.xyz</a></span>
+</footer>
+</div>
+</body>
+</html>

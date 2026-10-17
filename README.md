@@ -9,7 +9,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Website](https://img.shields.io/badge/website-inpriv.xyz-0c0c0b)](https://inpriv.xyz)
 
-[Website](https://inpriv.xyz) · [License](LICENSE) · [Security](SECURITY.md) · [Contributing](CONTRIBUTING.md)
+[Website](https://inpriv.xyz) · [Terms](https://inpriv.xyz/terms) · [Privacy](https://inpriv.xyz/privacy) · [License](LICENSE) · [Security](SECURITY.md) · [Contributing](CONTRIBUTING.md)
 
 </div>
 
@@ -25,7 +25,7 @@ Inpriv is two ways to receive email on an @inpriv.xyz address, plus the account 
 
 [inpriv.xyz](https://inpriv.xyz) lets you choose between Mail and Temp. If you're signed in with Inpriv ID it takes you straight to Mail; `inpriv.xyz/?home` always shows the choice.
 
-No ads, no analytics, no trackers.
+No ads, no analytics, no trackers. Inpriv keeps a limited access log (IP, browser, time) for 90 days to fight abuse; the [Privacy Policy](https://inpriv.xyz/privacy) lists everything that is stored.
 
 ---
 
@@ -34,15 +34,16 @@ No ads, no analytics, no trackers.
 ```
 inpriv/
 ├── index.html            landing page source (copied to worker/public/)
-├── worker/               Worker "inpriv": inpriv.xyz, sitemap, robots
+├── worker/               Worker "inpriv": inpriv.xyz, legal pages, sitemap, robots
 ├── .mail/                Inpriv Mail: page (index.html) + Worker (worker/)
 ├── .temp/                Inpriv Temp: page + Worker (D1, inbound webhook, hourly cleanup)
 ├── .id/                  Inpriv ID: Worker + page (worker/public/)
-├── .admin/               admin.inpriv.xyz: maintenance switches
+├── .admin/               admin.inpriv.xyz: kill-switches, team mailboxes, records
 └── common/
 │   ├── ui/               shared design core: inpriv-ui.css, inpriv-ui.js, sync.mjs
 │   ├── page.js           styles for Worker-rendered pages
 │   ├── errors.js         404/410/429/500 pages
+│   ├── access-log.js     90-day access log (see the Privacy Policy)
 │   └── gate.js           maintenance gate
 ```
 

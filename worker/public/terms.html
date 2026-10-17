@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="dark light">
+<title>Terms of Service — Inpriv</title>
+<meta name="description" content="The rules for using Inpriv.">
+<link rel="canonical" href="https://inpriv.xyz/terms">
+<link rel="icon" href="/icon.png">
+<style>
+:root { color-scheme: dark; --bg:#0c0c0b; --text:#f2f1ed; --text-2:rgb(242 241 237/.68); --text-3:rgb(242 241 237/.42);
+  --fill:rgb(255 255 255/.045); --hairline:rgb(255 255 255/.09); --accent:#ff6a2b;
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI Variable Text","Segoe UI",Roboto,sans-serif;
+  --display:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI Variable Display","Segoe UI",Roboto,sans-serif; }
+@media (prefers-color-scheme: light) { :root { color-scheme: light; --bg:#ebe9e4; --text:#141412; --text-2:rgb(20 20 18/.7);
+  --text-3:rgb(20 20 18/.46); --fill:rgb(0 0 0/.035); --hairline:rgb(0 0 0/.09); --accent:#e4511b; } }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 400 16px/1.65 var(--font); }
+.wrap { width: min(100% - 32px, 760px); margin: 0 auto; padding: max(20px, env(safe-area-inset-top)) 0 64px; }
+header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 36px; }
+.brand { display: inline-flex; align-items: center; gap: 9px; color: var(--text); text-decoration: none; font: 680 19px/1 var(--display); letter-spacing: -.03em; }
+.brand svg { width: 18px; height: 22px; }
+nav.top { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+nav.top a { color: var(--text-2); text-decoration: none; font-size: 13.5px; font-weight: 600; padding: 6px 10px; border-radius: 999px; }
+nav.top a[aria-current] { color: var(--text); background: var(--fill); box-shadow: inset 0 0 0 1px var(--hairline); }
+h1 { margin: 0 0 6px; font: 680 clamp(30px, 6vw, 40px)/1.08 var(--display); letter-spacing: -.035em; }
+.lead { margin: 0 0 6px; color: var(--text-2); font-size: 17px; }
+.meta { margin: 0 0 30px; color: var(--text-3); font-size: 13.5px; }
+h2 { margin: 38px 0 10px; font: 660 21px/1.25 var(--display); letter-spacing: -.02em; scroll-margin-top: 16px; }
+h3 { margin: 22px 0 6px; font: 650 16.5px/1.3 var(--display); }
+p, ul, ol { margin: 0 0 12px; }
+li { margin: 4px 0; }
+a { color: var(--text); text-decoration-color: var(--text-3); text-underline-offset: 3px; }
+a:hover { text-decoration-color: var(--accent); }
+strong { font-weight: 650; }
+.box { padding: 14px 18px; margin: 16px 0; border-radius: 18px; background: var(--fill); box-shadow: inset 0 0 0 1px var(--hairline); }
+.box p:last-child, .box ul:last-child { margin-bottom: 0; }
+.scroll { overflow-x: auto; margin: 12px 0 16px; border-radius: 16px; box-shadow: inset 0 0 0 1px var(--hairline); }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { padding: 9px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--hairline); }
+th { color: var(--text-3); font-weight: 600; font-size: 13px; }
+tr:last-child td { border-bottom: 0; }
+.toc { columns: 2 220px; padding-left: 18px; color: var(--text-2); font-size: 14.5px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 18px 0; }
+.cards a { display: block; padding: 16px 18px; border-radius: 18px; background: var(--fill); box-shadow: inset 0 0 0 1px var(--hairline); text-decoration: none; }
+.cards a strong { display: block; font: 650 16px/1.3 var(--display); }
+.cards a span { color: var(--text-2); font-size: 14px; }
+footer { margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--hairline); color: var(--text-3); font-size: 13.5px; display: flex; gap: 14px; flex-wrap: wrap; }
+footer a { color: var(--text-2); }
+@media (max-width: 640px) {
+  header { flex-direction: column; align-items: flex-start; gap: 14px; margin-bottom: 28px; }
+  nav.top { width: 100%; justify-content: flex-start; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -4px; }
+  nav.top::-webkit-scrollbar { display: none; }
+  nav.top a { white-space: nowrap; flex: none; }
+}
+code { font: 13.5px ui-monospace, "SF Mono", Consolas, monospace; background: var(--fill); padding: 1px 6px; border-radius: 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <a class="brand" href="https://inpriv.xyz/?home"><svg viewBox="0 0 18 22" aria-hidden="true"><path fill="currentColor" d="M9 0 18 9H0z"/><path fill="currentColor" d="M0 13h18L9 22z"/></svg><span>Inpriv</span></a>
+  <nav class="top" aria-label="Legal"><a href="/terms" aria-current="page">Terms</a><a href="/privacy">Privacy</a><a href="/acceptable-use">Acceptable use</a><a href="/dmca">Copyright</a><a href="/law-enforcement">Law enforcement</a></nav>
+</header>
+<main>
+<h1>Terms of Service</h1>
+<p class="lead">The agreement between you and Inpriv when you use Inpriv Mail, Inpriv Temp or Inpriv ID.</p>
+<p class="meta">Effective 17 October 2026</p>
+
+<div class="box">
+<p><strong>The parts people most need to know</strong></p>
+<ul>
+<li><strong>Your password can't be recovered by us.</strong> If you lose it, mail encrypted to your old key is gone for good.</li>
+<li>Follow the <a href="/acceptable-use">Acceptable Use Policy</a>: no spam, phishing, malware or illegal content. Breaking it can close your account without warning.</li>
+<li>Inpriv is provided "as is", without guarantees of availability, and our liability is limited (sections 11–12).</li>
+</ul>
+</div>
+
+<ol class="toc">
+<li><a href="#agreement">The agreement</a></li>
+<li><a href="#services">The services</a></li>
+<li><a href="#eligibility">Who can use Inpriv</a></li>
+<li><a href="#account">Your account</a></li>
+<li><a href="#encryption">Encryption and lost passwords</a></li>
+<li><a href="#rules">Rules</a></li>
+<li><a href="#content">Your content</a></li>
+<li><a href="#limits">Limits and changes</a></li>
+<li><a href="#ending">Ending your use</a></li>
+<li><a href="#opensource">Open source</a></li>
+<li><a href="#warranty">No warranty</a></li>
+<li><a href="#liability">Limitation of liability</a></li>
+<li><a href="#indemnity">Indemnity</a></li>
+<li><a href="#law">Law and disputes</a></li>
+<li><a href="#changes">Changes to these terms</a></li>
+<li><a href="#contact">Contact</a></li>
+</ol>
+
+<h2 id="agreement">1. The agreement</h2>
+<p>These terms, together with the <a href="/privacy">Privacy Policy</a>, the <a href="/acceptable-use">Acceptable Use Policy</a> and the <a href="/dmca">Copyright policy</a>, form the agreement between you and the operator of Inpriv ("Inpriv", "we", "us"). By creating an account or using any Inpriv service, you accept them. If you don't agree, don't use Inpriv.</p>
+
+<h2 id="services">2. The services</h2>
+<ul>
+<li><strong>Inpriv ID</strong> (<code>id.inpriv.xyz</code>): your account and your <code>@inpriv.xyz</code> address, with optional two-factor authentication.</li>
+<li><strong>Inpriv Mail</strong> (<code>mail.inpriv.xyz</code>): a mailbox. Mail between Inpriv users is end-to-end encrypted in your browser. Mail to and from other providers travels as normal email and is described in the <a href="/privacy#mail">Privacy Policy</a>.</li>
+<li><strong>Inpriv Temp</strong> (<code>temp.inpriv.xyz</code>): a disposable inbox that only receives mail, isn't encrypted, and is deleted after 24 hours.</li>
+</ul>
+<p>The services are currently free. If we ever introduce paid features, they'll come with separate terms that you'd have to accept first.</p>
+
+<h2 id="eligibility">3. Who can use Inpriv</h2>
+<p>You must be at least 16, and old enough to agree to these terms where you live. You can't use Inpriv if the law forbids you from doing so, or if we've closed an account of yours for breaking these terms.</p>
+
+<h2 id="account">4. Your account</h2>
+<ul>
+<li>Choose a username that doesn't impersonate anyone or mislead people (for example, by pretending to be Inpriv staff or another organisation). We may reclaim or refuse usernames that do.</li>
+<li>Keep your password, two-factor codes and recovery codes safe. You're responsible for what happens under your account. If you think someone else has access, change your password and write to <a href="mailto:support@inpriv.xyz">support@inpriv.xyz</a>.</li>
+<li>Don't sell, rent or transfer your account or address.</li>
+<li>Usernames and addresses are permanent. A deleted address isn't reassigned, so nobody can receive mail meant for you.</li>
+</ul>
+
+<h2 id="encryption">5. Encryption and lost passwords</h2>
+<p>Your mailbox private key is protected by your password, in your browser. We never have your password or your private key. That means:</p>
+<ul>
+<li><strong>we can't reset your password in a way that restores your mail.</strong> If you lose your password, encrypted mail can't be decrypted again, by you or by us.</li>
+<li>When you change your password on Inpriv ID, Mail asks for your previous password once (or uses this device's "Skip master password" key) to re-lock your key. Without either, existing encrypted mail stays locked.</li>
+<li>Encryption protects message bodies. It doesn't hide who you write to, subject lines or times; the <a href="/privacy">Privacy Policy</a> says exactly what's visible.</li>
+</ul>
+
+<h2 id="rules">6. Rules</h2>
+<p>Use Inpriv lawfully and in line with the <a href="/acceptable-use">Acceptable Use Policy</a>. In short: no spam, phishing, malware, fraud, harassment, child sexual abuse material, infringement or attacks on the service.</p>
+<p>We may investigate suspected breaches using the data described in the Privacy Policy. Message bodies we can't read stay unreadable to us.</p>
+
+<h2 id="content">7. Your content</h2>
+<p>You keep all rights in what you send and store. You give us only the permission we technically need to store, transmit and display it to you and your recipients, to run the service. You're responsible for your content, and for having the right to send it.</p>
+
+<h2 id="limits">8. Limits and changes to the services</h2>
+<p>We set limits to protect the service: sign-in and sign-up rate limits, message sizes, sending limits, and how long Temp inboxes last. They may change. We may change, suspend or retire features or whole services. When we retire something that holds your data, we'll give reasonable notice, so you can save what you need, unless that's impossible (for example, for legal or security reasons).</p>
+
+<h2 id="ending">9. Ending your use</h2>
+<ul>
+<li><strong>You</strong> can stop at any time and delete your account in your account settings on <code>id.inpriv.xyz</code>. That deletes your Inpriv ID, your mailbox and its mail. Access-log entries are kept for up to 90 days, as described in the Privacy Policy.</li>
+<li><strong>We</strong> may suspend or close an account, or block an address, that breaks these terms or the Acceptable Use Policy, puts the service or others at risk, or where the law requires it. Where it's appropriate and safe, we'll tell you why. Serious abuse, such as phishing, spam or illegal content, may be closed without notice.</li>
+</ul>
+<p>Sections 7 and 10–16 continue to apply after your use ends.</p>
+
+<h2 id="opensource">10. Open source</h2>
+<p>Inpriv's code is published under the MIT License at <a href="https://github.com/Inpriv/inpriv">github.com/Inpriv/inpriv</a>. That license covers the code. These terms cover your use of the services we run. The Inpriv name and logo identify our services; don't use them in a way that suggests a fork or another service is ours.</p>
+
+<h2 id="warranty">11. No warranty</h2>
+<p>Inpriv is a small service provided <strong>"as is" and "as available"</strong>. To the extent the law allows, we make no promises, express or implied, about availability, fitness for a particular purpose, or that the service will be error-free, uninterrupted or secure against every attack. Mail can be delayed, rejected by other providers, or lost. Keep your own copies of anything important.</p>
+
+<h2 id="liability">12. Limitation of liability</h2>
+<p>To the extent the law allows, we aren't liable for any indirect, incidental, special or consequential damages, for lost profits or data, or for damages caused by things outside our reasonable control (including failures of Cloudflare, Resend or other networks). Our total liability for all claims about the services is limited to the greater of what you paid us in the 12 months before the claim (currently nothing) or EUR 50.</p>
+<p>Nothing in these terms limits liability that can't be limited by law, such as for intent, gross negligence, or death or personal injury caused by negligence, or your mandatory rights as a consumer.</p>
+
+<h2 id="indemnity">13. Indemnity</h2>
+<p>If you break these terms or the law while using Inpriv, and that causes a claim against us by someone else, you'll cover our reasonable costs of that claim, to the extent the law allows. This doesn't apply where we caused the problem.</p>
+
+<h2 id="law">14. Law and disputes</h2>
+<p>These terms are governed by the laws of the country where the operator of Inpriv is established, without regard to conflict-of-law rules. If you're a consumer, you also keep the protection of the mandatory laws of the country where you live, and you can bring a claim there. Before going to court, please write to <a href="mailto:legal@inpriv.xyz">legal@inpriv.xyz</a>; most problems can be solved by email.</p>
+<p>If any part of these terms can't be enforced, the rest still applies. If we don't enforce a term right away, we haven't given it up.</p>
+
+<h2 id="changes">15. Changes to these terms</h2>
+<p>We may update these terms. For significant changes, we'll give notice on the site at least 14 days before they take effect, unless a change is needed sooner for legal or security reasons. If you keep using Inpriv after a change takes effect, you accept it. If you don't, delete your account. Every version is public in the <a href="https://github.com/Inpriv/inpriv/commits/main/worker/public/terms.html">source repository</a>.</p>
+
+<h2 id="contact">16. Contact</h2>
+<p>Account help: <a href="mailto:support@inpriv.xyz">support@inpriv.xyz</a>. Legal questions: <a href="mailto:legal@inpriv.xyz">legal@inpriv.xyz</a>. All contacts are on the <a href="/legal">Legal</a> page.</p>
+</main>
+<footer>
+  <a href="/legal">All legal pages</a>
+  <a href="https://github.com/Inpriv/inpriv">Source code</a>
+  <span>Questions: <a href="mailto:legal@inpriv.xyz">legal@inpriv.xyz</a></span>
+</footer>
+</div>
+</body>
+</html>
