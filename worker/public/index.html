@@ -499,6 +499,7 @@ html.theme-fade, html.theme-fade *, html.theme-fade *::before, html.theme-fade *
   }
   .pill .i { width: 15px; height: 15px; }
   .pill.hot { color: var(--accent); }
+  .pill .short, .pill .short-xs { display: none; }
 
   .btn {
     position: relative; isolation: isolate;
@@ -570,6 +571,13 @@ html.theme-fade, html.theme-fade *, html.theme-fade *::before, html.theme-fade *
   @media (max-width: 440px) {
     .badge span { display: none; }
     .badge { width: 40px; height: 40px; padding: 0; justify-content: center; }
+    /* shorter Mail pills so they sit side by side like Temp's */
+    .pill .long { display: none; }
+    .pill .short { display: inline; }
+  }
+  @media (max-width: 339px) {
+    .pill .long-xs { display: none; }
+    .pill .short-xs { display: inline; }
   }
 </style>
 </head>
@@ -1164,8 +1172,8 @@ html.theme-fade, html.theme-fade *, html.theme-fade *::before, html.theme-fade *
       </div>
       <p>Your own permanent @inpriv.xyz address. Messages between Inpriv users are encrypted in your browser before they leave it.</p>
       <div class="pills">
-        <span class="pill"><i data-icon="lock"></i>End-to-end encrypted</span>
-        <span class="pill"><i data-icon="id"></i>Uses Inpriv ID</span>
+        <span class="pill"><i data-icon="lock"></i><span class="long">End-to-end encrypted</span><span class="short">E2E encrypted</span></span>
+        <span class="pill"><i data-icon="id"></i><span class="long">Uses Inpriv ID</span><span class="short">Inpriv ID</span></span>
       </div>
       <span class="btn btn-primary">Open Mail <i data-icon="arrow-right"></i></span>
     </a>
@@ -1178,7 +1186,7 @@ html.theme-fade, html.theme-fade *, html.theme-fade *::before, html.theme-fade *
       </div>
       <p>A random address that works straight away. No sign-up. Use it for codes and sign-ups you don't want tied to you.</p>
       <div class="pills">
-        <span class="pill hot"><i data-icon="clock"></i>Gone after 24 hours</span>
+        <span class="pill hot"><i data-icon="clock"></i><span class="long-xs">Gone after 24 hours</span><span class="short-xs">Gone in 24 h</span></span>
         <span class="pill"><i data-icon="user"></i>No account</span>
       </div>
       <span class="btn btn-glass">Get a temp address <i data-icon="arrow-right"></i></span>
