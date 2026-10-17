@@ -592,6 +592,8 @@ input:focus, textarea:focus { box-shadow: inset 0 0 0 1.5px var(--focus), 0 0 0 
 .rec-table td.wrap { white-space: normal; overflow-wrap: anywhere; min-width: 180px; }
 .rec-table th { color: var(--text-3); font-weight: 600; position: sticky; top: 0; z-index: 1; background: var(--bg); }
 .rec-empty { color: var(--text-3); font-size: 13.5px; }
+.rec-link { color: var(--text); font-weight: 600; text-decoration: none; border-bottom: 1px dashed var(--text-3); }
+.rec-link:hover { border-bottom-color: var(--text); }
 .rec-note { color: var(--text-2); font-size: 13px; margin: 6px 0 0; }
 .rec-note li { margin: 2px 0; }
 /* team mailboxes */
@@ -1584,6 +1586,27 @@ function table(rows, cols) {
   }).join("")}</tr>`).join("");
   return `<div class="rec-scroll"><table class="rec-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
 }
+// accounts an IP was used by, built from its access-log rows: what kind of
+// account, which events, how often, first and last time. Most recent first;
+// clicking an account looks it up.
+function seenTable(d) {
+  if (!d.accounts_seen.length) return `<p class="rec-empty">None.</p>`;
+  const by = new Map();
+  for (const r of d.access_log || []) {
+    if (!r.account) continue;
+    const a = by.get(r.account) || { account: r.account, n: 0, first: r.at, last: r.at, services: new Set(), events: new Set() };
+    a.n++; a.first = Math.min(a.first, r.at); a.last = Math.max(a.last, r.at);
+    a.services.add(r.service); a.events.add(r.event);
+    by.set(r.account, a);
+  }
+  const rows = [...by.values()].sort((x, y) => y.last - x.last);
+  const kind = (a) => a.services.has("temp") && a.services.size === 1 ? "Temp inbox" : "Inpriv account";
+  return `<div class="rec-scroll"><table class="rec-table"><thead><tr><th>Account</th><th>Type</th><th>Events</th><th>Seen</th><th>First</th><th>Last</th></tr></thead><tbody>` +
+    rows.map((a) => `<tr><td><a href="#" class="rec-link" data-q="${escapeHtml(a.account)}">${escapeHtml(a.account)}</a></td>` +
+      `<td>${kind(a)}</td><td class="wrap">${escapeHtml([...a.events].map((e) => e.replace(/_/g, " ")).join(", "))}</td><td>${a.n}×</td>` +
+      `<td>${escapeHtml(fmtTime(a.first))}</td><td>${escapeHtml(fmtTime(a.last))}</td></tr>`).join("") +
+    `</tbody></table></div>`;
+}
 function block(title, html) { return `<div class="rec-block"><h3>${escapeHtml(title)}</h3>${html}</div>`; }
 const LOG_COLS = [
   { key: "at", label: "Time", fmt: fmtTime },
@@ -1636,7 +1659,7 @@ function recordParts(d) {
       { key: "to_addr", label: "To" }, { key: "subject", label: "Subject", wrap: true }, { key: "size", label: "Size (bytes)" },
     ])));
   }
-  if (d.accounts_seen) parts.push(block("Accounts seen from this IP", d.accounts_seen.length ? kv(d.accounts_seen.map((a) => ["Account", a])) : `<p class="rec-empty">None.</p>`));
+  if (d.accounts_seen) parts.push(block(`Accounts seen from this IP (${d.accounts_seen.length})`, seenTable(d)));
   parts.push(block("Access log (last 90 days)", table(d.access_log, LOG_COLS)));
   if (!d.account && !d.mailbox && !(d.temp_inboxes || []).length && !(d.access_log || []).length) {
     parts.unshift(`<p class="rec-note">Nothing is stored for <strong>${escapeHtml(d.query)}</strong>.</p>`);
@@ -1660,6 +1683,12 @@ function renderRecord(d) {
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   };
   $("rec-print").onclick = () => printRecord(d);
+  $("rec-out").querySelectorAll(".rec-link").forEach((el) => el.addEventListener("click", (e) => {
+    e.preventDefault();
+    $("rec-q").value = el.dataset.q;
+    $("rec-form").requestSubmit();
+    $("card-records").scrollIntoView({ behavior: "smooth", block: "start" });
+  }));
 }
 
 // Print sheet: its own plain page in a hidden frame, so the result is the same
@@ -1686,6 +1715,7 @@ header .meta { color: #444; font-size: 8.5pt; }
 .rec-table td.wrap { white-space: normal; overflow-wrap: anywhere; min-width: 30mm; }
 .rec-table tr { break-inside: avoid; }
 .rec-empty, .rec-note { color: #444; margin: 0; }
+.rec-link { color: inherit; text-decoration: none; }
 .rec-note { padding-left: 14pt; }
 footer { margin-top: 18pt; padding-top: 6pt; border-top: .5pt solid #bbb; color: #555; font-size: 8pt; }
 `;
