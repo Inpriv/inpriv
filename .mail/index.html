@@ -416,7 +416,11 @@ html.theme-fade, html.theme-fade *, html.theme-fade *::before, html.theme-fade *
 html, body { overscroll-behavior-y: contain; }
 
 #app { min-height: 100vh; min-height: 100dvh; }
-.shell.wide { padding-bottom: calc(110px + var(--safe-bottom)); }
+/* room for the fixed bottom bar (~66px + its 12px offset) plus a small gap */
+.shell.wide { padding-bottom: calc(96px + var(--safe-bottom)); }
+/* holders for fixed elements: not flex items, so they add no gap to the
+   bottom of the page */
+#bottomNavContainer, #fabContainer, #modalContainer { display: contents; }
 @media (min-width: 768px) { .shell.wide { padding-bottom: 120px; } }
 .main-content { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 
