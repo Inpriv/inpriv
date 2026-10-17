@@ -454,10 +454,48 @@
     el.appendChild(text);
     while (host.children.length > 2) host.removeChild(host.firstChild);
     host.appendChild(el);
-    setTimeout(function () {
+    var gone = false, timer = 0, sw = null;
+    function dismiss() {
+      if (gone) return;
+      gone = true;
       el.classList.add('out');
       setTimeout(function () { el.remove(); }, 280);
-    }, opts.error ? 4500 : 2200 + (opts.desc ? 1200 : 0));
+    }
+    timer = setTimeout(dismiss, opts.error ? 4500 : 2200 + (opts.desc ? 1200 : 0));
+    // swipe down or sideways to dismiss; held toasts don't time out
+    el.addEventListener('pointerdown', function (e) {
+      if (gone) return;
+      sw = { id: e.pointerId, x: e.clientX, y: e.clientY, dx: 0, dy: 0 };
+      try { el.setPointerCapture(e.pointerId); } catch (err) {}
+      clearTimeout(timer);
+      el.style.transition = 'none';
+    });
+    el.addEventListener('pointermove', function (e) {
+      if (!sw || e.pointerId !== sw.id) return;
+      sw.dx = e.clientX - sw.x;
+      sw.dy = Math.max(0, e.clientY - sw.y);
+      var side = Math.abs(sw.dx) > sw.dy;
+      el.style.transform = side ? 'translateX(' + sw.dx + 'px)' : 'translateY(' + sw.dy + 'px)';
+      el.style.opacity = String(Math.max(0.2, 1 - (side ? Math.abs(sw.dx) / 220 : sw.dy / 120)));
+    });
+    function swipeEnd(e) {
+      if (!sw || (e && e.pointerId !== sw.id)) return;
+      var s = sw;
+      sw = null;
+      el.style.transition = 'transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.28s ease';
+      if (Math.abs(s.dx) > 70 || s.dy > 36) {
+        gone = true;
+        el.style.transform = Math.abs(s.dx) > s.dy ? 'translateX(' + (s.dx > 0 ? 130 : -130) + '%)' : 'translateY(160%)';
+        el.style.opacity = '0';
+        setTimeout(function () { el.remove(); }, 280);
+      } else {
+        el.style.transform = '';
+        el.style.opacity = '';
+        timer = setTimeout(dismiss, 1800);
+      }
+    }
+    el.addEventListener('pointerup', swipeEnd);
+    el.addEventListener('pointercancel', swipeEnd);
     return el;
   }
 
