@@ -667,10 +667,10 @@ html, body { overscroll-behavior-y: contain; }
   transition: background 0.2s, transform 0.3s var(--spring);
 }
 @media (hover: hover) { .msg-card:hover { background: var(--fill-2); } }
-/* long inboxes: only the first cards animate in (the rest appear at once
-   instead of waiting their stagger delay), and cards off screen aren't
-   rendered until they scroll into view */
-.msg-card:nth-child(n+13) { animation: none; }
+/* long inboxes: only the cards that fit on screen animate in, top to
+   bottom; the ones below appear at once (renderList sets .still), and cards
+   off screen aren't rendered until they scroll into view */
+.msg-card.still { animation: none; }
 .msg-card { content-visibility: auto; contain-intrinsic-size: auto 66px; }
 .msg-card:active { transform: scale(0.985); }
 .msg-card.unread { background: var(--fill-2); box-shadow: inset 0 1px 0.5px var(--spec), inset 0 0 0 1px var(--hairline); }
@@ -3079,8 +3079,13 @@ function renderMessageCards() {
     return;
   }
 
+  // stagger only the cards that fit on this screen, in at most ~0.35 s, so a
+  // tall window never shows later cards before the ones above them
+  const top = Math.max(0, listArea.getBoundingClientRect().top);
+  const onScreen = Math.max(6, Math.ceil((window.innerHeight - top) / 68) + 1);
+  const step = Math.min(30, 350 / onScreen);
   listArea.innerHTML = filtered.map((m, i) => `
-    <div class="msg-card ${m.is_read ? '' : 'unread'}" data-id="${m.id}" style="animation-delay:${i * 30}ms">
+    <div class="msg-card ${m.is_read ? '' : 'unread'}${i < onScreen ? '' : ' still'}" data-id="${m.id}"${i < onScreen ? ` style="animation-delay:${Math.round(i * step)}ms"` : ''}>
       <div class="msg-avatar" style="background:${avatarBg(m.peer_label || m.peer_address)}">${initials(m.peer_label || m.peer_address)}</div>
       <div class="msg-body-meta">
         <div class="msg-top-line">

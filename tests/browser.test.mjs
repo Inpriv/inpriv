@@ -141,6 +141,34 @@ describe("Mail in the browser", () => {
     assert.deepEqual(await leaks(s.log, PP), []);
   });
 
+  test("a long inbox on a tall screen fades in top to bottom, with no gaps", async () => {
+    for (let i = 0; i < 30; i++) await seedMail(u, { text: "Filler " + i, subject: "Filler " + i });
+    await s.page.setViewport({ width: 905, height: 1315 });
+    try { await tallInbox(); } finally { await s.page.setViewport({ width: 390, height: 844 }); }
+  });
+  async function tallInbox() {
+    await keepBodies(s.log);
+    await s.page.reload({ waitUntil: "load" });
+    await s.page.waitForSelector(".msg-card", { timeout: 30000 });
+    // opacity of every card that starts inside the window, sampled while
+    // the cards animate in: a card may never be ahead of the one above it
+    const sample = () => s.page.$$eval(".msg-card", (cs) => cs
+      .filter((c) => c.getBoundingClientRect().top < innerHeight)
+      .map((c) => +getComputedStyle(c).opacity));
+    const seen = [];
+    for (let t = 0; t < 8; t++) { seen.push(await sample()); await L.sleep(60); }
+    await L.sleep(800);
+    const done = await sample();
+    for (const ops of seen) {
+      for (let i = 1; i < ops.length; i++) assert.ok(ops[i] <= ops[i - 1] + 0.05, `card ${i + 1} ahead of card ${i}: ${ops.map((o) => o.toFixed(2)).join(" ")}`);
+    }
+    assert.ok(done.length > 12, `a tall window shows more than 12 cards (${done.length})`);
+    assert.ok(done.every((o) => o === 1), "all on-screen cards end fully shown");
+    // cards below the window don't animate at all
+    const firstStill = await s.page.$eval(".msg-card.still", (c) => c.getBoundingClientRect().top);
+    assert.ok(firstStill >= 1315, `first unanimated card at ${firstStill}px`);
+  }
+
   test("opening a newsletter contacts nobody; Load images is a deliberate step", async () => {
     await seedMail(u, { text: "Big sale (text part)", html: TRACKER_HTML, subject: "Big sale" });
     await keepBodies(s.log);
