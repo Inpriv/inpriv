@@ -9,7 +9,7 @@ still reads `admin.inpriv.xyz/public/state`, read-only, and the Mail page loads
 tests/local.sh up                      # start landing, temp, admin, id, mail (+ HTML test Worker)
 node --test tests/api.test.mjs         # 55 API checks
 (cd tests && npm install)              # puppeteer-core, once
-node --test --test-concurrency=1 tests/browser.test.mjs   # 10 checks in headless Firefox
+node --test --test-concurrency=1 tests/browser.test.mjs   # 11 checks in headless Firefox
 node tests/probe.mjs                   # before/after probes (run on main too)
 node tests/check-inline.mjs            # inlined renderer + served page copies match
 tests/local.sh down                    # stop, delete local state and .dev.vars

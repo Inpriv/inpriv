@@ -330,3 +330,33 @@ describe("Temp in the browser", () => {
     await o.ctx.close();
   });
 });
+
+describe("look and feel in Firefox", () => {
+  test("the theme change spreads as a growing circle; the backdrop holds still", async () => {
+    const o = await openPage(URLS.landing.replace("127.0.0.1", "localhost") + "/");
+    await o.page.setViewport({ width: 1280, height: 860 });
+    await L.sleep(800);
+    // Firefox redraws every backdrop blur when the codes behind it move
+    assert.equal(await o.page.$eval("html", (h) => h.classList.contains("calm")), true);
+    assert.equal(await o.page.$eval(".track", (t) => getComputedStyle(t).animationName), "none");
+    // sample the circle's progress on every frame of the transition: it must
+    // pass through values in between, not jump from start to end
+    await o.page.evaluate(() => {
+      window.__p = [];
+      const t0 = performance.now();
+      requestAnimationFrame(function f() {
+        const v = getComputedStyle(document.documentElement, "::view-transition-new(root)").getPropertyValue("--vt-p");
+        if (v !== "") window.__p.push(+v);
+        if (performance.now() - t0 < 1600) requestAnimationFrame(f);
+      });
+    });
+    const before = await o.page.evaluate(() => window.InprivUI.theme());
+    await o.page.click("[data-theme-toggle]");
+    await L.sleep(1900);
+    const p = await o.page.evaluate(() => window.__p);
+    assert.ok(p.some((v) => v > 0.05 && v < 0.95), "in-between values: " + p.join(" "));
+    assert.notEqual(await o.page.evaluate(() => window.InprivUI.theme()), before);
+    assert.deepEqual(o.log.errors.filter((e) => !/id\.inpriv\.xyz/.test(e)), []);
+    await o.ctx.close();
+  });
+});
