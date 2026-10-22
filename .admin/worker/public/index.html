@@ -1614,7 +1614,7 @@ const LOG_COLS = [
   { key: "event", label: "Event" },
   { key: "account", label: "Account" },
   { key: "detail", label: "Detail", wrap: true },
-  { key: "ip", label: "IP" },
+  { key: "ip", label: "Network" },
   { key: "country", label: "Country" },
   { key: "asn", label: "ASN" },
   { key: "ua", label: "Browser", wrap: true },
@@ -1641,9 +1641,11 @@ function recordParts(d) {
     const m = d.mailbox;
     parts.push(block("Mailbox", kv([
       ["Address", m.address], ["Created", fmtTime(m.created_at)], ["Last sign-in", fmtTime(m.last_login)],
-      ["Devices that skip the master password", m.quick_unlock_devices],
+      ["Mailbox key", m.key_format === 2 ? "mailbox passphrase" : "old format (sign-in password), not upgraded yet"],
+      ["Key ring changed", fmtTime(m.keys_updated_at)],
+      ["Devices that skip the mailbox passphrase", m.quick_unlock_devices],
     ])));
-    parts.push(block("Mail messages — metadata only (bodies are end-to-end encrypted)", table(d.mail_messages, [
+    parts.push(block("Mail messages — metadata only (bodies are stored encrypted to the user's key)", table(d.mail_messages, [
       { key: "created_at", label: "Time", fmt: fmtTime }, { key: "direction", label: "Direction" },
       { key: "peer_address", label: "Other party" }, { key: "subject", label: "Subject", wrap: true },
       { key: "encrypted_size", label: "Encrypted size (chars)" },
@@ -1659,8 +1661,16 @@ function recordParts(d) {
       { key: "to_addr", label: "To" }, { key: "subject", label: "Subject", wrap: true }, { key: "size", label: "Size (bytes)" },
     ])));
   }
-  if (d.accounts_seen) parts.push(block(`Accounts seen from this IP (${d.accounts_seen.length})`, seenTable(d)));
-  parts.push(block("Access log (last 90 days)", table(d.access_log, LOG_COLS)));
+  if (d.address_claim) {
+    const c = d.address_claim;
+    parts.push(block("Address claim", kv([
+      ["Address", `${c.local}@inpriv.xyz`],
+      ["Held by", { id: "Inpriv ID / Mail", temp: "Temp (never reissued)", team: "Team mailbox" }[c.owner] || c.owner],
+      ["Since", c.claimed_on],
+    ])));
+  }
+  if (d.accounts_seen) parts.push(block(`Accounts seen from ${d.network || "this network"} (${d.accounts_seen.length})`, seenTable(d)));
+  parts.push(block("Access log (30 days; rows from before October 2026: 90 days)", table(d.access_log, LOG_COLS)));
   if (!d.account && !d.mailbox && !(d.temp_inboxes || []).length && !(d.access_log || []).length) {
     parts.unshift(`<p class="rec-note">Nothing is stored for <strong>${escapeHtml(d.query)}</strong>.</p>`);
   }
@@ -1724,7 +1734,7 @@ function printRecord(d) {
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Inpriv records - ${escapeHtml(d.query)}</title><style>${PRINT_CSS}</style></head><body>
 <header><div class="brand">Inpriv &middot; Records</div><h1>${escapeHtml(d.query)}</h1><div class="meta">Generated ${escapeHtml(when)} &middot; Confidential: for abuse reports and valid legal requests only</div></header>
 ${recordParts(d).join("")}
-<footer>Times are UTC. Message bodies in Inpriv Mail are end-to-end encrypted and are not available to Inpriv.</footer>
+<footer>Times are UTC. Stored Inpriv Mail message bodies are encrypted to the user's key and are not available to Inpriv. Networks are shortened (IPv4 /24, IPv6 /48).</footer>
 </body></html>`;
   const old = document.getElementById("rec-print-frame");
   if (old) old.remove();
@@ -1883,10 +1893,8 @@ async function openTemp(address) {
     const d = await teamApi(`/api/temp/inbox?address=${encodeURIComponent(address)}`);
     tempOpen = address;
     $("temp-list").querySelectorAll(".team-item").forEach((el) => el.classList.toggle("on", el.dataset.addr === address));
-    const c = d.created_from;
     $("temp-pane").innerHTML = `<button type="button" class="temp-head" id="temp-head" title="Close" aria-label="Close ${escapeHtml(d.inbox.address)}"><span>${escapeHtml(d.inbox.address)}</span>${icon("close")}</button>` + kv([
       ["Created", fmtTime(d.inbox.created_at)], ["Expires", `${fmtTime(d.inbox.expires_at)} (${fmtLeft(d.inbox.expires_at)})`],
-      ["Created from", c ? [c.ip, c.country, c.asn].filter(Boolean).join(" · ") : null], ["Browser", c && c.ua],
     ]) + block(`Messages (${d.messages.length})`, table(d.messages, [
       { key: "received_at", label: "Time", fmt: fmtTime },
       { key: "from_addr", label: "From", fmt: (v, r) => r.from_name ? `${r.from_name} <${v}>` : v, wrap: true },

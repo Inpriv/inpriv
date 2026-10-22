@@ -7,12 +7,18 @@
 //           Received emails API when a read-capable key is configured.
 // Outbound: Resend send API (restricted send key is enough).
 // Mailboxes are created on demand, live for 24 h, swept by hourly cron.
+// An address is claimed for good when it's created (common/addresses.js):
+// once the inbox expires its messages are deleted, but the address is never
+// handed to anyone else.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { notFound } from "../../../common/errors.js";
 import { canonicalRedirect } from "../../../common/canonical.js";
-import { logAccess, purgeAccessLog } from "../../../common/access-log.js";
+import { purgeAccessLog } from "../../../common/access-log.js";
 import { maintenancePage as sharedMaintenancePage } from "../../../common/gate.js";
+import { clientKey, originAllowed, isUnsafeMethod, pageResponse, apiHeaders, withHeaders } from "../../../common/security.js";
+import { isReservedLocal, tempLocal, tryClaim, claimMany, ensureClaims, backfillIdClaims } from "../../../common/addresses.js";
+import { sanitizeEmailHtml } from "../../../common/email-html.js";
 
 const MAILBOX_TTL_MS = 24 * 60 * 60 * 1000; // 24 h, then cron sweeps it away
 const MAX_TEXT_CHARS = 100_000;
@@ -23,62 +29,9 @@ const SEND_HOURLY_LIMIT = 10;
 const MESSAGE_RETENTION_MS = 7 * 24 * 60 * 60 * 1000; // hard cap for stored messages
 const SVIX_TOLERANCE_S = 5 * 60;            // reject webhook timestamps older/newer than 5 min
 
-// Local parts that must never become disposable mailboxes.
-const RESERVED = new Set([
-  "abuse", "admin", "administrator", "hostmaster", "mail", "mailer-daemon",
-  "no-reply", "noreply", "postmaster", "root", "security", "support", "webmaster",
-]);
-
-// Prefixes that must never introduce an @inpriv.xyz mailbox — blocks
-// "admin123", "hello-world" etc., not just exact matches. Long prefixes
-// (≥4 chars) block ANY continuation; short ones (hi, mx, pop, www, ftp,
-// vpn, dev, mod, me) only block separator/digit continuations.
-const RESERVED_PREFIXES = [
-  "abuse", "account", "admin", "administrator", "alert", "api",
-  "auth", "backup", "billing", "bot", "burn", "cert", "cluster", "contact",
-  "demo", "dev", "dns", "do-not-reply", "donotreply", "everyone", "example",
-  "feedback", "ftp", "gateway", "guest", "hello", "help", "hi", "hostmaster",
-  "info", "inpriv", "invoice", "legal", "login", "mail", "mailer", "master",
-  "me", "member", "mod", "moderator", "mx", "news", "newsletter", "noreply",
-  "no-reply", "no_reply", "notify", "official", "office", "operator", "owner",
-  "payment", "pop", "portal", "postmaster", "priv", "private", "public",
-  "register", "root", "sales", "sample", "secure", "security", "self",
-  "server", "service", "signin", "signup", "smtp", "ssl", "staff", "status",
-  "support", "sysop", "team", "temp", "test", "tls", "user", "vpn", "webmaster",
-  "welcome", "www", "zero",
-  // team mailboxes and legal contacts
-  "dmca", "copyright", "police", "lawenforcement", "law-enforcement",
-];
-
-function isReservedLocal(local) {
-  if (RESERVED.has(local)) return true;
-  for (const p of RESERVED_PREFIXES) {
-    if (!local.startsWith(p)) continue;
-    if (local === p) return true;
-    if (p.length >= 4) return true; // long prefixes block ANY continuation
-    const next = local[p.length];
-    if (next === "-" || next === "." || next === "_" || (next >= "0" && next <= "9")) return true;
-  }
-  return false;
-}
-
-const ADJECTIVES = [
-  "amber", "ashen", "azure", "basalt", "birch", "bright", "calm", "cipher",
-  "cobalt", "copper", "coral", "crimson", "dusk", "ember", "fern", "flint",
-  "frost", "glade", "granite", "harbor", "indigo", "ivory", "jade", "juniper",
-  "linen", "maple", "marsh", "moss", "neon", "noble", "opal", "pearl",
-  "pine", "quartz", "raven", "ridge", "rift", "river", "sable", "sage",
-  "slate", "spruce", "summit", "tundra", "velvet", "violet", "willow", "wren",
-];
-const NOUNS = [
-  "anchor", "atlas", "badger", "beacon", "bison", "bolt", "bonsai", "breeze",
-  "cactus", "canyon", "cedar", "cinder", "cliff", "cloud", "comet", "cove",
-  "crane", "dune", "eagle", "echo", "falcon", "fjord", "fox", "gazelle",
-  "gecko", "glacier", "hawk", "heron", "ibex", "jay", "koala", "lantern",
-  "lemur", "lynx", "marten", "moth", "ocelot", "otter", "panda", "puffin",
-  "quail", "raven", "rocket", "salmon", "seal", "shadow", "sparrow", "tiger",
-  "urchin", "viper", "vulture", "walrus", "wolf", "zebra",
-];
+// Inboxes one network can create: per hour, and custom names per hour.
+const CREATE_HOURLY_LIMIT = 20;
+const CUSTOM_HOURLY_LIMIT = 5;
 
 export default {
   async fetch(request, env, ctx) {
@@ -140,18 +93,24 @@ async function handleFetch(request, env) {
   }
 
   if (url.pathname.startsWith("/api/")) {
+    // state-changing calls only from this page (the webhook is signed instead)
+    if (isUnsafeMethod(request) && url.pathname !== "/api/inbound" && !originAllowed(request)) {
+      return apiHeaders(json({ error: "Request refused: unknown origin" }, 403));
+    }
     try {
-      return await routeApi(request, env, url);
+      const res = await routeApi(request, env, url);
+      return res.headers.get("content-disposition") ? res : apiHeaders(res);
     } catch (err) {
-      console.error("api error", err);
-      return json({ error: "Internal error" }, 500);
+      console.error("api error", url.pathname, err && err.message);
+      return apiHeaders(json({ error: "Internal error" }, 500));
     }
   }
 
-  // Everything else → static assets (the single-file frontend).
+  // Everything else → static assets (the single-file frontend). Message
+  // images only load after the person asks (see the reader frame's policy).
   const res = await env.ASSETS.fetch(request);
   if (res.status === 404) return notFound(request, "Inpriv Temp");
-  return res;
+  return pageResponse(request, res, { "img-src": ["https:"], "=frame-src": ["'self'"] });
 }
 
 async function routeApi(request, env, url) {
@@ -248,13 +207,17 @@ async function routeApi(request, env, url) {
     }
     const bytes = base64ToBytes(att.data);
     const filename = (att.filename || "attachment").replace(/[^\w.@ -]/g, "_");
-    return new Response(bytes, {
+    // The sender chose the type and the bytes: always a download, never
+    // rendered or sniffed on this origin.
+    return withHeaders(new Response(bytes, {
       headers: {
-        "content-type": att.contentType || "application/octet-stream",
+        "content-type": "application/octet-stream",
         "content-disposition":
           `attachment; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(att.filename || "attachment")}`,
+        "content-security-policy": "default-src 'none'; sandbox",
+        "cache-control": "no-store",
       },
-    });
+    }));
   }
 
   if (path === "/api/send" && method === "POST") {
@@ -268,6 +231,7 @@ async function routeApi(request, env, url) {
 
 async function createMailbox(request, env) {
   const domain = env.DOMAIN || "inpriv.xyz";
+  if (!env.ID_DB) return json({ error: "Temp isn't fully configured" }, 503);
 
   let customLocal = null;
   const body = await request.json().catch(() => ({}));
@@ -276,22 +240,33 @@ async function createMailbox(request, env) {
     if (!/^[a-z0-9]([a-z0-9._-]{0,28}[a-z0-9])?$/.test(customLocal)) {
       return json({ error: "Allowed: 2–30 chars, letters, digits, . _ -" }, 400);
     }
-    if (isReservedLocal(customLocal)) {
-      return json({ error: "That address is reserved" }, 409);
+  }
+
+  // creating inboxes costs a permanent address each: limit it per network
+  const ipk = clientKey(request);
+  if (!(await rateLimit(env.ID_DB, `tempnew:${ipk}`, CREATE_HOURLY_LIMIT, 3_600_000)) ||
+      (customLocal && !(await rateLimit(env.ID_DB, `tempcustom:${ipk}`, CUSTOM_HOURLY_LIMIT, 3_600_000)))) {
+    return json({ error: "Too many new inboxes from your network — try again in an hour" }, 429);
+  }
+
+  await ensureClaims(env.ID_DB);
+  await backfillIdClaims(env.ID_DB);
+  if (customLocal) {
+    // One answer for every name that isn't free (reserved, an account, an
+    // earlier Temp inbox), so this can't be used to look up accounts.
+    let taken = isReservedLocal(customLocal);
+    if (!taken) {
+      taken = !!(await env.ID_DB.prepare("SELECT 1 FROM users WHERE username = ?").bind(customLocal).first());
     }
-    // Never let a disposable mailbox shadow a real Inpriv ID account.
-    if (env.ID_DB) {
-      const taken = await env.ID_DB
-        .prepare("SELECT 1 FROM users WHERE username = ?")
-        .bind(customLocal)
-        .first();
-      if (taken) return json({ error: "That address belongs to an Inpriv ID account" }, 409);
-      const retired = await env.ID_DB
-        .prepare("SELECT 1 FROM retired_usernames WHERE username = ?")
-        .bind(customLocal)
-        .first()
-        .catch(() => null); // table appears with the first deleted account
-      if (retired) return json({ error: "That address is reserved" }, 409);
+    if (!taken) {
+      taken = !!(await env.ID_DB.prepare("SELECT 1 FROM retired_usernames WHERE username = ?")
+        .bind(customLocal).first().catch(() => null)); // table appears with the first deleted account
+    }
+    if (!taken) {
+      taken = !!(await env.DB.prepare("SELECT 1 FROM mailboxes WHERE address = ?").bind(`${customLocal}@${domain}`).first());
+    }
+    if (taken || !(await tryClaim(env.ID_DB, customLocal, "temp"))) {
+      return json({ error: "That address isn't available — try another" }, 409);
     }
   }
 
@@ -299,26 +274,30 @@ async function createMailbox(request, env) {
   const expiresAt = now + MAILBOX_TTL_MS;
 
   for (let attempt = 0; attempt < 6; attempt++) {
-    const local = customLocal ?? randomLocal();
+    const local = customLocal ?? tempLocal();
+    // the claim is the authority: a name someone already holds is skipped
+    if (!customLocal && !(await tryClaim(env.ID_DB, local, "temp"))) continue;
     const address = `${local}@${domain}`;
     const token = randomHex(16);
-    try {
-      await env.DB
-        .prepare("INSERT INTO mailboxes (address, token_hash, created_at, expires_at) VALUES (?, ?, ?, ?)")
-        .bind(address, await sha256Hex(token), now, expiresAt)
-        .run();
-      await logAccess(env.ID_DB, request, "temp", "inbox_created", address);
-      return json({ address, token, created_at: now, expires_at: expiresAt }, 201);
-    } catch (err) {
-      const msg = String(err?.message || err);
-      if (msg.includes("UNIQUE")) {
-        if (customLocal) return json({ error: "That address is already taken — try another" }, 409);
-        continue; // generated name collided, roll again
-      }
-      throw err;
-    }
+    await env.DB
+      .prepare("INSERT INTO mailboxes (address, token_hash, created_at, expires_at) VALUES (?, ?, ?, ?)")
+      .bind(address, await sha256Hex(token), now, expiresAt)
+      .run();
+    return json({ address, token, created_at: now, expires_at: expiresAt }, 201);
   }
   return json({ error: "Could not allocate an address, try again" }, 500);
+}
+
+// Short-lived counters in the inpriv-id database (rl_counters, with expiry).
+async function rateLimit(db, key, limit, windowMs) {
+  const bucket = Math.floor(Date.now() / windowMs);
+  try {
+    const row = await db.prepare("SELECT c FROM rl_counters WHERE k = ? AND bucket = ?").bind(key, bucket).first();
+    if (row && row.c >= limit) return false;
+    await db.prepare("INSERT INTO rl_counters (k, bucket, c, exp) VALUES (?,?,1,?) ON CONFLICT(k,bucket) DO UPDATE SET c = c + 1")
+      .bind(key, bucket, (bucket + 1) * windowMs).run();
+  } catch { /* fail open: Temp stays usable if the counter table is busy */ }
+  return true;
 }
 
 async function authMailbox(request, env) {
@@ -414,6 +393,14 @@ async function handleInbound(request, env) {
   const ts = Number(svixTs);
   if (!Number.isFinite(ts) || Math.abs(Date.now() / 1000 - ts) > SVIX_TOLERANCE_S) {
     return json({ error: "Webhook timestamp outside tolerance" }, 400);
+  }
+
+  // Svix delivers at least once: a delivery already stored is acknowledged
+  // and not stored again (the id is kept two days, in rl_counters)
+  const seenKey = `svix:temp:${svixId}`;
+  if (env.ID_DB) {
+    const seen = await env.ID_DB.prepare("SELECT 1 FROM rl_counters WHERE k = ?").bind(seenKey).first().catch(() => null);
+    if (seen) return json({ ok: true, duplicate: true });
   }
 
   let event;
@@ -531,6 +518,17 @@ async function handleInbound(request, env) {
     }
   }
 
+  // active content (scripts, frames, forms, handlers) is removed before
+  // storing; remote images are blocked later, in the reader
+  if (html) {
+    try {
+      html = (await sanitizeEmailHtml(html)) || null;
+    } catch {
+      console.error("inbound: html sanitize failed — storing text only");
+      html = null;
+    }
+  }
+
   const record = {
     id: crypto.randomUUID(),
     mailbox: target,
@@ -556,6 +554,10 @@ async function handleInbound(request, env) {
       console.error("store failed entirely", err2);
       return json({ error: "Storage failure" }, 500); // 500 → Resend retries the webhook
     }
+  }
+  if (env.ID_DB) {
+    await env.ID_DB.prepare("INSERT INTO rl_counters (k, bucket, c, exp) VALUES (?, 0, 1, ?) ON CONFLICT(k, bucket) DO NOTHING")
+      .bind(seenKey, Date.now() + 2 * 86_400_000).run().catch(() => {});
   }
   return json({ ok: true, stored: true });
 }
@@ -609,8 +611,27 @@ function timingSafeEqualStr(a, b) {
 
 async function handleScheduled(_event, env) {
   const now = Date.now();
-  // access-log retention for every service (common/access-log.js)
-  await purgeAccessLog(env.ID_DB);
+  // Address claims first: every live inbox, and once, every Temp address the
+  // access log still remembers (it kept "inbox created" rows until the
+  // October 2026 change). Older expired addresses can't be listed any more;
+  // the retired name pattern (common/addresses.js) covers the generated ones.
+  try {
+    await ensureClaims(env.ID_DB);
+    await backfillIdClaims(env.ID_DB);
+    const live = await env.DB.prepare("SELECT address FROM mailboxes").all();
+    await claimMany(env.ID_DB, (live.results ?? []).map((r) => r.address.split("@")[0]), "temp");
+    if (!(await env.ID_DB.prepare("SELECT 1 FROM app_meta WHERE k = 'claims_backfill_temp_v1'").first())) {
+      const seen = await env.ID_DB.prepare(
+        "SELECT DISTINCT account FROM access_log WHERE service = 'temp' AND event = 'inbox_created' AND account LIKE '%@inpriv.xyz'"
+      ).all().catch(() => ({ results: [] }));
+      await claimMany(env.ID_DB, (seen.results ?? []).map((r) => String(r.account).split("@")[0]), "temp");
+      await env.ID_DB.prepare("INSERT OR REPLACE INTO app_meta (k, v) VALUES ('claims_backfill_temp_v1', ?)").bind(String(now)).run();
+    }
+  } catch (err) {
+    console.error("claims backfill (temp) failed", err && err.message);
+  }
+  // retention for the inpriv-id database (access log, counters, tickets)
+  await purgeAccessLog(env.ID_DB, env);
   const staleMessageCutoff = now - MESSAGE_RETENTION_MS;
 
   const expired = await env.DB
@@ -633,13 +654,6 @@ async function handleScheduled(_event, env) {
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-
-function randomLocal() {
-  const adj = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
-  const noun = NOUNS[Math.floor(Math.random() * NOUNS.length)];
-  const num = Math.floor(Math.random() * 1000);
-  return `${adj}-${noun}-${num}`;
-}
 
 function randomHex(bytes) {
   const buf = new Uint8Array(bytes);
@@ -669,5 +683,8 @@ function base64ToBytes(b64) {
 }
 
 function json(data, status = 200) {
-  return new Response(JSON.stringify(data), { status, headers: { "content-type": "application/json; charset=utf-8" } });
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
+  });
 }

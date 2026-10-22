@@ -1116,7 +1116,7 @@ html.theme-fade, html.theme-fade *, html.theme-fade *::before, html.theme-fade *
         </div>
         <div class="card glass">
           <h3><i data-icon="at"></i>Recovery email</h3>
-          <p class="desc" id="recoveryDesc">An outside address for password resets and security notices.</p>
+          <p class="desc" id="recoveryDesc">Optional. An outside address we confirm with a code. It can't reset your password or open your mailbox, and we don't send it anything else.</p>
           <div class="inline-form">
             <input id="recoveryInput" class="input" type="email" placeholder="you@proton.me" autocomplete="email" spellcheck="false" autocapitalize="none" maxlength="254">
             <button class="btn btn-glass" id="recoverySaveBtn" type="button" disabled>Verify</button>
@@ -1214,10 +1214,10 @@ html.theme-fade, html.theme-fade *, html.theme-fade *::before, html.theme-fade *
           <div class="group">
             <div class="row">
               <div>
-                <div class="row-label">Skip master password</div>
-                <div class="row-sub">After you unlock Mail once on a device, it opens there without your master password. Same switch as in Inpriv Mail. Turning it off removes it from every device. <span id="quDevices"></span></div>
+                <div class="row-label">Skip mailbox passphrase</div>
+                <div class="row-sub">After you unlock Mail once on a device, that browser keeps a key that opens it without your passphrase. Anyone using that browser profile can open your mailbox. Same switch as in Inpriv Mail. Turning it off removes it from every device. <span id="quDevices"></span></div>
               </div>
-              <div class="switch on" id="swQuickUnlock" role="switch" aria-checked="true" tabindex="0" aria-label="Skip master password"></div>
+              <div class="switch on" id="swQuickUnlock" role="switch" aria-checked="true" tabindex="0" aria-label="Skip mailbox passphrase"></div>
             </div>
           </div>
         </div>

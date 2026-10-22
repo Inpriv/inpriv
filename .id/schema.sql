@@ -96,8 +96,18 @@ CREATE TABLE IF NOT EXISTS rl_counters (
   k      TEXT NOT NULL,
   bucket INTEGER NOT NULL,
   c      INTEGER NOT NULL DEFAULT 0,
+  exp    INTEGER,                    -- deleted by the hourly cleanup after this
   PRIMARY KEY (k, bucket)
 );
+
+-- Who holds each @inpriv.xyz local part (common/addresses.js). Never deleted,
+-- so an address is never issued twice.
+CREATE TABLE IF NOT EXISTS address_claims (
+  local      TEXT PRIMARY KEY,
+  owner      TEXT NOT NULL,          -- id | temp | team
+  claimed_on TEXT NOT NULL           -- YYYY-MM-DD
+);
+CREATE TABLE IF NOT EXISTS app_meta (k TEXT PRIMARY KEY, v TEXT);
 
 CREATE INDEX IF NOT EXISTS idx_sessions_user       ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_events_user         ON auth_events(user_id, at);

@@ -4,15 +4,16 @@
 
 ## Services
 
-- [Inpriv Mail](https://mail.inpriv.xyz/): your own permanent @inpriv.xyz address. Mail between Inpriv users is encrypted in the browser before it leaves it (RSA-2048 and AES-256-GCM); mail from outside senders is encrypted to the user's key as soon as it arrives. The server stores only ciphertext for message bodies.
-- [Inpriv Temp](https://temp.inpriv.xyz/): a random disposable address that works instantly, with no account. Mail shows up within seconds. Only the browser that created the inbox can open it (it holds a secret key; the address alone isn't enough). The inbox and its messages are deleted after 24 hours. Temp is not end-to-end encrypted, and an expired address can later be given to someone else, so it isn't meant for accounts you need to keep.
+- [Inpriv Mail](https://mail.inpriv.xyz/): your own permanent @inpriv.xyz address. Mail between Inpriv users is encrypted in the browser before it leaves it (RSA-2048 and AES-256-GCM). The private keys are locked with a mailbox passphrase that never leaves the user's device. Mail to and from other providers is normal email: readable while it passes through, and stored encrypted to the user's key on arrival. Subjects, addresses and times are not encrypted.
+- [Inpriv Temp](https://temp.inpriv.xyz/): a random disposable address that works instantly, with no account. Mail shows up within seconds. Only the browser that created the inbox can open it (it holds a secret key; the address alone isn't enough). Its messages are deleted after 24 hours, and the address is never given to anyone else. Temp is not end-to-end encrypted, and an expired inbox can't be opened again, so it isn't meant for accounts you need to keep.
 - [Inpriv ID](https://id.inpriv.xyz/): the one account behind Inpriv Mail, with two-factor sign-in (TOTP), recovery codes, a verified recovery email and control over every session.
 
 ## Facts
 
 - Price: free.
-- Ads and trackers: none. Pages load no third-party scripts, fonts or analytics.
-- Stored about users: account details, and an access log (IP, country, network, browser) for sign-ins and account changes, kept 90 days. Never stored: passwords (only salted hashes), private keys, or readable Mail bodies.
+- Ads and trackers: none. Pages load no third-party scripts, fonts or analytics, and images in received email are blocked until the reader chooses to load them.
+- Stored about users: account details, and an access log (network such as an IPv4 /24, country, network operator, browser family) for sign-ins and account changes, kept 30 days. Never stored: passwords (only salted hashes), mailbox passphrases, unencrypted private keys, or readable Mail bodies.
+- Not anonymous: Inpriv addresses are pseudonymous. Logs, recovery emails and email metadata can link an address to a person.
 - Source code: https://github.com/Inpriv/inpriv
 
 ## Policies

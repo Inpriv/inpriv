@@ -7,14 +7,14 @@
 <meta name="referrer" content="no-referrer">
 <meta name="color-scheme" content="dark light">
 <title>Law Enforcement Guidelines — Inpriv</title>
-<meta name="description" content="How authorities can request data from Inpriv, what a valid request needs, and what we hold. Mail contents are end-to-end encrypted and can't be provided.">
+<meta name="description" content="How authorities can request data from Inpriv, what a valid request needs, and what we hold. Stored mail content is encrypted to the user's keys and can't be provided.">
 <link rel="canonical" href="https://inpriv.xyz/law-enforcement">
 <meta name="robots" content="index, follow">
 <meta name="theme-color" content="#0c0c0b">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="Inpriv">
 <meta property="og:title" content="Law Enforcement Guidelines — Inpriv">
-<meta property="og:description" content="How authorities can request data from Inpriv, what a valid request needs, and what we hold. Mail contents are end-to-end encrypted and can't be provided.">
+<meta property="og:description" content="How authorities can request data from Inpriv, what a valid request needs, and what we hold. Stored mail content is encrypted to the user's keys and can't be provided.">
 <meta property="og:url" content="https://inpriv.xyz/law-enforcement">
 <meta property="og:image" content="https://inpriv.xyz/og/landing.png?v=3">
 <meta property="og:image:width" content="1200">
@@ -22,7 +22,7 @@
 <meta property="og:locale" content="en_US">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Law Enforcement Guidelines — Inpriv">
-<meta name="twitter:description" content="How authorities can request data from Inpriv, what a valid request needs, and what we hold. Mail contents are end-to-end encrypted and can't be provided.">
+<meta name="twitter:description" content="How authorities can request data from Inpriv, what a valid request needs, and what we hold. Stored mail content is encrypted to the user's keys and can't be provided.">
 <meta name="twitter:image" content="https://inpriv.xyz/og/landing.png?v=3">
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Inpriv", "item": "https://inpriv.xyz/"}, {"@type": "ListItem", "position": 2, "name": "Legal", "item": "https://inpriv.xyz/legal"}, {"@type": "ListItem", "position": 3, "name": "Law Enforcement Guidelines", "item": "https://inpriv.xyz/law-enforcement"}]}</script>
 <link rel="icon" href="/icon.png">
@@ -85,7 +85,7 @@ code { font: 13.5px ui-monospace, "SF Mono", Consolas, monospace; background: va
 <main>
 <h1>Law Enforcement Guidelines</h1>
 <p class="lead">For police, prosecutors, courts and other authorities requesting data about Inpriv users. Users can read this page too: we publish it so everyone knows how requests are handled.</p>
-<p class="meta">Effective 17 October 2026</p>
+<p class="meta">Effective 22 October 2026</p>
 
 <div class="box">
 <p><strong>Requests go to <a href="mailto:legal@inpriv.xyz">legal@inpriv.xyz</a></strong>, sent from an official government email domain. Emergencies: see <a href="#emergency">below</a>. Requests in English are handled fastest.</p>
@@ -97,12 +97,15 @@ code { font: 13.5px ui-monospace, "SF Mono", Consolas, monospace; background: va
 <tr><th>Record</th><th>Available?</th><th>Kept for</th></tr>
 <tr><td>Account: username, @inpriv.xyz address, display name, created and last sign-in times, whether 2FA is on</td><td>Yes</td><td>Life of the account</td></tr>
 <tr><td>Recovery email address, if the user added one</td><td>Yes</td><td>Until removed or the account is deleted</td></tr>
-<tr><td>Access log: full IP address, country, network (ASN), user agent and time for sign-ins (including failed ones), account changes, mailbox creation, sent messages (with recipient address) and Temp inbox creation</td><td>Yes</td><td>90 days</td></tr>
-<tr><td>Sessions and account security events (with shortened IP and browser name)</td><td>Yes</td><td>Up to 90 days</td></tr>
+<tr><td>Access log: the network an IP address belongs to (IPv4 /24, IPv6 /48, not the full address), country, network operator (ASN), browser family and time, for sign-ins (including failed ones), account changes, mailbox creation and key changes, and sent messages (without the recipient)</td><td>Yes</td><td>30 days</td></tr>
+<tr><td>Access-log entries written before 22 October 2026: full IP address, full user agent, and the recipient of sent messages; Temp inbox creation</td><td>Yes, until they expire</td><td>90 days after they were written (all gone by 20 January 2027)</td></tr>
+<tr><td>Sessions and account security events (with the first part of the IP address and the browser name)</td><td>Yes</td><td>Up to 90 days</td></tr>
+<tr><td>Which network created a Temp inbox</td><td><strong>No.</strong> Not recorded.</td><td>—</td></tr>
+<tr><td>That an address was issued: the address, the kind of service (account, Temp, team) and the day</td><td>Yes</td><td>As long as Inpriv runs</td></tr>
 <tr><td>Mail metadata: the other party's address, subject line, time and size of each stored message</td><td>Yes, while the user hasn't deleted the message</td><td>Until the user deletes it</td></tr>
-<tr><td>Content of Mail messages (between Inpriv users, and stored mail from outside)</td><td><strong>No.</strong> End-to-end encrypted to the user's key; we can't decrypt it.</td><td>—</td></tr>
+<tr><td>Content of stored Mail messages (between Inpriv users, and mail from outside after it's stored)</td><td><strong>No.</strong> Encrypted to the user's keys, which are locked with a passphrase we never receive. Mail to and from other providers is readable to our server only while it passes through, and isn't kept in readable form.</td><td>—</td></tr>
 <tr><td>Temp inbox: address, created and expiry times, and received messages, including content</td><td>Only while the inbox exists</td><td>24 hours</td></tr>
-<tr><td>Passwords, private keys</td><td><strong>No.</strong> We never have them.</td><td>—</td></tr>
+<tr><td>Passwords, mailbox passphrases, private keys</td><td><strong>No.</strong> Passwords reach our server at sign-in to be checked and are stored only as salted hashes. Passphrases and private keys never reach it.</td><td>—</td></tr>
 <tr><td>Real name, postal address, phone number, payment details, ID documents</td><td><strong>No.</strong> We don't collect them.</td><td>—</td></tr>
 </table></div>
 <p>Mail sent to or received from other providers passes through our email provider Resend and the other provider. They may hold their own records, under their own policies.</p>
@@ -121,7 +124,7 @@ code { font: 13.5px ui-monospace, "SF Mono", Consolas, monospace; background: va
 <p>If there's an imminent risk of death or serious physical injury, write to <a href="mailto:legal@inpriv.xyz">legal@inpriv.xyz</a> with the subject <strong>"EMERGENCY DISCLOSURE REQUEST"</strong>. Describe the emergency, explain how the data will help, and include the identifiers. We may voluntarily disclose information that's needed to prevent the harm, where the law allows.</p>
 
 <h2>Preservation</h2>
-<p>We'll preserve specific existing records (for example access-log entries that would otherwise be deleted after 90 days) for <strong>90 days</strong> on receiving an official preservation request, while you obtain formal legal process. We'll extend that once by another 90 days if asked. A preservation request doesn't disclose anything; it only keeps data from being deleted.</p>
+<p>We'll preserve specific existing records (for example access-log entries that would otherwise be deleted after 30 days) for <strong>90 days</strong> on receiving an official preservation request, while you obtain formal legal process. We'll extend that once by another 90 days if asked. A preservation request doesn't disclose anything; it only keeps data from being deleted.</p>
 
 <h2>Notifying users</h2>
 <p>We tell users about requests for their data before disclosing it, so they can seek legal advice, unless:</p>
@@ -135,7 +138,7 @@ code { font: 13.5px ui-monospace, "SF Mono", Consolas, monospace; background: va
 <h2>Requests we don't accept</h2>
 <ul>
 <li>Requests that don't come from an authority, or don't come through valid legal process. This includes requests from private parties, lawyers or companies for other people's data, unless the law requires us to comply.</li>
-<li>Requests to decrypt content, to weaken encryption, or to add surveillance to the service. We can't decrypt end-to-end encrypted mail, and we won't build a way to.</li>
+<li>Requests to decrypt content, to weaken encryption, or to add surveillance to the service. We can't decrypt stored mail, and we won't build a way to.</li>
 </ul>
 
 <h2>Abuse reports</h2>

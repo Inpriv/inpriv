@@ -5,20 +5,21 @@
 > **Not end-to-end encrypted.** Incoming messages are stored as plain text in the
 > Worker's database — see [Security model](#security-model) for what that means.
 
-Part of [Inpriv](https://inpriv.xyz) — zero-knowledge privacy utilities by [Inpriv Labs](https://inpriv.xyz).
+Part of [Inpriv](https://inpriv.xyz) by [Inpriv Labs](https://inpriv.xyz).
 
 **Live:** <https://temp.inpriv.xyz>
 
 ## What it does
 
-Generates a random disposable email address (e.g. `ember-fox-123@inpriv.xyz`)
+Generates a random disposable email address (e.g. `ember-otter-k7m2q@inpriv.xyz`)
 on page load. Incoming mail lands in the inbox within seconds — live polling,
 sandboxed HTML viewer, plain-text tab, downloadable attachments. One click on
-**Shred** deletes the address and every message instantly. Mailboxes expire
-automatically after 24 h (hourly cron sweeps them away).
+**Shred** deletes the inbox and every message instantly. Mailboxes expire
+automatically after 24 h (hourly cron sweeps them away). An address is claimed for
+good when it's created (`common/addresses.js`): it's never handed to anyone else.
 
-You can also pick a custom local part, and send outbound mail from the
-disposable address (10/hour limit).
+You can also pick a custom local part (new inboxes are limited per network: 20 an hour, 5 of them custom).
+Outbound mail is disabled.
 
 ## Security model
 
@@ -26,15 +27,18 @@ disposable address (10/hour limit).
 attachments are fetched from Resend and stored as **plain text** in D1. What actually
 protects a mailbox:
 
-- **Un guessable addresses** — random three-word local parts; a live mailbox cannot be
-  found without knowing its exact address (no enumeration: the inbound webhook returns
+- **Unguessable addresses** — two words and five random characters (about 74 billion
+  names); a live mailbox cannot be found without knowing its exact address (no enumeration: the inbound webhook returns
   200 for unknown recipients without storing anything).
 - **Bearer token, scoped per mailbox** — the inbox is readable only with the token the
   browser got at creation; only its SHA-256 hash is stored server-side.
 - **Short life** — 24 h mailbox TTL, 7 d message hard cap, hourly cron sweep, one-click
-  Shred (deletes the address and every message immediately).
-- **Sandboxed HTML viewer** — remote content renders in a script-less sandboxed iframe;
-  a plain-text tab is always available.
+  Shred (deletes the inbox and every message immediately; the address stays retired).
+- **Sandboxed HTML viewer** — HTML is stripped of active content on arrival, rebuilt by an
+  allowlist sanitizer in the browser and shown in a script-less sandboxed iframe with its
+  own CSP. Remote images load only after "Load images"; a plain-text tab is always there.
+- **Never reused** — expired and deleted addresses stay claimed, so mail for an earlier
+  holder (password resets…) can't reach a new one. Creating an inbox isn't logged.
 - **Hardened webhook** — svix/Standard Webhooks HMAC-SHA256 signature verification with
   timestamp tolerance; reserved local parts (`admin`, `postmaster`, …) can never be
   claimed.

@@ -5,12 +5,14 @@ import { maintenanceGate, maintenancePage } from "../../../common/gate.js";
 import { logAccess } from "../../../common/access-log.js";
 import { notFound } from "../../../common/errors.js";
 import { canonicalRedirect } from "../../../common/canonical.js";
+import { clientKey, originAllowed, isUnsafeMethod, pageResponse, withHeaders } from "../../../common/security.js";
+import { isReservedLocal, claimStatement, ensureClaims, backfillIdClaims, claimOwner } from "../../../common/addresses.js";
 import {
   SESSION_TTL_MS, PASS_ITERS,
-  b64, now, uuid, sha256hex, json, bad, corsFor,
+  b64, now, uuid, sha256hex, json, bad, corsFor, allowedOrigins,
   passHash, constantTimeEq, sealString, openString,
   base32Decode, base32Encode, verifyTOTP,
-  rateLimit, parseUA, ipPrefix, sendMail, emailShell, emailAddr, codeBlock,
+  rateLimit, overLimit, bump, parseUA, ipPrefix, sendMail, emailShell, emailAddr, codeBlock,
   sessionCookie, clearCookie,
 } from "./lib.js";
 
@@ -200,53 +202,22 @@ async function authUser(req, env, rotate = true) {
   return { row, token, uid: row.uid, via };
 }
 
-const RESERVED_USERNAMES = new Set([
-  "admin", "administrator", "root", "system", "inpriv", "inprivlabs",
-  "support", "security", "abuse", "postmaster", "noreply", "no-reply",
-  "mailer-daemon", "help", "hello", "hi", "info", "contact", "team", "staff",
-  "account", "accounts", "billing", "invoice", "payments", "sales", "legal",
-  "mail", "temp", "burn", "zero", "api", "auth", "login", "signin", "signup",
-  "register", "dashboard", "status", "bot", "anonymous", "null", "undefined",
-  "webmaster", "hostmaster", "feedback", "welcome", "office", "priva", "priv",
-  "owner", "moderator", "mod", "service", "services", "dev", "devs", "sysop",
-  "operator", "everyone", "users", "member", "members", "me", "self", "user"
-]);
+// One reserved list for every service (common/addresses.js). It also covers
+// the retired Temp address pattern ("amber-fox-123").
+const isReservedUsername = isReservedLocal;
 
-// Prefixes that must never introduce an @inpriv.xyz address — blocks
-// "admin123", "hello-world", "support-team" etc., not just exact matches.
-// Long prefixes (≥4 chars) block ANY continuation; short ones (mod, me, hi,
-// pop, mx, www, ftp, vpn, dev) only block separator/digit continuations, so
-// "mode" or "metal" stay available.
-const RESERVED_PREFIXES = [
-  "abuse", "account", "admin", "administrator", "alert", "api",
-  "auth", "backup", "billing", "bot", "burn", "cert", "cluster", "contact",
-  "demo", "dev", "dns", "do-not-reply", "donotreply", "everyone", "example",
-  "feedback", "ftp", "gateway", "guest", "hello", "help", "hi", "hostmaster",
-  "info", "inpriv", "invoice", "legal", "login", "mail", "mailer", "master",
-  "me", "member", "mod", "moderator", "mx", "news", "newsletter", "noreply",
-  "no-reply", "no_reply", "notify", "official", "office", "operator", "owner",
-  "payment", "pop", "portal", "postmaster", "priv", "private", "public",
-  "register", "root", "sales", "sample", "secure", "security", "self",
-  "server", "service", "signin", "signup", "smtp", "ssl", "staff", "status",
-  "support", "sysop", "team", "temp", "test", "tls", "user", "vpn", "webmaster",
-  "welcome", "www", "zero",
-  // team mailboxes and legal contacts
-  "dmca", "copyright", "police", "lawenforcement", "law-enforcement"
-];
-
-function isReservedUsername(username) {
-  if (RESERVED_USERNAMES.has(username)) return true;
-  for (const p of RESERVED_PREFIXES) {
-    if (!username.startsWith(p)) continue;
-    if (username === p) return true;
-    // long prefixes (admin, hello, support…) block ANY continuation
-    if (p.length >= 4) return true;
-    // short prefixes (mod, me, hi…) only when followed by a separator or
-    // digit — blocks "mod-team" / "hi123" without blocking "mode", "metal"
-    const next = username[p.length];
-    if (next === "-" || next === "." || next === "_" || (next >= "0" && next <= "9")) return true;
-  }
-  return false;
+// Mail keeps its own sessions. Changing the password, 2FA, or signing out
+// everywhere on Inpriv ID ends them too, so a stolen Mail session doesn't
+// outlive the account change.
+async function revokeMailSessions(env, uid) {
+  try {
+    if (!env.MAIL_DB) return;
+    const u = await env.DB.prepare("SELECT username FROM users WHERE id = ?").bind(uid).first();
+    if (!u || !u.username) return;
+    await env.MAIL_DB.prepare(
+      "DELETE FROM sessions WHERE user_id = (SELECT id FROM users WHERE username = ?)"
+    ).bind(u.username).run();
+  } catch { /* the mailbox may not exist yet */ }
 }
 
 // Quick Unlock keys live in Mail (device_keys, one row per device). The
@@ -273,11 +244,18 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const path = url.pathname;
-    const cors = corsFor(request);
+    const cors = corsFor(request, env);
     const moved = canonicalRedirect(request);
     if (moved) return moved;
 
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
+
+    // State-changing API calls only from the Inpriv pages. Service-to-service
+    // endpoints carry the SERVICE_KEY instead and have no Origin.
+    const service = path === "/api/grant/redeem" || path === "/api/totp/verify";
+    if (path.startsWith("/api/") && isUnsafeMethod(request) && !service && !originAllowed(request, allowedOrigins(env))) {
+      return bad("request refused: unknown origin", 403);
+    }
 
     const gate = await maintenanceGate("account");
     if (gate.locked && path !== "/api/health") return maintenancePage("Inpriv ID", gate.message);
@@ -286,21 +264,21 @@ export default {
     if (path === "/id.js" && request.method === "GET") {
       const res = await env.ASSETS.fetch(new URL("https://assets.local/id.js"));
       const body = await res.text();
-      return new Response(body, {
+      return withHeaders(new Response(body, {
         status: 200,
         headers: {
           "Content-Type": "application/javascript; charset=utf-8",
           "Access-Control-Allow-Origin": "*",
           "Cache-Control": "public, max-age=300",
         },
-      });
+      }));
     }
 
     // ── static frontend (login page + panel) for non-API GETs/HEADs ──
     if ((request.method === "GET" || request.method === "HEAD") && !path.startsWith("/api/")) {
       const res = await env.ASSETS.fetch(request);
       if (res.status === 404) return notFound(request, "Inpriv ID");
-      return res;
+      return pageResponse(request, res, { "=form-action": ["'self'"] });
     }
 
     if (path === "/api/health") {
@@ -310,7 +288,7 @@ export default {
     try {
       // ═══ PUBLIC: REGISTER ═══
       if (path === "/api/register" && request.method === "POST") {
-        if (!(await rateLimit(env.DB, `reg:${ipPrefix(request)}`, 5, 3_600_000)))
+        if (!(await rateLimit(env.DB, `reg:${clientKey(request)}`, 5, 3_600_000)))
           return bad("too many registrations from this network — try again later", 429);
 
         const body = await request.json();
@@ -356,6 +334,13 @@ export default {
         if (await env.DB.prepare("SELECT 1 FROM retired_usernames WHERE username = ?").bind(username).first()) {
           return bad("this Inpriv ID was used before and can't be registered again", 409);
         }
+        // the shared address claim (common/addresses.js) is the authority;
+        // the claim and the account are written in one transaction below
+        await ensureClaims(env.DB);
+        await backfillIdClaims(env.DB);
+        if (await claimOwner(env.DB, username)) {
+          return bad("this address was used before and can't be registered again", 409);
+        }
 
         const dup = await env.DB.prepare(
           "SELECT 1 FROM users WHERE username = ? OR email = ? OR (recovery_email IS NOT NULL AND recovery_email = ?)"
@@ -373,21 +358,32 @@ export default {
           }
         }
 
-        // Never issue an address that a live Inpriv Temp mailbox could intercept.
+        // Never issue an address a Temp inbox ever had (inboxes from before
+        // address claims existed are only in the Temp database).
         if (env.TEMP_DB) {
           const shadow = await env.TEMP_DB
-            .prepare("SELECT 1 FROM mailboxes WHERE address = ? AND expires_at > ?")
-            .bind(inprivEmail, now())
+            .prepare("SELECT 1 FROM mailboxes WHERE address = ?")
+            .bind(inprivEmail)
             .first();
-          if (shadow) return bad("this address is currently in use — try again later", 409);
+          if (shadow) return bad("this address was used before and can't be registered again", 409);
         }
 
         const salt = b64(crypto.getRandomValues(new Uint8Array(16)));
         const ph = await passHash(password, salt);
         const uid = uuid();
-        await env.DB.prepare(
-          "INSERT INTO users (id, username, email, recovery_email, nick, pass_hash, pass_salt, pass_iters, created_at) VALUES (?,?,?,?,?,?,?,?,?)"
-        ).bind(uid, username, inprivEmail, recoveryEmail, nick || username, ph, salt, PASS_ITERS, now()).run();
+        try {
+          await env.DB.batch([
+            claimStatement(env.DB, username, "id"),
+            env.DB.prepare(
+              "INSERT INTO users (id, username, email, recovery_email, nick, pass_hash, pass_salt, pass_iters, created_at) VALUES (?,?,?,?,?,?,?,?,?)"
+            ).bind(uid, username, inprivEmail, recoveryEmail, nick || username, ph, salt, PASS_ITERS, now()),
+          ]);
+        } catch (e) {
+          if (/UNIQUE|constraint/i.test(String(e && e.message))) {
+            return bad("an account with this Inpriv ID or recovery email already exists", 409);
+          }
+          throw e;
+        }
         await logEvent(env.DB, uid, "register", request);
 
         let sentOk = false;
@@ -410,7 +406,7 @@ export default {
 
         const s = await createSession(env.DB, uid, request, true);
         return json(
-          { token: s.token, user: await publicUser(env, uid, true), verification_sent: sentOk },
+          { user: await publicUser(env, uid, true), verification_sent: sentOk },
           200,
           { ...cors, "Set-Cookie": sessionCookie(s.token) }
         );
@@ -418,7 +414,7 @@ export default {
 
       // ═══ PUBLIC: LOGIN ═══
       if (path === "/api/login" && request.method === "POST") {
-        if (!(await rateLimit(env.DB, `login:${ipPrefix(request)}`, 10, 15 * 60_000)))
+        if (!(await rateLimit(env.DB, `login:${clientKey(request)}`, 10, 15 * 60_000)))
           return bad("too many attempts — wait 15 minutes", 429);
 
         const body = await request.json();
@@ -436,11 +432,20 @@ export default {
            WHERE username = ? OR email = ? OR email = (? || '@inpriv.xyz') OR recovery_email = ?`
         ).bind(usernameCandidate, input, usernameCandidate, input).first();
 
+        // Failed passwords per account, from any network: slows guessing
+        // spread over many addresses. High enough that someone else can't
+        // lock the owner out with a few tries.
+        if (user && (await overLimit(env.DB, `loginfail:${user.id}`, 50, 3_600_000)))
+          return bad("too many failed sign-ins for this account — wait an hour", 429);
+
         // hash even when user missing (timingEqual-ish anti-enumeration)
         const ph = await passHash(password, user ? user.pass_salt : b64(encSalt(input)), user ? user.pass_iters : PASS_ITERS);
         const okFlag = user ? constantTimeEq(ph, user.pass_hash) : false;
         if (!okFlag) {
-          if (user) await logEvent(env.DB, user.id, "login_fail", request);
+          if (user) {
+            await bump(env.DB, `loginfail:${user.id}`, 3_600_000);
+            await logEvent(env.DB, user.id, "login_fail", request);
+          }
           return bad("invalid credentials", 401);
         }
         await logEvent(env.DB, user.id, "login", request);
@@ -457,7 +462,7 @@ export default {
         const s = await createSession(env.DB, user.id, request, true);
         await env.DB.prepare("UPDATE users SET last_login = ? WHERE id = ?").bind(now(), user.id).run();
         return json(
-          { token: s.token, user: await publicUser(env, user.id, true) },
+          { user: await publicUser(env, user.id, true) },
           200,
           { ...cors, "Set-Cookie": sessionCookie(s.token) }
         );
@@ -475,6 +480,14 @@ export default {
           "SELECT user_id, expires_at FROM pending_2fa WHERE id = ?"
         ).bind(pid).first();
         if (!p || p.expires_at < now()) return bad("mfa session expired — start over", 401);
+        // 5 tries per sign-in, 10 per account in 15 minutes: a 6-digit code
+        // can't be guessed by repeating requests
+        if (!(await rateLimit(env.DB, `mfa:${pid}`, 5, 5 * 60_000))) {
+          await env.DB.prepare("DELETE FROM pending_2fa WHERE id = ?").bind(pid).run();
+          return bad("too many wrong codes — sign in again", 401);
+        }
+        if (!(await rateLimit(env.DB, `mfau:${p.user_id}`, 10, 15 * 60_000)))
+          return bad("too many wrong codes — wait 15 minutes", 429);
 
         if (recovery) {
           const hash = await sha256hex(recovery);
@@ -499,7 +512,7 @@ export default {
         const s = await createSession(env.DB, p.user_id, request, true);
         await env.DB.prepare("UPDATE users SET last_login = ? WHERE id = ?").bind(now(), p.user_id).run();
         return json(
-          { token: s.token, user: await publicUser(env, p.user_id, true) },
+          { user: await publicUser(env, p.user_id, true) },
           200,
           { ...cors, "Set-Cookie": sessionCookie(s.token) }
         );
@@ -532,8 +545,8 @@ export default {
         ).bind(gid, gme.uid, service, state || "", now(), now() + 120_000).run();
         const h = { ...cors };
         if (gme.token) {
-          h["X-Inpriv-Token"] = gme.token;
           if (gme.via === "cookie") h["Set-Cookie"] = sessionCookie(gme.token);
+          else h["X-Inpriv-Token"] = gme.token;
         }
         return json({ grant: gid, state: state || "", expires_in: 120 }, 200, h);
       }
@@ -597,8 +610,8 @@ export default {
         const devices = await mailDeviceKeys(env, sme.uid, "count");
         const h = { ...cors };
         if (sme.token) {
-          h["X-Inpriv-Token"] = sme.token;
           if (sme.via === "cookie") h["Set-Cookie"] = sessionCookie(sme.token);
+          else h["X-Inpriv-Token"] = sme.token;
         }
         return json({ settings: { quick_unlock: !(s && s.quick_unlock === 0), devices } }, 200, h);
       }
@@ -620,8 +633,8 @@ export default {
         }
         const h = { ...cors };
         if (sme.token) {
-          h["X-Inpriv-Token"] = sme.token;
           if (sme.via === "cookie") h["Set-Cookie"] = sessionCookie(sme.token);
+          else h["X-Inpriv-Token"] = sme.token;
         }
         return json({ ok: true, settings: { quick_unlock: body.quick_unlock } }, 200, h);
       }
@@ -649,8 +662,8 @@ export default {
         });
         const sh = { ...cors };
         if (svcMe.token) {
-          sh["X-Inpriv-Token"] = svcMe.token;
           if (svcMe.via === "cookie") sh["Set-Cookie"] = sessionCookie(svcMe.token);
+          else sh["X-Inpriv-Token"] = svcMe.token;
         }
         return json({ services }, 200, sh);
       }
@@ -669,8 +682,8 @@ export default {
         const r = await env.DB.prepare("SELECT blob FROM quick_unlock WHERE user_id = ?").bind(qme.uid).first();
         const h = { ...cors };
         if (qme.token) {
-          h["X-Inpriv-Token"] = qme.token;
           if (qme.via === "cookie") h["Set-Cookie"] = sessionCookie(qme.token);
+          else h["X-Inpriv-Token"] = qme.token;
         }
         return json({ blob: r ? r.blob : null }, 200, h);
       }
@@ -690,8 +703,8 @@ export default {
         ).bind(qme.uid, blob, now()).run();
         const h = { ...cors };
         if (qme.token) {
-          h["X-Inpriv-Token"] = qme.token;
           if (qme.via === "cookie") h["Set-Cookie"] = sessionCookie(qme.token);
+          else h["X-Inpriv-Token"] = qme.token;
         }
         return json({ ok: true }, 200, h);
       }
@@ -702,8 +715,8 @@ export default {
         await env.DB.prepare("DELETE FROM quick_unlock WHERE user_id = ?").bind(cme.uid).run();
         const h = { ...cors };
         if (cme.token) {
-          h["X-Inpriv-Token"] = cme.token;
           if (cme.via === "cookie") h["Set-Cookie"] = sessionCookie(cme.token);
+          else h["X-Inpriv-Token"] = cme.token;
         }
         return json({ ok: true }, 200, h);
       }
@@ -740,8 +753,8 @@ export default {
       const out = (body, status = 200, extra = {}) => {
         const h = { ...cors, ...extra };
         if (me && me.token) {
-          h["X-Inpriv-Token"] = me.token;
           if (me.via === "cookie") h["Set-Cookie"] = sessionCookie(me.token);
+          else h["X-Inpriv-Token"] = me.token;
         }
         return json(body, status, h);
       };
@@ -769,7 +782,7 @@ export default {
       if (!me) return bad("unauthorized", 401);
 
       if (path === "/api/me" && request.method === "GET") {
-        return out({ token: me.token || undefined, user: await publicUser(env, me.uid, true) }, 200, cors);
+        return out({ user: await publicUser(env, me.uid, true) }, 200, cors);
       }
 
       // ── vault (server-sealed encrypted profile blob) ──
@@ -861,6 +874,9 @@ export default {
 
       if (path === "/api/2fa/setup" && request.method === "POST") {
         if (!(await rateLimit(env.DB, `tsetup:${me.uid}`, 5, 3_600_000))) return bad("try again later", 429);
+        // replacing a working secret needs the password (via 2FA off first);
+        // a session alone must not be able to swap or break it
+        if (me.row.totp_enabled) return bad("two-factor is already on — turn it off first to set it up again", 409);
         const secret = base32Encode(crypto.getRandomValues(new Uint8Array(20)));
         const urow = await env.DB.prepare("SELECT email, username FROM users WHERE id = ?").bind(me.uid).first();
         const accountLabel = urow.username ? `${urow.username}@inpriv.xyz` : (urow.email || "user@inpriv.xyz");
@@ -875,6 +891,8 @@ export default {
         const body = await request.json();
         const code = String(body.code || "").trim();
         if (!/^\d{6}$/.test(code)) return bad("enter the 6-digit code");
+        if (me.row.totp_enabled) return bad("two-factor is already on", 409);
+        if (!(await rateLimit(env.DB, `tconfirm:${me.uid}`, 10, 15 * 60_000))) return bad("too many tries — wait 15 minutes", 429);
         const trow = await env.DB.prepare("SELECT secret_enc FROM totp_secrets WHERE user_id = ?").bind(me.uid).first();
         const secret = trow ? await openString(env, trow.secret_enc) : null;
         if (!secret || !(await verifyTOTP(code, base32Decode(secret), now()))) {
@@ -890,7 +908,11 @@ export default {
         }
         stmts.push(env.DB.prepare("UPDATE totp_secrets SET confirmed = 1 WHERE user_id = ?").bind(me.uid));
         stmts.push(env.DB.prepare("UPDATE users SET totp_enabled = 1 WHERE id = ?").bind(me.uid));
+        stmts.push(env.DB.prepare("DELETE FROM recovery_codes WHERE user_id = ? AND used_at IS NOT NULL").bind(me.uid));
+        // sessions opened without the second factor end here
+        stmts.push(env.DB.prepare("DELETE FROM sessions WHERE user_id = ? AND id != ?").bind(me.uid, me.row.sid));
         await env.DB.batch(stmts);
+        await revokeMailSessions(env, me.uid);
         await logEvent(env.DB, me.uid, "totp_on", request);
         return out({ ok: true, recovery_codes: codes }, 200, cors);
       }
@@ -905,6 +927,7 @@ export default {
         const body = await request.json().catch(() => ({}));
         const u = await env.DB.prepare("SELECT pass_hash, pass_salt, pass_iters, totp_enabled FROM users WHERE id = ?").bind(me.uid).first();
         if (!u.totp_enabled) return bad("turn on 2FA first", 400);
+        if (!(await rateLimit(env.DB, `pwcheck:${me.uid}`, 10, 3_600_000))) return bad("too many tries — wait an hour", 429);
         const candidate = await passHash(String(body.password || ""), u.pass_salt, u.pass_iters);
         if (!constantTimeEq(candidate, u.pass_hash)) return bad("wrong password", 401);
         const codes = [];
@@ -921,6 +944,7 @@ export default {
       }
       if (path === "/api/2fa/disable" && request.method === "POST") {
         const body = await request.json();
+        if (!(await rateLimit(env.DB, `pwcheck:${me.uid}`, 10, 3_600_000))) return bad("too many tries — wait an hour", 429);
         const u = await env.DB.prepare("SELECT pass_hash, pass_salt, pass_iters FROM users WHERE id = ?").bind(me.uid).first();
         const candidate = await passHash(String(body.password || ""), u.pass_salt, u.pass_iters);
         if (!constantTimeEq(candidate, u.pass_hash)) return bad("wrong password", 401);
@@ -929,6 +953,7 @@ export default {
           env.DB.prepare("DELETE FROM recovery_codes WHERE user_id = ?").bind(me.uid),
           env.DB.prepare("UPDATE users SET totp_enabled = 0 WHERE id = ?").bind(me.uid),
         ]);
+        await revokeMailSessions(env, me.uid);
         await logEvent(env.DB, me.uid, "totp_off", request);
         return out({ ok: true }, 200, cors);
       }
@@ -949,6 +974,7 @@ export default {
       }
       if (path === "/api/sessions/revoke-all" && request.method === "POST") {
         const body = await request.json().catch(() => ({}));
+        await revokeMailSessions(env, me.uid);
         if (body.all) {
           await env.DB.prepare("DELETE FROM sessions WHERE user_id = ?").bind(me.uid).run();
           return out({ ok: true }, 200, { ...cors, "Set-Cookie": clearCookie() });
@@ -980,6 +1006,8 @@ export default {
         const current = String(body.current || "");
         const next = String(body.next || "");
         if (next.length < 10) return bad("new password too short (min 10)");
+        if (next.length > 200) return bad("new password too long");
+        if (!(await rateLimit(env.DB, `pwchange:${me.uid}`, 10, 3_600_000))) return bad("too many tries — wait an hour", 429);
         const u = await env.DB.prepare("SELECT pass_hash, pass_salt, pass_iters FROM users WHERE id = ?").bind(me.uid).first();
         const candidate = await passHash(current, u.pass_salt, u.pass_iters);
         if (!constantTimeEq(candidate, u.pass_hash)) return bad("current password is wrong", 401);
@@ -990,6 +1018,9 @@ export default {
             .bind(ph, salt, PASS_ITERS, me.uid),
           env.DB.prepare("DELETE FROM sessions WHERE user_id = ? AND id != ?").bind(me.uid, me.row.sid),
         ]);
+        // Mail sessions end too. The mailbox passphrase is separate from this
+        // password and doesn't change.
+        await revokeMailSessions(env, me.uid);
         await logEvent(env.DB, me.uid, "pass_change", request);
         return out({ ok: true }, 200, cors);
       }
@@ -997,6 +1028,7 @@ export default {
       // ── account deletion ──
       if (path === "/api/account/delete" && request.method === "POST") {
         const body = await request.json();
+        if (!(await rateLimit(env.DB, `pwcheck:${me.uid}`, 10, 3_600_000))) return bad("too many tries — wait an hour", 429);
         const u = await env.DB.prepare("SELECT pass_hash, pass_salt, pass_iters FROM users WHERE id = ?").bind(me.uid).first();
         const candidate = await passHash(String(body.password || ""), u.pass_salt, u.pass_iters);
         if (!constantTimeEq(candidate, u.pass_hash)) return bad("wrong password", 401);
@@ -1005,8 +1037,9 @@ export default {
         await env.DB.prepare("DELETE FROM users WHERE id = ?").bind(me.uid).run();
         if (gone && gone.username) {
           // the address is never handed to anyone else (mail meant for the old
-          // owner must not reach a new one), and the mailbox goes with the ID:
-          // keys, messages, sessions and device keys (ON DELETE CASCADE)
+          // owner must not reach a new one): its address claim stays, and the
+          // name is retired. The mailbox goes with the ID: keys, messages,
+          // sessions and device keys (ON DELETE CASCADE)
           await ensureRetired(env.DB);
           await env.DB.prepare("INSERT OR IGNORE INTO retired_usernames (username, retired_at) VALUES (?, ?)")
             .bind(gone.username, now()).run();
@@ -1019,7 +1052,9 @@ export default {
 
       return bad("not found", 404);
     } catch (e) {
-      return json({ error: "server error", detail: String((e && e.message) || e) }, 500);
+      // details go to the Worker log, not to the caller
+      console.error("id api error", path, e && e.message);
+      return json({ error: "server error" }, 500);
     }
   },
 };

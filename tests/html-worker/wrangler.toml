@@ -1,0 +1,6 @@
+# Test-only Worker for tests/api.test.mjs. Not deployed: no routes, and the
+# deploy workflow doesn't watch tests/.
+name = "inpriv-test-html"
+main = "index.js"
+compatibility_date = "2025-08-01"
+workers_dev = false
