@@ -33,7 +33,7 @@ We won't take action against research that:
 
 ## Scope
 
-In scope: `inpriv.xyz`, `mail.inpriv.xyz`, `temp.inpriv.xyz`, `id.inpriv.xyz`, `admin.inpriv.xyz` and the code in this repository.
+In scope: `inpriv.xyz`, `mail.inpriv.xyz`, `temp.inpriv.xyz`, `id.inpriv.xyz`, `status.inpriv.xyz`, `admin.inpriv.xyz` and the code in this repository.
 
 Out of scope: third-party services we rely on (Cloudflare, Resend), missing security headers without a demonstrated impact, self-XSS, and reports from automated scanners without a working proof of concept.
 

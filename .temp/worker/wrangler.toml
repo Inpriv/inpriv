@@ -9,9 +9,18 @@ routes = [
   { pattern = "temp.inpriv.xyz", custom_domain = true }
 ]
 
-# Hourly cleanup of expired mailboxes and stale messages
+# Every 5 minutes: status.inpriv.xyz checks every site (STATUS below).
+# The cleanup of expired mailboxes and stale messages still runs hourly, on
+# the :00 tick. One trigger for both, because the free plan's cron slots are
+# used up.
 [triggers]
-crons = ["0 * * * *"]
+crons = ["*/5 * * * *"]
+
+# status.inpriv.xyz's checker (WorkerEntrypoint "Probe" in .status/worker)
+[[services]]
+binding = "STATUS"
+service = "inpriv-status"
+entrypoint = "Probe"
 
 [[d1_databases]]
 binding = "DB"

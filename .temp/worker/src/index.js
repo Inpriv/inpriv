@@ -6,7 +6,7 @@
 //           Metadata comes from the webhook; the body is fetched from the
 //           Received emails API when a read-capable key is configured.
 // Outbound: Resend send API (restricted send key is enough).
-// Mailboxes are created on demand, live for 24 h, swept by hourly cron.
+// Mailboxes are created on demand, live for 24 h, swept by the hourly cleanup.
 // An address is claimed for good when it's created (common/addresses.js):
 // once the inbox expires its messages are deleted, but the address is never
 // handed to anyone else.
@@ -38,6 +38,12 @@ export default {
     return canonicalRedirect(request) || handleFetch(request, env, ctx);
   },
   async scheduled(event, env, ctx) {
+    // every 5 minutes: let status.inpriv.xyz check the sites
+    if (env.STATUS) {
+      ctx.waitUntil(env.STATUS.run(event.scheduledTime).catch((err) => console.error("status check failed", err && err.message)));
+    }
+    // the cleanup stays hourly
+    if (new Date(event.scheduledTime).getUTCMinutes() >= 5) return;
     return handleScheduled(event, env, ctx);
   },
 };

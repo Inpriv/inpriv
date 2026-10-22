@@ -23,6 +23,8 @@ Inpriv is two ways to receive email on an @inpriv.xyz address, plus the account 
 - **Temp** — [temp.inpriv.xyz](https://temp.inpriv.xyz) — a random disposable address with a live inbox. No sign-up. It deletes itself after 24 hours, or when you say so, and its address is never given to anyone else. Temp inboxes are not end-to-end encrypted.
 - **Inpriv ID** — [id.inpriv.xyz](https://id.inpriv.xyz) — your account: the @inpriv.xyz address, password, optional 2FA, sessions.
 
+[status.inpriv.xyz](https://status.inpriv.xyz) shows whether each site is up, checked every 5 minutes, with 90 days of history.
+
 [inpriv.xyz](https://inpriv.xyz) lets you choose between Mail and Temp. If you're signed in with Inpriv ID it takes you straight to Mail; `inpriv.xyz/?home` always shows the choice.
 
 No ads, no analytics, no trackers. Inpriv keeps a limited access log (network, browser family, time) for 30 days for account security and abuse handling; the [Privacy Policy](https://inpriv.xyz/privacy) lists everything that is stored.
@@ -36,9 +38,10 @@ inpriv/
 ├── index.html            landing page source (copied to worker/public/)
 ├── worker/               Worker "inpriv": inpriv.xyz, legal pages, sitemap, robots
 ├── .mail/                Inpriv Mail: page (index.html) + Worker (worker/)
-├── .temp/                Inpriv Temp: page + Worker (D1, inbound webhook, hourly cleanup)
+├── .temp/                Inpriv Temp: page + Worker (D1, inbound webhook, hourly cleanup, 5-minute status tick)
 ├── .id/                  Inpriv ID: Worker + page (worker/public/)
 ├── .admin/               admin.inpriv.xyz: kill-switches, team mailboxes, records
+├── .status/              status.inpriv.xyz: uptime checks + page (worker/public/)
 └── common/
 │   ├── ui/               shared design core: inpriv-ui.css, inpriv-ui.js, sync.mjs
 │   ├── page.js           styles for Worker-rendered pages
