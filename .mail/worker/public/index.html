@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  Inpriv Mail — Zero-Knowledge Encrypted Mail
+  Inpriv Mail — end-to-end encrypted mail between Inpriv users
   Part of Inpriv (https://inpriv.xyz) · Inpriv Labs
   Copyright (c) 2026 Inpriv Labs — MIT License
 -->
@@ -8,7 +8,6 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' https://id.inpriv.xyz; font-src 'self'; img-src 'self' data: blob: https:; connect-src 'self' https://id.inpriv.xyz https://mail.inpriv.xyz http://localhost:* http://127.0.0.1:*; object-src 'none'; base-uri 'self'; form-action 'self';" />
 <meta name="color-scheme" content="dark light" />
 <meta name="theme-color" content="#0c0c0b" media="(prefers-color-scheme: dark)" />
 <meta name="theme-color" content="#ebe9e4" media="(prefers-color-scheme: light)" />
@@ -946,6 +945,28 @@ html, body { overscroll-behavior-y: contain; }
 #regStatus:empty { display: none; }
 .legal-note { margin: 12px 0 0; text-align: center; color: var(--text-3); font-size: 12.5px; line-height: 1.5; }
 .legal-note a { color: var(--text-2); }
+.field label .opt, .opt { color: var(--text-3); font-weight: 450; }
+.check-row { display: flex; align-items: flex-start; gap: 10px; margin: 4px 0 16px; font-size: 13.5px; color: var(--text-2); cursor: pointer; }
+.check-row input { width: 18px; height: 18px; margin: 1px 0 0; flex: none; accent-color: var(--danger); }
+.sec-badge strong { color: var(--text); font-weight: 600; }
+.remote-bar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 10px 12px 10px 14px; border-radius: 16px;
+  background: var(--fill); box-shadow: inset 0 0 0 1px var(--hairline);
+  color: var(--text-2); font-size: 13px; line-height: 1.45;
+}
+.remote-bar > span { flex: 1 1 220px; min-width: 0; }
+.remote-bar .i { color: var(--text-3); flex: none; }
+.view-hint { margin: -4px 2px 0; color: var(--text-3); font-size: 12.5px; }
+.key-fp { font-family: var(--font-mono); font-size: 14px; letter-spacing: 0.02em; word-spacing: 0.15em; overflow-wrap: anywhere; }
+.device-list { display: flex; flex-direction: column; gap: 6px; margin: -2px 0 8px; }
+.device-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 12px 10px 16px; border-radius: 16px;
+  background: var(--fill); box-shadow: inset 0 0 0 1px var(--hairline);
+}
+.device-name { font-size: 14px; font-weight: 550; }
+.device-meta { font-size: 12.5px; color: var(--text-3); font-variant-numeric: tabular-nums; }
 .hidden { display: none !important; }
 </style>
 </head>
@@ -1517,6 +1538,199 @@ html, body { overscroll-behavior-y: contain; }
 
 <div id="app" class="shell wide"></div>
 
+<script id="inpriv-mail-render">
+/* Inpriv mail renderer — turns untrusted email HTML into a srcdoc page that
+   loads nothing from the sender. Source of truth for the copies inlined
+   into .mail/index.html and .temp/index.html as <script id="inpriv-mail-render">
+   (tests/check-inline.mjs checks that they match).
+
+   Layers, each enough on its own to block a tracking pixel:
+   1. An allowlist sanitizer on an inert DOMParser document: unknown or
+      active elements and attributes are removed, links are limited to
+      http(s) and mailto, remote image sources are dropped unless the person
+      asked to load images, and CSS is re-serialized through the CSSOM with
+      every url() removed (no regular expressions decide what is HTML).
+   2. A Content-Security-Policy inside the frame: default-src 'none', images
+      only from data: (plus https: after "Load images").
+   3. The page puts it in a sandboxed iframe without allow-scripts, so
+      nothing in a message can run. allow-same-origin stays so the page can
+      measure the message and size the frame; with scripts off, that gives
+      the message nothing to act with. */
+(function () {
+  'use strict';
+  if (window.InprivMailRender) return;
+
+  var HTML_NS = 'http://www.w3.org/1999/xhtml';
+  var KEEP = set('a abbr address article aside b bdi bdo big blockquote br caption center cite code col colgroup dd del details dfn div dl dt em figcaption figure font footer h1 h2 h3 h4 h5 h6 header hr i img ins kbd li main mark nav ol p pre q rp rt ruby s samp section small span strike strong sub summary sup table tbody td tfoot th thead time tr tt u ul var wbr');
+  // removed with everything inside them
+  var DROP = set('script style noscript template iframe frame frameset object embed applet noembed noframes input button select textarea option optgroup datalist output svg math audio video source track canvas map area portal link meta base title head dialog slot xmp plaintext');
+  var GLOBAL_ATTRS = set('class dir lang title align valign width height bgcolor color border style role');
+  var TAG_ATTRS = {
+    a: set('href'), img: set('src alt'), td: set('colspan rowspan nowrap scope abbr headers'),
+    th: set('colspan rowspan nowrap scope abbr headers'), table: set('cellpadding cellspacing summary'),
+    col: set('span'), colgroup: set('span'), font: set('face size'), ol: set('start type reversed'),
+    ul: set('type'), li: set('value type'), time: set('datetime'), hr: set('noshade size')
+  };
+  var IMG_PROPS = set('background background-image list-style list-style-image border-image border-image-source');
+  var DATA_IMG = /^data:image\/(png|gif|jpe?g|webp);base64,[a-z0-9+\/=\s]+$/i;
+
+  function set(s) { var o = Object.create(null); s.split(' ').forEach(function (k) { o[k] = 1; }); return o; }
+
+  function safeHref(v) {
+    v = String(v || '').trim();
+    if (v.length > 2048) return null;
+    return /^(https?:\/\/|mailto:)/i.test(v) ? v : null;
+  }
+
+  // Every url() in a CSS value: allowed only for image properties, and only
+  // https: (after "Load images") or an inline data: image.
+  function cssValueOk(name, value, remote, st) {
+    var v = String(value || '');
+    if (/expression\s*\(|javascript:|-moz-binding|behavior/i.test(v)) return false;
+    if (!/url\s*\(|image-set|image\s*\(|element\s*\(|cross-fade|paint\s*\(/i.test(v)) return true;
+    if (!IMG_PROPS[name] || /image-set|image\s*\(|element\s*\(|cross-fade|paint\s*\(/i.test(v)) { st.blocked++; return false; }
+    var re = /url\(\s*(['"]?)(.*?)\1\s*\)/gi, m, ok = true;
+    while ((m = re.exec(v))) {
+      var u = m[2].trim();
+      if (DATA_IMG.test(u)) continue;
+      if (remote && /^https:\/\//i.test(u)) continue;
+      ok = false;
+    }
+    if (!ok) st.blocked++;
+    return ok;
+  }
+
+  function cleanDecls(style, remote, st) {
+    for (var i = style.length - 1; i >= 0; i--) {
+      var name = style[i];
+      if (!cssValueOk(name, style.getPropertyValue(name), remote, st)) style.removeProperty(name);
+    }
+    var pos = style.getPropertyValue('position');
+    if (pos === 'fixed' || pos === 'sticky') style.removeProperty('position');
+  }
+
+  // <style> blocks: parsed into a constructed stylesheet (which ignores
+  // @import), rebuilt from style, @media and @supports rules only.
+  function cleanCss(text, remote, st) {
+    if (!text || typeof CSSStyleSheet !== 'function') return '';
+    var sheet;
+    try { sheet = new CSSStyleSheet(); sheet.replaceSync(text); } catch (e) { return ''; }
+    function rules(list) {
+      var out = '';
+      for (var i = 0; i < list.length; i++) {
+        var r = list[i], t = '';
+        if (r.type === 1) {
+          cleanDecls(r.style, remote, st);
+          t = r.selectorText + '{' + r.style.cssText + '}';
+        } else if (r.type === 4) {
+          t = '@media ' + r.media.mediaText + '{' + rules(r.cssRules) + '}';
+        } else if (r.type === 12) {
+          t = '@supports ' + r.conditionText + '{' + rules(r.cssRules) + '}';
+        }
+        // last check on the serialized rule: nothing that loads may remain
+        if (t && !/@import/i.test(t) && !/url\(\s*['"]?\s*(?!https:|data:image\/)/i.test(t) &&
+            (remote || !/url\(\s*['"]?\s*https:/i.test(t))) out += t + '\n';
+      }
+      return out;
+    }
+    return rules(sheet.cssRules).replace(/</g, '\\3c ');
+  }
+
+  function cleanAttrs(el, tag, remote, st) {
+    var allowed = TAG_ATTRS[tag];
+    Array.prototype.slice.call(el.attributes).forEach(function (a) {
+      var n = a.name.toLowerCase();
+      if (n === 'background' && /^\s*https?:/i.test(a.value)) st.blocked++;
+      if (!(GLOBAL_ATTRS[n] || (allowed && allowed[n]) || /^aria-[a-z-]+$/.test(n))) el.removeAttribute(a.name);
+    });
+    if (el.hasAttribute('style')) {
+      cleanDecls(el.style, remote, st);
+      if (!el.style.length) el.removeAttribute('style');
+    }
+    if (tag === 'a') {
+      var href = safeHref(el.getAttribute('href'));
+      if (href) {
+        el.setAttribute('href', href);
+        el.setAttribute('target', '_blank');
+        el.setAttribute('rel', 'noopener noreferrer nofollow');
+        el.setAttribute('referrerpolicy', 'no-referrer');
+        el.setAttribute('title', href); // the real destination, whatever the text says
+        st.links++;
+      } else {
+        el.removeAttribute('href');
+      }
+    } else if (tag === 'img') {
+      var src = String(el.getAttribute('src') || '').trim();
+      if (DATA_IMG.test(src) && src.length < 2e6) return;
+      el.removeAttribute('src');
+      if (/^https?:\/\//i.test(src) || /^\/\//.test(src)) {
+        if (remote && /^https:\/\//i.test(src)) { el.setAttribute('src', src); return; }
+        st.blocked++;
+      }
+      el.setAttribute('data-blocked', '');
+    }
+  }
+
+  function walk(node, remote, st) {
+    Array.prototype.slice.call(node.childNodes).forEach(function (k) {
+      if (k.nodeType === 8 || k.nodeType === 7) { k.remove(); return; }
+      if (k.nodeType !== 1) return;
+      var tag = k.localName;
+      if (k.namespaceURI !== HTML_NS || DROP[tag]) { k.remove(); return; }
+      walk(k, remote, st);
+      if (!KEEP[tag]) {
+        while (k.firstChild) k.parentNode.insertBefore(k.firstChild, k);
+        k.remove();
+        return;
+      }
+      cleanAttrs(k, tag, remote, st);
+    });
+  }
+
+  var PAPER =
+    'html{background:#fff;-webkit-text-size-adjust:100%;text-size-adjust:100%}' +
+    'body{margin:0;padding:24px 26px;background:#fff;color:#1d1d1b;' +
+    'font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;overflow-wrap:break-word}' +
+    'img{max-width:100%;height:auto}a{color:#1f5fbf}pre{white-space:pre-wrap}' +
+    'blockquote{margin:0 0 0 .4em;padding-left:.9em;border-left:3px solid #e2e0da;color:#55534d}' +
+    'hr{border:0;border-top:1px solid #e8e6e1}' +
+    'img[data-blocked]{display:inline-block;min-width:16px;min-height:16px;background:#f2f0eb;box-shadow:inset 0 0 0 1px #dcd9d2;color:#8a877f;font-size:12px}' +
+    '@media (max-width:600px){body{padding:16px}}';
+
+  // html → { doc: srcdoc text, blocked: remote resources removed, links }
+  function build(html, opts) {
+    var remote = !!(opts && opts.remote);
+    var st = { blocked: 0, links: 0 };
+    var doc = new DOMParser().parseFromString(String(html || ''), 'text/html');
+    var css = Array.prototype.map.call(doc.querySelectorAll('style'), function (s) { return s.textContent; }).join('\n');
+    var body = doc.body || doc.createElement('body');
+    var wrap = doc.createElement('div');
+    wrap.className = 'inpriv-mail';
+    var bg = body.getAttribute('bgcolor'), fg = body.getAttribute('text');
+    if (body.getAttribute('style')) wrap.setAttribute('style', body.getAttribute('style'));
+    if (bg && /^#?[a-z0-9]{3,8}$/i.test(bg)) wrap.style.backgroundColor = bg;
+    if (fg && /^#?[a-z0-9]{3,8}$/i.test(fg)) wrap.style.color = fg;
+    while (body.firstChild) wrap.appendChild(body.firstChild);
+    walk(wrap, remote, st);
+    if (wrap.hasAttribute('style')) { cleanDecls(wrap.style, remote, st); }
+    var cleanStyle = cleanCss(css, remote, st);
+    var csp = "default-src 'none'; img-src data:" + (remote ? ' https:' : '') +
+      "; style-src 'unsafe-inline'; font-src 'none'; media-src 'none'; frame-src 'none'; object-src 'none'; form-action 'none'; base-uri 'none'";
+    return {
+      blocked: st.blocked,
+      links: st.links,
+      doc: '<!DOCTYPE html><html><head><meta charset="utf-8">' +
+        '<meta http-equiv="Content-Security-Policy" content="' + csp + '">' +
+        '<meta http-equiv="x-dns-prefetch-control" content="off"><meta name="referrer" content="no-referrer">' +
+        '<meta name="color-scheme" content="light"><base target="_blank">' +
+        '<style>' + PAPER + '</style>' + (cleanStyle ? '<style>' + cleanStyle + '</style>' : '') +
+        '</head><body>' + wrap.outerHTML + '</body></html>'
+    };
+  }
+
+  window.InprivMailRender = { build: build };
+})();
+</script>
 <script>
 (() => {
 'use strict';
@@ -1530,10 +1744,12 @@ const PBKDF2_CAP = 100000;
 
 /* ---------- State ---------- */
 const state = {
-  token: localStorage.getItem('inpriv_token'),
+  signedIn: false,       // a Mail session (HttpOnly cookie) is open
   user: null,
-  privKey: null,         // RSA-OAEP CryptoKey unlocked in memory
-  pubKey: null,          // RSA-OAEP CryptoKey
+  ring: null,            // the opened key ring (format 2), in memory only
+  keys: new Map(),       // key id → { priv, pub } while unlocked
+  currentKeyId: null,    // the key new mail is encrypted to
+  pubKey: null,          // RSA-OAEP CryptoKey of the current key
   messages: [],
   activeTab: 'inbox',    // 'inbox' | 'sent' | 'account'
   searchQuery: '',
@@ -1541,7 +1757,7 @@ const state = {
   unlocked: false,
   ssoTried: false,       // auto Quick Sign-In attempted this page load
   ssoBusy: false,
-  dek: null,             // mailbox DEK kept in memory (Quick Unlock re-enrolment)
+  dek: null,             // passphrase key kept in memory (Quick Unlock enrolment)
 };
 
 /* ---------- Helpers ---------- */
@@ -1653,11 +1869,12 @@ function confirmDialog({ title, desc = '', confirmLabel = 'Delete', danger = tru
   });
 }
 
-/* ---------- API Call Helper ---------- */
+/* ---------- API Call Helper ----------
+   The session is an HttpOnly cookie on mail.inpriv.xyz: this page never
+   sees or stores the token. */
 async function api(path, opts = {}) {
   const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
-  if (state.token) headers['Authorization'] = `Bearer ${state.token}`;
-  const res = await fetch(API + path, { ...opts, headers });
+  const res = await fetch(API + path, { ...opts, headers, credentials: 'same-origin' });
   let data = null;
   try { data = await res.json(); } catch (_) {}
   if (!res.ok) {
@@ -1671,8 +1888,23 @@ async function api(path, opts = {}) {
 }
 
 /* ============================================================================
-   WEB CRYPTO — Zero-Knowledge Hybrid Encryption (RSA-2048 + AES-GCM)
+   WEB CRYPTO — messages and mailbox keys
+   Messages: AES-256-GCM, with the AES key wrapped by RSA-OAEP-2048 to the
+   recipient's key and to the sender's own key (for the Sent box).
+   Mailbox keys (format 2): every private key of the mailbox — the key ring —
+   is sealed with AES-256-GCM under a key derived from the mailbox passphrase
+   (PBKDF2-SHA-256, 600,000 iterations, random salt). The passphrase and the
+   key derived from it never leave this page; the server keeps the sealed
+   ring and can't open it.
+   Format 1 (before October 2026): one private key sealed under the Inpriv ID
+   password, which the server also receives at sign-in. It's only opened
+   here to move the key into a format-2 ring with a new key for future mail.
    ========================================================================== */
+const KEY_ITERS = 600000;
+const MIN_PASSPHRASE = 12;
+const RING_AAD = utf8.enc('inpriv-mail-keyring-v2');
+const RSA = { name: 'RSA-OAEP', hash: 'SHA-256' };
+
 async function generateKeyPair() {
   return crypto.subtle.generateKey(
     { name: 'RSA-OAEP', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
@@ -1681,7 +1913,8 @@ async function generateKeyPair() {
   );
 }
 
-async function deriveAesFromPassword(password, saltB64, iterations = PASS_ITERS) {
+// format 1: chained PBKDF2 over the sign-in password (read-only, to upgrade)
+async function deriveLegacyKey(password, saltB64, iterations = PASS_ITERS) {
   const rounds = Math.max(1, Math.ceil(iterations / PBKDF2_CAP));
   let material = utf8.enc(password);
   let bits;
@@ -1698,29 +1931,152 @@ async function deriveAesFromPassword(password, saltB64, iterations = PASS_ITERS)
       256
     );
     material = new Uint8Array(bits);
-    }
-    // extractable: true is REQUIRED — the Quick Unlock enrolment wraps
-    // (exports) this key under the device key. The key lives only in
-    // memory and is wiped on sign-out, same as the RSA private key.
-    return crypto.subtle.importKey('raw', bits, { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
+  }
+  return crypto.subtle.importKey('raw', bits, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
 }
 
-async function exportPublicKey(pubKey) {
-  const spki = await crypto.subtle.exportKey('spki', pubKey);
-  return b64.enc(spki);
+// format 1 envelope → the private key as base64 PKCS#8
+async function openLegacyKey(user, aesKey) {
+  const pkcs8 = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv: new Uint8Array(b64.dec(user.priv_iv)) }, aesKey, b64.dec(user.encrypted_private_key));
+  return b64.enc(pkcs8);
 }
 
-async function wrapPrivateKey(privKey, aesKey) {
-  const pkcs8 = await crypto.subtle.exportKey('pkcs8', privKey);
+// format 2: the passphrase key. Extractable only so "Skip mailbox
+// passphrase" can wrap it under this device's key; it lives in memory and
+// is dropped on sign-out.
+async function derivePassphraseKey(passphrase, saltB64, iterations) {
+  const base = await crypto.subtle.importKey('raw', utf8.enc(String(passphrase).normalize('NFC')), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', hash: 'SHA-256', salt: new Uint8Array(b64.dec(saltB64)), iterations },
+    base, { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
+}
+
+// A key id is the first 128 bits of SHA-256 over the public key (SPKI). The
+// server computes it the same way; people compare it to verify a key.
+async function keyIdOf(spki) {
+  const d = new Uint8Array(await crypto.subtle.digest('SHA-256', spki));
+  return Array.from(d.slice(0, 16), (x) => x.toString(16).padStart(2, '0')).join('');
+}
+const fingerprint = (id) => String(id || '').match(/.{1,4}/g)?.join(' ') || '—';
+
+async function publicFromPkcs8(pkcs8B64) {
+  const k = await crypto.subtle.importKey('pkcs8', b64.dec(pkcs8B64), RSA, true, ['decrypt']);
+  const jwk = await crypto.subtle.exportKey('jwk', k);
+  const pub = await crypto.subtle.importKey('jwk', { kty: 'RSA', n: jwk.n, e: jwk.e, alg: 'RSA-OAEP-256', ext: true }, RSA, true, ['encrypt']);
+  return crypto.subtle.exportKey('spki', pub);
+}
+
+// Load a key ring and check every key against its id with a test round
+// trip, so a damaged or swapped ring is caught before it's trusted.
+async function loadRing(ring) {
+  if (!ring || ring.v !== 2 || !Array.isArray(ring.keys) || !ring.keys.length) throw new Error('key ring check failed');
+  const keys = new Map();
+  for (const k of ring.keys) {
+    const spki = await publicFromPkcs8(k.pkcs8);
+    if ((await keyIdOf(spki)) !== k.id) throw new Error('key ring check failed');
+    const priv = await crypto.subtle.importKey('pkcs8', b64.dec(k.pkcs8), RSA, false, ['decrypt']);
+    const pub = await crypto.subtle.importKey('spki', spki, RSA, true, ['encrypt']);
+    const probe = crypto.getRandomValues(new Uint8Array(32));
+    const back = new Uint8Array(await crypto.subtle.decrypt({ name: 'RSA-OAEP' }, priv, await crypto.subtle.encrypt({ name: 'RSA-OAEP' }, pub, probe)));
+    if (back.length !== 32 || back.some((x, i) => x !== probe[i])) throw new Error('key ring check failed');
+    keys.set(k.id, { priv, pub, spki: b64.enc(spki), created: k.created || 0 });
+  }
+  if (!keys.has(ring.current)) throw new Error('key ring check failed');
+  return keys;
+}
+
+async function openRing(env, kek) {
+  const pt = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv: new Uint8Array(b64.dec(env.priv_iv)), additionalData: RING_AAD },
+    kek, b64.dec(env.encrypted_private_key));
+  return JSON.parse(utf8.dec(pt));
+}
+
+// Seal a ring under a passphrase, then open the result again with a freshly
+// derived key: nothing is sent unless it's known to open.
+async function sealRing(ring, passphrase) {
+  const salt = b64.enc(crypto.getRandomValues(new Uint8Array(16)).buffer);
+  const kek = await derivePassphraseKey(passphrase, salt, KEY_ITERS);
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, aesKey, pkcs8);
-  return { wrapped: b64.enc(ct), iv: b64.enc(iv.buffer) };
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: RING_AAD }, kek, utf8.enc(JSON.stringify(ring)));
+  const envelope = { key_format: 2, encrypted_private_key: b64.enc(ct), priv_iv: b64.enc(iv.buffer), priv_salt: salt, priv_iter: KEY_ITERS };
+  const again = await openRing(envelope, await derivePassphraseKey(passphrase, salt, KEY_ITERS));
+  if (JSON.stringify(again) !== JSON.stringify(ring)) throw new Error('key ring check failed');
+  return { envelope, kek };
 }
 
-/* ---------- Quick Unlock device key (opt-in master-password bypass) ----
-   Random AES key in localStorage; the mailbox DEK (the PBKDF2 password
-   key) is wrapped under it and stored server-side as ciphertext. Server
-   never sees either key in the clear. */
+async function newRingKey() {
+  const kp = await generateKeyPair();
+  const spki = await crypto.subtle.exportKey('spki', kp.publicKey);
+  const pkcs8 = await crypto.subtle.exportKey('pkcs8', kp.privateKey);
+  return { entry: { id: await keyIdOf(spki), created: Date.now(), pkcs8: b64.enc(pkcs8) }, spki: b64.enc(spki) };
+}
+
+// The unlocked mailbox, in memory only.
+function useRing(ring, keys, kek) {
+  state.ring = ring;
+  state.keys = keys;
+  state.currentKeyId = ring.current;
+  state.pubKey = keys.get(ring.current).pub;
+  state.dek = kek;
+  state.unlocked = true;
+  // the server's copy of our public key must be the one in the ring
+  state.keyMismatch = !!(state.user.key_id && state.user.key_id !== ring.current);
+  if (state.keyMismatch) {
+    setTimeout(() => toast('Mailbox key mismatch', "The public key the server lists for you isn't the one in your key ring. Don't send mail until this is sorted out.", 'error'), 500);
+  }
+}
+
+function lockMailbox() {
+  state.ring = null;
+  state.keys = new Map();
+  state.currentKeyId = null;
+  state.pubKey = null;
+  state.dek = null;
+  state.unlocked = false;
+}
+
+async function unlockWithPassphrase(passphrase) {
+  const kek = await derivePassphraseKey(passphrase, state.user.priv_salt, state.user.priv_iter);
+  let ring;
+  try { ring = await openRing(state.user, kek); } catch (e) {
+    const err = new Error("That passphrase doesn't open your mailbox.");
+    err.code = 'wrong';
+    throw err;
+  }
+  useRing(ring, await loadRing(ring), kek);
+}
+
+// Answer the server's key challenge (see /keys/challenge): proves this page
+// holds the mailbox's current private key.
+async function keyProof(purpose, privKey) {
+  const c = await api('/keys/challenge', { method: 'POST', body: JSON.stringify({ purpose }) });
+  const key = privKey || state.keys.get(state.currentKeyId).priv;
+  const answer = await crypto.subtle.decrypt({ name: 'RSA-OAEP' }, key, b64.dec(c.challenge));
+  return { challenge_id: c.challenge_id, challenge_answer: b64.enc(answer) };
+}
+
+// What's wrong with a new passphrase, or null. `avoid` holds the sign-in
+// passwords this page knows: the server has seen those, so they can't
+// protect the keys.
+function passphraseProblem(p, confirm, avoid = []) {
+  if (p.length < MIN_PASSPHRASE) return `Use at least ${MIN_PASSPHRASE} characters. A few unrelated words work well.`;
+  if (p.length > 1000) return 'That passphrase is too long.';
+  if (confirm !== undefined && p !== confirm) return "The two passphrases don't match.";
+  const n = (s) => String(s).normalize('NFC').trim();
+  if (avoid.some((a) => a && n(a) === n(p))) {
+    return 'Use something different from your Inpriv ID password. The server sees that password when you sign in.';
+  }
+  return null;
+}
+
+/* ---------- Quick Unlock device key ("Skip mailbox passphrase") ----
+   A random AES key in this browser's storage; the passphrase key is wrapped
+   under it and the wrap is stored server-side. Anyone who can use this
+   browser profile — or any script running on mail.inpriv.xyz — can open the
+   mailbox with it, so it trades protection for convenience on devices you
+   trust. Turning it off (here or on Inpriv ID) deletes every device's wrap. */
 const DEVICE_KEY_NAME = 'inpriv_device_key';
 const DEVICE_PUB_NAME = 'inpriv_device_pub';
 let _deviceKeyCache = null;
@@ -1767,38 +2123,26 @@ async function unwrapRawDek(blob, deviceKey) {
   if (!ivB || !ctB) return null;
   try {
     const raw = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: new Uint8Array(b64.dec(ivB)) }, deviceKey, b64.dec(ctB));
-    // extractable so the Account-settings toggle can re-wrap this DEK
+    // extractable so the Account-settings toggle can re-wrap this key
     return await crypto.subtle.importKey('raw', raw, { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
   } catch (e) { return null; }
 }
 
-/* Enrol this device for Quick Unlock: wrap the mailbox DEK under the local
-   device key and store the ciphertext server-side. Called after EVERY
-   password unlock (login, session unlock, init, registration) so a missing
-   or stale wrap never makes the user type the master password twice.
-   Honours the Inpriv ID account setting (widget flag, else /me fallback). */
-async function enrolQuickUnlock(dek) {
-  if (!dek) return false;
-  let qu = state.idUser
-    ? state.idUser.quick_unlock
-    : (state.user && typeof state.user.quick_unlock !== 'undefined') ? state.user.quick_unlock : undefined;
+/* Enrol this device after a passphrase unlock, when the account setting
+   allows it. The server only accepts it with a key proof, so a session on
+   its own can't add a device. */
+async function enrolQuickUnlock() {
+  if (!state.dek || !state.unlocked || state.user.key_format !== 2) return false;
+  let qu = (state.user && typeof state.user.quick_unlock !== 'undefined') ? state.user.quick_unlock : undefined;
   if (qu === undefined) {
     try { qu = (await api('/me', { method: 'GET' })).quick_unlock !== false; } catch (e) {}
   }
   if (!qu) return false;
   const dk = await getDeviceKey(true);
-  const wrapped = await wrapRawDek(dek, dk);
-  await api('/device-key/set', { method: 'POST', body: JSON.stringify({ wrapped_dek: wrapped, device_id: getDeviceId() }) });
+  const wrapped = await wrapRawDek(state.dek, dk);
+  const proof = await keyProof('device');
+  await api('/device-key/set', { method: 'POST', body: JSON.stringify({ wrapped_dek: wrapped, device_id: getDeviceId(), ...proof }) });
   return true;
-}
-
-async function unwrapPrivateKey(wrappedB64, ivB64, aesKey) {
-  const pkcs8 = await crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv: new Uint8Array(b64.dec(ivB64)) },
-    aesKey,
-    b64.dec(wrappedB64)
-  );
-  return crypto.subtle.importKey('pkcs8', pkcs8, { name: 'RSA-OAEP', hash: 'SHA-256' }, true, ['decrypt']);
 }
 
 // Client-side Hybrid Encryption for Sender & Recipient
@@ -1858,6 +2202,29 @@ async function hybridDecrypt(privKey, enc) {
   merged.set(tag, ct.length);
   const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: new Uint8Array(b64.dec(enc.iv)) }, aesKey, merged.buffer);
   return utf8.dec(pt);
+}
+
+// A message with the key it names, then with every other key in the ring.
+async function decryptMessage(msg) {
+  const order = [];
+  if (msg.key_id && state.keys.has(msg.key_id)) order.push(state.keys.get(msg.key_id));
+  for (const k of state.keys.values()) if (!order.includes(k)) order.push(k);
+  for (const k of order) {
+    try { return await hybridDecrypt(k.priv, msg); } catch (e) { /* next key */ }
+  }
+  throw new Error(msg.key_id && !state.keys.has(msg.key_id)
+    ? "It was encrypted to a mailbox key that isn't in your key ring any more (for example after starting over with a new key)."
+    : "None of your mailbox keys opens it.");
+}
+
+// Recipients' key ids seen before, per address, kept in this browser: a
+// change is shown before anything is encrypted to the new key.
+const KNOWN_KEYS = 'inpriv_known_keys';
+function knownKeys() {
+  try { return JSON.parse(localStorage.getItem(KNOWN_KEYS) || '{}') || {}; } catch (e) { return {}; }
+}
+function rememberKey(user, id) {
+  try { const k = knownKeys(); k[user] = id; localStorage.setItem(KNOWN_KEYS, JSON.stringify(k)); } catch (e) {}
 }
 
 /* ============================================================================
@@ -1922,6 +2289,10 @@ function updateIdStatusHeader() {
 
 /* ============================================================================
    AUTH VIEWS
+   Two separate secrets:
+   - the Inpriv ID password signs you in. It goes to the server, which checks
+     it (and 2FA) and opens a session;
+   - the mailbox passphrase unlocks your keys in this page. It's never sent.
    ========================================================================== */
 function renderAuth(initialMode = 'login') {
   $('#bottomNavContainer').innerHTML = '';
@@ -1935,14 +2306,14 @@ function renderAuth(initialMode = 'login') {
         <div class="auth-header">
           <div class="auth-header-icon">${mkIcon('mail_lock')}</div>
           <h1 class="auth-title">Your private mailbox.<br><span>Unlocked in your browser.</span></h1>
-          <p class="auth-subtitle">Sign in with your Inpriv ID. Mail between Inpriv users is end-to-end encrypted on your device.</p>
+          <p class="auth-subtitle">Sign in with your Inpriv ID. Your mailbox passphrase comes next: it unlocks your keys on this device and is never sent to Inpriv.</p>
         </div>
 
         <div id="ssoBannerContainer"></div>
 
         <div class="auth-segmented" id="authSeg">
-          <button data-mode="login" class="${initialMode === 'login' ? 'active' : ''}">Sign In</button>
-          <button data-mode="register" class="${initialMode === 'register' ? 'active' : ''}">Create Account</button>
+          <button data-mode="login" class="${initialMode === 'login' ? 'active' : ''}">Sign in</button>
+          <button data-mode="register" class="${initialMode === 'register' ? 'active' : ''}">Create account</button>
         </div>
 
         <div id="authFormArea"></div>
@@ -1962,67 +2333,61 @@ function renderAuth(initialMode = 'login') {
   checkInprivIdSso();
 }
 
+// Signed in on id.inpriv.xyz (One Tap): offer that account's name.
 function checkInprivIdSso() {
   const banner = $('#ssoBannerContainer');
   if (!banner) return;
-
-  if (state.idUser) {
-    const nick = state.idUser.nick || state.idUser.username;
-    const email = state.idUser.email || (state.idUser.username + '@inpriv.xyz');
-    banner.innerHTML = `
-      <div class="sso-card" id="ssoCard" role="button" tabindex="0" title="Click to unlock with Inpriv ID">
-        <div class="sso-av">${initials(nick)}</div>
-        <div class="sso-meta">
-          <div class="sso-nick">Continue with Inpriv ID (${escapeHtml(nick)})</div>
-          <div class="sso-email">${escapeHtml(email)}</div>
-        </div>
-        ${mkIcon('arrow_forward', 'sso-action-icon')}
+  if (!state.idUser) { banner.innerHTML = ''; return; }
+  const nick = state.idUser.nick || state.idUser.username;
+  const email = state.idUser.email || (state.idUser.username + '@inpriv.xyz');
+  banner.innerHTML = `
+    <div class="sso-card" id="ssoCard" role="button" tabindex="0" title="Use this Inpriv ID">
+      <div class="sso-av">${initials(nick)}</div>
+      <div class="sso-meta">
+        <div class="sso-nick">Continue as ${escapeHtml(nick)}</div>
+        <div class="sso-email">${escapeHtml(email)}</div>
       </div>
-    `;
-
-    const uInput = $('#authUsername');
-    if (uInput && (!uInput.value || uInput.value === '')) {
-      uInput.value = state.idUser.username;
-    }
-
-    const ssoCard = $('#ssoCard');
-    if (ssoCard) {
-      const activateSso = () => {
-        // Switch to login tab if not active
-        const loginTabBtn = $(`#authSeg button[data-mode="login"]`);
-        if (loginTabBtn && !loginTabBtn.classList.contains('active')) {
-          $$('#authSeg button').forEach(b => b.classList.remove('active'));
-          loginTabBtn.classList.add('active');
-          renderAuthForm('login');
-        }
-
-        const u = $('#authUsername');
-        const p = $('#authPassword');
-        if (u) u.value = state.idUser.username;
-        if (p) {
-          if (p.value) {
-            handleLogin(state.idUser.username, p.value);
-          } else {
-            p.focus();
-            p.classList.add('pulse-focus');
-            setTimeout(() => p.classList.remove('pulse-focus'), 800);
-            toast('Inpriv ID active', 'Enter your master password to unlock mailbox');
-          }
-        }
-      };
-
-      ssoCard.addEventListener('click', activateSso);
-      ssoCard.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          activateSso();
-        }
-      });
-    }
-  } else {
-    banner.innerHTML = '';
-  }
+      ${mkIcon('arrow_forward', 'sso-action-icon')}
+    </div>
+  `;
+  const uInput = $('#authUsername');
+  if (uInput && !uInput.value) uInput.value = state.idUser.username;
+  const pick = () => {
+    const u = $('#authUsername');
+    if (u) u.value = state.idUser.username;
+    $('#authPassword')?.focus();
+  };
+  $('#ssoCard').addEventListener('click', pick);
+  $('#ssoCard').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); }
+  });
 }
+
+function pwField(id, label, autocomplete, placeholder, hint = '') {
+  return `
+    <div class="field">
+      <label for="${id}">${label}</label>
+      <div class="input-wrap">
+        <input type="password" id="${id}" placeholder="${placeholder}" autocomplete="${autocomplete}" required maxlength="1000">
+        <button type="button" class="eye-toggle" data-target="${id}" aria-label="Show">${mkIcon('visibility')}</button>
+      </div>
+      ${hint ? `<div class="field-hint">${hint}</div>` : ''}
+    </div>`;
+}
+
+function busy(btn, label) {
+  if (!btn) return;
+  btn.dataset.label = btn.dataset.label || btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner"></span> <span>${label}</span>`;
+}
+function idle(btn) {
+  if (!btn) return;
+  btn.disabled = false;
+  if (btn.dataset.label) btn.innerHTML = btn.dataset.label;
+}
+
+const PASSPHRASE_NOTE = `<strong>Nobody can reset your mailbox passphrase, not even Inpriv.</strong> Keep it in a password manager or write it down. If you lose it, mail sent to you so far can't be opened again.`;
 
 function renderAuthForm(mode) {
   const area = $('#authFormArea');
@@ -2030,448 +2395,480 @@ function renderAuthForm(mode) {
     area.innerHTML = `
       <form id="loginForm">
         <div class="field">
-          <label>Inpriv Address / Username</label>
+          <label for="authUsername">Inpriv ID</label>
           <div class="input-wrap">
-            <input type="text" id="authUsername" placeholder="username" autocomplete="username" autocapitalize="none" spellcheck="false" required value="${state.idUser ? state.idUser.username : ''}">
+            <input type="text" id="authUsername" placeholder="username" autocomplete="username" autocapitalize="none" spellcheck="false" required maxlength="320" value="${state.idUser ? escapeHtml(state.idUser.username) : ''}">
             <span class="input-suffix">@${DOMAIN}</span>
           </div>
         </div>
-
-        <div class="field">
-          <label>Master Password</label>
-          <div class="input-wrap">
-            <input type="password" id="authPassword" placeholder="Master password" autocomplete="current-password" required>
-            <button type="button" class="eye-toggle" data-target="authPassword">${mkIcon('visibility')}</button>
-          </div>
-        </div>
-
+        ${pwField('authPassword', 'Inpriv ID password', 'current-password', 'Password')}
         <button type="submit" class="btn btn-primary btn-block" id="authSubmitBtn">
-          <span>Unlock Mailbox</span> ${mkIcon('lock_open')}
+          <span>Sign in</span> ${mkIcon('arrow_forward')}
         </button>
       </form>
     `;
-
     bindEyeToggles();
     $('#loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const u = $('#authUsername').value.trim().toLowerCase();
-      const p = $('#authPassword').value;
-      await handleLogin(u, p);
+      await handleLogin($('#authUsername').value.trim().toLowerCase(), $('#authPassword').value);
     });
-  } else {
-    area.innerHTML = `
-      <form id="regForm">
-        <div class="field">
-          <label>Pick a Username</label>
-          <div class="input-wrap">
-            <input type="text" id="regUsername" placeholder="username" autocomplete="username" autocapitalize="none" spellcheck="false" required pattern="[a-zA-Z0-9._-]{2,32}" value="${state.idUser ? state.idUser.username : ''}">
-            <span class="input-suffix">@${DOMAIN}</span>
-          </div>
-          <div class="field-hint" id="regHint" style="font-size:12px;color:var(--md-on-surface-variant);margin-top:4px"></div>
-        </div>
-
-        <div class="field">
-          <label>Master Password <span style="opacity:0.7">(min 10 chars)</span></label>
-          <div class="input-wrap">
-            <input type="password" id="regPassword" placeholder="Minimum 10 characters" autocomplete="new-password" required minlength="10">
-            <button type="button" class="eye-toggle" data-target="regPassword">${mkIcon('visibility')}</button>
-          </div>
-        </div>
-
-        <div class="field">
-          <label>Confirm Password</label>
-          <div class="input-wrap">
-            <input type="password" id="regPasswordConfirm" placeholder="Re-type password" autocomplete="new-password" required minlength="10">
-            <button type="button" class="eye-toggle" data-target="regPasswordConfirm">${mkIcon('visibility')}</button>
-          </div>
-        </div>
-
-        <div class="field">
-          <label>Recovery email <span style="opacity:0.7">(optional)</span></label>
-          <div class="input-wrap">
-            <input type="email" id="regRecovery" placeholder="you@gmail.com" autocomplete="email" autocapitalize="none" spellcheck="false">
-          </div>
-          <div class="field-hint" style="font-size:12px;color:var(--md-on-surface-variant);margin-top:4px">For password resets. We send it a code to confirm.</div>
-        </div>
-
-        <div id="regStatus" style="font-size:12.5px;color:var(--md-primary);margin-bottom:10px;text-align:center"></div>
-
-        <button type="submit" class="btn btn-primary btn-block" id="regSubmitBtn">
-          <span>Create account</span> ${mkIcon('arrow_forward')}
-        </button>
-        <p class="legal-note">By creating an account you agree to the <a href="https://inpriv.xyz/terms" target="_blank" rel="noopener">Terms</a> and the <a href="https://inpriv.xyz/privacy" target="_blank" rel="noopener">Privacy Policy</a>.</p>
-      </form>
-    `;
-
-    bindEyeToggles();
-
-    $('#regUsername').addEventListener('input', (e) => {
-      const v = e.target.value.trim().toLowerCase();
-      $('#regHint').textContent = v ? `Your permanent address: ${v}@${DOMAIN}` : '';
-    });
-
-    $('#regForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const u = $('#regUsername').value.trim().toLowerCase();
-      const p = $('#regPassword').value;
-      const pc = $('#regPasswordConfirm').value;
-      const rec = ($('#regRecovery').value || '').trim().toLowerCase();
-      await handleRegister(u, p, pc, rec);
-    });
+    return;
   }
+
+  area.innerHTML = `
+    <form id="regForm">
+      <div class="field">
+        <label for="regUsername">Pick a username</label>
+        <div class="input-wrap">
+          <input type="text" id="regUsername" placeholder="username" autocomplete="username" autocapitalize="none" spellcheck="false" required pattern="[a-zA-Z0-9._\\-]{3,32}" maxlength="32" value="${state.idUser ? escapeHtml(state.idUser.username) : ''}">
+          <span class="input-suffix">@${DOMAIN}</span>
+        </div>
+        <div class="field-hint" id="regHint"></div>
+      </div>
+
+      ${pwField('regPassword', 'Inpriv ID password <span class="opt">(10+ characters)</span>', 'new-password', 'Sign-in password')}
+      ${pwField('regPasswordConfirm', 'Repeat the password', 'new-password', 'Sign-in password again')}
+
+      <div class="sec-badge">${mkIcon('key')}<span>Your <strong>mailbox passphrase</strong> locks your mailbox keys in this browser. It's never sent to Inpriv and must be different from your password. ${PASSPHRASE_NOTE}</span></div>
+
+      ${pwField('regPassphrase', `Mailbox passphrase <span class="opt">(${MIN_PASSPHRASE}+ characters)</span>`, 'new-password', 'A few unrelated words')}
+      ${pwField('regPassphraseConfirm', 'Repeat the passphrase', 'new-password', 'Passphrase again')}
+
+      <div class="field">
+        <label for="regRecovery">Recovery email <span class="opt">(optional)</span></label>
+        <div class="input-wrap">
+          <input type="email" id="regRecovery" placeholder="you@example.com" autocomplete="email" autocapitalize="none" spellcheck="false" maxlength="254">
+        </div>
+        <div class="field-hint">We confirm it with a code. It can't reset your password or your mailbox passphrase.</div>
+      </div>
+
+      <div id="regStatus"></div>
+
+      <button type="submit" class="btn btn-primary btn-block" id="regSubmitBtn">
+        <span>Create account</span> ${mkIcon('arrow_forward')}
+      </button>
+      <p class="legal-note">By creating an account you agree to the <a href="https://inpriv.xyz/terms" target="_blank" rel="noopener">Terms</a> and the <a href="https://inpriv.xyz/privacy" target="_blank" rel="noopener">Privacy Policy</a>.</p>
+    </form>
+  `;
+  bindEyeToggles();
+  $('#regUsername').addEventListener('input', (e) => {
+    const v = e.target.value.trim().toLowerCase();
+    $('#regHint').textContent = v ? `Your permanent address: ${v}@${DOMAIN}` : '';
+  });
+  $('#regForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    await handleRegister({
+      username: $('#regUsername').value.trim().toLowerCase(),
+      password: $('#regPassword').value,
+      confirm: $('#regPasswordConfirm').value,
+      passphrase: $('#regPassphrase').value,
+      passphraseConfirm: $('#regPassphraseConfirm').value,
+      recovery: ($('#regRecovery').value || '').trim().toLowerCase(),
+    });
+  });
 }
 
 function bindEyeToggles() {
   $$('.eye-toggle').forEach(btn => {
+    if (btn.dataset.bound) return;
+    btn.dataset.bound = '1';
     btn.addEventListener('click', () => {
       const inp = $('#' + btn.dataset.target);
       if (!inp) return;
-      if (inp.type === 'password') {
-        inp.type = 'text';
-        btn.innerHTML = mkIcon('visibility_off');
-      } else {
-        inp.type = 'password';
-        btn.innerHTML = mkIcon('visibility');
-      }
+      const show = inp.type === 'password';
+      inp.type = show ? 'text' : 'password';
+      btn.innerHTML = mkIcon(show ? 'visibility_off' : 'visibility');
+      btn.setAttribute('aria-label', show ? 'Hide' : 'Show');
     });
   });
 }
 
-/* ---------- Login Flow ---------- */
-async function handleLogin(username, password) {
-  const btn = $('#authSubmitBtn');
-  if (btn) { btn.disabled = true; btn.innerHTML = `<span class="spinner"></span> <span>Unlocking…</span>`; }
-
-  try {
-    const res = await api('/login', {
-      method: 'POST',
-      body: JSON.stringify({ username, password })
-    });
-
-    if (res.status === 'needs_init') {
-      // Inpriv ID user needs key generation
-      toast('Inpriv ID verified', 'Generating zero-knowledge encryption keys…');
-      await initializeInprivIdKeys(res.username, password);
-      return;
-    }
-
-    if (res.status === 'totp_required') {
-      // 2FA on the Inpriv ID account — ask for the authenticator code now.
-      // An existing mailbox signs in with it; a new one continues into key
-      // init with the proof ticket.
-      await promptTwoFactor(res.username, res.nick || res.username, password, !!res.mailbox);
-      return;
-    }
-
-    finishPasswordLogin(res, password);
-  } catch (e) {
-    toast('Login failed', e.message, 'error');
-    if (btn) { btn.disabled = false; btn.innerHTML = `<span>Unlock Mailbox</span> ${mkIcon('lock_open')}`; }
-  }
-}
-
-/* Session issued for a password sign-in: unwrap the mailbox key with the
-   password and open the inbox. */
-async function finishPasswordLogin(res, password) {
-  state.token = res.token;
-  state.user = res.user;
-  localStorage.setItem('inpriv_token', res.token);
-  if (res.migrated) {
-    setTimeout(() => toast('Your account is now an Inpriv ID', 'Same password. Add 2FA and a recovery email at id.inpriv.xyz.'), 600);
-  }
-  if (res.rekey) {
-    // the Inpriv ID password changed since the key was locked
-    await startRekey(password);
-    return;
-  }
-
-  // Derive AES key & unwrap private RSA key. The unwrap is best-effort:
-  // some accounts (notably Fake identities created on fake.inpriv.xyz before
-  // a Mail-side compatibility fix lands) may have an envelope that fails to
-  // decrypt even when the password is correct — usually because the account
-  // was created by a different client whose envelope format we don't yet
-  // fully match. The API session is valid either way, so log the user in and
-  // let them read messages; they'll only see a warning when they try to
-  // send (no private key → can't sign/encrypt outbound mail).
-  let unwrapFailed = false;
-  try {
-    const aesKey = await deriveAesFromPassword(password, res.user.priv_salt, res.user.priv_iter);
-    state.dek = aesKey; // kept for Quick Unlock re-enrolment from settings
-    state.privKey = await unwrapPrivateKey(res.user.encrypted_private_key, res.user.priv_iv, aesKey);
-    state.pubKey = await crypto.subtle.importKey('spki', b64.dec(res.user.public_key), { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['encrypt']);
-    state.unlocked = true;
-  } catch (e) {
-    unwrapFailed = true;
-    console.warn('Key unwrap failed — inbox will be read-only:', e);
-  }
-
-  if (state.unlocked) {
-    // Quick Unlock enrolment: wrap the freshly derived DEK under this
-    // device's key so future visits skip the master password (the account
-    // setting is checked inside the helper).
-    try { await enrolQuickUnlock(state.dek); } catch (e) { /* best-effort; password login still works */ }
-    unlockToast(`Signed in as ${res.user.email}`);
-  } else {
-    state.token = res.token;
-    toast('Signed in', `Read-only — couldn't unlock encryption keys. You can view messages but can't send.`);
-  }
-  renderDashboard();
-  if (unwrapFailed) {
-    // Persistent reminder at the top of the inbox so the user knows why
-    // some actions (reply, compose) may fail.
-    setTimeout(() => toast('Keys unavailable', 'Inbox is in read-only mode until the next sign-in', 'error'), 400);
-  }
-}
-
-/* ---------- Re-lock after an Inpriv ID password change ----------
-   The private key is still wrapped with the previous password. Open it with
-   this device's Quick Unlock key when there is one, otherwise ask for the
-   previous password once, then wrap it under the current password. The key
-   pair itself never changes, so every stored message stays readable. */
-async function startRekey(newPassword) {
-  try {
-    const dk = await getDeviceKey(false);
-    const kd = dk ? await api('/device-key/get?device=' + encodeURIComponent(getDeviceId()), { method: 'GET' }) : null;
-    const dek = kd && kd.wrapped_dek ? await unwrapRawDek(kd.wrapped_dek, dk) : null;
-    if (dek) {
-      const priv = await unwrapPrivateKey(state.user.encrypted_private_key, state.user.priv_iv, dek);
-      await finishRekey(newPassword, priv);
-      return;
-    }
-  } catch (e) { /* fall back to the previous password */ }
-  promptPreviousPassword(newPassword);
-}
-
-async function finishRekey(newPassword, privKey) {
-  const salt = b64.enc(crypto.getRandomValues(new Uint8Array(16)).buffer);
-  const aesKey = await deriveAesFromPassword(newPassword, salt, PASS_ITERS);
-  const { wrapped, iv } = await wrapPrivateKey(privKey, aesKey);
-  const r = await api('/rekey', {
-    method: 'POST',
-    body: JSON.stringify({ password: newPassword, encrypted_private_key: wrapped, priv_iv: iv, priv_salt: salt, priv_iter: PASS_ITERS })
-  });
-  state.user = r.user;
-  state.dek = aesKey;
-  state.privKey = privKey;
-  state.pubKey = await crypto.subtle.importKey('spki', b64.dec(state.user.public_key), { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['encrypt']);
-  state.unlocked = true;
-  try { await enrolQuickUnlock(aesKey); } catch (e) {}
-  toast('Mailbox updated', 'Your mailbox now opens with your new Inpriv ID password.');
-  renderDashboard();
-}
-
-function promptPreviousPassword(newPassword) {
+// One card for every step after the sign-in form.
+function authCard({ icon, title, sub, body }) {
   $('#bottomNavContainer').innerHTML = '';
   $('#fabContainer').innerHTML = '';
+  updateIdStatusHeader();
   $('#mainView').innerHTML = `
     <div class="auth-container">
       <div class="auth-box glass">
         <div class="auth-header">
-          <div class="auth-header-icon">${mkIcon('key')}</div>
-          <h1 class="auth-title">Your password changed.<br><span>Update your mailbox key once.</span></h1>
-          <p class="auth-subtitle">Your mailbox key is still locked with your previous Inpriv ID password. Enter it once and the key is re-locked with your new one, on this device.</p>
+          <div class="auth-header-icon">${mkIcon(icon)}</div>
+          <h1 class="auth-title">${title}</h1>
+          <p class="auth-subtitle">${sub}</p>
         </div>
-        <form id="rekeyForm">
-          <div class="field">
-            <label>Previous password</label>
-            <div class="input-wrap">
-              <input type="password" id="rekeyOldPw" placeholder="Previous password" autocomplete="off" required autofocus>
-              <button type="button" class="eye-toggle" data-target="rekeyOldPw">${mkIcon('visibility')}</button>
-            </div>
-          </div>
-          <button type="submit" class="btn btn-primary btn-block" id="rekeyBtn">
-            <span>Update mailbox key</span> ${mkIcon('lock_open')}
-          </button>
-          <div style="text-align:center;margin-top:14px">
-            <button type="button" class="btn btn-text" id="rekeySkipBtn">Skip — open read-only</button>
-          </div>
-        </form>
+        ${body}
       </div>
-    </div>
-  `;
+    </div>`;
   bindEyeToggles();
-  $('#rekeySkipBtn').addEventListener('click', () => {
-    toast('Signed in', `Read-only — couldn't unlock encryption keys. You can view messages but can't send.`);
-    renderDashboard();
-  });
-  $('#rekeyForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const btn = $('#rekeyBtn');
-    btn.disabled = true;
-    btn.innerHTML = `<span class="spinner"></span> <span>Updating…</span>`;
-    let priv = null;
-    try {
-      const oldKey = await deriveAesFromPassword($('#rekeyOldPw').value, state.user.priv_salt, state.user.priv_iter);
-      priv = await unwrapPrivateKey(state.user.encrypted_private_key, state.user.priv_iv, oldKey);
-    } catch (err) {
-      toast('Not your previous password', 'That password does not open your mailbox key.', 'error');
-    }
-    try {
-      if (priv) { await finishRekey(newPassword, priv); return; }
-    } catch (err) {
-      toast('Update failed', err.message, 'error');
-    }
-    btn.disabled = false;
-    btn.innerHTML = `<span>Update mailbox key</span> ${mkIcon('lock_open')}`;
-  });
 }
 
-/* ---------- Two-Factor prompt for Inpriv ID key init ----------
-   2FA-protected IDs must always present the second factor before the
-   mailbox keys can be created. Verifies password+code in one call
-   (/api/v1/id-init), which mints a single-use init ticket, then runs the
-   regular key-init flow with that ticket attached. */
-async function promptTwoFactor(username, nick, password, mailbox = false) {
-  const area = $('#authFormArea');
-  if (!area) { renderAuth('login'); return; }
-  area.innerHTML = `
-    <form id="mfaForm">
-      <div class="field">
-        <label>Two-Factor Code</label>
-        <div class="input-wrap">
-          <input type="text" id="mfaCode" inputmode="numeric" pattern="[0-9]*" maxlength="6"
-                 placeholder="6-digit code" autocomplete="one-time-code" required autofocus>
+/* ---------- Sign in ----------
+   `pending.passphrase`: chosen on the sign-up form, used for the new
+   mailbox without asking again. */
+async function handleLogin(username, password, factor = {}, pending = {}) {
+  const btn = $('#authSubmitBtn') || $('#mfaSubmitBtn');
+  busy(btn, 'Signing in…');
+  try {
+    const res = await api('/login', { method: 'POST', body: JSON.stringify({ username, password, ...factor }) });
+    await afterSignIn(res, { username, password, pending });
+  } catch (e) {
+    toast('Sign-in failed', e.message, 'error');
+    idle(btn);
+  }
+}
+
+// What a sign-in answered: a second factor, a new mailbox, or a session.
+async function afterSignIn(res, ctx) {
+  if (res.status === 'totp_required') {
+    promptTwoFactor({ ...ctx, username: res.username || ctx.username, nick: res.nick || res.username });
+    return;
+  }
+  if (res.status === 'needs_init') {
+    if (ctx.pending && ctx.pending.passphrase) await createMailbox(res.init_ticket, ctx.pending.passphrase);
+    else promptSetPassphrase({ mode: 'create', ticket: res.init_ticket, avoid: [ctx.password] });
+    return;
+  }
+  state.user = res.user;
+  state.signedIn = true;
+  if (res.migrated) {
+    setTimeout(() => toast('Your account is now an Inpriv ID', 'Same password. Add 2FA and a recovery email at id.inpriv.xyz.'), 600);
+  }
+  if (state.user.key_format === 2) {
+    await tryQuickUnlock();
+    return;
+  }
+  // format 1: the key is still locked with the sign-in password. Open it
+  // here (the password is already in this page), then set a passphrase.
+  if (ctx.password) {
+    try {
+      const pkcs8 = await openLegacyKey(state.user, await deriveLegacyKey(ctx.password, state.user.priv_salt, state.user.priv_iter));
+      promptSetPassphrase({ mode: 'upgrade', oldPkcs8: pkcs8, avoid: [ctx.password] });
+      return;
+    } catch (e) { /* locked with an earlier password: ask for it */ }
+  }
+  await tryQuickUnlock({ avoid: [ctx.password] });
+}
+
+/* ---------- Two-factor code (password sign-in or Quick Sign-In) ---------- */
+function promptTwoFactor(ctx) {
+  authCard({
+    icon: 'shield_locked',
+    title: 'Two-factor code.<br><span>From your authenticator app.</span>',
+    sub: `Signed in as <strong>${escapeHtml(ctx.nick || ctx.username)}</strong>. Enter the 6-digit code, or one of your recovery codes.`,
+    body: `
+      <form id="mfaForm">
+        <div class="field">
+          <label for="mfaCode">Code</label>
+          <div class="input-wrap">
+            <input type="text" id="mfaCode" inputmode="numeric" pattern="[0-9]*" maxlength="6"
+                   placeholder="6-digit code" autocomplete="one-time-code" required autofocus>
+          </div>
         </div>
-        <div class="field-hint">Signed in as ${escapeHtml(nick)} — enter the code from your authenticator app.</div>
-      </div>
-      <div class="sec-badge">
-        ${mkIcon('shield_locked')}
-        <span>Two-factor authentication is required for this Inpriv ID</span>
-      </div>
-      <button type="submit" class="btn btn-primary btn-block" id="mfaSubmitBtn">
-        <span>Verify & Continue</span> ${mkIcon('arrow_forward')}
-      </button>
-      <div style="text-align:center;margin-top:14px">
-        <button type="button" class="btn btn-text" id="mfaRecoveryLink">Use a recovery code</button>
-      </div>
-    </form>
-  `;
-  toast('Two-factor required', 'Enter your authenticator code to continue.');
+        <button type="submit" class="btn btn-primary btn-block" id="mfaSubmitBtn">
+          <span>Verify</span> ${mkIcon('arrow_forward')}
+        </button>
+        <div style="text-align:center;margin-top:14px">
+          <button type="button" class="btn btn-text" id="mfaRecoveryLink">Use a recovery code</button>
+        </div>
+      </form>`,
+  });
   let useRecovery = false;
   $('#mfaRecoveryLink').addEventListener('click', () => {
     const inp = $('#mfaCode');
     useRecovery = true;
-    if (inp) { inp.removeAttribute('maxlength'); inp.removeAttribute('pattern'); inp.placeholder = 'Recovery code'; inp.focus(); }
+    inp.removeAttribute('maxlength'); inp.removeAttribute('pattern');
+    inp.setAttribute('inputmode', 'text'); inp.setAttribute('autocomplete', 'off');
+    inp.placeholder = 'Recovery code';
+    inp.focus();
   });
   $('#mfaForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const btn = $('#mfaSubmitBtn');
-    btn.disabled = true;
-    btn.innerHTML = `<span class="spinner"></span> <span>Verifying…</span>`;
     const value = $('#mfaCode').value.trim();
     const factor = useRecovery ? { recovery: value } : { code: value };
+    if (ctx.ssoTicket) {
+      const btn = $('#mfaSubmitBtn');
+      busy(btn, 'Verifying…');
+      try {
+        const r = await api('/sso/verify', { method: 'POST', body: JSON.stringify({ sso_ticket: ctx.ssoTicket, ...factor }) });
+        await afterSignIn(r, ctx);
+      } catch (ex) {
+        toast('Verification failed', ex.message, 'error');
+        idle(btn);
+      }
+      return;
+    }
+    await handleLogin(ctx.username, ctx.password, factor, ctx.pending);
+  });
+}
+
+/* ---------- Set a mailbox passphrase ----------
+   mode "create":  a new mailbox for an Inpriv ID (ticket from sign-in)
+   mode "upgrade": a format-1 mailbox; oldPkcs8 is its opened private key */
+function promptSetPassphrase({ mode, ticket, oldPkcs8, avoid = [] }) {
+  const upgrade = mode === 'upgrade';
+  authCard({
+    icon: 'key',
+    title: upgrade ? 'One more step.<br><span>Set a mailbox passphrase.</span>' : 'Set a mailbox passphrase.<br><span>Only you will know it.</span>',
+    sub: upgrade
+      ? 'Until now your mailbox key was locked with your Inpriv ID password, which the server sees when you sign in. From now on your keys are locked with a passphrase that never leaves your device. Mail sent to you from now on uses a new key; your earlier mail stays readable.'
+      : 'It locks your mailbox keys in this browser and is never sent to Inpriv. Use something different from your Inpriv ID password.',
+    body: `
+      <form id="setPassForm">
+        <div class="sec-badge">${mkIcon('info')}<span>${PASSPHRASE_NOTE}</span></div>
+        ${pwField('newPass', `Mailbox passphrase <span class="opt">(${MIN_PASSPHRASE}+ characters)</span>`, 'new-password', 'A few unrelated words')}
+        ${pwField('newPassConfirm', 'Repeat the passphrase', 'new-password', 'Passphrase again')}
+        <button type="submit" class="btn btn-primary btn-block" id="setPassBtn">
+          <span>${upgrade ? 'Upgrade mailbox' : 'Create mailbox'}</span> ${mkIcon('lock')}
+        </button>
+        <div style="text-align:center;margin-top:14px">
+          <button type="button" class="btn btn-text" id="setPassOut">Sign out instead</button>
+        </div>
+      </form>`,
+  });
+  $('#setPassOut').addEventListener('click', logout);
+  $('#newPass').focus();
+  $('#setPassForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const p = $('#newPass').value;
+    const problem = passphraseProblem(p, $('#newPassConfirm').value, avoid);
+    if (problem) { toast('Choose another passphrase', problem, 'error'); return; }
+    const btn = $('#setPassBtn');
+    busy(btn, upgrade ? 'Upgrading…' : 'Creating keys…');
     try {
-      if (mailbox) {
-        // existing mailbox: password + code open a normal session
-        const r = await api('/login', { method: 'POST', body: JSON.stringify({ username, password, ...factor }) });
-        await finishPasswordLogin(r, password);
-        return;
-      }
-      // SSO path (no password in memory): send only the code — the server
-      // accepts it when it already issued a totp_sso ticket for this user.
-      // Password path: password+code verified together (id-init).
-      const payload = password
-        ? { username, password, ...factor }
-        : { username, ...factor, sso_ticket: state.ssoRedeemToken };
-      const r = await api('/id-init', { method: 'POST', body: JSON.stringify(payload) });
-      if (r.token) {
-        // mailbox already exists: the server opened a session instead of a
-        // key-init ticket; unlock it with the device key or the password
-        state.token = r.token;
-        state.user = r.user;
-        localStorage.setItem('inpriv_token', r.token);
-        if (password) await finishPasswordLogin(r, password);
-        else if (state.tryQuickUnlock) await state.tryQuickUnlock();
-        return;
-      }
-      await initializeInprivIdKeys(r.username, password, r.id_init_ticket);
+      if (upgrade) await upgradeMailbox(oldPkcs8, p);
+      else await createMailbox(ticket, p);
     } catch (ex) {
-      toast('Verification failed', ex.message, 'error');
-      btn.disabled = false;
-      btn.innerHTML = `<span>Verify & Continue</span> ${mkIcon('arrow_forward')}`;
+      toast(upgrade ? 'Upgrade failed' : 'Mailbox not created', ex.message, 'error');
+      idle(btn);
     }
   });
 }
 
-/* ---------- Initialize Inpriv ID User Keys ---------- */
-async function initializeInprivIdKeys(username, password, initTicket) {
-  try {
-    const kp = await generateKeyPair();
-    const salt = crypto.getRandomValues(new Uint8Array(16));
-    const saltB64 = b64.enc(salt.buffer);
-    const aesKey = await deriveAesFromPassword(password, saltB64, PASS_ITERS);
-    const pubB64 = await exportPublicKey(kp.publicKey);
-    const { wrapped, iv } = await wrapPrivateKey(kp.privateKey, aesKey);
-    state.dek = aesKey; // kept for Quick Unlock re-enrolment from settings
-
-    const res = await api('/init-keys', {
-      method: 'POST',
-      body: JSON.stringify({
-        username,
-        password,
-        public_key: pubB64,
-        encrypted_private_key: wrapped,
-        priv_iv: iv,
-        priv_salt: saltB64,
-        priv_iter: PASS_ITERS,
-        id_init_ticket: initTicket || undefined
-      })
-    });
-
-    state.token = res.token;
-    state.user = res.user;
-    state.privKey = kp.privateKey;
-    state.pubKey = kp.publicKey;
-    state.unlocked = true;
-    localStorage.setItem('inpriv_token', res.token);
-
-    // enrol Quick Unlock right away — the DEK is fresh in memory here.
-    try { await enrolQuickUnlock(aesKey); } catch (e) {}
-    toast('Mailbox initialized', `Your zero-knowledge keys are active for ${res.user.email}`);
-    renderDashboard();
-  } catch (e) {
-    toast('Key setup failed', e.message, 'error');
-    renderAuth('login');
-  }
+// A new mailbox: one fresh key in a new ring, sealed under the passphrase.
+async function createMailbox(ticket, passphrase) {
+  const fresh = await newRingKey();
+  const ring = { v: 2, current: fresh.entry.id, keys: [fresh.entry] };
+  const keys = await loadRing(ring);
+  const { envelope, kek } = await sealRing(ring, passphrase);
+  const res = await api('/init-keys', {
+    method: 'POST',
+    body: JSON.stringify({ init_ticket: ticket, public_key: fresh.spki, key_id: fresh.entry.id, envelope })
+  });
+  state.user = res.user;
+  state.signedIn = true;
+  useRing(ring, keys, kek);
+  try { await enrolQuickUnlock(); } catch (e) {}
+  toast('Mailbox ready', `Your address is ${res.user.email}.`);
+  renderDashboard();
 }
 
-/* ---------- Registration Flow ----------
-   One account for Mail and ID: create the Inpriv ID on id.inpriv.xyz
-   (same checks, optional recovery email with a verification code, signs
-   you in there too), then activate the mailbox like any ID: /login answers
-   needs_init and the keys are generated here. */
-async function handleRegister(username, password, confirm, recoveryEmail) {
-  if (password !== confirm) {
-    toast('Passwords mismatch', 'Please re-type password identically.', 'error');
-    return;
+/* Format 1 → 2. The old key moves into a new ring next to a new key for
+   future mail. The server only accepts it with a proof made with the old
+   key, and only once (other devices then get 409 and unlock the new ring).
+   Nothing changes server-side until the sealed ring has been checked. */
+async function upgradeMailbox(oldPkcs8, passphrase) {
+  const oldSpki = await publicFromPkcs8(oldPkcs8);
+  if (b64.enc(oldSpki) !== state.user.public_key) throw new Error("That key doesn't belong to this mailbox.");
+  const oldPriv = await crypto.subtle.importKey('pkcs8', b64.dec(oldPkcs8), RSA, false, ['decrypt']);
+  const fresh = await newRingKey();
+  const ring = {
+    v: 2, current: fresh.entry.id,
+    keys: [fresh.entry, { id: await keyIdOf(oldSpki), created: state.user.created_at || 0, pkcs8: oldPkcs8 }],
+  };
+  const keys = await loadRing(ring);
+  const { envelope, kek } = await sealRing(ring, passphrase);
+  const proof = await keyProof('migrate', oldPriv);
+  let res;
+  try {
+    res = await api('/keys/migrate', {
+      method: 'POST',
+      body: JSON.stringify({ public_key: fresh.spki, key_id: fresh.entry.id, envelope, ...proof })
+    });
+  } catch (e) {
+    if (e.status === 409) {
+      // another device (or an earlier try) upgraded first
+      state.user = await api('/me', { method: 'GET' });
+      toast('Already upgraded', 'Your mailbox already has a passphrase. Enter the one you set then.');
+      promptUnlockSession();
+      return;
+    }
+    throw e;
   }
-  if (password.length < 10) {
-    toast('Password too short', 'Use at least 10 characters.', 'error');
-    return;
-  }
+  state.user = { ...state.user, ...res.user };
+  useRing(ring, keys, kek);
+  try { await enrolQuickUnlock(); } catch (e) {}
+  toast('Mailbox upgraded', 'It now opens with your mailbox passphrase, and your earlier mail is still here.');
+  renderDashboard();
+}
+
+/* ---------- Unlock a format-2 mailbox with its passphrase ---------- */
+function promptUnlockSession() {
+  authCard({
+    icon: 'lock',
+    title: 'Unlock your mailbox.<br><span>The passphrase stays here.</span>',
+    sub: `Signed in as <strong>${escapeHtml(state.user.email)}</strong>. Enter your mailbox passphrase. It opens your keys in this browser and isn't sent anywhere.`,
+    body: `
+      <form id="sessionUnlockForm">
+        ${pwField('sessionPw', 'Mailbox passphrase', 'current-password', 'Mailbox passphrase')}
+        <button type="submit" class="btn btn-primary btn-block" id="sessionUnlockBtn">
+          <span>Unlock</span> ${mkIcon('lock_open')}
+        </button>
+        <div style="display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:14px">
+          <button type="button" class="btn btn-text" id="sessionForgot">Forgot it?</button>
+          <button type="button" class="btn btn-text" id="sessionSignOutBtn">Sign out</button>
+        </div>
+      </form>`,
+  });
+  $('#sessionPw').focus();
+  $('#sessionSignOutBtn').addEventListener('click', logout);
+  $('#sessionForgot').addEventListener('click', promptReset);
+  $('#sessionUnlockForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = $('#sessionUnlockBtn');
+    busy(btn, 'Unlocking…');
+    try {
+      await unlockWithPassphrase($('#sessionPw').value);
+      try { await enrolQuickUnlock(); } catch (e2) {}
+      unlockToast('Your keys are open in this browser only.');
+      renderDashboard();
+    } catch (err) {
+      toast(err.code === 'wrong' ? 'Wrong passphrase' : 'Key ring damaged',
+        err.code === 'wrong' ? err.message : "Your key ring opened but didn't pass its checks. Don't reset anything yet; contact support@inpriv.xyz.", 'error');
+      idle(btn);
+    }
+  });
+}
+
+/* ---------- Open a format-1 key without a password in memory ----------
+   (a restored session). The password is used here only, to open the old
+   key; it isn't sent. After a password change the key is still locked with
+   the previous one. */
+function promptLegacyUnlock({ avoid = [] } = {}) {
+  authCard({
+    icon: 'key',
+    title: 'One last time with your password.<br><span>Then set a mailbox passphrase.</span>',
+    sub: `Signed in as <strong>${escapeHtml(state.user.email)}</strong>. Your mailbox key is still locked with your Inpriv ID password, or the one before it if you changed it since. Enter it to open the key on this device; this page doesn't send it anywhere.`,
+    body: `
+      <form id="legacyForm">
+        ${pwField('legacyPw', 'Inpriv ID password (current or previous)', 'current-password', 'Password')}
+        <button type="submit" class="btn btn-primary btn-block" id="legacyBtn">
+          <span>Open my key</span> ${mkIcon('lock_open')}
+        </button>
+        <div style="display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:14px">
+          <button type="button" class="btn btn-text" id="legacyForgot">Can't open it?</button>
+          <button type="button" class="btn btn-text" id="legacyOut">Sign out</button>
+        </div>
+      </form>`,
+  });
+  $('#legacyPw').focus();
+  $('#legacyOut').addEventListener('click', logout);
+  $('#legacyForgot').addEventListener('click', promptReset);
+  $('#legacyForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const pw = $('#legacyPw').value;
+    const btn = $('#legacyBtn');
+    busy(btn, 'Opening…');
+    try {
+      const pkcs8 = await openLegacyKey(state.user, await deriveLegacyKey(pw, state.user.priv_salt, state.user.priv_iter));
+      promptSetPassphrase({ mode: 'upgrade', oldPkcs8: pkcs8, avoid: [...avoid, pw] });
+    } catch (err) {
+      toast('Not the password that locked it', 'Try the Inpriv ID password you had before your last change.', 'error');
+      idle(btn);
+    }
+  });
+}
+
+/* ---------- Forgotten passphrase: start over with a new key ---------- */
+function promptReset() {
+  authCard({
+    icon: 'alert',
+    title: 'Start over with a new key.<br><span>Earlier mail stays locked.</span>',
+    sub: 'Nobody can recover a mailbox passphrase. You can set a new one with a new key: your address keeps working and new mail arrives as usual, but <strong>mail sent to you so far stays in your mailbox and can never be opened again.</strong> This needs your Inpriv ID password (and your two-factor code if it’s on).',
+    body: `
+      <form id="resetForm">
+        ${pwField('resetPw', 'Inpriv ID password', 'current-password', 'Password')}
+        <div class="field hidden" id="resetCodeField">
+          <label for="resetCode">Two-factor code</label>
+          <div class="input-wrap">
+            <input type="text" id="resetCode" inputmode="numeric" maxlength="6" placeholder="6-digit code" autocomplete="one-time-code">
+          </div>
+        </div>
+        ${pwField('resetNew', `New mailbox passphrase <span class="opt">(${MIN_PASSPHRASE}+ characters)</span>`, 'new-password', 'A few unrelated words')}
+        ${pwField('resetNewConfirm', 'Repeat the new passphrase', 'new-password', 'Passphrase again')}
+        <label class="check-row"><input type="checkbox" id="resetAck"> <span>I understand that the mail I have now can't be opened again.</span></label>
+        <button type="submit" class="btn btn-danger btn-block" id="resetBtn">
+          <span>Start over with a new key</span>
+        </button>
+        <div style="text-align:center;margin-top:14px">
+          <button type="button" class="btn btn-text" id="resetBack">Back</button>
+        </div>
+      </form>`,
+  });
+  $('#resetBack').addEventListener('click', () => (state.user.key_format === 2 ? promptUnlockSession() : promptLegacyUnlock()));
+  $('#resetForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!$('#resetAck').checked) { toast('Please confirm', 'Tick the box to show you understand what happens to your earlier mail.', 'error'); return; }
+    const pw = $('#resetPw').value;
+    const p = $('#resetNew').value;
+    const problem = passphraseProblem(p, $('#resetNewConfirm').value, [pw]);
+    if (problem) { toast('Choose another passphrase', problem, 'error'); return; }
+    const btn = $('#resetBtn');
+    busy(btn, 'Creating a new key…');
+    try {
+      const fresh = await newRingKey();
+      const ring = { v: 2, current: fresh.entry.id, keys: [fresh.entry] };
+      const keys = await loadRing(ring);
+      const { envelope, kek } = await sealRing(ring, p);
+      const code = $('#resetCode').value.trim();
+      const r = await api('/keys/reset', {
+        method: 'POST',
+        body: JSON.stringify({ password: pw, code: code || undefined, public_key: fresh.spki, key_id: fresh.entry.id, envelope })
+      });
+      if (r.status === 'totp_required') {
+        $('#resetCodeField').classList.remove('hidden');
+        $('#resetCode').focus();
+        toast('Two-factor code needed', 'Enter the code from your authenticator app.');
+        idle(btn);
+        return;
+      }
+      state.user = r.user;
+      useRing(ring, keys, kek);
+      try { await enrolQuickUnlock(); } catch (e2) {}
+      toast('New mailbox key ready', 'New mail is encrypted to it. Earlier mail stays locked.');
+      renderDashboard();
+    } catch (ex) {
+      toast('Not changed', ex.message, 'error');
+      idle(btn);
+    }
+  });
+}
+
+/* ---------- Registration ----------
+   The Inpriv ID is created on id.inpriv.xyz with the password only; then
+   the normal sign-in answers needs_init and the mailbox is created here
+   with the passphrase, which never leaves this page. */
+async function handleRegister({ username, password, confirm, passphrase, passphraseConfirm, recovery }) {
+  if (password !== confirm) { toast("Passwords don't match", 'Type the same password twice.', 'error'); return; }
+  if (password.length < 10) { toast('Password too short', 'Use at least 10 characters.', 'error'); return; }
+  const problem = passphraseProblem(passphrase, passphraseConfirm, [password]);
+  if (problem) { toast('Choose another passphrase', problem, 'error'); return; }
 
   const btn = $('#regSubmitBtn');
   const status = $('#regStatus');
   if (btn) btn.disabled = true;
-
   try {
     if (status) status.innerHTML = `<span class="spinner"></span> Creating your Inpriv ID…`;
     const r = await fetch(ID_API + '/api/register', {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password, recovery_email: recoveryEmail || undefined })
+      body: JSON.stringify({ username, password, recovery_email: recovery || undefined })
     });
     const d = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(d.error || 'could not create the account');
-
-    if (status) status.innerHTML = `<span class="spinner"></span> Generating your mailbox keys…`;
-    await handleLogin(username, password);
-    if (state.token) {
-      toast('Account created', d.verification_sent
-        ? `Your address is ${username}@${DOMAIN}. Check ${recoveryEmail} for the code.`
-        : `Your address is ${username}@${DOMAIN}. One account for Mail and Inpriv ID.`);
-    }
+    if (status) status.innerHTML = `<span class="spinner"></span> Creating your mailbox keys…`;
+    await handleLogin(username, password, {}, { passphrase });
+    if (state.unlocked && d.verification_sent) toast('Check your recovery email', 'We sent a code to confirm it. Enter it on id.inpriv.xyz.');
   } catch (e) {
     toast('Registration failed', e.message, 'error');
     if (btn) btn.disabled = false;
@@ -2481,14 +2878,10 @@ async function handleRegister(username, password, confirm, recoveryEmail) {
 
 function logout() {
   api('/logout', { method: 'POST' }).catch(() => {});
-  state.token = null;
   state.user = null;
-  state.privKey = null;
-  state.pubKey = null;
-  state.dek = null;
-  state.unlocked = false;
-  localStorage.removeItem('inpriv_token');
-  toast('Signed out', 'Encryption keys wiped from browser memory.');
+  state.signedIn = false;
+  lockMailbox();
+  toast('Signed out', 'Your keys were removed from this page.');
   renderAuth();
 }
 
@@ -2678,7 +3071,7 @@ function renderMessageCards() {
         <div class="empty-state-title">${state.activeTab === 'inbox' ? 'Your inbox is clear' : 'No sent messages'}</div>
         <div class="empty-state-desc">
           ${state.activeTab === 'inbox'
-            ? `Share your address <strong>${escapeHtml(state.user.email)}</strong>. Internal messages are encrypted in your browser; external inbound emails are encrypted at the gateway.`
+            ? `Share your address <strong>${escapeHtml(state.user.email)}</strong>. Mail from Inpriv users is end-to-end encrypted. Mail from other providers is encrypted to your key when it arrives.`
             : 'Tap Compose to send encrypted mail to Inpriv users or external email addresses (Gmail, etc.).'}
         </div>
       </div>
@@ -2781,21 +3174,31 @@ async function openMessageView(id) {
             <button type="button" class="fmt-btn active" id="viewFmtRich">${mkIcon('palette')} <span>Rich</span></button>
             <button type="button" class="fmt-btn" id="viewFmtPlain">${mkIcon('subject')} <span>Plain</span></button>
           </div>
-          <div class="sec-badge" id="viewSecBadge" title="Zero-knowledge encrypted (RSA-OAEP-2048 + AES-256-GCM)">
+          <div class="sec-badge" id="viewSecBadge">
             ${mkIcon('verified_user')}
-            <span>End-to-end encrypted</span>
+            <span>Encrypted</span>
           </div>
+        </div>
+
+        <div class="remote-bar hidden" id="viewRemoteBar" role="note">
+          ${mkIcon('eye-off')}
+          <span>Images from the sender are blocked. Loading them tells the sender that you opened this email, and shows them your IP address and browser.</span>
+          <button type="button" class="copy-chip" id="viewLoadImages">Load images</button>
         </div>
 
         <div class="view-body-box decrypting" id="viewBody">
           <span class="spinner"></span> Decrypting in browser memory…
         </div>
 
+        <!-- allow-same-origin lets this page measure the message to size the
+             frame; scripts in the message never run (no allow-scripts, and
+             the frame's own policy has no script source) -->
         <div class="view-rich-wrap hidden" id="viewRichWrap">
           <iframe class="view-rich-frame" id="viewRichFrame"
                   sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
                   referrerpolicy="no-referrer" title="Message content"></iframe>
         </div>
+        <p class="view-hint hidden" id="viewLinkHint">Links open in a new tab. The site you open sees your IP address.</p>
 
         <div class="view-actions-bar">
           <button class="btn btn-outlined" id="viewCopyBtn">${mkIcon('content_copy')} <span>Copy Body</span></button>
@@ -2851,11 +3254,13 @@ async function openMessageView(id) {
     const secEl = $('#viewSecBadge');
     if (secEl) {
       if (isExternalPeer) {
-        secEl.innerHTML = `${mkIcon('public')} <span>External · stored encrypted</span>`;
-        secEl.title = 'External email, stored zero-knowledge encrypted in your mailbox';
+        secEl.innerHTML = `${mkIcon('public')} <span>Normal email · stored encrypted</span>`;
+        secEl.title = msg.direction === 'inbound'
+          ? 'It arrived as normal email: readable to the sender’s provider, our mail provider and Inpriv’s server while it was received. It’s stored encrypted to your key.'
+          : 'It was sent as normal email: readable to our mail provider, the recipient’s provider and Inpriv’s server while it was sent. Your copy is stored encrypted to your key.';
       } else {
         secEl.innerHTML = `${mkIcon('verified_user')} <span>End-to-end encrypted</span>`;
-        secEl.title = 'Zero-knowledge encrypted (RSA-OAEP-2048 + AES-256-GCM)';
+        secEl.title = 'Encrypted in the sender’s browser to your key (RSA-OAEP-2048 + AES-256-GCM). The subject, addresses and time are not encrypted.';
       }
     }
 
@@ -2863,12 +3268,12 @@ async function openMessageView(id) {
     let decryptFailed = false;
     let richHtml = '';
     let payload = null;
-    if (!state.privKey) {
+    if (!state.unlocked) {
       decryptFailed = true;
-      decryptedText = 'Encryption key not in browser memory. Please unlock again.';
+      decryptedText = 'Your mailbox is locked. Unlock it again.';
     } else {
       try {
-        const raw = await hybridDecrypt(state.privKey, msg);
+        const raw = await decryptMessage(msg);
         try {
           const parsed = JSON.parse(raw);
           if (parsed && (parsed.v === 1 || typeof parsed.text === 'string')) {
@@ -2883,7 +3288,7 @@ async function openMessageView(id) {
         }
       } catch (decErr) {
         decryptFailed = true;
-        decryptedText = 'Decryption failed: ' + decErr.message;
+        decryptedText = "This message can't be opened. " + decErr.message;
       }
     }
 
@@ -2894,28 +3299,22 @@ async function openMessageView(id) {
       bodyEl.innerHTML = `<span style="color:var(--md-error)">${mkIcon('error')} ${escapeHtml(decryptedText)}</span>`;
     }
 
-    // Rich (HTML) view — sanitized server-side, rendered in a script-less
-    // sandboxed iframe; styles are scoped so the mail can't restyle the app.
+    // Rich (HTML) view: rebuilt by the mail renderer (common/ui/mail-render.js),
+    // which blocks everything remote, inside a script-less sandboxed frame.
+    // Mail is laid out on white "paper" like a mail client: HTML mail brings
+    // its own colours, so it is not recoloured for the dark theme.
     const richWrap = $('#viewRichWrap');
     const toggle = $('#viewFormatToggle');
     if (richHtml && !decryptFailed) {
-      // The mail is laid out on white "paper" like a mail client: HTML mail
-      // brings its own colours, so it is not recoloured for the dark theme.
-      const doc = `<!DOCTYPE html><html><head><meta charset="utf-8">
-        <meta name="color-scheme" content="light"><base target="_blank"><style>
-        html{background:#fff;-webkit-text-size-adjust:100%;text-size-adjust:100%}
-        body{margin:0;padding:24px 26px;background:#fff;color:#1d1d1b;
-             font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
-             overflow-wrap:break-word}
-        img{max-width:100%;height:auto}
-        a{color:#1f5fbf}
-        blockquote{margin:0 0 0 .4em;padding-left:.9em;border-left:3px solid #e2e0da;color:#55534d}
-        pre{white-space:pre-wrap}
-        hr{border:0;border-top:1px solid #e8e6e1}
-        @media (max-width:600px){body{padding:16px}}
-      </style></head><body>${richHtml}</body></html>`;
       const frame = $('#viewRichFrame');
-      frame.srcdoc = doc;
+      const show = (remote) => {
+        const out = InprivMailRender.build(richHtml, { remote });
+        frame.srcdoc = out.doc;
+        $('#viewRemoteBar').classList.toggle('hidden', remote || !out.blocked);
+        $('#viewLinkHint').classList.toggle('hidden', !out.links);
+      };
+      show(false);
+      $('#viewLoadImages').addEventListener('click', () => show(true));
       richWrap.classList.remove('hidden');
       toggle.classList.remove('hidden');
       // Fit the frame to the mail. Wide layouts (600px+ newsletters) are scaled
@@ -2964,6 +3363,7 @@ async function openMessageView(id) {
       const setFmt = (fmt) => {
         richWrap.classList.toggle('hidden', fmt !== 'rich');
         bodyEl.classList.toggle('hidden', fmt !== 'plain');
+        if (fmt !== 'rich') $('#viewRemoteBar').classList.add('hidden');
         $('#viewFmtRich')?.classList.toggle('active', fmt === 'rich');
         $('#viewFmtPlain')?.classList.toggle('active', fmt === 'plain');
         if (fmt === 'rich') fitFrame();
@@ -3004,6 +3404,20 @@ async function openMessageView(id) {
 /* ============================================================================
    COMPOSE MODAL
    ========================================================================== */
+const E2E_NOTE = "End-to-end encrypted: the body is encrypted in your browser to the recipient's key. The subject, both addresses and the time are not encrypted.";
+const EXTERNAL_NOTE = 'Normal email, not end-to-end encrypted: readable to Inpriv’s server, our mail provider (Resend) and the recipient’s provider while it’s sent. Your Sent copy is stored encrypted to your key.';
+
+// Inpriv addresses you've already written with, for suggestions. Built from
+// your own mailbox only: there is no directory of Inpriv users to search.
+function contactSuggestions(q) {
+  const seen = new Set();
+  for (const m of state.messages) {
+    const a = String(m.peer_address || '').toLowerCase();
+    if (a.endsWith('@' + DOMAIN)) seen.add(a.slice(0, -(DOMAIN.length + 1)));
+  }
+  return [...seen].filter((u) => u.includes(q)).slice(0, 8);
+}
+
 function openComposeModal(prefillTo = '', prefillSubject = '') {
   const container = $('#modalContainer');
   if (!container) return;
@@ -3034,8 +3448,8 @@ function openComposeModal(prefillTo = '', prefillSubject = '') {
 
       <div class="sec-badge" id="composeSecBadge">
         ${initMode === 'inpriv'
-          ? `${mkIcon('lock')} <span>Zero-Knowledge E2EE · Encrypted in browser with recipient's public key</span>`
-          : `${mkIcon('outgoing_mail')} <span>External Relay · Sent as regular email via secure relay (not E2EE). Encrypted copy kept in your Sent box.</span>`
+          ? `${mkIcon('lock')} <span>${E2E_NOTE}</span>`
+          : `${mkIcon('outgoing_mail')} <span>${EXTERNAL_NOTE}</span>`
         }
       </div>
 
@@ -3106,13 +3520,13 @@ function openComposeModal(prefillTo = '', prefillSubject = '') {
     const sendBtn = $('#composeSendBtn');
 
     if (m === 'inpriv') {
-      if (secBadge) secBadge.innerHTML = `${mkIcon('lock')} <span>Zero-Knowledge E2EE · Encrypted in browser with recipient's public key</span>`;
+      if (secBadge) secBadge.innerHTML = `${mkIcon('lock')} <span>${E2E_NOTE}</span>`;
       if (toLabel) toLabel.textContent = 'To (Inpriv ID Username)';
       if (toInput) toInput.placeholder = 'username';
       if (suffix) suffix.style.display = '';
       if (sendBtn) sendBtn.innerHTML = `${mkIcon('lock')} <span>Encrypt & Send</span>`;
     } else {
-      if (secBadge) secBadge.innerHTML = `${mkIcon('outgoing_mail')} <span>External Relay · Sent as regular email via secure relay (not E2EE). Encrypted copy kept in your Sent box.</span>`;
+      if (secBadge) secBadge.innerHTML = `${mkIcon('outgoing_mail')} <span>${EXTERNAL_NOTE}</span>`;
       if (toLabel) toLabel.textContent = 'To (Recipient Email Address)';
       if (toInput) toInput.placeholder = 'e.g. name@gmail.com, user@outlook.com';
       if (suffix) suffix.style.display = 'none';
@@ -3147,11 +3561,11 @@ function openComposeModal(prefillTo = '', prefillSubject = '') {
       sugg.classList.add('hidden');
       return;
     }
-    debTimer = setTimeout(async () => {
+    debTimer = setTimeout(() => {
       try {
-        const res = await api(`/users?q=${encodeURIComponent(q)}`);
-        if (res.users && res.users.length > 0) {
-          sugg.innerHTML = res.users.map(u => `
+        const users = contactSuggestions(q);
+        if (users.length > 0) {
+          sugg.innerHTML = users.map(u => `
             <div class="autocomplete-item" data-u="${escapeHtml(u)}">
               <span><strong>${escapeHtml(u)}</strong>@${DOMAIN}</span>
               ${mkIcon('arrow_outward')}
@@ -3187,6 +3601,10 @@ function openComposeModal(prefillTo = '', prefillSubject = '') {
       toast('Empty message', 'Please write a message before sending.', 'error');
       return;
     }
+    if (!state.unlocked || state.keyMismatch) {
+      toast("Can't send", state.keyMismatch ? 'Your public key on the server doesn’t match your key ring.' : 'Unlock your mailbox first.', 'error');
+      return;
+    }
 
     const sendBtn = $('#composeSendBtn');
     sendBtn.disabled = true;
@@ -3215,11 +3633,12 @@ function openComposeModal(prefillTo = '', prefillSubject = '') {
             to: toVal.toLowerCase(),
             subject,
             text: body,
-            sender_envelope: senderEnvelope
+            sender_envelope: senderEnvelope,
+            sender_key_id: state.currentKeyId
           })
         });
 
-        toast('Message sent', `Delivered to ${toVal.toLowerCase()}`);
+        toast('Message sent', 'Handed to the mail relay as normal email.');
         close();
         await loadMessages();
       } catch (err) {
@@ -3234,19 +3653,31 @@ function openComposeModal(prefillTo = '', prefillSubject = '') {
       sendBtn.innerHTML = `<span class="spinner"></span> <span>Encrypting…</span>`;
 
       try {
-        // 1. Fetch recipient's public key
+        // 1. Fetch the recipient's public key and check it: its id must
+        // match the key, and a change since the last message is shown first
         const keyData = await api(`/users/${encodeURIComponent(to)}/pubkey`);
         if (!keyData.public_key) {
-          throw new Error(keyData.message || 'Recipient has not generated public encryption keys yet.');
+          throw new Error('This person has no mailbox yet.');
+        }
+        const spki = b64.dec(keyData.public_key);
+        const kid = await keyIdOf(spki);
+        if (kid !== keyData.key_id) throw new Error("The server's key id for this person doesn't match their key.");
+        const known = knownKeys()[to];
+        if (known && known !== kid) {
+          const go = await confirmDialog({
+            title: 'Their mailbox key changed',
+            desc: `${to}@${DOMAIN} now has key ${fingerprint(kid)} (it was ${fingerprint(known)}). That happens when someone upgrades their mailbox or starts over with a new key, but it would also happen if a key were swapped. If this message matters, compare the key with them another way first.`,
+            confirmLabel: 'Send to the new key',
+            danger: false
+          });
+          if (!go) {
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = `${mkIcon('lock')} <span>Encrypt & Send</span>`;
+            return;
+          }
         }
 
-        const recPubKey = await crypto.subtle.importKey(
-          'spki',
-          b64.dec(keyData.public_key),
-          { name: 'RSA-OAEP', hash: 'SHA-256' },
-          false,
-          ['encrypt']
-        );
+        const recPubKey = await crypto.subtle.importKey('spki', spki, RSA, false, ['encrypt']);
 
         // 2. Hybrid Encrypt for both Recipient and Sender (so Sender can decrypt in Sent)
         const dual = await hybridEncryptDual(recPubKey, state.pubKey, body);
@@ -3258,11 +3689,14 @@ function openComposeModal(prefillTo = '', prefillSubject = '') {
             to_username: to,
             subject,
             recipient_envelope: dual.recipient_envelope,
-            sender_envelope: dual.sender_envelope
+            sender_envelope: dual.sender_envelope,
+            recipient_key_id: kid,
+            sender_key_id: state.currentKeyId
           })
         });
+        rememberKey(to, kid);
 
-        toast('Message sent', `Delivered encrypted to ${to}@${DOMAIN}`);
+        toast('Message sent', `Encrypted to ${to}@${DOMAIN}, key ${fingerprint(kid).slice(0, 19)}…`);
         close();
         await loadMessages();
       } catch (err) {
@@ -3279,6 +3713,7 @@ function openComposeModal(prefillTo = '', prefillSubject = '') {
    ========================================================================== */
 function renderAccountScreen() {
   const main = $('#mainView');
+  const older = state.ring ? state.ring.keys.length - 1 : 0;
   main.innerHTML = `
     <div class="card glass" style="max-width:600px;margin:0 auto">
       <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
@@ -3293,7 +3728,7 @@ function renderAccountScreen() {
 
       <div class="acc-info-row">
         <div>
-          <div class="label">Inpriv Email Address</div>
+          <div class="label">Inpriv email address</div>
           <div class="val">${escapeHtml(state.user.email)}</div>
         </div>
         <button class="copy-chip" id="copyAddrBtn">${mkIcon('content_copy')} <span>Copy</span></button>
@@ -3310,12 +3745,30 @@ function renderAccountScreen() {
       </div>
 
       <div class="acc-info-row" style="align-items:flex-start">
-        <div style="flex:1;min-width:0;padding-top:2px">
-          <div class="label">Skip master password</div>
-          <div class="qu-row-sub">After you unlock Mail once on a device, it opens there without your master password. Same switch as on Inpriv ID. <span id="quDevices"></span></div>
+        <div style="flex:1;min-width:0">
+          <div class="label">Your mailbox key</div>
+          <div class="val key-fp">${fingerprint(state.currentKeyId)}</div>
+          <div class="qu-row-sub">People you write to can compare this with what their Mail shows for you, to check that mail reaches your key and not a swapped one.${older ? ` Your key ring also keeps ${older} earlier key${older === 1 ? '' : 's'} for older mail.` : ''}</div>
         </div>
-        <div class="switch${state.user && state.user.quick_unlock !== false ? ' on' : ''}" id="swQuickUnlock" role="switch" aria-checked="${state.user && state.user.quick_unlock !== false}" tabindex="0" style="margin-left:12px;margin-top:4px"></div>
+        <button class="copy-chip" id="copyFpBtn">${mkIcon('content_copy')} <span>Copy</span></button>
       </div>
+
+      <div class="acc-info-row">
+        <div style="flex:1;min-width:0">
+          <div class="label">Mailbox passphrase</div>
+          <div class="qu-row-sub">Locks your keys in this browser. It's never sent to Inpriv, so nobody can reset it for you.</div>
+        </div>
+        <button class="copy-chip" id="chgPassBtn">${mkIcon('key')} <span>Change</span></button>
+      </div>
+
+      <div class="acc-info-row" style="align-items:flex-start">
+        <div style="flex:1;min-width:0;padding-top:2px">
+          <div class="label">Skip mailbox passphrase</div>
+          <div class="qu-row-sub">After you unlock once on a device, that browser keeps a key that opens Mail without your passphrase. Anyone who can use that browser profile can open your mailbox. Same switch as on Inpriv ID.</div>
+        </div>
+        <div class="switch${state.user && state.user.quick_unlock !== false ? ' on' : ''}" id="swQuickUnlock" role="switch" aria-checked="${state.user && state.user.quick_unlock !== false}" aria-label="Skip mailbox passphrase" tabindex="0" style="margin-left:12px;margin-top:4px"></div>
+      </div>
+      <div id="quDeviceList"></div>
 
       <div class="acc-info-row" style="align-items:flex-start">
         <div style="flex:1;min-width:0;padding-top:2px">
@@ -3327,21 +3780,18 @@ function renderAccountScreen() {
 
       <div class="acc-info-row">
         <div>
-          <div class="label">Encryption Standard</div>
-          <div class="val">RSA-OAEP-2048 + AES-256-GCM</div>
+          <div class="label">Encryption</div>
+          <div class="val">Messages: RSA-OAEP-2048 + AES-256-GCM</div>
+          <div class="qu-row-sub">Passphrase key: PBKDF2-SHA-256, 600,000 iterations. Subjects, addresses and times aren't encrypted.</div>
         </div>
       </div>
 
-      <div class="acc-info-row">
-        <div>
-          <div class="label">Password Protection</div>
-          <div class="val">PBKDF2-SHA256 (300,000 rounds)</div>
-        </div>
-      </div>
-
-      <div style="display:flex;gap:10px;margin-top:24px">
-        <button class="btn btn-outlined btn-block" id="logoutBtn">
-          ${mkIcon('logout')} <span>Lock & Sign Out</span>
+      <div style="display:flex;gap:10px;margin-top:24px;flex-wrap:wrap">
+        <button class="btn btn-outlined" style="flex:1" id="revokeOthersBtn">
+          ${mkIcon('monitor')} <span>Sign out other sessions</span>
+        </button>
+        <button class="btn btn-outlined" style="flex:1" id="logoutBtn">
+          ${mkIcon('logout')} <span>Lock & sign out</span>
         </button>
       </div>
     </div>
@@ -3349,97 +3799,210 @@ function renderAccountScreen() {
 
   $('#copyAddrBtn').addEventListener('click', () => {
     navigator.clipboard.writeText(state.user.email);
-    toast('Address copied', state.user.email);
+    toast('Address copied');
+  });
+  $('#copyFpBtn').addEventListener('click', () => {
+    navigator.clipboard.writeText(fingerprint(state.currentKeyId));
+    toast('Key copied');
+  });
+  $('#chgPassBtn').addEventListener('click', openChangePassphrase);
+  $('#revokeOthersBtn').addEventListener('click', async () => {
+    try {
+      const r = await api('/sessions/revoke-others', { method: 'POST', body: '{}' });
+      toast('Other sessions signed out', r.removed ? `${r.removed} session${r.removed === 1 ? '' : 's'} ended.` : 'There were none.');
+    } catch (e) { toast('Not done', e.message, 'error'); }
   });
 
-  // Quick Unlock toggle — flips the SAME account setting that lives in
-  // Inpriv ID (user_settings.quick_unlock) through the mail backend, so the
-  // switch on id.inpriv.xyz and this one always agree.
+  // Quick Unlock toggle — flips the same account setting that lives in
+  // Inpriv ID (user_settings.quick_unlock), so both switches always agree.
   const swQU = $('#swQuickUnlock');
-  if (swQU) {
-    const setSw = (on) => {
-      swQU.classList.toggle('on', !!on);
-      swQU.setAttribute('aria-checked', String(!!on));
-    };
-    // the switch lives in Inpriv ID: read it fresh when this view opens and
-    // whenever the tab comes back, so a change made on id.inpriv.xyz shows
-    const refreshQU = async () => {
+  const setSw = (on) => {
+    swQU.classList.toggle('on', !!on);
+    swQU.setAttribute('aria-checked', String(!!on));
+  };
+  const renderDevices = (devices, on) => {
+    const box = $('#quDeviceList');
+    if (!box) return;
+    if (!on || !devices.length) { box.innerHTML = ''; return; }
+    const mine = getDeviceId();
+    box.innerHTML = `<div class="device-list">${devices.map((d) => `
+      <div class="device-row">
+        <div style="min-width:0">
+          <div class="device-name">${escapeHtml(d.label || 'Browser')}${d.device_id === mine ? ' <span class="opt">· this device</span>' : ''}</div>
+          <div class="device-meta">Last used ${escapeHtml(fmtTime(d.last_used || d.created_at))}</div>
+        </div>
+        <button class="copy-chip" data-forget="${escapeHtml(d.device_id || '')}">Forget</button>
+      </div>`).join('')}</div>`;
+    $$('[data-forget]', box).forEach((b) => b.addEventListener('click', async () => {
       try {
-        const me = await api('/me', { method: 'GET' });
-        state.user.quick_unlock = me.quick_unlock;
-        if (state.idUser) state.idUser.quick_unlock = me.quick_unlock;
-        setSw(me.quick_unlock !== false);
-        const n = me.quick_unlock !== false ? (me.quick_unlock_devices || 0) : 0;
-        const el = $('#quDevices');
-        if (el) el.textContent = n ? `On ${n} device${n === 1 ? '' : 's'}.` : '';
-      } catch (e) { /* keep what is shown */ }
-    };
-    refreshQU();
-    if (!state.quVisBound) {
-      state.quVisBound = true;
-      document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible' && state.refreshQU && document.getElementById('swQuickUnlock')) state.refreshQU();
-      });
-    }
-    state.refreshQU = refreshQU;
-    const flipQU = async () => {
-      const on = !swQU.classList.contains('on');
-      setSw(on);
-      try {
-        await api('/quick-unlock', { method: 'POST', body: JSON.stringify({ enabled: on }) });
-        state.user.quick_unlock = on;
-        if (state.idUser) state.idUser.quick_unlock = on;
-        if (!on) {
-          // forget the local device key — it can no longer unwrap anything
-          clearDeviceKey();
-          toast('Skip master password: off', 'Your master password is needed on every device.');
-        } else {
-          // re-enrol this device immediately when the DEK is still in memory
-          let enrolled = false;
-          if (state.dek) {
-            try {
-              const dk = await getDeviceKey(true);
-              const wrapped = await wrapRawDek(state.dek, dk);
-              await api('/device-key/set', { method: 'POST', body: JSON.stringify({ wrapped_dek: wrapped, device_id: getDeviceId() }) });
-              enrolled = true;
-            } catch (e) { /* enrolment retried on next password unlock */ }
-          }
-          toast('Skip master password: on', enrolled
-            ? 'This device opens Mail without your master password.'
-            : 'Unlock once with your master password on each device.');
-        }
+        await api('/device-key/clear', { method: 'POST', body: JSON.stringify({ device_id: b.dataset.forget }) });
+        if (b.dataset.forget === mine) clearDeviceKey();
+        toast('Device forgotten', 'It needs the passphrase next time.');
         refreshQU();
-      } catch (e) {
-        setSw(!on);
-        toast('Could not save setting', e.message, 'error');
-      }
-    };
-    swQU.addEventListener('click', flipQU);
-    swQU.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flipQU(); }
+      } catch (e) { toast('Not done', e.message, 'error'); }
+    }));
+  };
+  // read the switch fresh when this view opens and when the tab returns, so
+  // a change made on id.inpriv.xyz shows
+  const refreshQU = async () => {
+    try {
+      const me = await api('/me', { method: 'GET' });
+      state.user.quick_unlock = me.quick_unlock;
+      setSw(me.quick_unlock !== false);
+      const list = me.quick_unlock !== false ? (await api('/device-key/list', { method: 'GET' })).devices || [] : [];
+      renderDevices(list, me.quick_unlock !== false);
+    } catch (e) { /* keep what is shown */ }
+  };
+  refreshQU();
+  if (!state.quVisBound) {
+    state.quVisBound = true;
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && state.refreshQU && document.getElementById('swQuickUnlock')) state.refreshQU();
     });
   }
+  state.refreshQU = refreshQU;
+  const flipQU = async () => {
+    const on = !swQU.classList.contains('on');
+    setSw(on);
+    try {
+      await api('/quick-unlock', { method: 'POST', body: JSON.stringify({ enabled: on }) });
+      state.user.quick_unlock = on;
+      if (!on) {
+        clearDeviceKey();
+        toast('Skip mailbox passphrase: off', 'Every device asks for your passphrase again.');
+      } else {
+        let enrolled = false;
+        try { enrolled = await enrolQuickUnlock(); } catch (e) { /* retried on the next unlock */ }
+        toast('Skip mailbox passphrase: on', enrolled
+          ? 'This device now opens Mail without your passphrase.'
+          : 'Unlock once with your passphrase on each device.');
+      }
+      refreshQU();
+    } catch (e) {
+      setSw(!on);
+      toast('Could not save setting', e.message, 'error');
+    }
+  };
+  swQU.addEventListener('click', flipQU);
+  swQU.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flipQU(); }
+  });
 
   const swUT = $('#swUnlockToast');
-  if (swUT) {
-    const flipUT = () => {
-      const on = !swUT.classList.contains('on');
-      swUT.classList.toggle('on', on);
-      swUT.setAttribute('aria-checked', String(on));
-      try { localStorage.setItem(UNLOCK_TOAST_KEY, on ? '1' : '0'); } catch (e) {}
-    };
-    swUT.addEventListener('click', flipUT);
-    swUT.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flipUT(); }
-    });
-  }
+  const flipUT = () => {
+    const on = !swUT.classList.contains('on');
+    swUT.classList.toggle('on', on);
+    swUT.setAttribute('aria-checked', String(on));
+    try { localStorage.setItem(UNLOCK_TOAST_KEY, on ? '1' : '0'); } catch (e) {}
+  };
+  swUT.addEventListener('click', flipUT);
+  swUT.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flipUT(); }
+  });
 
   $('#logoutBtn').addEventListener('click', logout);
+}
+
+/* Change the mailbox passphrase: the same keys, sealed again. Other
+   sessions and every device's Quick Unlock key end, since they held the
+   previous passphrase key. */
+function openChangePassphrase() {
+  const container = $('#modalContainer');
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="chgTitle">
+      <div class="modal-head">
+        <h2 class="modal-title" id="chgTitle">Change mailbox passphrase</h2>
+        <button class="icon-btn" id="chgClose" type="button" aria-label="Close">${mkIcon('close')}</button>
+      </div>
+      <form id="chgForm">
+        ${pwField('chgOld', 'Current passphrase', 'current-password', 'Current passphrase')}
+        ${pwField('chgNew', `New passphrase <span class="opt">(${MIN_PASSPHRASE}+ characters)</span>`, 'new-password', 'A few unrelated words')}
+        ${pwField('chgNewConfirm', 'Repeat the new passphrase', 'new-password', 'New passphrase again')}
+        <div class="sec-badge">${mkIcon('info')}<span>Other sessions sign out, and devices that skip the passphrase need it once more.</span></div>
+        <div class="modal-actions">
+          <button class="btn btn-outlined" id="chgCancel" type="button">Cancel</button>
+          <button class="btn btn-primary" id="chgBtn" type="submit">Change passphrase</button>
+        </div>
+      </form>
+    </div>`;
+  container.appendChild(overlay);
+  bindEyeToggles();
+  requestAnimationFrame(() => requestAnimationFrame(() => { overlay.classList.add('open'); $('#chgOld')?.focus(); }));
+  const close = () => { overlay.classList.remove('open'); setTimeout(() => overlay.remove(), 320); };
+  $('#chgClose').addEventListener('click', close);
+  $('#chgCancel').addEventListener('click', close);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+  $('#chgForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const next = $('#chgNew').value;
+    const problem = passphraseProblem(next, $('#chgNewConfirm').value);
+    if (problem) { toast('Choose another passphrase', problem, 'error'); return; }
+    const btn = $('#chgBtn');
+    busy(btn, 'Changing…');
+    try {
+      try {
+        await openRing(state.user, await derivePassphraseKey($('#chgOld').value, state.user.priv_salt, state.user.priv_iter));
+      } catch (err) { throw new Error("The current passphrase isn't right."); }
+      const { envelope, kek } = await sealRing(state.ring, next);
+      const proof = await keyProof('rewrap');
+      const r = await api('/keys/rewrap', {
+        method: 'POST',
+        body: JSON.stringify({ envelope, previous_salt: state.user.priv_salt, ...proof })
+      });
+      state.user = { ...state.user, ...r.user };
+      state.dek = kek;
+      clearDeviceKey();
+      try { await enrolQuickUnlock(); } catch (e2) {}
+      toast('Passphrase changed', 'Use the new one from now on.');
+      close();
+      if (state.refreshQU) state.refreshQU();
+    } catch (ex) {
+      toast('Not changed', ex.message, 'error');
+      idle(btn);
+    }
+  });
 }
 
 /* ============================================================================
    BOOTSTRAP
    ========================================================================== */
+/* Open the mailbox with this device's Quick Unlock key when there is one and
+   the account allows it; otherwise ask for the passphrase (format 2) or, for
+   a format-1 mailbox, for the password that locked the old key. */
+async function tryQuickUnlock({ avoid = [] } = {}) {
+  let allowed = (state.user && typeof state.user.quick_unlock !== 'undefined') ? state.user.quick_unlock !== false : undefined;
+  if (allowed === undefined) {
+    try { allowed = (await api('/me', { method: 'GET' })).quick_unlock !== false; }
+    catch (e) { allowed = undefined; }
+  }
+  if (allowed === false) clearDeviceKey();
+  if (allowed) {
+    try {
+      const dk = await getDeviceKey(false);
+      const kd = dk ? await api('/device-key/get?device=' + encodeURIComponent(getDeviceId()), { method: 'GET' }) : null;
+      const dek = kd && kd.wrapped_dek ? await unwrapRawDek(kd.wrapped_dek, dk) : null;
+      if (dek && state.user.key_format === 2) {
+        const ring = await openRing(state.user, dek);
+        useRing(ring, await loadRing(ring), dek);
+        unlockToast('Opened with this device’s key.');
+        renderDashboard();
+        return;
+      }
+      if (dek) {
+        // a format-1 device key holds the old password key: open the old
+        // key with it, then set a passphrase
+        const pkcs8 = await openLegacyKey(state.user, dek);
+        promptSetPassphrase({ mode: 'upgrade', oldPkcs8: pkcs8, avoid });
+        return;
+      }
+    } catch (e) { /* fall through to the passphrase screen */ }
+  }
+  if (state.user.key_format === 2) promptUnlockSession();
+  else promptLegacyUnlock({ avoid });
+}
+
 async function bootstrap() {
   renderShell();
   InprivUI.liquid('.auth-segmented, .tab-seg, .view-format-toggle, .bottom-nav');
@@ -3453,11 +4016,8 @@ async function bootstrap() {
 
   // Listen for Inpriv ID SSO events
   window.addEventListener('inpriv:id', (ev) => {
-    if (ev.detail && ev.detail.user) {
-      handleIdUser(ev.detail.user);
-    }
+    if (ev.detail && ev.detail.user) handleIdUser(ev.detail.user);
   });
-
   window.addEventListener('inpriv:connect', (ev) => {
     if (ev.detail && ev.detail.user) {
       handleIdUser(ev.detail.user);
@@ -3467,124 +4027,42 @@ async function bootstrap() {
 
   /* ---------- Quick Sign-In (auto SSO via id.inpriv.xyz) ----------
      Fires once per page load when Inpriv ID detects a signed-in browser
-     and there is no local mailbox session yet. The service backend
-     redeems the grant server-to-server; the mailbox stays locked until
-     the master password or the Quick Unlock device key decrypts it. */
+     and there is no mailbox session yet. The mailbox stays locked until the
+     passphrase or this device's Quick Unlock key opens it. */
   async function maybeAutoSso() {
-    if (state.token || state.ssoTried || state.ssoBusy) return;
+    if (state.signedIn || state.ssoTried || state.ssoBusy) return;
     if (!window.InprivID || !window.InprivID.user || typeof window.InprivID.sso !== 'function') return;
     state.ssoTried = true;
     state.ssoBusy = true;
     try {
       const g = await new Promise((res) => window.InprivID.sso(res));
       if (!g || !g.ok) return;
-      const res = await fetch(API + '/sso', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ grant: g.grant, state: g.state })
-      });
-      const d = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        // Quick Unlock disabled server-side mid-session → drop local device key
-        if (res.status === 403) clearDeviceKey();
-        return;
-      }
-      if (d.status === 'needs_init') {
-        // first visit with this Inpriv ID: prefill + ask for the password once
-        toast('Inpriv ID detected', 'Enter your master password to create your mailbox keys');
-        const u = $('#authUsername');
-        if (u) u.value = d.username;
-        const p = $('#authPassword');
-        if (p) { p.focus(); p.classList.add('pulse-focus'); setTimeout(() => p.classList.remove('pulse-focus'), 800); }
-        return;
-      }
+      const d = await api('/sso', { method: 'POST', body: JSON.stringify({ grant: g.grant, state: g.state }) });
       if (d.status === 'totp_required') {
-        toast('Two-factor required', 'Enter your authenticator code to continue.');
-        // password is NOT in memory here — the SSO redeem just proved the
-        // password; keep its proof so /id-init can accept the code alone
-        state.ssoRedeemToken = d.sso_ticket || null;
-        state.ssoTotpUser = d.username;
-        await promptTwoFactor(d.username, d.nick || d.username, null);
+        promptTwoFactor({ username: d.username, nick: d.nick, ssoTicket: d.sso_ticket });
         return;
       }
-      if (!d.token) return;
-      // session established — mailbox still encrypted; try Quick Unlock
-      state.token = d.token;
-      state.user = d.user;
-      localStorage.setItem('inpriv_token', d.token);
-      if (!state.idUser && d.quick_unlock !== undefined) {
-        // widget flag not here yet — the redeem response carries the same
-        // account setting, so the unlock attempt doesn't have to wait
-        state.idUser = { ...(state.idUser || {}), quick_unlock: d.quick_unlock };
-      }
-      await tryQuickUnlock();
-    } catch (e) { /* silent — manual login always available */ }
+      await afterSignIn(d, { username: d.username });
+    } catch (e) { /* silent — manual sign-in always works */ }
     finally { state.ssoBusy = false; }
   }
 
-  /* Try to decrypt the mailbox with the device key (no master password).
-     Quick Unlock is governed by the Inpriv ID account setting: the widget
-     publishes it with the user object; until that arrives (or when signed
-     in purely locally) we fall back to the server-side policy, which knows
-     the same setting through the ID database. Falls back to the unlock
-     screen when unavailable/disabled. */
-  // the 2FA prompt lives outside bootstrap and needs this after Quick Sign-In
-  state.tryQuickUnlock = tryQuickUnlock;
-  async function tryQuickUnlock() {
-    let allowed = state.idUser
-      ? state.idUser.quick_unlock !== false
-      : (state.user && typeof state.user.quick_unlock !== 'undefined')
-        ? state.user.quick_unlock !== false
-        : undefined;
-    if (allowed === undefined) {
-      try { allowed = (await api('/me', { method: 'GET' })).quick_unlock !== false; }
-      catch (e) { allowed = undefined; }
-    }
-    if (allowed === false) { clearDeviceKey(); }
-    if (allowed) {
-      try {
-        const dk = await getDeviceKey(false);
-        if (dk) {
-          const kd = await api('/device-key/get?device=' + encodeURIComponent(getDeviceId()), { method: 'GET' });
-          if (kd && kd.wrapped_dek) {
-            const dek = await unwrapRawDek(kd.wrapped_dek, dk);
-            if (dek) {
-              state.dek = dek; // kept for Quick Unlock re-enrolment from settings
-              state.privKey = await unwrapPrivateKey(state.user.encrypted_private_key, state.user.priv_iv, dek);
-              state.pubKey = await crypto.subtle.importKey('spki', b64.dec(state.user.public_key), { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['encrypt']);
-              state.unlocked = true;
-              unlockToast('Opened without your master password.');
-              renderDashboard();
-              return;
-            }
-          }
-        }
-      } catch (e) { /* fall through to password screen */ }
-    }
-    // locked session: show the unlock screen (password still required)
-    toast('Signed in with Inpriv ID', 'Enter your master password to unlock the mailbox.');
-    promptUnlockSession();
+  // Session restore. The session is an HttpOnly cookie. Pages from before
+  // kept the token in localStorage: it's sent once so the server moves it
+  // into the cookie, then forgotten here.
+  let legacy = null;
+  try { legacy = localStorage.getItem('inpriv_token'); } catch (e) {}
+  try {
+    state.user = await api('/me', { method: 'GET', headers: legacy ? { Authorization: 'Bearer ' + legacy } : {} });
+    state.signedIn = true;
+  } catch (e) {
+    state.user = null;
   }
-
-  // session restore: existing token → try device key first, then password
-  if (state.token) {
-    try {
-      const me = await api('/me', { method: 'GET' });
-      state.user = me;
-      await tryQuickUnlock();
-    } catch (e) {
-      state.token = null;
-      localStorage.removeItem('inpriv_token');
-      renderAuth();
-    }
-  }
+  try { localStorage.removeItem('inpriv_token'); } catch (e) {}
 
   if (window.InprivID) {
-    if (window.InprivID.user) {
-      handleIdUser(window.InprivID.user);
-    } else if (typeof window.InprivID.check === 'function') {
-      window.InprivID.check(handleIdUser);
-    }
+    if (window.InprivID.user) handleIdUser(window.InprivID.user);
+    else if (typeof window.InprivID.check === 'function') window.InprivID.check(handleIdUser);
   }
 
   // Universal delegate for compose actions
@@ -3592,89 +4070,17 @@ async function bootstrap() {
     const composeBtn = e.target.closest('#mobileComposeBtn, #desktopFab, [data-action="compose"]');
     if (composeBtn) {
       e.preventDefault();
-      openComposeModal();
+      if (state.unlocked) openComposeModal();
     }
   });
 
+  if (state.signedIn) {
+    await tryQuickUnlock();
+    return;
+  }
   // URL parameters: start on the register card when ?register is present
   const urlParams = new URLSearchParams(window.location.search);
-  const initialMode = urlParams.get('register') ? 'register' : 'login';
-
-  // no session → plain auth card. (Signed-in visitors were already handled
-  // above by the session-restore block, including the Quick Unlock path.)
-  if (!state.token) renderAuth(initialMode);
-}
-
-function promptUnlockSession() {
-  $('#bottomNavContainer').innerHTML = '';
-  $('#fabContainer').innerHTML = '';
-  updateIdStatusHeader();
-
-  const main = $('#mainView');
-  main.innerHTML = `
-    <div class="auth-container">
-      <div class="auth-box glass">
-        <div class="auth-header">
-          <div class="auth-header-icon">${mkIcon('lock')}</div>
-          <h1 class="auth-title">Unlock your mailbox.<br><span>The key stays on this device.</span></h1>
-          <p class="auth-subtitle">Signed in as <strong>${escapeHtml(state.user.email)}</strong>. Enter your master password to unlock your private key locally.</p>
-        </div>
-
-        <form id="sessionUnlockForm">
-          <div class="field">
-            <label>Master Password</label>
-            <div class="input-wrap">
-              <input type="password" id="sessionPw" placeholder="Master password" autocomplete="current-password" required autofocus>
-              <button type="button" class="eye-toggle" data-target="sessionPw">${mkIcon('visibility')}</button>
-            </div>
-          </div>
-
-          <button type="submit" class="btn btn-primary btn-block" id="sessionUnlockBtn">
-            <span>Unlock Private Key</span> ${mkIcon('lock_open')}
-          </button>
-
-          <div style="text-align:center;margin-top:14px">
-            <button type="button" class="btn btn-text" id="sessionSignOutBtn">Sign out instead</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  `;
-
-  bindEyeToggles();
-  $('#sessionSignOutBtn').addEventListener('click', logout);
-
-  $('#sessionUnlockForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const pw = $('#sessionPw').value;
-    const btn = $('#sessionUnlockBtn');
-    btn.disabled = true;
-    btn.innerHTML = `<span class="spinner"></span> <span>Unlocking…</span>`;
-
-    try {
-      const aesKey = await deriveAesFromPassword(pw, state.user.priv_salt, state.user.priv_iter);
-      state.dek = aesKey; // kept for Quick Unlock re-enrolment from settings
-      state.privKey = await unwrapPrivateKey(state.user.encrypted_private_key, state.user.priv_iv, aesKey);
-      state.pubKey = await crypto.subtle.importKey('spki', b64.dec(state.user.public_key), { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['encrypt']);
-      state.unlocked = true;
-
-      // the wrapped DEK was missing/stale — enrol this device NOW so the
-      // next visit skips the master password entirely
-      try { await enrolQuickUnlock(aesKey); } catch (e) {}
-
-      toast('Unlocked', 'Private key decrypted in memory.');
-      renderDashboard();
-    } catch (err) {
-      // the current Inpriv ID password after a change: re-lock, not an error
-      try {
-        const chk = await api('/password-check', { method: 'POST', body: JSON.stringify({ password: pw }) });
-        if (chk.valid && chk.stale) { await startRekey(pw); return; }
-      } catch (e) {}
-      toast('Invalid password', 'Could not decrypt private key.', 'error');
-      btn.disabled = false;
-      btn.innerHTML = `<span>Unlock Private Key</span> ${mkIcon('lock_open')}`;
-    }
-  });
+  renderAuth(urlParams.get('register') ? 'register' : 'login');
 }
 
 document.addEventListener('DOMContentLoaded', bootstrap);

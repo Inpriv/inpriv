@@ -1,7 +1,7 @@
 {
   "name": "Inpriv — Private email",
   "short_name": "Inpriv",
-  "description": "A permanent end-to-end encrypted mailbox, or a disposable inbox that deletes itself after 24 hours.",
+  "description": "A permanent mailbox, end-to-end encrypted between Inpriv users, or a disposable inbox that deletes itself after 24 hours.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

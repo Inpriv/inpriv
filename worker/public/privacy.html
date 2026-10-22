@@ -7,14 +7,14 @@
 <meta name="referrer" content="no-referrer">
 <meta name="color-scheme" content="dark light">
 <title>Privacy Policy — Inpriv</title>
-<meta name="description" content="What Inpriv stores, what it never stores, and for how long. Mail is end-to-end encrypted, Temp inboxes are deleted after 24 hours, logs after 90 days.">
+<meta name="description" content="What Inpriv stores, what it can and can't read, and for how long: end-to-end encrypted Mail, Temp deleted after 24 hours, access logs after 30 days.">
 <link rel="canonical" href="https://inpriv.xyz/privacy">
 <meta name="robots" content="index, follow">
 <meta name="theme-color" content="#0c0c0b">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="Inpriv">
 <meta property="og:title" content="Privacy Policy — Inpriv">
-<meta property="og:description" content="What Inpriv stores, what it never stores, and for how long. Mail is end-to-end encrypted, Temp inboxes are deleted after 24 hours, logs after 90 days.">
+<meta property="og:description" content="What Inpriv stores, what it can and can't read, and for how long: end-to-end encrypted Mail, Temp deleted after 24 hours, access logs after 30 days.">
 <meta property="og:url" content="https://inpriv.xyz/privacy">
 <meta property="og:image" content="https://inpriv.xyz/og/landing.png?v=3">
 <meta property="og:image:width" content="1200">
@@ -22,7 +22,7 @@
 <meta property="og:locale" content="en_US">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Privacy Policy — Inpriv">
-<meta name="twitter:description" content="What Inpriv stores, what it never stores, and for how long. Mail is end-to-end encrypted, Temp inboxes are deleted after 24 hours, logs after 90 days.">
+<meta name="twitter:description" content="What Inpriv stores, what it can and can't read, and for how long: end-to-end encrypted Mail, Temp deleted after 24 hours, access logs after 30 days.">
 <meta name="twitter:image" content="https://inpriv.xyz/og/landing.png?v=3">
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Inpriv", "item": "https://inpriv.xyz/"}, {"@type": "ListItem", "position": 2, "name": "Legal", "item": "https://inpriv.xyz/legal"}, {"@type": "ListItem", "position": 3, "name": "Privacy Policy", "item": "https://inpriv.xyz/privacy"}]}</script>
 <link rel="icon" href="/icon.png">
@@ -84,36 +84,42 @@ code { font: 13.5px ui-monospace, "SF Mono", Consolas, monospace; background: va
 </header>
 <main>
 <h1>Privacy Policy</h1>
-<p class="lead">What Inpriv stores, what it never stores, how long it keeps things, and who else handles your data.</p>
-<p class="meta">Effective 17 October 2026</p>
+<p class="lead">What Inpriv stores, what it can and can't read, how long it keeps things, and who else handles your data.</p>
+<p class="meta">Effective 22 October 2026. Earlier versions are in the <a href="https://github.com/Inpriv/inpriv/commits/main/worker/public/privacy.html">source history</a>.</p>
 
 <div class="box">
 <p><strong>The short version</strong></p>
 <ul>
-<li>Mail between Inpriv users is <strong>end-to-end encrypted</strong> in your browser. We can't read it.</li>
-<li>Mail from or to other providers (Gmail, Outlook…) passes through our mail relay in readable form; incoming mail is then stored encrypted to your key.</li>
-<li>Subject lines, sender and recipient addresses and times are <strong>not</strong> end-to-end encrypted. We need them to deliver and list your mail.</li>
-<li><strong>Temp</strong> inboxes are not encrypted and are deleted about 24 hours after creation.</li>
-<li>We keep an <strong>access log</strong> (IP address, country, network, browser, time, what happened) for <strong>90 days</strong>, to stop abuse and answer valid legal requests.</li>
-<li>No ads, no analytics, no tracking cookies, no data sales. The code is <a href="https://github.com/Inpriv/inpriv">open source</a>, so you can check all of this.</li>
+<li>Mail between Inpriv users is <strong>end-to-end encrypted</strong> in the sender's browser. Your mailbox keys are locked with a <strong>mailbox passphrase</strong> that never leaves your device.</li>
+<li>Mail from or to other providers (Gmail, Outlook…) is <strong>normal email</strong>. Our mail provider and our server can read it while it passes through; incoming mail is then stored encrypted to your key.</li>
+<li>Subject lines, sender and recipient addresses, sizes and times are <strong>not</strong> encrypted. We need them to deliver and list your mail.</li>
+<li><strong>Temp</strong> inboxes are not encrypted. Their messages are deleted after 24 hours. The address itself is never given to anyone else.</li>
+<li>We keep a security <strong>access log</strong> (the network your IP address belongs to, country, network operator, browser family, time, what happened) for <strong>30 days</strong>.</li>
+<li>Opening an email doesn't load anything from the sender until you choose <em>Load images</em>.</li>
+<li>No ads, no analytics, no tracking cookies, no data sales. The code is <a href="https://github.com/Inpriv/inpriv">open source</a>, so you can check this.</li>
+<li>Inpriv gives you an address that isn't your name. It doesn't make you <strong>anonymous</strong> (<a href="#anonymity">section 15</a>).</li>
 </ul>
 </div>
 
 <ol class="toc">
 <li><a href="#who">Who we are</a></li>
-<li><a href="#never">What we never have</a></li>
+<li><a href="#encryption">Encryption, in plain terms</a></li>
 <li><a href="#id">Inpriv ID</a></li>
 <li><a href="#mail">Inpriv Mail</a></li>
 <li><a href="#temp">Inpriv Temp</a></li>
-<li><a href="#log">Access log</a></li>
+<li><a href="#addresses">Addresses are never reused</a></li>
+<li><a href="#log">Access log and security events</a></li>
+<li><a href="#content">Images and links in email</a></li>
 <li><a href="#device">On your device</a></li>
+<li><a href="#recovery">Account and key recovery</a></li>
 <li><a href="#team">Mail you send to us</a></li>
 <li><a href="#processors">Who else handles data</a></li>
 <li><a href="#retention">How long we keep it</a></li>
 <li><a href="#share">When we share data</a></li>
+<li><a href="#anonymity">Pseudonymous, not anonymous</a></li>
 <li><a href="#bases">Legal bases</a></li>
 <li><a href="#rights">Your rights</a></li>
-<li><a href="#security">Security</a></li>
+<li><a href="#security">Security, and its limits</a></li>
 <li><a href="#children">Children</a></li>
 <li><a href="#changes">Changes</a></li>
 </ol>
@@ -121,117 +127,163 @@ code { font: 13.5px ui-monospace, "SF Mono", Consolas, monospace; background: va
 <h2 id="who">1. Who we are</h2>
 <p>"Inpriv", "we" and "us" mean the operator of the Inpriv services at <code>inpriv.xyz</code>, <code>mail.inpriv.xyz</code>, <code>temp.inpriv.xyz</code> and <code>id.inpriv.xyz</code>. We are the controller of the personal data described here. Questions and requests: <a href="mailto:privacy@inpriv.xyz">privacy@inpriv.xyz</a>.</p>
 
-<h2 id="never">2. What we never have</h2>
-<ul>
-<li>The <strong>content of mail between Inpriv users</strong>. It's encrypted in the sender's browser with the recipient's public key (RSA-OAEP 2048 + AES-256-GCM) before it reaches us.</li>
-<li>The <strong>content of stored mail from outside senders</strong> after it's been received. It's encrypted to your public key on arrival, and only your browser can open it.</li>
-<li>Your <strong>password</strong>. We store only a salted hash (PBKDF2-SHA-256, 300,000 iterations).</li>
-<li>Your <strong>mailbox private key</strong> or the key your password unlocks it with. Both exist only in your browser.</li>
-<li>Anything you type into a page and don't submit, and any analytics, advertising or tracking data. We don't run analytics or ads.</li>
-</ul>
-<p>Because we can't read this content, we also can't recover it. If you forget your password, mail encrypted to your old key can't be opened again.</p>
+<h2 id="encryption">2. Encryption, in plain terms</h2>
+<p>"Encrypted" means different things in different places. Here's which is which:</p>
+<div class="scroll"><table>
+<tr><th>Kind</th><th>What it protects</th><th>Who can read it</th></tr>
+<tr><td><strong>End-to-end</strong> (Mail between Inpriv users)</td><td>The message body, encrypted in the sender's browser to the recipient's public key (RSA-OAEP 2048 + AES-256-GCM)</td><td>The sender and the recipient. Not our server, as long as the pages it serves aren't changed (<a href="#security">section 18</a>).</td></tr>
+<tr><td><strong>Encrypted on arrival</strong> (mail from other providers)</td><td>The stored body, encrypted by our server to your public key as soon as it arrives</td><td>You, once stored. Before that: the sender's provider, our mail provider and our server, which received it as normal email.</td></tr>
+<tr><td><strong>Your Sent copy</strong> of mail to other providers</td><td>Stored encrypted to your key</td><td>You, once stored. The message itself went out as normal email (readable to our server, our mail provider and the recipient's provider).</td></tr>
+<tr><td><strong>Encrypted at rest</strong> (Cloudflare's storage)</td><td>Everything in our databases, against someone taking the disks</td><td>Our servers, and Cloudflare under its terms</td></tr>
+<tr><td><strong>HTTPS</strong> (every page and request)</td><td>Traffic between your browser and our servers</td><td>Our servers, which decrypt it on arrival</td></tr>
+<tr><td><strong>Not encrypted</strong></td><td>Subjects, addresses, times, sizes; Temp messages; mail to our team addresses</td><td>Our servers</td></tr>
+</table></div>
+<p>Encryption doesn't hide <strong>who writes to whom and when</strong>. That routing information stays readable to us and to the mail providers along the way.</p>
 
 <h2 id="id">3. Inpriv ID (your account)</h2>
 <div class="scroll"><table>
 <tr><th>Data</th><th>Why</th></tr>
 <tr><td>Username and your <code>@inpriv.xyz</code> address</td><td>Identify your account and deliver your mail</td></tr>
 <tr><td>Display name (optional)</td><td>Shown to people you write to</td></tr>
-<tr><td>Recovery email (optional), whether it's verified, and short-lived hashed verification codes</td><td>Confirm that the address is yours. We don't use it for marketing.</td></tr>
-<tr><td>Password hash and salt</td><td>Check your password when you sign in</td></tr>
+<tr><td>Recovery email (optional), whether it's verified, and short-lived hashed verification codes</td><td>Confirm that the address is yours. It can't reset your password or your mailbox passphrase, and we don't use it for anything else.</td></tr>
+<tr><td>Password hash and salt (PBKDF2-SHA-256, 300,000 iterations)</td><td>Check your password when you sign in. Your password itself reaches our server over HTTPS at sign-in and is checked, not stored.</td></tr>
 <tr><td>Two-factor secret (encrypted at rest) and hashed one-time recovery codes</td><td>Two-factor authentication, if you turn it on</td></tr>
-<tr><td>Sessions: device and browser name, the first part of your IP address (e.g. <code>203.0</code>), created / last used / expiry times</td><td>Keep you signed in, and let you see and sign out sessions</td></tr>
-<tr><td>Security events: type (sign-in, failed sign-in, password change, 2FA change…), the first part of your IP address, browser name, time</td><td>Your "security log" on id.inpriv.xyz, and protecting your account</td></tr>
-<tr><td>Settings ("Skip master password"), connected services and profile preferences (encrypted at rest)</td><td>Make the services behave the way you chose</td></tr>
-<tr><td>Rate-limit counters keyed by the first part of your IP address</td><td>Slow down password guessing and mass sign-ups; they expire within an hour</td></tr>
+<tr><td>Sessions: browser and system name, the first part of your IP address (e.g. <code>203.0</code>), created / last used / expiry times</td><td>Keep you signed in, and let you see and sign out sessions</td></tr>
+<tr><td>Security events: type (sign-in, failed sign-in, password or 2FA change…), the first part of your IP address, browser name, time</td><td>Your security log on id.inpriv.xyz</td></tr>
+<tr><td>Settings ("Skip mailbox passphrase"), connected services and profile preferences (encrypted at rest)</td><td>Make the services behave the way you chose</td></tr>
+<tr><td>Rate-limit counters keyed by your IP address (IPv6: its /64) or by account</td><td>Slow down password guessing and mass sign-ups. Each counter is deleted within an hour of its window ending.</td></tr>
 </table></div>
 
 <h2 id="mail">4. Inpriv Mail</h2>
 <div class="scroll"><table>
 <tr><th>Data</th><th>Readable by us?</th></tr>
-<tr><td>Your public key, and your private key <em>encrypted with your password</em></td><td>Public key: yes. Private key: no.</td></tr>
-<tr><td>A copy of your password hash</td><td>No (it's a hash)</td></tr>
-<tr><td>For each message: the other party's address and display name, the <strong>subject</strong>, the time, read/unread, direction, and the encrypted size</td><td><strong>Yes</strong>. This is metadata needed to list and deliver mail.</td></tr>
-<tr><td>For each message: the body and its formatting</td><td><strong>No</strong>. It's encrypted to your key.</td></tr>
-<tr><td>Sessions: browser name (user agent), created and expiry times</td><td>Yes</td></tr>
-<tr><td>"Skip master password": one wrapped key per device and a random device id</td><td>No. It can only be unwrapped with a key stored on that device.</td></tr>
+<tr><td>Your public key and its key id</td><td>Yes. Others need it to write to you.</td></tr>
+<tr><td>Your key ring: your private keys, encrypted in your browser with a key made from your <strong>mailbox passphrase</strong> (PBKDF2-SHA-256, 600,000 iterations)</td><td><strong>No.</strong> The passphrase never reaches us. Someone who has the encrypted key ring could try to guess the passphrase, which is why it must be long and is never your password.</td></tr>
+<tr><td>For each message: the other party's address and display name, the <strong>subject</strong>, the time, read/unread, direction, the encrypted size and which key it was encrypted to</td><td><strong>Yes.</strong> Metadata needed to list and deliver mail.</td></tr>
+<tr><td>For each message: the body and its formatting</td><td><strong>No,</strong> once stored. It's encrypted to your key. Mail from or to other providers was readable while it passed through (section 2).</td></tr>
+<tr><td>Sessions: browser and system name, created and expiry times</td><td>Yes</td></tr>
+<tr><td>"Skip mailbox passphrase": per device, a random device id, the browser and system name, the time it was last used, and your passphrase key wrapped with a key that stays on that device</td><td>No, without the device</td></tr>
 </table></div>
+<h3>Mailboxes created before 22 October 2026</h3>
+<p>Until then, a mailbox's private key was locked with your <strong>Inpriv ID password</strong>, which our server receives every time you sign in. We never recorded it, but a compromised or compelled server could have used it to unlock that key. The next time you open such a mailbox, Mail asks you to set a mailbox passphrase:</p>
+<ul>
+<li>your earlier key is moved into a new key ring locked with the passphrase, so your earlier mail stays readable;</li>
+<li>a <strong>new key</strong> is made for mail sent to you from then on, and senders can only encrypt to that new key;</li>
+<li>the copy locked with your password is removed from our servers (it may stay in Cloudflare's restorable history for up to 7 days, section 13).</li>
+</ul>
+<p>This can't undo the past: mail encrypted to your earlier key was protected only as well as your password was. If that matters for some of it, delete those messages. Until you upgrade, your mailbox keeps working the old way.</p>
 <h3>Mail to and from other providers</h3>
 <ul>
-<li><strong>Incoming:</strong> mail from Gmail, Outlook and others arrives over normal email, unencrypted, through our mail provider Resend. Our server encrypts it to your public key before storing it. While it's received, it's readable to Resend and to our server.</li>
-<li><strong>Outgoing:</strong> mail you send to other providers is handed to Resend as normal email. It's readable to Resend, to the recipient's provider, and to our server while it's sent. An encrypted copy is kept in your Sent box.</li>
+<li><strong>Incoming:</strong> mail from other providers reaches our mail provider Resend over normal email. Our server fetches it, removes anything that could run in your browser (scripts, forms, frames), encrypts it to your public key and stores it.</li>
+<li><strong>Outgoing:</strong> mail you send to other providers is handed to Resend as normal email. Our server, Resend and the recipient's provider can read it. The copy in your Sent box is encrypted to your key.</li>
 </ul>
 
 <h2 id="temp">5. Inpriv Temp</h2>
 <ul>
-<li><strong>The inbox:</strong> its random address, a hash of the access token your browser holds, and created and expiry times.</li>
-<li><strong>Messages:</strong> sender, recipient, subject, text and HTML body, attachments (up to 512 KB each, 2 MB per message), size and time. These are stored <strong>unencrypted</strong>, so don't use Temp for anything sensitive.</li>
-<li><strong>Deletion:</strong> everything is deleted when the inbox expires, 24 hours after it's created. Cleanup runs every hour. Messages are never kept longer than 7 days in any case. You can also delete an inbox yourself at any time.</li>
-<li><strong>Logging:</strong> creating an inbox is written to the access log (section 6).</li>
+<li><strong>The inbox:</strong> its address, a hash of the access key your browser holds, and created and expiry times.</li>
+<li><strong>Messages:</strong> sender, recipient, subject, text and HTML body (with anything that could run removed), attachments (up to 512 KB each, 2 MB per message), size and time. These are stored <strong>unencrypted</strong>, so don't use Temp for anything sensitive.</li>
+<li><strong>Deletion:</strong> the inbox and its messages are deleted once it expires, 24 hours after it's created; cleanup runs every hour. Messages are never kept longer than 7 days in any case. You can delete an inbox yourself at any time.</li>
+<li><strong>Not logged:</strong> creating an inbox isn't written to the access log, and we don't record which network created it. Short-lived counters limit how many inboxes one network can create per hour.</li>
 </ul>
 
-<h2 id="log">6. Access log</h2>
-<p>To fight abuse and to answer valid legal requests, we keep an access log. Each entry has:</p>
+<h2 id="addresses">6. Addresses are never reused</h2>
+<p>Every <code>@inpriv.xyz</code> address belongs to one owner at a time, and once it has been handed out it is never given to anyone else: not after a Temp inbox expires, and not after an account is deleted. Mail meant for the earlier holder, such as password resets from other sites, can't reach a new one.</p>
+<p>To make that possible we keep, for every address ever issued, the address itself, which kind of service took it (account, Temp or team) and the day. Nothing else: no IP address, no account id, no messages. This record is kept for as long as Inpriv runs.</p>
+<p><strong>A limit we can't fix:</strong> before 22 October 2026, expired Temp addresses could be issued again, and most of them were never recorded. We now refuse every address in the old Temp format (like <code>amber-fox-123</code>) and every Temp address in our records, but a custom Temp name (one you typed yourself) that was used and expired before 17 October 2026 isn't on record, and could still be claimed.</p>
+
+<h2 id="log">7. Access log and security events</h2>
+<p>To investigate account takeovers and abuse reports, and to answer valid legal requests, we keep an access log. Each entry has:</p>
 <ul>
-<li>the time, the service, and what happened, for example "Mail sign-in" or "message sent";</li>
-<li>the account (username or Temp address);</li>
-<li>for sent mail, the <strong>recipient address</strong>;</li>
-<li>the <strong>full IP address</strong>, the country and network (ASN) derived from it, and the browser's user-agent string.</li>
+<li>the time, the service, and what happened, such as "Mail sign-in", "message sent" or "mailbox key upgraded";</li>
+<li>the account (username);</li>
+<li>the <strong>network</strong> your IP address belongs to, not the full address: the first three parts of an IPv4 address (<code>203.0.113.0/24</code>) or the first 48 bits of an IPv6 address;</li>
+<li>the country and network operator (ASN) for that address, and your browser family and system (for example "Firefox · Linux").</li>
 </ul>
-<p>It's written when you create, sign in to or change your Inpriv ID (failed sign-ins included), sign in to Mail, create a mailbox, send a message, or create a Temp inbox. <strong>Entries are deleted after 90 days</strong>, including after you delete your account. The access log never contains message content, passwords or keys.</p>
+<p>It's written when you create, sign in to or change your Inpriv ID (failed sign-ins included), sign in to Mail, create or upgrade a mailbox, change your mailbox passphrase or send a message. It doesn't record <strong>recipients</strong>, message content, passwords, passphrases, keys, tokens or recovery codes. <strong>Entries are deleted after 30 days</strong>, including after you delete your account.</p>
+<p>A network, a country and a time are not anonymous: combined with an account, they can still point to a person or a household.</p>
+<p><strong>Entries written before 22 October 2026</strong> hold the full IP address, the full browser string and, for sent mail, the recipient address. They're deleted 90 days after they were written, so all of them are gone by 20 January 2027.</p>
+<p>Separately, your <strong>security log</strong> on id.inpriv.xyz (section 3) keeps the first part of your IP address and your browser name for 90 days, so you can review your own account.</p>
 
-<h2 id="device">7. On your device</h2>
+<h2 id="content">8. Images and links in email</h2>
+<p>Emails often load images from the sender's servers, which tells the sender that you opened the message, when, your IP address and your browser. Mail and Temp block all of that by default: images, tracking pixels, stylesheets, fonts and other files hosted elsewhere. Scripts, forms and embedded pages never run.</p>
+<p>If you choose <strong>Load images</strong> for a message, your browser fetches that message's images from the sender's servers, and the sender learns the above. Opening a <strong>link</strong> takes you to the other site, which sees your IP address and browser; Inpriv doesn't pass on which page you came from.</p>
+
+<h2 id="device">9. On your device</h2>
 <p>We don't use tracking or advertising cookies. The sites store only what they need to work:</p>
 <ul>
-<li><strong>id.inpriv.xyz:</strong> a sign-in cookie (HttpOnly, Secure). Other Inpriv sites ask id.inpriv.xyz whether you're signed in, for Quick Sign-In.</li>
-<li><strong>Mail:</strong> your session token. With "Skip master password" on, also a device key and a random device id. Plus your theme and whether to show the "Mailbox unlocked" message.</li>
-<li><strong>Temp:</strong> the token for your current inbox.</li>
+<li><strong>id.inpriv.xyz:</strong> a sign-in cookie that page scripts can't read (HttpOnly, Secure, SameSite=Strict). Other Inpriv sites ask id.inpriv.xyz whether you're signed in, for Quick Sign-In.</li>
+<li><strong>Mail:</strong> a sign-in cookie of the same kind, for mail.inpriv.xyz only. While Mail is open, your unlocked keys are held in the page's memory and are dropped when you sign out or close it. The page also remembers the key ids of people you've written to, to warn you if one changes.</li>
+<li><strong>Mail, with "Skip mailbox passphrase" on:</strong> a random device key and device id in the browser's storage. With them, this browser opens your mailbox without the passphrase. Anyone who can use this browser profile can open your mailbox too, and so could any script that managed to run on mail.inpriv.xyz. Use it only on devices you trust. Turning it off on any device removes it from every device; you can also forget single devices in Mail's Account tab.</li>
+<li><strong>Temp:</strong> the access key for your current inbox, in the browser's storage, until the inbox expires or you delete it.</li>
+<li>Everywhere: your theme and a few display preferences.</li>
 </ul>
 <p>Clearing your browser's site data removes all of this.</p>
 
-<h2 id="team">8. Mail you send to us</h2>
+<h2 id="recovery">10. Account and key recovery</h2>
+<ul>
+<li><strong>Inpriv ID password:</strong> there's no reset by email yet. If you have two-factor on, a recovery code replaces a lost authenticator, not a lost password.</li>
+<li><strong>Mailbox passphrase:</strong> nobody can recover it, including us: we never have it. If you lose it, you can start over with a new key (with your password, and your two-factor code if it's on). Your address keeps working and new mail can be read, but <strong>mail sent to you before stays stored and can't be opened again.</strong> Recovering your account never gives anyone your earlier mail.</li>
+</ul>
+
+<h2 id="team">11. Mail you send to us</h2>
 <p>Messages to our team addresses (support@, abuse@, dmca@, legal@, privacy@, security@, admin@, hello@) are stored as received, so we can answer them, and kept until we delete them. They aren't end-to-end encrypted.</p>
 
-<h2 id="processors">9. Who else handles data</h2>
+<h2 id="processors">12. Who else handles data</h2>
 <div class="scroll"><table>
 <tr><th>Provider</th><th>What for</th><th>What it handles</th></tr>
-<tr><td><strong>Cloudflare, Inc.</strong></td><td>Hosting, network, databases (Workers, D1)</td><td>Every request (including your IP address) and all stored data, which is encrypted at rest</td></tr>
-<tr><td><strong>Resend</strong></td><td>Sending and receiving email with other providers; Inpriv ID verification emails</td><td>Mail to and from non-Inpriv addresses and verification emails, including their content</td></tr>
+<tr><td><strong>Cloudflare, Inc.</strong></td><td>Hosting, network and databases (Workers, D1)</td><td>Every request, including your full IP address, and all stored data, which is encrypted at rest</td></tr>
+<tr><td><strong>Resend</strong>, whose mail servers for <code>inpriv.xyz</code> run on Amazon Web Services in Ireland (eu-west-1)</td><td>Receiving and sending email with other providers; Inpriv ID verification emails</td><td>Mail to and from non-Inpriv addresses and verification emails, including their content and the addresses involved</td></tr>
 </table></div>
-<p>These providers process data on our behalf under their own terms and data-processing agreements. They may process it outside your country, including in the United States. Where the law requires, the transfer relies on safeguards those providers offer, such as the European Commission's Standard Contractual Clauses. Their own logs are kept under their policies.</p>
+<p>These providers process data on our behalf under their own terms and data-processing agreements. They may process it outside your country, including in the United States. Where the law requires, the transfer relies on safeguards those providers offer, such as the European Commission's Standard Contractual Clauses.</p>
+<p>They keep their own operational logs and copies under their own policies, and we don't control how long. We haven't turned on Cloudflare's optional Workers request logging (Workers Logs or Logpush). Error messages our code writes don't include message content, passwords or keys.</p>
 <p>We don't sell or rent personal data, and we don't share it for advertising.</p>
 
-<h2 id="retention">10. How long we keep it</h2>
+<h2 id="retention">13. How long we keep it</h2>
 <div class="scroll"><table>
 <tr><th>Data</th><th>Kept until</th></tr>
-<tr><td>Inpriv ID account, mailbox, keys and stored mail</td><td>You delete your account. Deleting your Inpriv ID also deletes your mailbox and all its mail.</td></tr>
+<tr><td>Inpriv ID account, mailbox, key ring and stored mail</td><td>You delete your account. Deleting your Inpriv ID also deletes your mailbox and all its mail.</td></tr>
 <tr><td>Individual messages</td><td>You delete them</td></tr>
-<tr><td>Sessions</td><td>Expiry (30 days) or sign-out</td></tr>
-<tr><td>ID security events and the access log</td><td>90 days</td></tr>
+<tr><td>Sessions</td><td>Expiry (30 days) or sign-out. Changing your password or two-factor setting, or signing out everywhere, ends your Mail sessions too.</td></tr>
+<tr><td>Access log</td><td>30 days (entries written before 22 October 2026: 90 days)</td></tr>
+<tr><td>Your security log (ID security events)</td><td>90 days</td></tr>
+<tr><td>Rate-limit counters, sign-in tickets</td><td>Minutes to hours; deleted hourly once expired</td></tr>
 <tr><td>Temp inboxes and their messages</td><td>24 hours (at most 7 days for any message)</td></tr>
+<tr><td>Which addresses were ever issued (section 6)</td><td>As long as Inpriv runs</td></tr>
 <tr><td>Verification codes</td><td>15 minutes</td></tr>
 <tr><td>Mail to our team addresses</td><td>Until we delete it</td></tr>
 </table></div>
-<p>When we receive a valid legal preservation request, we may keep the specific data it covers for longer, only as long as the law requires.</p>
+<p><strong>Deleted isn't instantly gone everywhere:</strong> Cloudflare keeps a restorable history of each database, 7 days on our current plan, so deleted data can remain there that long. Clean-up runs every hour; if it fails, it catches up on the next run. When we receive a valid legal preservation request, we may keep the specific data it covers for longer, only as long as the law requires.</p>
 
-<h2 id="share">11. When we share data</h2>
+<h2 id="share">14. When we share data</h2>
 <p>Only:</p>
 <ul>
-<li>with the providers in section 9, to run the service;</li>
+<li>with the providers in section 12, to run the service;</li>
 <li>when the law requires it, in answer to valid legal process. See the <a href="/law-enforcement">Law Enforcement Guidelines</a> for what can and can't be provided. We notify affected users unless the law forbids it or it would put someone in danger.</li>
 <li>to protect someone's life or physical safety in an emergency;</li>
 <li>to investigate and stop abuse of Inpriv, as described in the <a href="/acceptable-use">Acceptable Use Policy</a>.</li>
 </ul>
 
-<h2 id="bases">12. Legal bases</h2>
+<h2 id="anonymity">15. Pseudonymous, not anonymous</h2>
+<p>An Inpriv address doesn't carry your name, but that alone doesn't make you anonymous. What can link an address to you:</p>
+<ul>
+<li>the access log, which ties sign-ins to a network for 30 days, and the networks and times our providers see;</li>
+<li>a recovery email, if you add one;</li>
+<li>what you write, who you write to, and when: encryption doesn't hide that routing information;</li>
+<li>using the same address, display name or writing style elsewhere;</li>
+<li>mail to other providers, which they read and keep under their own policies.</li>
+</ul>
+<p>Tor or a VPN can hide your IP address from us. They don't hide your account, your recovery email, the people you write to or what you write. If your safety depends on not being identified, don't rely on Inpriv alone.</p>
+
+<h2 id="bases">16. Legal bases</h2>
 <p>Where the EU or UK GDPR applies, we rely on:</p>
 <ul>
 <li><strong>contract</strong>: your account, mailbox, messages, sessions and settings, which we need to provide the service you signed up for;</li>
-<li><strong>legitimate interests</strong>: the access log, security events and rate limits, to keep the service secure and free of abuse. We limit them to what's needed and delete them after 90 days.</li>
+<li><strong>legitimate interests</strong>: the access log, security events, rate limits and the record of issued addresses, to keep the service and its users secure. We limit them to what's needed for that, and delete them on the schedule above.</li>
 <li><strong>legal obligation</strong>: responding to valid legal requests and keeping data a preservation request covers;</li>
 <li><strong>consent</strong>: the optional recovery email, which you can remove at any time.</li>
 </ul>
 
-<h2 id="rights">13. Your rights</h2>
+<h2 id="rights">17. Your rights</h2>
 <p>Depending on where you live, you can ask us to:</p>
 <ul>
 <li>give you a copy of your data;</li>
@@ -241,21 +293,23 @@ code { font: 13.5px ui-monospace, "SF Mono", Consolas, monospace; background: va
 <li>hand it to you in a portable format.</li>
 </ul>
 <p>Write to <a href="mailto:privacy@inpriv.xyz">privacy@inpriv.xyz</a> from your @inpriv.xyz address, or say how we can verify you. We answer within one month.</p>
-<p>We can't hand over mail content we can't read, but you can open and copy it yourself while you're signed in. You also have the right to complain to your data-protection authority.</p>
+<p>We can't hand over stored mail content, because we can't decrypt it, but you can open and copy it yourself while you're signed in. You also have the right to complain to your data-protection authority.</p>
 
-<h2 id="security">14. Security</h2>
+<h2 id="security">18. Security, and its limits</h2>
 <ul>
-<li>All traffic uses HTTPS.</li>
-<li>Passwords are stored as salted hashes, 2FA secrets are encrypted at rest, and session tokens are stored as hashes.</li>
-<li>Mail between Inpriv users is end-to-end encrypted.</li>
-<li>The admin panel needs a separate authenticator code, and every lookup of user records in it is logged.</li>
+<li>All traffic uses HTTPS, and every page tells browsers to use only HTTPS.</li>
+<li>Passwords are stored as salted hashes, 2FA secrets are encrypted at rest, and only hashes of session tokens are stored.</li>
+<li>Your mailbox keys are locked with a passphrase we never receive. Mail that other people send you is encrypted to a public key you can check: Mail shows each key's id and warns you when a known recipient's key changes.</li>
+<li>Pages only run their own scripts, and email content is shown in a frame that can't run any.</li>
+<li>The admin panel needs a separate authenticator code; every lookup of user records in it is logged.</li>
 </ul>
-<p>If a breach affects your data, we'll tell you and the relevant authority as the law requires. Found a vulnerability? See <a href="https://github.com/Inpriv/inpriv/blob/main/SECURITY.md">SECURITY.md</a>.</p>
+<p><strong>What encryption in a web page can't protect against:</strong> the code that encrypts your mail is delivered by our servers each time you open Mail. If those servers, or the code, were compromised or compelled to change, a modified page could capture your passphrase or messages. The same applies if your device or browser is compromised. The code is open source so changes are visible, but your browser doesn't check the code it runs against the published source.</p>
+<p>No independent audit of Inpriv has been done. If a breach affects your data, we'll tell you and the relevant authority as the law requires. Found a vulnerability? See <a href="https://github.com/Inpriv/inpriv/blob/main/SECURITY.md">SECURITY.md</a>.</p>
 
-<h2 id="children">15. Children</h2>
+<h2 id="children">19. Children</h2>
 <p>Inpriv isn't for children under 16. We don't knowingly hold data about them. If you think a child has an account, write to <a href="mailto:privacy@inpriv.xyz">privacy@inpriv.xyz</a> and we'll delete it.</p>
 
-<h2 id="changes">16. Changes</h2>
+<h2 id="changes">20. Changes</h2>
 <p>We'll update this page when what we store changes, and change the date at the top. For significant changes we'll also give notice on the site before they take effect. The full history is public in the <a href="https://github.com/Inpriv/inpriv/commits/main/worker/public/privacy.html">source repository</a>.</p>
 </main>
 <footer>

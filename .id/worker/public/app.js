@@ -4,7 +4,9 @@
 const API = ""; // same origin
 
 // ── state ────────────────────────────────────────────────────────────────────
-let token = localStorage.getItem("inpriv_id_token") || null;
+// The session lives only in the HttpOnly cookie, which page scripts can't
+// read. Tokens kept by earlier versions of this page are removed.
+try { localStorage.removeItem("inpriv_id_token"); } catch {}
 let user = null;
 let mfaToken = null;
 let vault = { theme: null, avatar: "initials", privacy: { nick: true, prompt: true, vault: true, log: true } };
@@ -14,36 +16,16 @@ let recoveryCodes = [];
 const $ = (id) => document.getElementById(id);
 
 async function api(path, body, method = "POST") {
-  const headers = { "Content-Type": "application/json" };
-  if (token) headers["Authorization"] = "Bearer " + token;
   const res = await fetch(API + path, {
     method,
-    headers,
+    headers: { "Content-Type": "application/json" },
     body: body ? JSON.stringify(body) : undefined,
-    credentials: "include",
+    credentials: "same-origin",
   });
   const data = await res.json().catch(() => ({}));
-  // token rotation: server returns the fresh token in a header
-  const rotated = res.headers.get("X-Inpriv-Token");
-  if (rotated) {
-    token = rotated;
-    localStorage.setItem("inpriv_id_token", rotated);
-  }
-  // 401 always throws (auth failure = an error the caller must show);
-  // deleting the token happens only when the server confirms the session
-  // is really gone, never as a side effect of a wrong-password attempt.
-  if (res.status === 401) {
-    if (token && data && data.error === "unauthorized") {
-      token = null;
-      localStorage.removeItem("inpriv_id_token");
-    }
-    throw new Error(data.error || "unauthorized");
-  }
+  // 401 always throws (auth failure = an error the caller must show)
+  if (res.status === 401) throw new Error(data.error || "unauthorized");
   if (!res.ok) throw new Error(data.error || "request failed");
-  if (data.token) {
-    token = data.token;
-    localStorage.setItem("inpriv_id_token", data.token);
-  }
   return data;
 }
 
@@ -191,8 +173,6 @@ $("regForm").addEventListener("submit", async (e) => {
 
 $("logoutBtn").addEventListener("click", async () => {
   try { await api("/api/logout", {}); } catch {}
-  token = null;
-  localStorage.removeItem("inpriv_id_token");
   location.reload();
 });
 
@@ -208,9 +188,9 @@ async function enterPanel() {
   loadServices();
 }
 
-// Quick Unlock (master-password bypass) — stored server-side per account so
-// it governs every device, not just this browser. Turning it off also wipes
-// the wrapped device keys so nothing can decrypt without the master password.
+// Quick Unlock ("Skip mailbox passphrase") — stored server-side per account
+// so it governs every device, not just this browser. Turning it off also
+// wipes the wrapped device keys, so every device needs the passphrase again.
 let quickUnlock = true;
 async function loadSettings() {
   let devices = 0;
@@ -241,9 +221,9 @@ function bindQuickUnlock() {
       if (!on) {
         // remove wrapped device keys on every service + the ID-side blob
         try { await api("/api/quick-unlock/clear", {}); } catch {}
-        toast("Skip master password: off — needed on every device");
+        toast("Skip mailbox passphrase: off. Every device asks for it again.");
       } else {
-        toast("Skip master password: on — unlock Mail once on each device");
+        toast("Skip mailbox passphrase: on. Unlock Mail once on each device.");
       }
       loadSettings();
     } catch (ex) {
@@ -293,10 +273,10 @@ function renderProfile() {
   const pending = hasRecovery && !user.recovery_email_verified;
   setVerifyOpen(pending);
   $("recoveryDesc").textContent = !hasRecovery
-    ? "An outside address for password resets and security notices."
+    ? "Optional. An outside address we confirm with a code. It can't reset your password or open your mailbox, and we don't send it anything else."
     : pending
       ? "Not confirmed yet. Enter the code from the email we sent."
-      : "Confirmed. Used for password resets and security notices.";
+      : "Confirmed. It can't reset your password or open your mailbox.";
   syncRecoveryButton();
 
   $("twoFAOffUI").hidden = user.totp_enabled;
@@ -485,7 +465,7 @@ $("pwChangeBtn").addEventListener("click", async () => {
   try {
     await api("/api/password/change", { current: $("pwCurrent").value, next: $("pwNext").value });
     $("pwCurrent").value = $("pwNext").value = "";
-    toast("Password changed — other sessions signed out. Inpriv Mail will ask for your previous password once to update your mailbox key.");
+    toast("Password changed. Other sessions, Inpriv Mail included, were signed out. Your mailbox passphrase stays the same.");
   } catch (ex) {
     toast(ex.message, false);
   }
@@ -746,7 +726,10 @@ function esc(s) {
   } else {
     switchAuth("register");
   }
-  if (!token) {
+  // signed in when the session cookie is still valid
+  try {
+    user = (await api("/api/me", null, "GET")).user;
+  } catch {
     show("auth");
     return;
   }

@@ -19,13 +19,13 @@
 
 Inpriv is two ways to receive email on an @inpriv.xyz address, plus the account behind them:
 
-- **Mail** — [mail.inpriv.xyz](https://mail.inpriv.xyz) — a permanent mailbox. Mail between Inpriv users is encrypted in your browser (RSA-2048 + AES-256-GCM); mail to and from Gmail, Outlook and others goes through a relay and is stored encrypted.
-- **Temp** — [temp.inpriv.xyz](https://temp.inpriv.xyz) — a random disposable address with a live inbox. No sign-up. It deletes itself after 24 hours, or when you say so. Temp inboxes are not end-to-end encrypted.
+- **Mail** — [mail.inpriv.xyz](https://mail.inpriv.xyz) — a permanent mailbox. Mail between Inpriv users is end-to-end encrypted in your browser (RSA-2048 + AES-256-GCM), and your keys are locked with a mailbox passphrase that never leaves your device. Mail to and from Gmail, Outlook and others is normal email through a relay, stored encrypted to your key. Remote images in received mail are blocked until you load them.
+- **Temp** — [temp.inpriv.xyz](https://temp.inpriv.xyz) — a random disposable address with a live inbox. No sign-up. It deletes itself after 24 hours, or when you say so, and its address is never given to anyone else. Temp inboxes are not end-to-end encrypted.
 - **Inpriv ID** — [id.inpriv.xyz](https://id.inpriv.xyz) — your account: the @inpriv.xyz address, password, optional 2FA, sessions.
 
 [inpriv.xyz](https://inpriv.xyz) lets you choose between Mail and Temp. If you're signed in with Inpriv ID it takes you straight to Mail; `inpriv.xyz/?home` always shows the choice.
 
-No ads, no analytics, no trackers. Inpriv keeps a limited access log (IP, browser, time) for 90 days to fight abuse; the [Privacy Policy](https://inpriv.xyz/privacy) lists everything that is stored.
+No ads, no analytics, no trackers. Inpriv keeps a limited access log (network, browser family, time) for 30 days for account security and abuse handling; the [Privacy Policy](https://inpriv.xyz/privacy) lists everything that is stored.
 
 ---
 
@@ -43,7 +43,10 @@ inpriv/
 │   ├── ui/               shared design core: inpriv-ui.css, inpriv-ui.js, sync.mjs
 │   ├── page.js           styles for Worker-rendered pages
 │   ├── errors.js         404/410/429/500 pages
-│   ├── access-log.js     90-day access log (see the Privacy Policy)
+│   ├── access-log.js     access log, 30 days, networks not full IPs (see the Privacy Policy)
+│   ├── addresses.js      who owns each @inpriv.xyz address; claims are never released
+│   ├── security.js       security headers, hash-based CSP, same-origin checks
+│   ├── email-html.js     strips active content from received HTML (HTMLRewriter)
 │   └── gate.js           maintenance gate
 ```
 

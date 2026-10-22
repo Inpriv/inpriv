@@ -14,6 +14,8 @@
 
 import { kvGet as driveGet } from "../../../common/drive.js";
 import { canonicalRedirect } from "../../../common/canonical.js";
+import { originAllowed, isUnsafeMethod, pageResponse, apiHeaders, clientNet } from "../../../common/security.js";
+import { ensureClaims } from "../../../common/addresses.js";
 
 // ── config ───────────────────────────────────────────────────────────────────
 // The services that check this panel's kill-switches (common/gate.js ids).
@@ -24,8 +26,11 @@ const SERVICES_META = {
   temp:    { name: "Temp Mail", url: "https://temp.inpriv.xyz", icon: "mark_email_unread" },
   account: { name: "Inpriv ID (accounts)", url: "https://id.inpriv.xyz", icon: "badge" },
 };
-const SESSION_TTL = 7 * 24 * 3600; // seconds
-const COOKIE = "inpriv_admin";
+const SESSION_TTL = 24 * 3600; // seconds
+const COOKIE = "__Host-inpriv_admin";
+// failed sign-ins from all networks together before the login pauses: a
+// six-digit code can't be guessed by spreading tries over many addresses
+const GLOBAL_FAIL_LIMIT = 20;
 const MAX_AUDIT = 50;
 const PUB_CACHE_S = 2;
 
@@ -35,14 +40,12 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
     const method = request.method;
-    const cors = {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Headers": "authorization, content-type",
-      "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
-    };
-    if (method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
+    // the panel calls its own API from its own origin; nothing is shared
+    // cross-origin except the public kill-switch state
+    const cors = {};
     const moved = canonicalRedirect(request);
     if (moved) return moved;
+    if (method === "OPTIONS") return new Response(null, { status: 204 });
     // private panel: keep every crawler out
     if (path === "/robots.txt") {
       return new Response("User-agent: *\nDisallow: /\n", { headers: { "content-type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" } });
@@ -55,9 +58,24 @@ export default {
       try { ctx.waitUntil(Promise.resolve(p).catch(() => {})); } catch { Promise.resolve(p).catch(() => {}); }
     };
 
+    // the page itself (assets are served through the Worker so it always
+    // gets HTTPS, the security headers and a hash-based script policy)
+    if (path !== "/public/state" && !path.startsWith("/api/")) {
+      const res = await env.ASSETS.fetch(request);
+      const page = await pageResponse(request, res, { "=frame-src": ["'self'"], "=form-action": ["'self'"] });
+      page.headers.set("X-Robots-Tag", "noindex, nofollow");
+      page.headers.set("Cache-Control", "no-store");
+      return page;
+    }
+    if (path.startsWith("/api/") && isUnsafeMethod(request) && !originAllowed(request)) {
+      return apiHeaders(json({ error: "unknown origin" }, 403, cors));
+    }
+
     try {
-      if (path === "/public/state") return await publicState(env, cors, request);
-      if (path === "/api/login" && method === "POST") return await login(request, env, cors, waitUntil);
+      if (path === "/public/state") {
+        return await publicState(env, { "Access-Control-Allow-Origin": "*" }, request);
+      }
+      if (path === "/api/login" && method === "POST") return apiHeaders(await login(request, env, cors, waitUntil));
 
       // expired-row sweep trigger (shared secret, for scripts)
       if (path === "/api/sweep" && method === "POST") {
@@ -67,26 +85,11 @@ export default {
       }
 
       const sess = await authed(request, env);
-      if (!sess) return json({ error: "unauthorized" }, 401, cors);
-
-      // lazy own-state sweep (5% of authed requests)
-      if (Math.random() < 0.05) waitUntil(sweepOwn(env));
-
-      if (path === "/api/logout" && method === "POST") return await logout(request, env, cors);
-      if (path === "/api/me") return json({ user: sess.user }, 200, cors);
-      if (path === "/api/state") return await apiState(env, cors, sess);
-      if (path === "/api/global" && method === "POST") return await setGlobal(request, env, cors);
-      if (path === "/api/info" && method === "POST") return await setInfo(request, env, cors);
-      if (path === "/api/service" && method === "POST") return await setService(request, env, cors);
-      if (path === "/api/audit") return await getAudit(env, cors);
-      if (path === "/api/records" && method === "GET") return await records(url, env, cors);
-      if (path.startsWith("/api/team")) return await team(request, url, env, cors);
-      if (path === "/api/temp" || path.startsWith("/api/temp/")) return await temp(request, url, env, cors);
-
-      if (path === "/" || path === "/index.html") return dashboard();
-      return json({ error: "not found" }, 404, cors);
+      if (!sess) return apiHeaders(json({ error: "unauthorized" }, 401, cors));
+      return apiHeaders(await route(request, env, url, path, method, cors, sess, waitUntil));
     } catch (err) {
-      return json({ error: String(err?.message || err) }, 500, cors);
+      console.error("admin error", path, err && err.message);
+      return apiHeaders(json({ error: "internal error" }, 500, cors));
     }
   },
 
@@ -96,6 +99,24 @@ export default {
     await sweepOwn(env);
   },
 };
+
+async function route(request, env, url, path, method, cors, sess, waitUntil) {
+  // lazy own-state sweep (5% of authed requests)
+  if (Math.random() < 0.05) waitUntil(sweepOwn(env));
+
+  if (path === "/api/logout" && method === "POST") return await logout(request, env, cors);
+  if (path === "/api/me") return json({ user: sess.user }, 200, cors);
+  if (path === "/api/state") return await apiState(env, cors, sess);
+  if (path === "/api/global" && method === "POST") return await setGlobal(request, env, cors);
+  if (path === "/api/info" && method === "POST") return await setInfo(request, env, cors);
+  if (path === "/api/service" && method === "POST") return await setService(request, env, cors);
+  if (path === "/api/audit") return await getAudit(env, cors);
+  if (path === "/api/records" && method === "GET") return await records(url, env, cors);
+  if (path.startsWith("/api/team")) return await team(request, url, env, cors);
+  if (path === "/api/temp" || path.startsWith("/api/temp/")) return await temp(request, url, env, cors);
+
+  return json({ error: "not found" }, 404, cors);
+}
 
 // Removes expired sessions and rate-limit rows. Module-level so fetch()
 // can call it (it used to be a method that fetch referenced by bare name).
@@ -195,7 +216,7 @@ const SESS_CACHE_TTL = 60_000;
 
 async function authed(request, env) {
   const raw = request.headers.get("Cookie") || "";
-  const m = raw.match(/inpriv_admin=([A-Za-z0-9_-]{20,})/);
+  const m = raw.match(/(?:^|;\s*)__Host-inpriv_admin=([A-Za-z0-9_-]{20,})/);
   if (!m) return null;
   const sid = m[1];
   const now = Date.now();
@@ -242,22 +263,43 @@ async function login(request, env, cors, waitUntil) {
     return json({ error: "too_many_attempts", retry_after: 900 }, 429, cors, { "Retry-After": "900" });
   }
 
+  // every network together: GLOBAL_FAIL_LIMIT failures per 15 minutes
+  const gRaw = await kvGet(env, "rl:global");
+  let g = null;
+  try { g = gRaw ? JSON.parse(gRaw) : null; } catch { g = null; }
+  if (!g || g.reset < now) g = { f: 0, reset: now + 900 };
+  if (g.f >= GLOBAL_FAIL_LIMIT) {
+    return json({ error: "too_many_attempts", retry_after: Math.ceil(g.reset - now) }, 429, cors, {
+      "Retry-After": String(Math.ceil(g.reset - now)),
+    });
+  }
+
   const body = await request.json().catch(() => ({}));
   const user = String(body.user || "").trim();
   const code = String(body.code || "").replace(/\s/g, "");
 
-  let failReason = null;
+  let failReason = null, step = null;
   if (!env.ADMIN_USER || user !== env.ADMIN_USER || !/^\d{6}$/.test(code)) failReason = "invalid_credentials";
-  else if (!(await verifyTOTP(code, env.TOTP_SECRET, now))) failReason = "invalid_code";
+  else {
+    step = await verifyTOTP(code, env.TOTP_SECRET, now, true);
+    // a code works once: a code seen on the wire or over a shoulder can't
+    // be replayed within its 90-second window
+    const last = Number(await kvGet(env, "totp:last")) || 0;
+    if (step === false) failReason = "invalid_code";
+    else if (step <= last) failReason = "code_used";
+  }
 
   if (failReason) {
     rl.f += 1;
     if (rl.f >= 30) rl.block = now + 900;
-    // persist the failure counter — queued so the response stays fast
+    g.f += 1;
+    // persist the failure counters — queued so the response stays fast
     waitUntil(kvPut(env, rlName, JSON.stringify(rl), Math.max(rl.reset, rl.block) + 3600));
+    waitUntil(kvPut(env, "rl:global", JSON.stringify(g), g.reset + 3600));
     return json({ error: failReason }, 401, cors);
   }
 
+  await kvPut(env, "totp:last", String(step), now + 3600);
   waitUntil(kvDelete(env, rlName)); // clear the counter on success
   const sid = crypto.randomUUID().replace(/-/g, "");
   const rec = { user, exp: now + SESSION_TTL };
@@ -270,7 +312,7 @@ async function login(request, env, cors, waitUntil) {
   }
   // one audit record → one state read+write; queued so the login response
   // doesn't wait for it
-  waitUntil(audit(env, "login", { ip }));
+  waitUntil(audit(env, "login", { ip: clientNet(request) }));
   return json({ ok: true, user }, 200, cors, {
     "Set-Cookie": `${COOKIE}=${sid}; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=${SESSION_TTL}`,
   });
@@ -278,7 +320,7 @@ async function login(request, env, cors, waitUntil) {
 
 async function logout(request, env, cors) {
   const raw = request.headers.get("Cookie") || "";
-  const m = raw.match(/inpriv_admin=([A-Za-z0-9_-]{20,})/);
+  const m = raw.match(/(?:^|;\s*)__Host-inpriv_admin=([A-Za-z0-9_-]{20,})/);
   if (m) {
     await kvDelete(env, await sidKey(m[1]));
     _sessCache.delete(m[1]);
@@ -307,16 +349,16 @@ function base32Decode(s) {
   return new Uint8Array(out);
 }
 
-async function verifyTOTP(code, b32Secret, nowS) {
+// withStep: return the matching time step instead of true (replay check)
+async function verifyTOTP(code, b32Secret, nowS, withStep = false) {
   if (!b32Secret) return false;
   const key = base32Decode(b32Secret);
   if (!key.length) return false;
   const step = Math.floor(nowS / 30);
   // check the current step FIRST — it matches ~97% of real logins, so the
   // usual path costs one HMAC instead of three
-  if (timingSafeEq(code, await hotp(key, step))) return true;
-  for (const off of [-1, 1]) {
-    if (timingSafeEq(code, await hotp(key, step + off))) return true;
+  for (const off of [0, -1, 1]) {
+    if (timingSafeEq(code, await hotp(key, step + off))) return withStep ? step + off : true;
   }
   return false;
 }
@@ -439,12 +481,8 @@ async function getAudit(env, cors) {
 function json(obj, status, cors, extraHeaders = {}) {
   return new Response(JSON.stringify(obj), {
     status,
-    headers: { "content-type": "application/json", ...cors, ...extraHeaders },
+    headers: { "content-type": "application/json", "cache-control": "no-store", ...cors, ...extraHeaders },
   });
-}
-
-function dashboard() {
-  return new Response(null, { status: 302, headers: { Location: "/index.html" } });
 }
 
 // exported for tests
@@ -457,11 +495,12 @@ export { verifyTOTP, hotp, base32Decode, timingSafeEq };
 // inboxes are listed by metadata only.
 const RECORD_LIMIT = 500;
 const NEVER_HELD = [
-  "Mail message bodies between Inpriv users (end-to-end encrypted in the browser)",
-  "Stored Mail message bodies from outside senders (encrypted to the user's key when received)",
-  "Passwords (only salted hashes), private keys and password-derived keys",
-  "Anything typed into a page that wasn't submitted",
-  "Access-log rows older than 90 days",
+  "Stored Mail message bodies (encrypted to the user's key; mail from or to other providers was readable while it passed through)",
+  "Mailbox passphrases, private keys and passphrase keys (only the encrypted key ring)",
+  "Passwords (only salted hashes)",
+  "Full IP addresses in access-log rows written since October 2026 (only the network: IPv4 /24, IPv6 /48)",
+  "Which network created a Temp inbox (not logged)",
+  "Access-log rows older than 30 days (rows from before October 2026: 90 days)",
 ];
 
 async function rows(db, sql, ...args) {
@@ -476,14 +515,18 @@ async function row(db, sql, ...args) {
 async function records(url, env, cors) {
   let q = String(url.searchParams.get("q") || "").trim().toLowerCase();
   if (!q || q.length > 320) return json({ error: "enter a username, an address or an IP" }, 400, cors);
-  const isIp = /^[0-9.]+$/.test(q) || (q.includes(":") && /^[0-9a-f:]+$/.test(q));
+  const isIp = /^[0-9.]+(\/\d+)?$/.test(q) || (q.includes(":") && /^[0-9a-f:]+(\/\d+)?$/.test(q));
   const local = q.endsWith("@inpriv.xyz") ? q.slice(0, -"@inpriv.xyz".length) : (q.includes("@") ? null : q);
   const address = local ? `${local}@inpriv.xyz` : q;
   const out = { query: q, generated_at: new Date().toISOString(), never_held: NEVER_HELD };
 
   if (isIp) {
+    // rows store the network (v2) or, before October 2026, the full address
+    const ip = q.split("/")[0];
+    const net = clientNet(new Request("https://x/", { headers: { "CF-Connecting-IP": ip } })) || q;
+    out.network = net;
     out.access_log = await rows(env.ID_DB,
-      "SELECT at, service, event, account, detail, ip, country, asn, ua FROM access_log WHERE ip = ? ORDER BY at DESC LIMIT ?", q, RECORD_LIMIT * 2);
+      "SELECT at, service, event, account, detail, ip, country, asn, ua FROM access_log WHERE ip = ? OR ip = ? ORDER BY at DESC LIMIT ?", ip, net, RECORD_LIMIT * 2);
     out.accounts_seen = [...new Set(out.access_log.map((r) => r.account).filter(Boolean))];
   } else {
     const acc = local && await row(env.ID_DB,
@@ -495,8 +538,12 @@ async function records(url, env, cors) {
       out.id_events = await rows(env.ID_DB,
         "SELECT kind, ip_prefix, ula, at FROM auth_events WHERE user_id = ? ORDER BY at DESC LIMIT ?", acc.id, RECORD_LIMIT);
     }
+    if (local) {
+      await ensureClaims(env.ID_DB).catch(() => {});
+      out.address_claim = await row(env.ID_DB, "SELECT local, owner, claimed_on FROM address_claims WHERE local = ?", local);
+    }
     const mb = local && await row(env.MAIL_DB,
-      "SELECT id, username, address, created_at, last_login FROM users WHERE username = ?", local);
+      "SELECT id, username, address, created_at, last_login, key_format, keys_updated_at FROM users WHERE username = ?", local);
     if (mb) {
       out.mailbox = mb;
       out.mailbox.quick_unlock_devices = (await row(env.MAIL_DB, "SELECT COUNT(*) AS n FROM device_keys WHERE user_id = ?", mb.id) || {}).n || 0;
@@ -570,7 +617,7 @@ async function temp(request, url, env, cors) {
       n(env.TEMP_DB, "SELECT COUNT(*) AS n FROM mailboxes WHERE expires_at > ?", now),
       n(env.TEMP_DB, "SELECT COUNT(*) AS n FROM messages"),
       n(env.TEMP_DB, "SELECT COUNT(*) AS n FROM messages WHERE received_at > ?", day),
-      n(env.ID_DB, "SELECT COUNT(*) AS n FROM access_log WHERE service = 'temp' AND event = 'inbox_created' AND at > ?", day),
+      n(env.TEMP_DB, "SELECT COUNT(*) AS n FROM mailboxes WHERE created_at > ?", day),
     ]);
     const inboxes = await rows(env.TEMP_DB,
       `SELECT m.address, m.created_at, m.expires_at, COUNT(x.id) AS messages, MAX(x.received_at) AS last_at
@@ -585,16 +632,11 @@ async function temp(request, url, env, cors) {
     const address = String(url.searchParams.get("address") || "").trim().toLowerCase();
     const inbox = await row(env.TEMP_DB, "SELECT address, created_at, expires_at FROM mailboxes WHERE address = ?", address);
     if (!inbox) return json({ error: "This inbox is gone (expired or deleted)" }, 404, cors);
-    const [messages, created_from] = await Promise.all([
-      rows(env.TEMP_DB,
-        "SELECT received_at, from_addr, from_name, subject, att_count, size FROM messages WHERE mailbox = ? ORDER BY received_at DESC LIMIT ?",
-        address, RECORD_LIMIT),
-      row(env.ID_DB,
-        "SELECT ip, country, asn, ua FROM access_log WHERE service = 'temp' AND event = 'inbox_created' AND account = ? ORDER BY at DESC LIMIT 1",
-        address),
-    ]);
+    const messages = await rows(env.TEMP_DB,
+      "SELECT received_at, from_addr, from_name, subject, att_count, size FROM messages WHERE mailbox = ? ORDER BY received_at DESC LIMIT ?",
+      address, RECORD_LIMIT);
     await audit(env, "temp_view", { message: address });
-    return json({ inbox, messages, created_from }, 200, cors);
+    return json({ inbox, messages }, 200, cors);
   }
 
   if (path === "/api/temp/delete" && method === "POST") {

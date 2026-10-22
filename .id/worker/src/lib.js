@@ -1,4 +1,6 @@
 // Inpriv ID — shared helpers: crypto, encoding, CORS, rate limit, e-mail.
+import { uaFamily } from "../../../common/security.js";
+
 export const SESSION_TTL_MS = 30 * 24 * 3600 * 1000;
 export const COOKIE_NAME = "inpriv_id";
 export const PASS_ITERS = 300_000; // 3 × 100k chained rounds (CF cap: 100k/call)
@@ -33,19 +35,25 @@ export function json(body, status = 200, extra = {}) {
 
 export const bad = (msg, status = 400) => json({ error: msg }, status);
 
-export function corsFor(req) {
+// Exact origins only (no wildcard subdomains). Local development can add
+// its own through the DEV_ORIGINS variable in .dev.vars, never in production.
+export function allowedOrigins(env) {
+  const extra = String((env && env.DEV_ORIGINS) || "").split(",").map((s) => s.trim()).filter(Boolean);
+  return extra.length ? new Set([...ORIGINS, ...extra]) : ORIGINS;
+}
+
+export function corsFor(req, env) {
   const o = req.headers.get("Origin") || "";
-  if (ORIGINS.has(o) || /^https:\/\/[a-z0-9-]+\.inpriv\.xyz$/.test(o)) {
+  if (allowedOrigins(env).has(o)) {
     return {
       "Access-Control-Allow-Origin": o,
-      "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type,Authorization",
+      "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
       "Access-Control-Allow-Credentials": "true",
-      "Access-Control-Expose-Headers": "X-Inpriv-Token",
       Vary: "Origin",
     };
   }
-  return {};
+  return { Vary: "Origin" };
 }
 
 // ── password hashing (PBKDF2-SHA256, chained) ───────────────────────────────
@@ -163,34 +171,39 @@ export async function verifyTOTP(code, secretBytes, atMs) {
 }
 
 // ── rate limiting (D1 counters) ─────────────────────────────────────────────
-export async function rateLimit(db, key, limit, windowMs) {
+// Each counter row carries its expiry (exp), and the hourly cleanup
+// (purgeAccessLog) deletes expired rows, so no counter outlives its window
+// by more than an hour.
+let _rlReady = false;
+async function ensureRl(db) {
+  if (_rlReady) return;
+  try { await db.prepare("ALTER TABLE rl_counters ADD COLUMN exp INTEGER").run(); } catch { /* already there */ }
+  _rlReady = true;
+}
+
+export async function overLimit(db, key, limit, windowMs) {
   const bucket = Math.floor(now() / windowMs);
   const row = await db.prepare("SELECT c FROM rl_counters WHERE k = ? AND bucket = ?").bind(key, bucket).first();
-  if (row && row.c >= limit) return false;
+  return !!(row && row.c >= limit);
+}
+
+export async function bump(db, key, windowMs) {
+  await ensureRl(db);
+  const bucket = Math.floor(now() / windowMs);
   await db
-    .prepare("INSERT INTO rl_counters (k, bucket, c) VALUES (?,?,1) ON CONFLICT(k,bucket) DO UPDATE SET c = c + 1")
-    .bind(key, bucket)
+    .prepare("INSERT INTO rl_counters (k, bucket, c, exp) VALUES (?,?,1,?) ON CONFLICT(k,bucket) DO UPDATE SET c = c + 1")
+    .bind(key, bucket, (bucket + 1) * windowMs)
     .run();
+}
+
+export async function rateLimit(db, key, limit, windowMs) {
+  if (await overLimit(db, key, limit, windowMs)) return false;
+  await bump(db, key, windowMs);
   return true;
 }
 
 // ── request context ─────────────────────────────────────────────────────────
-export function parseUA(ua) {
-  const s = String(ua || "");
-  let browser = "Unknown";
-  if (/Edg\//.test(s)) browser = "Edge";
-  else if (/OPR\//.test(s)) browser = "Opera";
-  else if (/Chrome\//.test(s) && !/Chromium|Edg|OPR/.test(s)) browser = "Chrome";
-  else if (/Firefox\//.test(s)) browser = "Firefox";
-  else if (/Safari\//.test(s) && /Version\//.test(s)) browser = "Safari";
-  let os = "Unknown OS";
-  if (/Windows/.test(s)) os = "Windows";
-  else if (/Android/.test(s)) os = "Android";
-  else if (/iPhone|iPad/.test(s)) os = "iOS";
-  else if (/Mac OS X/.test(s)) os = "macOS";
-  else if (/Linux/.test(s)) os = "Linux";
-  return `${browser} · ${os}`;
-}
+export const parseUA = uaFamily;
 
 export function ipPrefix(req) {
   const ip = req.headers.get("CF-Connecting-IP") || "";
@@ -276,10 +289,14 @@ export const codeBlock = (code) =>
   `<div class="ip-code" style="margin:22px 0;padding:18px 12px;border-radius:16px;background:#0c0c0b;border:1px solid #2a2a27;` +
   `color:#f2f1ed;text-align:center;font:700 34px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:10px">${esc(code)}</div>`;
 
+// Host-only (no Domain), HttpOnly, Secure. SameSite=Strict: the other Inpriv
+// sites are the same site, so their One Tap requests still carry it, while
+// pages on other domains can't make the browser send it. Partitioned stays so
+// the cookie replaces the one set before (same partition, same name).
 export function sessionCookie(token) {
-  return `${COOKIE_NAME}=${token}; Path=/; Max-Age=${SESSION_TTL_MS / 1000}; Secure; HttpOnly; SameSite=None; Partitioned`;
+  return `${COOKIE_NAME}=${token}; Path=/; Max-Age=${SESSION_TTL_MS / 1000}; Secure; HttpOnly; SameSite=Strict; Partitioned`;
 }
 
 export function clearCookie() {
-  return `${COOKIE_NAME}=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=None; Partitioned`;
+  return `${COOKIE_NAME}=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Strict; Partitioned`;
 }

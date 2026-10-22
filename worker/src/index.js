@@ -9,6 +9,7 @@
 import { maintenanceGate, maintenancePage } from "../../common/gate.js";
 import { notFound } from "../../common/errors.js";
 import { canonicalRedirect } from "../../common/canonical.js";
+import { pageResponse } from "../../common/security.js";
 
 export default {
   async fetch(request, env, ctx) {
@@ -27,6 +28,7 @@ export default {
     // Assets binding serves /, /icon.png, /assets/…, /robots.txt (if present).
     const res = await env.ASSETS.fetch(request);
     if (res.status === 404) return notFound(request, "Inpriv");
-    return res;
+    // the landing page asks id.inpriv.xyz whether you're signed in
+    return pageResponse(request, res, { "connect-src": ["https://id.inpriv.xyz"] });
   },
 };

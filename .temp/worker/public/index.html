@@ -7,7 +7,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; font-src 'self'; img-src * data: blob:; media-src 'self' blob:; object-src 'none'; frame-src 'self'; base-uri 'self'; form-action 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self' data:">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https:; media-src 'self' blob:; object-src 'none'; frame-src 'self'; base-uri 'self'; form-action 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self' data:">
 <script>
   try { var t = localStorage.getItem('inpriv_theme') || localStorage.getItem('inpriv-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}
 </script>
@@ -639,6 +639,21 @@ footer a { color: var(--text-2); text-underline-offset: 3px; }
   font: 13px/1.65 var(--font-mono); white-space: pre-wrap; word-break: break-word;
 }
 .viewer-text:empty::after { content: '(empty body)'; color: var(--text-3); }
+.remote-bar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 10px 12px 10px 14px; border-radius: 16px;
+  background: var(--fill); box-shadow: inset 0 0 0 1px var(--hairline);
+  color: var(--text-2); font-size: 13px; line-height: 1.45;
+}
+.remote-bar > span { flex: 1 1 220px; min-width: 0; }
+.remote-bar .i { color: var(--text-3); flex: none; }
+.remote-bar button {
+  height: 32px; padding: 0 12px; border: 0; border-radius: 999px; cursor: pointer;
+  background: var(--fill-2); color: var(--text); font-size: 13px; font-weight: 600;
+  box-shadow: inset 0 1px 0.5px var(--spec), inset 0 0 0 1px var(--hairline);
+}
+.remote-bar button:hover { background: var(--fill-3); }
+.view-hint { margin: -4px 2px 0; color: var(--text-3); font-size: 12.5px; }
 .att-strip { display: flex; flex-wrap: wrap; gap: 8px; }
 .att-chip {
   display: inline-flex; align-items: center; gap: 8px; max-width: 100%;
@@ -1279,7 +1294,7 @@ footer a { color: var(--text-2); text-underline-offset: 3px; }
       <button class="btn btn-glass" id="newBtn" type="button"><i data-icon="dice"></i>New address</button>
       <button class="text-btn danger" id="deleteBtn" type="button"><i data-icon="trash"></i><span>Delete inbox</span></button>
     </div>
-    <p class="hint">Use it anywhere you don't want to give your real address. Only this browser can open the inbox: knowing the address isn't enough. Mail shows up below within seconds, and everything is deleted after 24 hours, or as soon as you delete it.</p>
+    <p class="hint">Use it anywhere you don't want to give your real address. Only this browser can open the inbox: knowing the address isn't enough. Mail shows up below within seconds. Messages are deleted after 24 hours, or as soon as you delete the inbox. The address itself is never given to anyone else.</p>
   </section>
 
   <section class="reveal d3" aria-labelledby="inboxTitle">
@@ -1298,7 +1313,7 @@ footer a { color: var(--text-2); text-underline-offset: 3px; }
     <p>Paste the address wherever a throwaway email is needed. New mail appears here on its own.</p>
   </div>
 
-  <footer class="reveal d4">Part of <a href="https://inpriv.xyz/?home">Inpriv</a>. Messages expire after 24 hours. Temp inboxes aren't end-to-end encrypted, and an expired address can later go to someone else, so don't use Temp for accounts you need to keep. <a href="https://inpriv.xyz/terms">Terms</a> · <a href="https://inpriv.xyz/privacy">Privacy</a></footer>
+  <footer class="reveal d4">Part of <a href="https://inpriv.xyz/?home">Inpriv</a>. Messages expire after 24 hours. Temp inboxes aren't end-to-end encrypted. An address is never handed to anyone else, but once it expires you can't open it again either, so don't use Temp for accounts you need to keep. <a href="https://inpriv.xyz/terms">Terms</a> · <a href="https://inpriv.xyz/privacy">Privacy</a></footer>
 </div>
 
 <!-- message viewer -->
@@ -1324,15 +1339,215 @@ footer a { color: var(--text-2); text-underline-offset: 3px; }
         <button class="tab active" data-tab="rendered" type="button" role="tab">Rendered</button>
         <button class="tab" data-tab="text" type="button" role="tab">Plain text</button>
       </div>
+      <div class="remote-bar" id="vRemote" role="note" hidden>
+        <i data-icon="eye-off"></i>
+        <span>Images from the sender are blocked. Loading them tells the sender that you opened this email, and shows them your IP address and browser.</span>
+        <button type="button" id="vLoadImages">Load images</button>
+      </div>
       <!-- allow-same-origin lets the page measure the mail to fit it; scripts
-           in the mail still never run (no allow-scripts) -->
+           in the mail never run (no allow-scripts, and the frame's own policy
+           has no script source) -->
       <iframe class="viewer-frame" id="vFrame" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox" referrerpolicy="no-referrer" title="Email content"></iframe>
+      <p class="view-hint" id="vLinkHint" hidden>Links open in a new tab. The site you open sees your IP address.</p>
       <pre class="viewer-text" id="vText" hidden></pre>
       <div class="att-strip" id="vAtts" hidden></div>
     </div>
   </div>
 </div>
 
+<script id="inpriv-mail-render">
+/* Inpriv mail renderer — turns untrusted email HTML into a srcdoc page that
+   loads nothing from the sender. Source of truth for the copies inlined
+   into .mail/index.html and .temp/index.html as <script id="inpriv-mail-render">
+   (tests/check-inline.mjs checks that they match).
+
+   Layers, each enough on its own to block a tracking pixel:
+   1. An allowlist sanitizer on an inert DOMParser document: unknown or
+      active elements and attributes are removed, links are limited to
+      http(s) and mailto, remote image sources are dropped unless the person
+      asked to load images, and CSS is re-serialized through the CSSOM with
+      every url() removed (no regular expressions decide what is HTML).
+   2. A Content-Security-Policy inside the frame: default-src 'none', images
+      only from data: (plus https: after "Load images").
+   3. The page puts it in a sandboxed iframe without allow-scripts, so
+      nothing in a message can run. allow-same-origin stays so the page can
+      measure the message and size the frame; with scripts off, that gives
+      the message nothing to act with. */
+(function () {
+  'use strict';
+  if (window.InprivMailRender) return;
+
+  var HTML_NS = 'http://www.w3.org/1999/xhtml';
+  var KEEP = set('a abbr address article aside b bdi bdo big blockquote br caption center cite code col colgroup dd del details dfn div dl dt em figcaption figure font footer h1 h2 h3 h4 h5 h6 header hr i img ins kbd li main mark nav ol p pre q rp rt ruby s samp section small span strike strong sub summary sup table tbody td tfoot th thead time tr tt u ul var wbr');
+  // removed with everything inside them
+  var DROP = set('script style noscript template iframe frame frameset object embed applet noembed noframes input button select textarea option optgroup datalist output svg math audio video source track canvas map area portal link meta base title head dialog slot xmp plaintext');
+  var GLOBAL_ATTRS = set('class dir lang title align valign width height bgcolor color border style role');
+  var TAG_ATTRS = {
+    a: set('href'), img: set('src alt'), td: set('colspan rowspan nowrap scope abbr headers'),
+    th: set('colspan rowspan nowrap scope abbr headers'), table: set('cellpadding cellspacing summary'),
+    col: set('span'), colgroup: set('span'), font: set('face size'), ol: set('start type reversed'),
+    ul: set('type'), li: set('value type'), time: set('datetime'), hr: set('noshade size')
+  };
+  var IMG_PROPS = set('background background-image list-style list-style-image border-image border-image-source');
+  var DATA_IMG = /^data:image\/(png|gif|jpe?g|webp);base64,[a-z0-9+\/=\s]+$/i;
+
+  function set(s) { var o = Object.create(null); s.split(' ').forEach(function (k) { o[k] = 1; }); return o; }
+
+  function safeHref(v) {
+    v = String(v || '').trim();
+    if (v.length > 2048) return null;
+    return /^(https?:\/\/|mailto:)/i.test(v) ? v : null;
+  }
+
+  // Every url() in a CSS value: allowed only for image properties, and only
+  // https: (after "Load images") or an inline data: image.
+  function cssValueOk(name, value, remote, st) {
+    var v = String(value || '');
+    if (/expression\s*\(|javascript:|-moz-binding|behavior/i.test(v)) return false;
+    if (!/url\s*\(|image-set|image\s*\(|element\s*\(|cross-fade|paint\s*\(/i.test(v)) return true;
+    if (!IMG_PROPS[name] || /image-set|image\s*\(|element\s*\(|cross-fade|paint\s*\(/i.test(v)) { st.blocked++; return false; }
+    var re = /url\(\s*(['"]?)(.*?)\1\s*\)/gi, m, ok = true;
+    while ((m = re.exec(v))) {
+      var u = m[2].trim();
+      if (DATA_IMG.test(u)) continue;
+      if (remote && /^https:\/\//i.test(u)) continue;
+      ok = false;
+    }
+    if (!ok) st.blocked++;
+    return ok;
+  }
+
+  function cleanDecls(style, remote, st) {
+    for (var i = style.length - 1; i >= 0; i--) {
+      var name = style[i];
+      if (!cssValueOk(name, style.getPropertyValue(name), remote, st)) style.removeProperty(name);
+    }
+    var pos = style.getPropertyValue('position');
+    if (pos === 'fixed' || pos === 'sticky') style.removeProperty('position');
+  }
+
+  // <style> blocks: parsed into a constructed stylesheet (which ignores
+  // @import), rebuilt from style, @media and @supports rules only.
+  function cleanCss(text, remote, st) {
+    if (!text || typeof CSSStyleSheet !== 'function') return '';
+    var sheet;
+    try { sheet = new CSSStyleSheet(); sheet.replaceSync(text); } catch (e) { return ''; }
+    function rules(list) {
+      var out = '';
+      for (var i = 0; i < list.length; i++) {
+        var r = list[i], t = '';
+        if (r.type === 1) {
+          cleanDecls(r.style, remote, st);
+          t = r.selectorText + '{' + r.style.cssText + '}';
+        } else if (r.type === 4) {
+          t = '@media ' + r.media.mediaText + '{' + rules(r.cssRules) + '}';
+        } else if (r.type === 12) {
+          t = '@supports ' + r.conditionText + '{' + rules(r.cssRules) + '}';
+        }
+        // last check on the serialized rule: nothing that loads may remain
+        if (t && !/@import/i.test(t) && !/url\(\s*['"]?\s*(?!https:|data:image\/)/i.test(t) &&
+            (remote || !/url\(\s*['"]?\s*https:/i.test(t))) out += t + '\n';
+      }
+      return out;
+    }
+    return rules(sheet.cssRules).replace(/</g, '\\3c ');
+  }
+
+  function cleanAttrs(el, tag, remote, st) {
+    var allowed = TAG_ATTRS[tag];
+    Array.prototype.slice.call(el.attributes).forEach(function (a) {
+      var n = a.name.toLowerCase();
+      if (n === 'background' && /^\s*https?:/i.test(a.value)) st.blocked++;
+      if (!(GLOBAL_ATTRS[n] || (allowed && allowed[n]) || /^aria-[a-z-]+$/.test(n))) el.removeAttribute(a.name);
+    });
+    if (el.hasAttribute('style')) {
+      cleanDecls(el.style, remote, st);
+      if (!el.style.length) el.removeAttribute('style');
+    }
+    if (tag === 'a') {
+      var href = safeHref(el.getAttribute('href'));
+      if (href) {
+        el.setAttribute('href', href);
+        el.setAttribute('target', '_blank');
+        el.setAttribute('rel', 'noopener noreferrer nofollow');
+        el.setAttribute('referrerpolicy', 'no-referrer');
+        el.setAttribute('title', href); // the real destination, whatever the text says
+        st.links++;
+      } else {
+        el.removeAttribute('href');
+      }
+    } else if (tag === 'img') {
+      var src = String(el.getAttribute('src') || '').trim();
+      if (DATA_IMG.test(src) && src.length < 2e6) return;
+      el.removeAttribute('src');
+      if (/^https?:\/\//i.test(src) || /^\/\//.test(src)) {
+        if (remote && /^https:\/\//i.test(src)) { el.setAttribute('src', src); return; }
+        st.blocked++;
+      }
+      el.setAttribute('data-blocked', '');
+    }
+  }
+
+  function walk(node, remote, st) {
+    Array.prototype.slice.call(node.childNodes).forEach(function (k) {
+      if (k.nodeType === 8 || k.nodeType === 7) { k.remove(); return; }
+      if (k.nodeType !== 1) return;
+      var tag = k.localName;
+      if (k.namespaceURI !== HTML_NS || DROP[tag]) { k.remove(); return; }
+      walk(k, remote, st);
+      if (!KEEP[tag]) {
+        while (k.firstChild) k.parentNode.insertBefore(k.firstChild, k);
+        k.remove();
+        return;
+      }
+      cleanAttrs(k, tag, remote, st);
+    });
+  }
+
+  var PAPER =
+    'html{background:#fff;-webkit-text-size-adjust:100%;text-size-adjust:100%}' +
+    'body{margin:0;padding:24px 26px;background:#fff;color:#1d1d1b;' +
+    'font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;overflow-wrap:break-word}' +
+    'img{max-width:100%;height:auto}a{color:#1f5fbf}pre{white-space:pre-wrap}' +
+    'blockquote{margin:0 0 0 .4em;padding-left:.9em;border-left:3px solid #e2e0da;color:#55534d}' +
+    'hr{border:0;border-top:1px solid #e8e6e1}' +
+    'img[data-blocked]{display:inline-block;min-width:16px;min-height:16px;background:#f2f0eb;box-shadow:inset 0 0 0 1px #dcd9d2;color:#8a877f;font-size:12px}' +
+    '@media (max-width:600px){body{padding:16px}}';
+
+  // html → { doc: srcdoc text, blocked: remote resources removed, links }
+  function build(html, opts) {
+    var remote = !!(opts && opts.remote);
+    var st = { blocked: 0, links: 0 };
+    var doc = new DOMParser().parseFromString(String(html || ''), 'text/html');
+    var css = Array.prototype.map.call(doc.querySelectorAll('style'), function (s) { return s.textContent; }).join('\n');
+    var body = doc.body || doc.createElement('body');
+    var wrap = doc.createElement('div');
+    wrap.className = 'inpriv-mail';
+    var bg = body.getAttribute('bgcolor'), fg = body.getAttribute('text');
+    if (body.getAttribute('style')) wrap.setAttribute('style', body.getAttribute('style'));
+    if (bg && /^#?[a-z0-9]{3,8}$/i.test(bg)) wrap.style.backgroundColor = bg;
+    if (fg && /^#?[a-z0-9]{3,8}$/i.test(fg)) wrap.style.color = fg;
+    while (body.firstChild) wrap.appendChild(body.firstChild);
+    walk(wrap, remote, st);
+    if (wrap.hasAttribute('style')) { cleanDecls(wrap.style, remote, st); }
+    var cleanStyle = cleanCss(css, remote, st);
+    var csp = "default-src 'none'; img-src data:" + (remote ? ' https:' : '') +
+      "; style-src 'unsafe-inline'; font-src 'none'; media-src 'none'; frame-src 'none'; object-src 'none'; form-action 'none'; base-uri 'none'";
+    return {
+      blocked: st.blocked,
+      links: st.links,
+      doc: '<!DOCTYPE html><html><head><meta charset="utf-8">' +
+        '<meta http-equiv="Content-Security-Policy" content="' + csp + '">' +
+        '<meta http-equiv="x-dns-prefetch-control" content="off"><meta name="referrer" content="no-referrer">' +
+        '<meta name="color-scheme" content="light"><base target="_blank">' +
+        '<style>' + PAPER + '</style>' + (cleanStyle ? '<style>' + cleanStyle + '</style>' : '') +
+        '</head><body>' + wrap.outerHTML + '</body></html>'
+    };
+  }
+
+  window.InprivMailRender = { build: build };
+})();
+</script>
 <script>
 (() => {
   'use strict';
@@ -1546,6 +1761,7 @@ footer a { color: var(--text-2); text-underline-offset: 3px; }
     const { status, data } = await api('/api/messages/' + id);
     if (status !== 200) { toast('Message disappeared', 'error', true); refresh(); return; }
     currentMsg = data;
+    remoteShown = false; // images are asked for per message
 
     $('vSubject').textContent = data.subject || '(no subject)';
     $('vFromName').textContent = data.from_name || data.from_addr || 'Unknown sender';
@@ -1559,17 +1775,13 @@ footer a { color: var(--text-2); text-underline-offset: 3px; }
     setTab(hasHtml ? 'rendered' : 'text');
 
     if (hasHtml) {
-      // white "paper" defaults for mails that don't set their own; links open
-      // in a new tab unless the mail sets a <base> of its own
-      const paper = '<meta name="color-scheme" content="light"><style>'
-        + 'html{background:#fff;-webkit-text-size-adjust:100%;text-size-adjust:100%}'
-        + 'body{margin:0;padding:24px 26px;background:#fff;color:#1d1d1b;'
-        + 'font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;overflow-wrap:break-word}'
-        + 'img{max-width:100%;height:auto}a{color:#1f5fbf}pre{white-space:pre-wrap}'
-        + '@media (max-width:600px){body{padding:16px}}</style>';
-      const doc = (data.html.includes('<base') ? '' : '<base target="_blank">') + paper + data.html;
+      // rebuilt by the mail renderer (common/ui/mail-render.js): nothing
+      // remote loads until "Load images", links open in a new tab
       $('vFrame').style.height = '';
-      $('vFrame').srcdoc = doc;
+      showHtml(data.html, false);
+    } else {
+      $('vRemote').hidden = true;
+      $('vLinkHint').hidden = true;
     }
     $('vText').textContent = data.text || '';
 
@@ -1598,6 +1810,16 @@ footer a { color: var(--text-2); text-underline-offset: 3px; }
     queueFit();
     refresh(); // mark read immediately in the list
   }
+
+  let remoteShown = false;
+  function showHtml(html, remote) {
+    const out = InprivMailRender.build(html, { remote });
+    remoteShown = remote;
+    $('vFrame').srcdoc = out.doc;
+    $('vRemote').hidden = remote || !out.blocked || $('vFrame').hidden;
+    $('vLinkHint').hidden = !out.links || $('vFrame').hidden;
+  }
+  $('vLoadImages').addEventListener('click', () => { if (currentMsg && currentMsg.html) showHtml(currentMsg.html, true); });
 
   // Fit the frame to the mail: wide layouts (600px+ newsletters) are scaled
   // down to the available width instead of being cut off, and the frame takes
@@ -1645,6 +1867,8 @@ footer a { color: var(--text-2); text-underline-offset: 3px; }
     });
     $('vFrame').hidden = name !== 'rendered';
     $('vText').hidden = name !== 'text';
+    if (name !== 'rendered') { $('vRemote').hidden = true; $('vLinkHint').hidden = true; }
+    else if (currentMsg && currentMsg.html) showHtml(currentMsg.html, remoteShown);
     if (name === 'rendered') queueFit();
   }
   document.querySelectorAll('#vTabs .tab').forEach((t) => t.addEventListener('click', () => setTab(t.dataset.tab)));

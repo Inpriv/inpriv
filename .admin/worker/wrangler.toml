@@ -12,8 +12,12 @@ routes = [
 # sweep runs lazily on authenticated requests, and the /api/sweep endpoint
 # (called with X-Sweep-Secret) cleans burn/share/status on demand.
 
+# run_worker_first: the Worker serves the page too, so http:// is redirected
+# to https:// and every response gets the security headers
 [assets]
 directory = "./public"
+binding = "ASSETS"
+run_worker_first = true
 not_found_handling = "single-page-application"
 
 # Storage: table admin_kv in the inpriv-id D1 database (ID_DB binding below).

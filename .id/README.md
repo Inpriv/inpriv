@@ -74,10 +74,18 @@ One account, every service — Google-style:
 - **Quick Sign-In**: a signed-in browser (cookie on id.inpriv.xyz) can mint a
   single-use 120-second grant (POST /api/grant from id.js); the target service
   backend redeems it server-to-server (POST /api/grant/redeem, X-Inpriv-Service:
-  SERVICE_KEY) and issues its own session. 2FA accounts are excluded — the
-  second factor can never be skipped by a cross-site login.
-- **Quick Unlock** (opt-in, off-able in account settings): after one password
-  entry, services store the wrapped data key (DEK) under a random device key
-  in localStorage — Keyring in the ID-side quick_unlock table, Mail in its own
-  device_keys table. End-to-end encrypted; the toggle lives in Settings tab on
-  id.inpriv.xyz and instantly revokes the stored blobs.
+  SERVICE_KEY) and issues its own session. For 2FA accounts Mail still asks for
+  the code (/api/v1/sso/verify): the grant alone never opens Mail. The mailbox
+  stays locked until the mailbox passphrase (or this device's Quick Unlock key)
+  opens it in the browser.
+- **Quick Unlock / "Skip mailbox passphrase"** (on by default, off-able here
+  and in Mail): after one passphrase unlock, Mail stores the passphrase key
+  wrapped under a random device key kept in the browser's storage (Mail's
+  device_keys table, one row per device; enrolling needs a proof made with the
+  mailbox key). Anyone with that browser profile can open the mailbox.
+  Turning it off removes every device's wrap; single devices can be forgotten
+  in Mail.
+- **Session cookie**: HttpOnly, Secure, SameSite=Strict. Tokens are never
+  returned in response bodies. State-changing requests must come from one of
+  the Inpriv origins (exact list in lib.js). Changing the password or 2FA, or
+  signing out everywhere, also ends Mail sessions.

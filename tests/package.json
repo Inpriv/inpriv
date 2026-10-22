@@ -1,0 +1,13 @@
+{
+  "name": "inpriv-security-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "api": "node --test --test-reporter=spec api.test.mjs",
+    "browser": "node --test --test-reporter=spec --test-concurrency=1 browser.test.mjs",
+    "check": "node check-inline.mjs"
+  },
+  "devDependencies": {
+    "puppeteer-core": "24.43.1"
+  }
+}
