@@ -1,0 +1,41 @@
+name = "inpriv-status"
+main = "src/index.js"
+compatibility_date = "2025-08-01"
+workers_dev = false
+
+# Custom domain: the public status page
+# (routes MUST stay above the first [table], or wrangler ignores them)
+routes = [
+  { pattern = "status.inpriv.xyz", custom_domain = true }
+]
+
+# No cron of its own (the free plan's cron slots are used up): Temp's 5-minute
+# cron calls the Probe entrypoint below over a service binding.
+
+[[d1_databases]]
+binding = "DB"
+database_name = "inpriv-status"
+database_id = "1626b90a-1d97-4e63-bdc3-2ffdd6836419"
+
+# Read-only "SELECT 1" pings, so a site counts as down when its database is
+[[d1_databases]]
+binding = "MAIL_DB"
+database_name = "inpriv-mail"
+database_id = "d5c75cf0-46ba-4721-99fc-da18d2ccbabe"
+
+[[d1_databases]]
+binding = "TEMP_DB"
+database_name = "inpriv-temp"
+database_id = "4fd698d2-c51e-4390-8f6b-9968f5da902d"
+
+[[d1_databases]]
+binding = "ID_DB"
+database_name = "inpriv-id"
+database_id = "1cd1ca2e-51fd-40d9-94d8-aa75f989291b"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = true
+
+# No secrets.

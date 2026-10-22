@@ -19,6 +19,7 @@ inpriv/
 ├── .temp/                Inpriv Temp: page + Worker
 ├── .id/                  Inpriv ID: Worker; its page is worker/public/
 ├── .admin/               admin.inpriv.xyz: kill-switches, team mailboxes, records
+├── .status/              status.inpriv.xyz: uptime checks + page
 └── common/               shared by every Worker: gate, error pages, UI core
 ```
 

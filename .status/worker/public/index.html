@@ -1,0 +1,1795 @@
+<!DOCTYPE html>
+<!--
+  Inpriv Status — are the Inpriv sites up, and how have they been?
+  Part of Inpriv (https://inpriv.xyz) · Copyright (c) 2026 Inpriv Labs — MIT License
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<script>
+  try { var t = localStorage.getItem('inpriv_theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}
+</script>
+<title>Inpriv Status: is Mail, Temp or Inpriv ID down?</title>
+<meta name="description" content="Live status of Inpriv Mail, Temp, Inpriv ID and inpriv.xyz. Every site is checked every 5 minutes, day and night, with 90 days of uptime and incidents.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Inpriv">
+<meta property="og:title" content="Inpriv Status">
+<meta property="og:description" content="Is Inpriv up? Every site is checked every 5 minutes, with 90 days of uptime, response times and incidents.">
+<meta property="og:url" content="https://status.inpriv.xyz/">
+<meta property="og:image" content="https://inpriv.xyz/og/landing.png?v=3">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://status.inpriv.xyz/">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#0c0c0b" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#ebe9e4" media="(prefers-color-scheme: light)">
+<link rel="icon" type="image/png" href="/icon.png">
+<style id="inpriv-ui">
+/* Inpriv UI core — tokens, glass, backdrop, header, liquid pill, motion.
+   Source of truth for every page. `node common/ui/sync.mjs` copies it into
+   the <style id="inpriv-ui"> block of each page; edit it here, not there. */
+
+:root {
+  color-scheme: dark;
+  --bg: #0c0c0b;
+  --text: #f2f1ed;
+  --text-2: rgb(242 241 237 / 0.62);
+  --text-3: rgb(242 241 237 / 0.4);
+  --fill: rgb(255 255 255 / 0.05);
+  --fill-2: rgb(255 255 255 / 0.09);
+  --fill-3: rgb(255 255 255 / 0.16);
+  --hairline: rgb(255 255 255 / 0.08);
+  --dash: rgb(255 255 255 / 0.16);
+  --rim: rgb(255 255 255 / 0.45);
+  --spec: rgb(255 255 255 / 0.26);
+  --well: rgb(0 0 0 / 0.3);
+  --glass-tint: linear-gradient(180deg, rgb(255 255 255 / 0.09), rgb(255 255 255 / 0.035));
+  --shadow-lg: 0 40px 80px -36px rgb(0 0 0 / 0.85), 0 12px 30px -16px rgb(0 0 0 / 0.6);
+  --shadow-sm: 0 8px 20px -12px rgb(0 0 0 / 0.7);
+  --accent: #ff6a2b;
+  --solid: #f2f1ed;
+  --ink: #0c0c0b;
+  --focus: rgb(242 241 237 / 0.55);
+  --focus-glow: rgb(242 241 237 / 0.09);
+  --danger: #ff5f57;
+  --danger-glow: rgb(255 95 87 / 0.14);
+  --ticker: rgb(255 255 255 / 0.035);
+  --scrim: rgb(12 12 11 / 0.35);
+
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI Variable Display", "Segoe UI", Roboto, sans-serif;
+  --font-num: ui-rounded, "SF Pro Rounded", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --out: cubic-bezier(0.22, 1, 0.36, 1);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  interpolate-size: allow-keywords;
+}
+
+/* light: follows the system unless the visitor picked dark; or forced light */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --bg: #ebe9e4;
+    --text: #141412;
+    --text-2: rgb(20 20 18 / 0.62);
+    --text-3: rgb(20 20 18 / 0.42);
+    --fill: rgb(255 255 255 / 0.4);
+    --fill-2: rgb(255 255 255 / 0.6);
+    --fill-3: rgb(255 255 255 / 0.92);
+    --hairline: rgb(20 20 18 / 0.08);
+    --dash: rgb(20 20 18 / 0.2);
+    --rim: rgb(255 255 255 / 0.95);
+    --spec: rgb(255 255 255 / 0.9);
+    --well: rgb(255 255 255 / 0.4);
+    --glass-tint: linear-gradient(180deg, rgb(255 255 255 / 0.62), rgb(255 255 255 / 0.38));
+    --shadow-lg: 0 40px 80px -40px rgb(30 25 15 / 0.3), 0 12px 30px -18px rgb(30 25 15 / 0.22);
+    --shadow-sm: 0 8px 20px -12px rgb(30 25 15 / 0.3);
+    --accent: #e4511b;
+    --solid: #141412;
+    --ink: #f7f6f2;
+    --focus: rgb(20 20 18 / 0.5);
+    --focus-glow: rgb(20 20 18 / 0.07);
+    --danger: #d63a32;
+    --danger-glow: rgb(214 58 50 / 0.12);
+    --ticker: rgb(20 20 18 / 0.045);
+    --scrim: rgb(235 233 228 / 0.35);
+  }
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #ebe9e4;
+  --text: #141412;
+  --text-2: rgb(20 20 18 / 0.62);
+  --text-3: rgb(20 20 18 / 0.42);
+  --fill: rgb(255 255 255 / 0.4);
+  --fill-2: rgb(255 255 255 / 0.6);
+  --fill-3: rgb(255 255 255 / 0.92);
+  --hairline: rgb(20 20 18 / 0.08);
+  --dash: rgb(20 20 18 / 0.2);
+  --rim: rgb(255 255 255 / 0.95);
+  --spec: rgb(255 255 255 / 0.9);
+  --well: rgb(255 255 255 / 0.4);
+  --glass-tint: linear-gradient(180deg, rgb(255 255 255 / 0.62), rgb(255 255 255 / 0.38));
+  --shadow-lg: 0 40px 80px -40px rgb(30 25 15 / 0.3), 0 12px 30px -18px rgb(30 25 15 / 0.22);
+  --shadow-sm: 0 8px 20px -12px rgb(30 25 15 / 0.3);
+  --accent: #e4511b;
+  --solid: #141412;
+  --ink: #f7f6f2;
+  --focus: rgb(20 20 18 / 0.5);
+  --focus-glow: rgb(20 20 18 / 0.07);
+  --danger: #d63a32;
+  --danger-glow: rgb(214 58 50 / 0.12);
+  --ticker: rgb(20 20 18 / 0.045);
+  --scrim: rgb(235 233 228 / 0.35);
+}
+
+/* ── base ─────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--text);
+  font: 400 15px/1.5 var(--font);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+h1, h2 { text-wrap: balance; }
+::selection { background: var(--accent); color: #fff; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+[hidden] { display: none !important; }
+button, input, textarea, select { font: inherit; color: inherit; }
+a { color: inherit; }
+button, .btn, .icon-btn, [role="tab"], [role="switch"] { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+
+/* ── icons (inline sprite, see inpriv-ui.js) ──────────────────────────── */
+.i {
+  width: 18px; height: 18px; flex: none;
+  fill: none; stroke: currentColor; stroke-width: 1.8;
+  stroke-linecap: round; stroke-linejoin: round;
+  vertical-align: middle;
+}
+.i.solid { fill: currentColor; stroke: none; }
+.logo { width: 22px; height: 22px; flex: none; fill: currentColor; }
+
+/* ── backdrop: drifting codes + grain ─────────────────────────────────── */
+.backdrop { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.ticker {
+  position: absolute; inset: 0;
+  display: grid; align-content: space-evenly;
+  color: var(--ticker);
+  font: 800 clamp(150px, 34vh, 380px)/0.82 var(--font-display);
+  letter-spacing: -0.05em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap; user-select: none;
+}
+.track { display: flex; width: max-content; animation: ticker 150s linear infinite; will-change: transform; }
+.track:nth-child(2) { animation-duration: 190s; animation-direction: reverse; }
+.track span { padding-right: 0.3em; }
+@keyframes ticker { to { transform: translate3d(-50%, 0, 0); } }
+.hold-backdrop .track { animation-play-state: paused; }
+.grain {
+  position: absolute; inset: 0; opacity: 0.06;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ── liquid glass ─────────────────────────────────────────────────────── */
+.glass {
+  position: relative;
+  isolation: isolate;
+  background: var(--glass-tint);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
+  box-shadow: inset 0 1px 0.5px var(--spec), inset 0 -1px 0.5px rgb(255 255 255 / 0.06), var(--shadow-lg);
+}
+.glass::before {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  padding: 1px; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(140deg, var(--rim), rgb(255 255 255 / 0.1) 26%, rgb(255 255 255 / 0.02) 50%, rgb(255 255 255 / 0.08) 74%, rgb(255 255 255 / 0.3));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+.glass::after {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  border-radius: inherit; pointer-events: none;
+  background: radial-gradient(420px circle at var(--mx, 50%) var(--my, -40%), rgb(255 255 255 / 0.07), transparent 60%);
+  opacity: var(--sheen, 0);
+  transition: opacity 0.6s;
+}
+.glass-sm { box-shadow: inset 0 1px 0.5px var(--spec), var(--shadow-sm); }
+
+/* ── shell + header ───────────────────────────────────────────────────── */
+.shell {
+  width: min(100% - 32px, 540px);
+  margin: 0 auto;
+  padding: max(18px, var(--safe-top)) 0 max(36px, var(--safe-bottom));
+  display: flex; flex-direction: column; gap: 20px;
+}
+.shell.wide { width: min(100% - 32px, 760px); }
+.top {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  min-height: 44px;
+}
+.brand {
+  display: inline-flex; align-items: center; gap: 9px;
+  color: var(--text); text-decoration: none;
+  font: 680 19px/1 var(--font-display); letter-spacing: -0.03em;
+  white-space: nowrap; min-width: 0;
+}
+.brand span span { color: var(--text-3); }
+/* optical centring: the word is mostly lowercase, so its visual middle sits
+   below the line box's middle */
+.brand .logo { transform: translateY(0.11em); }
+.brand { flex: 0 1 auto; overflow: hidden; }
+.brand > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.top-actions { display: flex; align-items: center; gap: 8px; flex: none; }
+/* phones: on Mail and Temp the switcher already names the app, so the brand
+   drops its second word instead of running into the switcher */
+@media (max-width: 480px) {
+  .top:has(.switcher [aria-current="page"]) .brand span span { display: none; }
+  .top { gap: 8px; }
+  .top-actions { gap: 4px; }
+}
+
+/* corner app switcher: Mail ⇄ Temp, a liquid segmented pill */
+.switcher {
+  position: relative; display: inline-flex; padding: 3px; gap: 0;
+  border-radius: 999px;
+}
+.switcher a {
+  position: relative; z-index: 1;
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 34px; padding: 0 13px; border-radius: 999px;
+  color: var(--text-2); text-decoration: none;
+  font-size: 13.5px; font-weight: 600;
+  transition: color 0.2s;
+}
+.switcher a .i { width: 16px; height: 16px; }
+.switcher a:hover, .switcher a.on, .switcher a[aria-current="page"] { color: var(--text); }
+
+.icon-btn {
+  position: relative;
+  width: 40px; height: 40px; flex: none;
+  display: inline-grid; place-items: center;
+  border: 0; border-radius: 999px; padding: 0;
+  background: transparent; color: var(--text-2);
+  cursor: pointer; text-decoration: none;
+  transition: transform 0.3s var(--spring), background 0.2s, color 0.2s;
+}
+.icon-btn:hover { background: var(--fill-2); color: var(--text); }
+.icon-btn:active { transform: scale(0.88); }
+.icon-btn.glass:hover { background: var(--glass-tint); }
+
+/* ── liquid pill (segmented controls) ─────────────────────────────────── */
+.liquid { position: relative; isolation: isolate; }
+.liquid > :not(.liquid-thumb) { position: relative; z-index: 1; }
+.liquid-thumb {
+  position: absolute; z-index: 0; top: 0; left: 0;
+  border-radius: 999px;
+  background: var(--fill-3);
+  box-shadow: inset 0 1px 0.5px var(--spec), 0 6px 16px -8px rgb(0 0 0 / 0.55);
+  pointer-events: none;
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+.liquid.dragging .liquid-thumb { box-shadow: inset 0 1px 0.5px var(--spec), inset 0 0 0 1px var(--hairline), 0 10px 22px -8px rgb(0 0 0 / 0.6); }
+.liquid { touch-action: pan-y; -webkit-user-select: none; user-select: none; }
+.liquid a, .liquid img { -webkit-user-drag: none; }
+
+/* ── toast ────────────────────────────────────────────────────────────── */
+.toaster {
+  position: fixed; left: 50%; z-index: 200;
+  bottom: calc(max(24px, var(--safe-bottom) + 16px) + var(--toast-offset, 0px));
+  transform: translateX(-50%);
+  width: max-content; max-width: min(100vw - 32px, 440px);
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  pointer-events: none;
+}
+.toast {
+  display: flex; align-items: center; gap: 10px;
+  min-height: 44px; padding: 10px 18px 10px 14px; border-radius: 999px;
+  color: var(--text); font-size: 14px; font-weight: 550; line-height: 1.3;
+  animation: toast-in 0.46s var(--spring) backwards;
+  pointer-events: auto;
+  touch-action: none; -webkit-user-select: none; user-select: none; cursor: grab;
+}
+.toast.out { animation: toast-out 0.28s ease-in forwards; }
+.toast .i { color: var(--text-2); }
+.toast.error .i { color: var(--danger); }
+.toast-desc { font-size: 12.5px; font-weight: 400; color: var(--text-2); margin-top: 1px; }
+.toast:has(.toast-desc) { border-radius: 22px; }
+
+/* ── theme change ─────────────────────────────────────────────────────── */
+/* The new theme spreads from the tapped button as a soft-edged circle of
+   ink; the old page eases back and blurs slightly underneath it.
+   The centre is measured from the bottom edge: on Android the transition
+   snapshot also covers the area under the address bar, so it starts above
+   the visible page, while its bottom matches the viewport's bottom. */
+@property --vt-p { syntax: '<number>'; inherits: true; initial-value: 0; }
+::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+html.vt-theme::view-transition-new(root) {
+  --vt-r: calc(36px + (var(--vt-reach, 150vmax) - 36px) * var(--vt-p));
+  -webkit-mask: radial-gradient(circle at var(--vt-x) calc(100% - var(--vt-yb)), #000 calc(var(--vt-r) - 36px), rgb(0 0 0 / 0.5) calc(var(--vt-r) - 12px), transparent var(--vt-r));
+  mask: radial-gradient(circle at var(--vt-x) calc(100% - var(--vt-yb)), #000 calc(var(--vt-r) - 36px), rgb(0 0 0 / 0.5) calc(var(--vt-r) - 12px), transparent var(--vt-r));
+  animation: vt-spread 0.95s cubic-bezier(0.5, 0, 0.2, 1) both;
+}
+html.vt-theme::view-transition-old(root) {
+  transform-origin: var(--vt-x) calc(100% - var(--vt-yb));
+  animation: vt-settle 0.9s cubic-bezier(0.65, 0, 0.25, 1) both;
+}
+/* the keyframes animate a plain number (0 → 1): Firefox can't interpolate
+   keyframes built from var(), and would jump straight to the end */
+@keyframes vt-spread { from { --vt-p: 0; } to { --vt-p: 1; } }
+/* a ring that ripples out of the button the moment it's tapped; it has its
+   own transition layer so it draws above both the old and the new page */
+.theme-ripple {
+  position: fixed; z-index: 2147483000; pointer-events: none;
+  width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--text), 0 0 24px 4px var(--text);
+  opacity: 0; view-transition-name: theme-ripple;
+}
+::view-transition-group(theme-ripple) { animation: none; }
+::view-transition-old(theme-ripple) { display: none; }
+::view-transition-new(theme-ripple) { animation: theme-ripple 0.8s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes theme-ripple {
+  0% { opacity: 0.9; transform: scale(0.5); }
+  100% { opacity: 0; transform: scale(4.5); }
+}
+@keyframes vt-settle { to { transform: scale(0.97); filter: blur(2px) brightness(0.92); } }
+/* the sun and moon trade places with a spin */
+[data-theme-toggle].swap .i { animation: theme-icon 0.7s var(--spring) both; }
+@keyframes theme-icon { from { opacity: 0; transform: rotate(-150deg) scale(0.3); } }
+
+/* ── lite: weaker devices (html.lite, set by inpriv-ui.js) ──────────────
+   Live backdrop blur over a drifting background has to be re-rendered on
+   every frame. Lite keeps the look but uses a solid tint instead of blur
+   and holds the backdrop still. */
+html.lite .track { animation: none; }
+/* calm (Firefox, set by inpriv-ui.js): Firefox redraws every backdrop blur
+   whenever anything behind it moves, so the codes hold still there; the
+   glass keeps its blur */
+html.calm .track { animation: none; }
+html.lite *, html.lite *::before, html.lite *::after { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+html.lite .glass { background: var(--bg); background: color-mix(in srgb, var(--bg) 86%, var(--text) 7%); }
+html.lite .glass::after { display: none; }
+/* fallback without View Transitions: everything cross-fades its colours */
+html.theme-fade, html.theme-fade *, html.theme-fade *::before, html.theme-fade *::after {
+  transition: background-color 0.6s var(--out), color 0.6s var(--out), border-color 0.6s var(--out),
+              box-shadow 0.6s var(--out), fill 0.6s var(--out), stroke 0.6s var(--out) !important;
+}
+
+/* ── motion ───────────────────────────────────────────────────────────── */
+.reveal { animation: rise 0.6s var(--out) backwards; }
+.d1 { animation-delay: 40ms; } .d2 { animation-delay: 80ms; } .d3 { animation-delay: 120ms; } .d4 { animation-delay: 160ms; } .d5 { animation-delay: 200ms; }
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } }
+@keyframes pop-in { from { opacity: 0; transform: translateY(8px); } }
+@keyframes pop-out { to { opacity: 0; transform: scale(0.97); } }
+@keyframes card-rise { from { opacity: 0; transform: translateY(18px) scale(0.97); } }
+@keyframes toast-in { from { opacity: 0; transform: translateY(18px) scale(0.94); } }
+@keyframes toast-out { to { opacity: 0; transform: translateY(12px) scale(0.96); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes sweep { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .spin-keep { animation-duration: 0.8s !important; animation-iteration-count: infinite !important; }
+}
+
+/* ── touch screens: comfortable targets ───────────────────────────────── */
+@media (pointer: coarse) {
+  .switcher a { height: 38px; }
+  .icon-btn { width: 44px; height: 44px; }
+}
+
+/* ── phones ───────────────────────────────────────────────────────────── */
+@media (max-width: 440px) {
+  .switcher a { padding: 0 11px; }
+  .brand { font-size: 18px; }
+}
+@media (max-width: 345px) {
+  .switcher a span { display: none; }
+  .switcher a { padding: 0 10px; }
+}
+</style>
+<style>
+/* ── Inpriv Status — page styles ── */
+.shell { width: min(100% - 32px, 720px); }
+
+.hero { display: flex; flex-direction: column; gap: 12px; padding: 14px 2px 0; }
+.hero h1 { margin: 0; font: 660 clamp(30px, 7vw, 42px)/1.08 var(--font-display); letter-spacing: -0.035em; }
+.hero h1 span { color: var(--text-3); }
+.hero h1.swap { animation: rise 0.5s var(--out) backwards; }
+h1, h2 { text-wrap: balance; }
+.live { display: inline-flex; align-items: center; gap: 7px; color: var(--text-3); font-size: 12.5px; font-weight: 550; font-variant-numeric: tabular-nums; }
+.live::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex: none; }
+.live.stale::before { background: var(--text-3); }
+
+.card { padding: 22px; border-radius: 32px; display: flex; flex-direction: column; gap: 14px; }
+.card-head { display: flex; align-items: center; gap: 10px; }
+.card-head h2 { margin: 0; font: 660 20px/1.2 var(--font-display); letter-spacing: -0.02em; }
+.eyebrow { margin: 0; color: var(--text-3); font-size: 12px; font-weight: 650; letter-spacing: 0.12em; text-transform: uppercase; }
+.count {
+  min-width: 24px; height: 22px; padding: 0 7px; border-radius: 999px;
+  display: inline-grid; place-items: center;
+  background: var(--fill-2); color: var(--text-2);
+  font-size: 12px; font-weight: 650; font-variant-numeric: tabular-nums;
+}
+
+/* notice from admin (the same info banner the sites show) */
+.notice {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 14px 16px; border-radius: 20px;
+  font-size: 14px; color: var(--text);
+}
+.notice .i { flex: none; color: var(--accent); margin-top: 1px; }
+.notice[hidden] { display: none; }
+
+/* ── filters ── */
+.filters { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.filters .row2 { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.seg { display: flex; padding: 4px; border-radius: 999px; background: var(--well); box-shadow: inset 0 0 0 1px var(--hairline); user-select: none; -webkit-user-select: none; touch-action: pan-y; }
+.seg button {
+  flex: 1; min-width: 0; height: 38px; padding: 0 10px; border: 0; border-radius: 999px;
+  background: transparent; color: var(--text-2); cursor: pointer;
+  font: 600 13.5px/1 var(--font); white-space: nowrap;
+  transition: color 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.seg button:hover { color: var(--text); }
+.seg button.on { color: var(--text); }
+.seg button .short { display: none; }
+.seg .i { width: 16px; height: 16px; vertical-align: -3px; margin-right: 5px; }
+
+/* ── summary tiles ── */
+.tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.tile-stat {
+  display: flex; flex-direction: column; gap: 4px; min-width: 0;
+  padding: 12px 14px; border-radius: 20px;
+  background: var(--fill); box-shadow: inset 0 0 0 1px var(--hairline);
+}
+.tile-stat dt { color: var(--text-3); font-size: 12.5px; font-weight: 550; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile-stat dd { margin: 0; font: 640 clamp(20px, 5.4vw, 26px)/1.1 var(--font-num); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tile-stat dd small { font-size: 0.6em; font-weight: 600; color: var(--text-2); margin-left: 2px; letter-spacing: 0; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--text-2); font-size: 12.5px; font-weight: 550; padding: 0 2px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i.sw { width: 10px; height: 10px; border-radius: 3px; }
+.legend[hidden] { display: none; }
+
+/* ── service cards ── */
+.services { display: flex; flex-direction: column; gap: 14px; }
+.svc { padding: 18px 20px 16px; gap: 12px; }
+.svc[hidden] { display: none; }
+.svc.show { animation: card-rise 0.5s var(--out) backwards; }
+.svc-head { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.tile {
+  width: 44px; height: 44px; flex: none; border-radius: 14px; display: grid; place-items: center;
+  background: var(--fill-2); color: var(--text);
+  box-shadow: inset 0 1px 0.5px var(--spec), inset 0 0 0 1px var(--hairline);
+}
+.tile .i { width: 20px; height: 20px; }
+.svc-name { flex: 1; min-width: 0; }
+.svc-name h3 { margin: 0; font: 660 18px/1.25 var(--font-display); letter-spacing: -0.02em; }
+.svc-name a { display: inline-flex; align-items: center; gap: 4px; color: var(--text-3); font-size: 13px; text-decoration: none; max-width: 100%; }
+.svc-name a span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.svc-name a .i { width: 13px; height: 13px; flex: none; }
+.svc-name a:hover { color: var(--text-2); }
+
+.state {
+  display: inline-flex; align-items: center; gap: 7px; flex: none;
+  height: 30px; padding: 0 12px; border-radius: 999px;
+  background: var(--fill); box-shadow: inset 0 0 0 1px var(--hairline);
+  color: var(--text-2); font-size: 13px; font-weight: 600; white-space: nowrap;
+}
+.state::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--text-3); }
+.state.up { color: var(--text); }
+.state.up::before { background: var(--text); }
+.state.slow { color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); box-shadow: none; }
+.state.slow::before { background: var(--accent); }
+.state.down { color: var(--danger); background: var(--danger-glow); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--danger) 35%, transparent); }
+.state.down::before { background: var(--danger); }
+.state.maint::before { background: repeating-linear-gradient(135deg, var(--text-2) 0 1.5px, transparent 1.5px 3px); box-shadow: inset 0 0 0 1px var(--text-3); }
+.state.swap { animation: pop-in 0.35s var(--spring) backwards; }
+
+/* chart: bars (uptime) or a line (response time) */
+.chart {
+  position: relative; height: 44px; border-radius: 10px;
+  touch-action: pan-y; cursor: crosshair; outline: none;
+}
+.chart:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.bars { position: absolute; inset: 0; display: flex; gap: 2px; align-items: stretch; }
+.bar { flex: 1; min-width: 0; border-radius: 3px; background: var(--fill-2); transform-origin: 50% 100%; transition: opacity 0.2s, transform 0.25s var(--spring); }
+.bar.up { background: color-mix(in srgb, var(--text) 46%, transparent); }
+.bar.slow { background: var(--accent); }
+.bar.down { background: var(--danger); }
+.bar.maint { background: repeating-linear-gradient(135deg, var(--text-2) 0 2px, transparent 2px 5px), var(--fill-2); }
+.bar.none { background: var(--fill); box-shadow: inset 0 0 0 1px var(--hairline); }
+.chart.hovering .bar { opacity: 0.45; }
+.chart.hovering .bar.sel { opacity: 1; transform: scaleY(1.12); }
+.bars.enter .bar { animation: bar-in 0.5s var(--out) backwards; animation-delay: calc(var(--i) * 9ms); }
+@keyframes bar-in { from { opacity: 0; transform: scaleY(0.25); } }
+
+.line { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; color: var(--text); }
+.line .area { fill: currentColor; opacity: 0.08; }
+.line .stroke { fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.line .grid { stroke: var(--hairline); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.line .slowline { stroke: var(--accent); stroke-width: 1; stroke-dasharray: 3 4; vector-effect: non-scaling-stroke; opacity: 0.8; }
+.line .gap { fill: var(--danger); }
+.line .gapm { fill: var(--text-3); }
+.line.enter { animation: rise 0.5s var(--out) backwards; }
+.ymax { position: absolute; top: -2px; right: 0; color: var(--text-3); font-size: 11.5px; font-variant-numeric: tabular-nums; pointer-events: none; transform: translateY(-100%); }
+.cross { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--text-3); pointer-events: none; opacity: 0; transition: opacity 0.15s; }
+.dot { position: absolute; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%; background: var(--text); box-shadow: 0 0 0 2px var(--bg); pointer-events: none; opacity: 0; transition: opacity 0.15s; }
+.chart.hovering .cross, .chart.hovering .dot.on { opacity: 1; }
+
+.axis { display: flex; justify-content: space-between; color: var(--text-3); font-size: 12px; font-variant-numeric: tabular-nums; margin-top: -4px; }
+
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; padding-top: 12px; box-shadow: inset 0 1px 0 var(--hairline); }
+.stats div { min-width: 0; }
+.stats dt { color: var(--text-3); font-size: 12px; font-weight: 550; }
+.stats dd { margin: 2px 0 0; font: 600 15px/1.3 var(--font-num); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stats dd.muted { color: var(--text-3); }
+
+/* tooltip: one for the whole page, follows the hovered bar */
+.tip {
+  position: fixed; left: 0; top: 0; z-index: 120;
+  min-width: 170px; max-width: min(260px, calc(100vw - 24px));
+  padding: 10px 13px; border-radius: 16px;
+  background: var(--glass-tint), color-mix(in srgb, var(--bg) 90%, transparent);
+  box-shadow: inset 0 1px 0.5px var(--spec), inset 0 0 0 1px var(--hairline), var(--shadow-sm);
+  font-size: 12.5px; color: var(--text-2); line-height: 1.45; font-variant-numeric: tabular-nums;
+  pointer-events: none; opacity: 0; transition: opacity 0.15s;
+}
+.tip.on { opacity: 1; }
+.tip b { display: block; color: var(--text); font-weight: 600; font-size: 13px; margin-bottom: 3px; }
+.tip .tl { display: flex; align-items: center; gap: 7px; }
+.tip .tl::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: var(--c, var(--text-3)); flex: none; }
+
+/* ── incidents ── */
+.inc-list { display: flex; flex-direction: column; gap: 8px; }
+.scroll-list {
+  max-height: 336px; overflow-y: auto; overscroll-behavior: contain;
+  margin-right: -6px; padding-right: 6px;
+  scrollbar-width: thin; scrollbar-color: var(--fill-2) transparent;
+}
+.scroll-list::-webkit-scrollbar { width: 6px; }
+.scroll-list::-webkit-scrollbar-thumb { background: var(--fill-2); border-radius: 3px; }
+.scroll-list:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 16px; }
+.inc {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 11px 14px 11px 11px; border-radius: 20px;
+  background: var(--fill); box-shadow: inset 0 0 0 1px var(--hairline);
+  animation: pop-in 0.35s var(--out) backwards;
+}
+.inc:nth-child(n+9) { animation: none; }
+.inc .tile { width: 36px; height: 36px; border-radius: 12px; color: var(--text-2); }
+.inc .tile .i { width: 18px; height: 18px; }
+.inc.down .tile { color: var(--danger); }
+.inc.now { background: var(--fill-2); box-shadow: inset 0 1px 0.5px var(--spec), inset 0 0 0 1px var(--hairline); }
+.inc-main { flex: 1; min-width: 0; }
+.inc-title { font-size: 14.5px; font-weight: 600; }
+.inc-meta { font-size: 12.5px; color: var(--text-3); font-variant-numeric: tabular-nums; margin-top: 2px; }
+.inc-note { font-size: 13px; color: var(--text-2); margin-top: 6px; }
+.inc .badge {
+  flex: none; height: 24px; padding: 0 9px; border-radius: 999px; display: inline-flex; align-items: center;
+  font-size: 12px; font-weight: 650; color: var(--danger); background: var(--danger-glow); margin-top: 6px;
+}
+.inc.maint .badge { color: var(--text-2); background: var(--fill-2); }
+.empty {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 28px 22px; border-radius: 28px; text-align: center;
+  background: var(--fill); box-shadow: inset 0 0 0 1px var(--hairline); color: var(--text-2);
+}
+.empty .tile { color: var(--text-2); width: 52px; height: 52px; border-radius: 16px; }
+.empty h3 { margin: 4px 0 0; font: 650 17px/1.3 var(--font-display); color: var(--text); letter-spacing: -0.01em; }
+.empty p { margin: 0; max-width: 360px; font-size: 13.5px; }
+
+/* ── how it works ── */
+.how { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px; }
+.how li { display: flex; gap: 12px; font-size: 14px; color: var(--text-2); line-height: 1.5; }
+.how li .i { flex: none; color: var(--text-3); margin-top: 2px; }
+.how b { color: var(--text); font-weight: 600; }
+
+.error-box {
+  padding: 12px 16px; border-radius: 16px; background: var(--danger-glow); color: var(--danger);
+  font-size: 14px; animation: pop-in 0.35s var(--spring) backwards;
+}
+.error-box[hidden] { display: none; }
+.skel .bar { background: var(--fill); }
+.skel .stats dd, .skel .state { color: var(--text-3); }
+
+footer { padding: 6px 2px 0; color: var(--text-3); font-size: 12.5px; text-align: center; line-height: 1.7; }
+footer a { color: var(--text-2); text-underline-offset: 3px; }
+footer nav { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 14px; }
+
+::selection { background: var(--accent); color: #fff; }
+
+@media (min-width: 640px) {
+  .bars { gap: 3px; }
+  .chart { height: 52px; }
+}
+@media (max-width: 560px) {
+  .filters .row2 { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 480px) {
+  .card { padding: 18px; border-radius: 28px; }
+  .svc { padding: 16px 16px 14px; }
+  .seg button .long { display: none; }
+  .seg button .short { display: inline; }
+  .tile-stat { padding: 10px 12px; border-radius: 18px; }
+  .bar { border-radius: 2px; }
+  .state { height: 28px; padding: 0 10px; font-size: 12.5px; }
+}
+@media (max-width: 360px) {
+  .seg button { padding: 0 6px; font-size: 13px; }
+}
+</style>
+</head>
+<body>
+<div class="backdrop" aria-hidden="true">
+  <div class="ticker"><div class="track"></div><div class="track"></div></div>
+  <div class="grain"></div>
+</div>
+
+<div class="shell">
+  <header class="top">
+    <a class="brand reveal" href="https://inpriv.xyz/?home" aria-label="Inpriv home"><span data-logo></span><span>Inpriv <span>Status</span></span></a>
+    <div class="top-actions reveal d1">
+      <button class="icon-btn" type="button" id="refreshBtn" aria-label="Check for updates"><i data-icon="refresh"></i></button>
+      <button class="icon-btn" type="button" data-theme-toggle aria-label="Switch theme"></button>
+    </div>
+  </header>
+
+  <div class="notice glass-sm reveal d1" id="notice" role="status" hidden><i data-icon="info"></i><span id="noticeText"></span></div>
+
+  <section class="hero">
+    <h1 class="reveal d1" id="headline">Checking the sites.<br><span>One moment.</span></h1>
+    <span class="live reveal d2" id="live" aria-live="polite">Loading the latest checks…</span>
+  </section>
+
+  <section class="card glass reveal d2" aria-label="Filters and summary">
+    <div class="filters">
+      <div class="seg" id="rangeSeg" role="tablist" aria-label="Time range">
+        <button type="button" role="tab" data-v="24h"><span class="long">24 hours</span><span class="short">24 h</span></button>
+        <button type="button" role="tab" data-v="7d"><span class="long">7 days</span><span class="short">7 d</span></button>
+        <button type="button" role="tab" data-v="30d"><span class="long">30 days</span><span class="short">30 d</span></button>
+        <button type="button" role="tab" data-v="90d"><span class="long">90 days</span><span class="short">90 d</span></button>
+      </div>
+      <div class="row2">
+        <div class="seg" id="serviceSeg" role="tablist" aria-label="Site">
+          <button type="button" role="tab" data-v="all">All</button>
+          <button type="button" role="tab" data-v="site"><span class="long">Website</span><span class="short">Site</span></button>
+          <button type="button" role="tab" data-v="mail">Mail</button>
+          <button type="button" role="tab" data-v="temp">Temp</button>
+          <button type="button" role="tab" data-v="id">ID</button>
+        </div>
+        <div class="seg" id="viewSeg" role="tablist" aria-label="Show">
+          <button type="button" role="tab" data-v="uptime" aria-label="Uptime"><i data-icon="check"></i><span class="lbl">Uptime</span></button>
+          <button type="button" role="tab" data-v="speed" aria-label="Response time"><i data-icon="zap"></i><span class="lbl">Speed</span></button>
+        </div>
+      </div>
+    </div>
+    <dl class="tiles">
+      <div class="tile-stat"><dt>Uptime</dt><dd id="sumUptime">—</dd></div>
+      <div class="tile-stat"><dt>Response</dt><dd id="sumAvg">—</dd></div>
+      <div class="tile-stat"><dt>Incidents</dt><dd id="sumInc">—</dd></div>
+    </dl>
+    <div class="legend" id="legend" aria-label="Colour key">
+      <span><i class="sw bar up"></i>Running</span>
+      <span><i class="sw bar slow"></i>Slow</span>
+      <span><i class="sw bar down"></i>Down</span>
+      <span><i class="sw bar maint"></i>Maintenance</span>
+      <span><i class="sw bar none"></i>No data</span>
+    </div>
+    <div class="legend" id="legendSpeed" hidden>
+      <span>Average response time per bar, measured from Cloudflare's network.</span>
+    </div>
+  </section>
+
+  <div class="error-box" id="error" role="alert" hidden></div>
+
+  <section class="services" id="services" aria-label="Sites"></section>
+
+  <section class="card glass reveal d3" aria-labelledby="incTitle">
+    <div class="card-head">
+      <h2 id="incTitle">Incidents</h2>
+      <span class="count" id="incCount">0</span>
+    </div>
+    <div class="inc-list scroll-list" id="incList" tabindex="0" aria-label="Incidents"></div>
+  </section>
+
+  <section class="card glass reveal d4" aria-labelledby="howTitle">
+    <div class="card-head"><h2 id="howTitle">How we check</h2></div>
+    <ul class="how">
+      <li><i data-icon="clock"></i><span><b>Every 5 minutes, day and night.</b> Cloudflare's network opens each site's health page, and for Mail, Temp and ID also reads from its database.</span></li>
+      <li><i data-icon="alert"></i><span><b>Down</b> means no healthy answer within 8 seconds, twice in a row. <b>Slow</b> means the answer took longer than 1.5 seconds.</span></li>
+      <li><i data-icon="history"></i><span><b>Maintenance</b> is when we paused a site on purpose. It doesn't count against uptime. Checks are kept for 90 days.</span></li>
+      <li><i data-icon="shield-check"></i><span><b>Nothing about you.</b> This page loads nothing from other sites, and we keep no record of who looks at it.</span></li>
+    </ul>
+  </section>
+
+  <footer>
+    <nav>
+      <a href="https://inpriv.xyz/?home">inpriv.xyz</a>
+      <a href="https://mail.inpriv.xyz/">Mail</a>
+      <a href="https://temp.inpriv.xyz/">Temp</a>
+      <a href="https://id.inpriv.xyz/">Inpriv ID</a>
+      <a href="https://inpriv.xyz/privacy">Privacy</a>
+      <a href="https://github.com/Inpriv/inpriv">GitHub</a>
+    </nav>
+    <div>Times are in your time zone.</div>
+  </footer>
+</div>
+
+<div class="tip" id="tip" aria-hidden="true"></div>
+<div class="toaster" aria-live="polite"></div>
+
+<script id="inpriv-ui-js">
+/* Inpriv UI core — icon sprite, theme, backdrop codes, pointer sheen,
+   liquid pill, app switcher, toast. Source of truth for every page:
+   `node common/ui/sync.mjs` copies it into <script id="inpriv-ui-js">.
+   No network access, no storage beyond the theme choice. */
+(function () {
+  'use strict';
+  if (window.InprivUI) return;
+
+  var doc = document;
+  var root = doc.documentElement;
+  var reduced = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ── icons ──────────────────────────────────────────────────────────────
+  // 24-unit grid, drawn at 18px, stroke 1.8 (see .i in inpriv-ui.css)
+  var P = {
+    mail: '<rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7.5 8 6 8-6"/>',
+    inbox: '<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+    send: '<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',
+    outbox: '<path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>',
+    edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+    user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+    'user-plus': '<circle cx="10" cy="8" r="4"/><path d="M3 21a7 7 0 0 1 14 0"/><path d="M19 8v6M16 11h6"/>',
+    lock: '<rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+    unlock: '<rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 7.75-1.4"/>',
+    eye: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>',
+    'eye-off': '<path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c6.5 0 10 8 10 8a13.2 13.2 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.53 13.53 0 0 0 2 12s3.5 8 10 8a9.74 9.74 0 0 0 5.39-1.61"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><path d="m2 2 20 20"/>',
+    shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/>',
+    'shield-check': '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/>',
+    'shield-plus': '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="M12 8.5v6M9 11.5h6"/>',
+    'shield-x': '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9.5 9.5 5 5M14.5 9.5l-5 5"/>',
+    key: '<circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.7 12.3 9.8-9.8"/><path d="m16 7 3 3"/><path d="m19 4 2 2"/>',
+    'arrow-right': '<path d="M5 12h14"/><path d="m13 6 6 6-6 6"/>',
+    'arrow-left': '<path d="M19 12H5"/><path d="m11 6-6 6 6 6"/>',
+    'arrow-up-right': '<path d="M7 17 17 7"/><path d="M8 7h9v9"/>',
+    external: '<path d="M14 4h6v6"/><path d="M10 14 20 4"/><path d="M19 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h4"/>',
+    copy: '<rect x="9" y="9" width="12" height="12" rx="2.5"/><path d="M5 15H4a1 1 0 0 1-1-1V5a2 2 0 0 1 2-2h9a1 1 0 0 1 1 1v1"/>',
+    close: '<path d="M18 6 6 18M6 6l12 12"/>',
+    search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+    refresh: '<path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/>',
+    reply: '<path d="M9 17 4 12l5-5"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/>',
+    trash: '<path d="M4 7h16"/><path d="M10 11v6M14 11v6"/><path d="m6 7 1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12"/><path d="M9 7V4h6v3"/>',
+    globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18Z"/>',
+    rich: '<path d="M4 7V5h16v2"/><path d="M12 5v14"/><path d="M9 19h6"/>',
+    plain: '<path d="M4 6h16M4 12h16M4 18h10"/>',
+    cpu: '<rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/>',
+    logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>',
+    login: '<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="m10 17 5-5-5-5"/><path d="M15 12H3"/>',
+    check: '<circle cx="12" cy="12" r="9"/><path d="m8.5 12 2.5 2.5 4.5-5"/>',
+    alert: '<circle cx="12" cy="12" r="9"/><path d="M12 8v4.5"/><path d="M12 16h.01"/>',
+    info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 8h.01"/>',
+    clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    hourglass: '<path d="M6 2h12M6 22h12"/><path d="M7 2v3a5 5 0 0 0 10 0V2"/><path d="M7 22v-3a5 5 0 0 1 10 0v3"/>',
+    dice: '<rect x="3" y="3" width="18" height="18" rx="4"/><path d="M8 8h.01M16 8h.01M12 12h.01M8 16h.01M16 16h.01" stroke-width="2.6"/>',
+    clip: '<path d="m21 11-8.6 8.6a5.5 5.5 0 0 1-7.8-7.8l8.6-8.6a3.7 3.7 0 0 1 5.2 5.2l-8.6 8.6a1.8 1.8 0 0 1-2.6-2.6L15 6.6"/>',
+    download: '<path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 21h16"/>',
+    ban: '<circle cx="12" cy="12" r="9"/><path d="m5.6 5.6 12.8 12.8"/>',
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+    moon: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z"/>',
+    history: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/>',
+    monitor: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',
+    at: '<circle cx="12" cy="12" r="4"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8"/>',
+    zap: '<path d="M13 2 4 14h7l-1 8 9-12h-7Z"/>',
+    link: '<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>',
+    id: '<rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="9" cy="11" r="2"/><path d="M6 16a3 3 0 0 1 6 0"/><path d="M15 10h3M15 14h3"/>',
+    dots: '<rect x="2" y="6" width="20" height="12" rx="3"/><path d="M7 12h.01M12 12h.01M17 12h.01" stroke-width="2.6"/>',
+    chevron: '<path d="m9 6 6 6-6 6"/>',
+    'chevron-down': '<path d="m6 9 6 6 6-6"/>',
+    github: '<path fill="currentColor" stroke="none" d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02a9.58 9.58 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2Z"/>',
+    leaf: '<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>'
+  };
+  // Material Symbols names still used by page scripts → sprite ids
+  var ALIAS = {
+    mail_lock: 'mail', mark_email_unread: 'mail', alternate_email: 'at', outgoing_mail: 'send',
+    account_circle: 'user', person_add: 'user-plus', lock_open: 'unlock', visibility: 'eye',
+    visibility_off: 'eye-off', verified_user: 'shield-check', shield_locked: 'shield',
+    add_moderator: 'shield-plus', remove_moderator: 'shield-x', gpp_bad: 'shield-x',
+    vpn_key: 'key', lock_reset: 'key', password: 'dots', arrow_forward: 'arrow-right',
+    arrow_back: 'arrow-left', arrow_outward: 'arrow-up-right', open_in_new: 'external',
+    content_copy: 'copy', delete: 'trash', delete_forever: 'trash', public: 'globe',
+    palette: 'rich', subject: 'plain', memory: 'cpu', check_circle: 'check', error: 'alert',
+    schedule: 'clock', casino: 'dice', attach_file: 'clip', block: 'ban', light_mode: 'sun',
+    dark_mode: 'moon', devices: 'monitor', bolt: 'zap', hub: 'link', badge: 'id',
+    visibility_lock: 'lock', person: 'user'
+  };
+  function iconId(name) { name = ALIAS[name] || name; return P[name] ? name : 'info'; }
+  function icon(name, cls) {
+    return '<svg class="i' + (cls ? ' ' + cls : '') + '" aria-hidden="true"><use href="#i-' + iconId(name) + '"/></svg>';
+  }
+  var LOGO = '<svg class="logo" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.4 18 11.4H6Z"/><path d="M6 12.6h12L12 21.6Z"/></svg>';
+
+  function injectSprite() {
+    if (doc.getElementById('inpriv-sprite')) return;
+    var s = '<svg id="inpriv-sprite" xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">';
+    for (var k in P) s += '<symbol id="i-' + k + '" viewBox="0 0 24 24">' + P[k] + '</symbol>';
+    doc.body.insertAdjacentHTML('afterbegin', s + '</svg>');
+  }
+  // static markup can use <i data-icon="name"></i> placeholders
+  function hydrateIcons(scope) {
+    (scope || doc).querySelectorAll('i[data-icon]').forEach(function (el) {
+      el.outerHTML = icon(el.getAttribute('data-icon'), el.className);
+    });
+    (scope || doc).querySelectorAll('[data-logo]').forEach(function (el) {
+      el.innerHTML = LOGO; el.removeAttribute('data-logo');
+    });
+  }
+
+  // ── theme (system by default; the toggle stores an explicit choice) ────
+  var THEME_KEY = 'inpriv_theme';
+  var mqLight = window.matchMedia ? matchMedia('(prefers-color-scheme: light)') : null;
+  function effectiveTheme() {
+    return root.dataset.theme || (mqLight && mqLight.matches ? 'light' : 'dark');
+  }
+  function syncTheme() {
+    var eff = effectiveTheme();
+    doc.querySelectorAll('[data-theme-toggle]').forEach(function (b) {
+      b.innerHTML = icon(eff === 'dark' ? 'sun' : 'moon');
+      b.setAttribute('aria-label', eff === 'dark' ? 'Switch to light theme' : 'Switch to dark theme');
+      b.title = b.getAttribute('aria-label');
+    });
+    doc.querySelectorAll('meta[name="theme-color"]').forEach(function (m) {
+      if (root.dataset.theme) m.setAttribute('content', eff === 'dark' ? '#0c0c0b' : '#ebe9e4');
+      else m.setAttribute('content', m.media && m.media.indexOf('light') > -1 ? '#ebe9e4' : '#0c0c0b');
+    });
+  }
+  function setTheme(t) {
+    if (t === 'light' || t === 'dark') {
+      root.dataset.theme = t;
+      try { localStorage.setItem(THEME_KEY, t); } catch (e) {}
+    } else {
+      delete root.dataset.theme;
+      try { localStorage.removeItem(THEME_KEY); } catch (e) {}
+    }
+    syncTheme();
+    window.dispatchEvent(new CustomEvent('inpriv:theme', { detail: effectiveTheme() }));
+  }
+  // Animated change: the new theme spreads out from whatever was tapped as a
+  // soft-edged circle of ink (View Transitions), while the old page settles
+  // back a touch. Without View Transitions the colours cross-fade; with
+  // reduced motion the switch is instant.
+  var fadeTimer = 0;
+  function changeTheme(t, from) {
+    if (t === effectiveTheme() && root.dataset.theme) return;
+    var spin = function () {
+      doc.querySelectorAll('[data-theme-toggle]').forEach(function (b) {
+        b.classList.remove('swap'); void b.offsetWidth; b.classList.add('swap');
+      });
+    };
+    if (reduced) { setTheme(t); return; }
+    if (!doc.startViewTransition) {
+      root.classList.add('theme-fade');
+      clearTimeout(fadeTimer);
+      fadeTimer = setTimeout(function () { root.classList.remove('theme-fade'); }, 700);
+      setTheme(t); spin();
+      return;
+    }
+    var x = innerWidth / 2, y = 0;
+    if (from && from.getBoundingClientRect) {
+      var r = from.getBoundingClientRect();
+      if (r.width) { x = r.left + r.width / 2; y = r.top + r.height / 2; }
+    }
+    // + room for the address bar area the Android snapshot also covers
+    var reach = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y)) + 160;
+    root.style.setProperty('--vt-x', x + 'px');
+    root.style.setProperty('--vt-yb', (innerHeight - y) + 'px');
+    root.style.setProperty('--vt-reach', reach + 'px');
+    root.classList.add('vt-theme');
+    var ripple = doc.createElement('div');
+    ripple.className = 'theme-ripple';
+    ripple.setAttribute('aria-hidden', 'true');
+    ripple.style.left = x + 'px';
+    ripple.style.top = y + 'px';
+    var done = function () { root.classList.remove('vt-theme'); ripple.remove(); };
+    try {
+      var tr = doc.startViewTransition(function () { setTheme(t); spin(); doc.body.appendChild(ripple); });
+      tr.finished.then(done, done);
+    } catch (e) { done(); setTheme(t); spin(); }
+  }
+  function toggleTheme(from) { changeTheme(effectiveTheme() === 'dark' ? 'light' : 'dark', from); }
+  if (mqLight && mqLight.addEventListener) mqLight.addEventListener('change', syncTheme);
+
+  // ── backdrop: two rows of huge, faint, drifting codes ─────────────────
+  function fillTicker() {
+    var abc = 'abcdefghjkmnpqrstuvwxyz23456789';
+    doc.querySelectorAll('.ticker .track').forEach(function (track) {
+      var codes = [];
+      for (var i = 0; i < 6; i++) {
+        var c = '';
+        for (var j = 0; j < 4; j++) c += abc[Math.floor(Math.random() * abc.length)];
+        codes.push(c);
+      }
+      var run = codes.join(' ');
+      track.innerHTML = '<span>' + run + '</span><span>' + run + '</span>';
+    });
+  }
+
+  // ── pointer sheen on glass (mouse only, one update per frame) ──────────
+  function bindSheen() {
+    if (!window.matchMedia || !matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+    var px = 0, py = 0, target = null, lit = null, pending = false;
+    window.addEventListener('pointermove', function (e) {
+      if (e.pointerType !== 'mouse') return;
+      px = e.clientX; py = e.clientY;
+      target = e.target && e.target.closest ? e.target.closest('.glass') : null;
+      if (pending) return;
+      pending = true;
+      requestAnimationFrame(function () {
+        pending = false;
+        var g = doc.documentElement.classList.contains('lite') ? null : target;
+        if (lit && lit !== g) lit.style.setProperty('--sheen', '0');
+        if (g) {
+          var r = g.getBoundingClientRect();
+          g.style.setProperty('--mx', (px - r.left) + 'px');
+          g.style.setProperty('--my', (py - r.top) + 'px');
+          if (lit !== g) g.style.setProperty('--sheen', '1');
+        }
+        lit = g;
+      });
+    }, { passive: true });
+  }
+
+  // ── lite mode for weaker devices ───────────────────────────────────────
+  // Device hints (2 GB of memory or less, 2 cores or fewer, Data Saver)
+  // switch it on at once; otherwise a 2 s frame-time check after the page
+  // settles does (median frame over 24 ms = under ~42 fps). The result is
+  // remembered on the device for 7 days.
+  var PERF_KEY = 'inpriv_perf';
+  function setLite(on) {
+    doc.documentElement.classList.toggle('lite', !!on);
+    try { localStorage.setItem(PERF_KEY, JSON.stringify({ lite: !!on, until: Date.now() + 7 * 864e5 })); } catch (e) {}
+  }
+  function detectLite() {
+    if (/Firefox\//.test(navigator.userAgent)) doc.documentElement.classList.add('calm');
+    var saved = null;
+    try { saved = JSON.parse(localStorage.getItem(PERF_KEY) || 'null'); } catch (e) {}
+    if (saved && saved.until > Date.now()) { doc.documentElement.classList.toggle('lite', !!saved.lite); return; }
+    var n = navigator, c = n.connection || {};
+    if ((n.deviceMemory && n.deviceMemory <= 2) || (n.hardwareConcurrency && n.hardwareConcurrency <= 2) || c.saveData === true) {
+      setLite(true);
+      return;
+    }
+    setTimeout(function () {
+      if (doc.hidden) return;
+      var times = [], last = 0, end = 0;
+      requestAnimationFrame(function tick(now) {
+        if (last) times.push(now - last);
+        last = now;
+        if (!end) end = now + 2000;
+        if (now < end && !doc.hidden) { requestAnimationFrame(tick); return; }
+        if (times.length < 20) return; // tab hidden or throttled: no verdict
+        times.sort(function (a, b) { return a - b; });
+        setLite(times[times.length >> 1] > 24);
+      });
+    }, 2500);
+  }
+
+  // ── liquid pill ────────────────────────────────────────────────────────
+  // Turns any segmented control into one with a spring-driven thumb. Pages
+  // keep their own selection logic (classes .on/.active, aria-selected or
+  // aria-current); the thumb follows whatever is selected. The thumb can be
+  // pressed and dragged; release picks the nearest option via a click.
+  var STEP = 1 / 240;
+  function isOn(el) {
+    return el.classList.contains('on') || el.classList.contains('active') ||
+      el.getAttribute('aria-selected') === 'true' || el.getAttribute('aria-current') === 'page';
+  }
+  function enhance(seg) {
+    if (seg._liquid) return;
+    seg._liquid = true;
+    seg.classList.add('liquid');
+    var thumb = doc.createElement('span');
+    thumb.className = 'liquid-thumb';
+    thumb.setAttribute('aria-hidden', 'true');
+    seg.insertBefore(thumb, seg.firstChild);
+
+    var x = 0, w = 0, y = 0, h = 0, vx = 0, vw = 0, tx = 0, tw = 0;
+    var s = 1, vs = 0, ts = 1;
+    var placed = false, raf = 0, last = 0, drag = null, swallowUntil = 0;
+    var lo = 0, right = 0; // first option's left edge, last option's right edge
+
+    function options() {
+      var out = [];
+      for (var i = 0; i < seg.children.length; i++) {
+        var el = seg.children[i];
+        if (el !== thumb && el.offsetWidth > 0 && el.matches('button, a, [role="tab"], [role="radio"]')) out.push(el);
+      }
+      return out;
+    }
+    function current() {
+      var o = options();
+      for (var i = 0; i < o.length; i++) if (isOn(o[i])) return o[i];
+      return null;
+    }
+    function render() {
+      var stretch = Math.min(0.16, Math.abs(vx) / 6000);
+      thumb.style.width = w + 'px';
+      thumb.style.height = h + 'px';
+      thumb.style.transform = 'translate3d(' + x + 'px,' + y + 'px,0) scale(' + (s * (1 + stretch)) + ',' + (s * (1 - stretch / 2)) + ')';
+    }
+    function settle(snap) {
+      var el = current();
+      if (!el) { thumb.style.opacity = '0'; placed = false; return; }
+      thumb.style.opacity = '1';
+      tx = el.offsetLeft; tw = el.offsetWidth; y = el.offsetTop; h = el.offsetHeight;
+      var o = options();
+      lo = o[0].offsetLeft; right = o[o.length - 1].offsetLeft + o[o.length - 1].offsetWidth;
+      if (snap || !placed || reduced) { x = tx; w = tw; vx = vw = 0; placed = true; render(); return; }
+      kick();
+    }
+    function step(now) {
+      var dt = Math.min(0.05, (now - last) / 1000 || 1 / 60);
+      last = now;
+      while (dt > 0) {
+        var d = Math.min(dt, STEP);
+        dt -= d;
+        if (!drag || !drag.active) {
+          vx += (520 * (tx - x) - 28 * vx) * d; x += vx * d;
+          // the pill's ends are walls: bounce back instead of sliding past
+          if (x < lo) { x = lo; vx = -vx * 0.3; }
+          else if (x > right - w) { x = right - w; vx = -vx * 0.3; }
+        }
+        vw += (520 * (tw - w) - 28 * vw) * d; w += vw * d;
+        vs += (700 * (ts - s) - 22 * vs) * d; s += vs * d;
+      }
+      render();
+      var still = !(drag && drag.active) &&
+        Math.abs(tx - x) < 0.3 && Math.abs(vx) < 2 && Math.abs(tw - w) < 0.3 && Math.abs(vw) < 2 &&
+        Math.abs(ts - s) < 0.002 && Math.abs(vs) < 0.02;
+      if (still) { x = tx; w = tw; s = ts; vx = vw = vs = 0; render(); raf = 0; return; }
+      raf = requestAnimationFrame(step);
+    }
+    function kick() {
+      if (reduced) { x = tx; w = tw; s = ts; render(); return; }
+      if (!raf) { last = performance.now(); raf = requestAnimationFrame(step); }
+    }
+
+    seg.addEventListener('pointerdown', function (e) {
+      if (e.button !== 0 || !placed) return;
+      var r = seg.getBoundingClientRect();
+      var lx = e.clientX - r.left;
+      if (lx < x || lx > x + w) return;           // only the thumb itself drags
+      drag = { id: e.pointerId, sx: e.clientX, x0: x, lx: e.clientX, lt: performance.now(), active: false };
+      ts = 1.05; kick();
+    });
+    seg.addEventListener('pointermove', function (e) {
+      if (!drag || e.pointerId !== drag.id) return;
+      var dx = e.clientX - drag.sx;
+      if (!drag.active) {
+        if (Math.abs(dx) < 4) return;
+        drag.active = true;
+        seg.classList.add('dragging');
+        try { seg.setPointerCapture(e.pointerId); } catch (err) {}
+      }
+      var o = options();
+      if (!o.length) return;
+      var min = o[0].offsetLeft, max = o[o.length - 1].offsetLeft + o[o.length - 1].offsetWidth - w;
+      // the thumb stops at the ends of the pill instead of sliding past them
+      var raw = drag.x0 + dx, nx = Math.max(min, Math.min(max, raw));
+      var now = performance.now();
+      vx = (e.clientX - drag.lx) / Math.max(1, now - drag.lt) * 1000;
+      drag.lx = e.clientX; drag.lt = now;
+      if (nx !== raw) vx = 0; // pressed against a wall: no stretch
+      x = nx;
+      // width follows the option underneath
+      var mid = x + w / 2, best = o[0], bd = Infinity;
+      o.forEach(function (el) { var c = el.offsetLeft + el.offsetWidth / 2, dd = Math.abs(c - mid); if (dd < bd) { bd = dd; best = el; } });
+      tw = best.offsetWidth;
+      kick();
+    });
+    function release(e) {
+      if (!drag || (e && e.pointerId !== drag.id)) return;
+      var wasActive = drag.active;
+      drag = null;
+      ts = 1;
+      seg.classList.remove('dragging');
+      if (wasActive) {
+        swallowUntil = performance.now() + 80;
+        var o = options(), mid = x + w / 2 + vx * 0.08, best = null, bd = Infinity;
+        o.forEach(function (el) { var c = el.offsetLeft + el.offsetWidth / 2, dd = Math.abs(c - mid); if (dd < bd) { bd = dd; best = el; } });
+        if (best && !isOn(best)) best.click();
+        else settle(false);
+      }
+      kick();
+    }
+    seg.addEventListener('pointerup', release);
+    seg.addEventListener('pointercancel', release);
+    // desktop: stop the browser from picking up the link itself (a native
+    // link drag cancels the pointer and the thumb never moves)
+    seg.addEventListener('dragstart', function (e) { e.preventDefault(); });
+    options().forEach(function (el) { el.setAttribute('draggable', 'false'); });
+    seg.addEventListener('click', function (e) {
+      if (e.isTrusted && performance.now() < swallowUntil) { e.preventDefault(); e.stopPropagation(); }
+    }, true);
+    // keyboard: arrows move between options
+    seg.addEventListener('keydown', function (e) {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      var o = options(), i = o.indexOf(current());
+      if (i < 0) return;
+      var n = o[Math.max(0, Math.min(o.length - 1, i + (e.key === 'ArrowRight' ? 1 : -1)))];
+      if (n && n !== o[i]) { e.preventDefault(); n.focus(); n.click(); }
+    });
+
+    new MutationObserver(function (recs) {
+      for (var i = 0; i < recs.length; i++) if (recs[i].target !== thumb) { settle(false); return; }
+    }).observe(seg, { attributes: true, subtree: true, childList: true, attributeFilter: ['class', 'aria-selected', 'aria-current', 'hidden'] });
+    if (window.ResizeObserver) new ResizeObserver(function () { settle(true); }).observe(seg);
+    settle(true);
+  }
+  var liquidSelectors = [];
+  function liquid(selector) {
+    liquidSelectors.push(selector);
+    doc.querySelectorAll(selector).forEach(enhance);
+  }
+  function watchLiquid() {
+    new MutationObserver(function (recs) {
+      if (!liquidSelectors.length) return;
+      var sel = liquidSelectors.join(',');
+      recs.forEach(function (r) {
+        r.addedNodes.forEach(function (n) {
+          if (n.nodeType !== 1) return;
+          if (n.matches(sel)) enhance(n);
+          n.querySelectorAll(sel).forEach(enhance);
+        });
+      });
+    }).observe(doc.body, { childList: true, subtree: true });
+  }
+
+  // ── app switcher: the pill moves first, then the page changes ──────────
+  function bindSwitcher() {
+    doc.addEventListener('click', function (e) {
+      var a = e.target.closest && e.target.closest('.switcher a');
+      if (!a || e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.button > 0) return;
+      e.preventDefault();
+      if (a.getAttribute('aria-current') === 'page') return;
+      var nav = a.parentNode;
+      nav.querySelectorAll('a').forEach(function (x) {
+        if (x.getAttribute('aria-current') === 'page') x.setAttribute('data-was-current', '');
+        x.removeAttribute('aria-current');
+      });
+      a.setAttribute('aria-current', 'page');
+      setTimeout(function () { location.href = a.href; }, reduced ? 0 : 200);
+    });
+    // coming back through the back/forward cache: restore the real page
+    window.addEventListener('pageshow', function (e) {
+      if (!e.persisted) return;
+      doc.querySelectorAll('.switcher').forEach(function (nav) {
+        var was = nav.querySelector('[data-was-current]');
+        if (!was) return;
+        nav.querySelectorAll('a').forEach(function (x) { x.removeAttribute('aria-current'); });
+        was.setAttribute('aria-current', 'page');
+        was.removeAttribute('data-was-current');
+      });
+    });
+  }
+
+  // ── toast: one glass pill at the bottom ────────────────────────────────
+  function toast(title, opts) {
+    opts = opts || {};
+    var host = doc.getElementById('toaster');
+    if (!host) {
+      host = doc.createElement('div');
+      host.id = 'toaster';
+      host.className = 'toaster';
+      host.setAttribute('role', 'status');
+      host.setAttribute('aria-live', 'polite');
+      doc.body.appendChild(host);
+    }
+    var el = doc.createElement('div');
+    el.className = 'toast glass' + (opts.error ? ' error' : '');
+    var text = doc.createElement('div');
+    text.className = 'toast-text';
+    var t = doc.createElement('div');
+    t.className = 'toast-title';
+    t.textContent = title;
+    text.appendChild(t);
+    if (opts.desc) {
+      var d = doc.createElement('div');
+      d.className = 'toast-desc';
+      d.textContent = opts.desc;
+      text.appendChild(d);
+    }
+    el.innerHTML = icon(opts.icon || (opts.error ? 'alert' : 'check'));
+    el.appendChild(text);
+    while (host.children.length > 2) host.removeChild(host.firstChild);
+    host.appendChild(el);
+    var gone = false, timer = 0, sw = null;
+    function dismiss() {
+      if (gone) return;
+      gone = true;
+      el.classList.add('out');
+      setTimeout(function () { el.remove(); }, 280);
+    }
+    timer = setTimeout(dismiss, opts.error ? 4500 : 2200 + (opts.desc ? 1200 : 0));
+    // swipe down or sideways to dismiss; held toasts don't time out
+    el.addEventListener('pointerdown', function (e) {
+      if (gone) return;
+      sw = { id: e.pointerId, x: e.clientX, y: e.clientY, dx: 0, dy: 0 };
+      try { el.setPointerCapture(e.pointerId); } catch (err) {}
+      clearTimeout(timer);
+      el.style.transition = 'none';
+    });
+    el.addEventListener('pointermove', function (e) {
+      if (!sw || e.pointerId !== sw.id) return;
+      sw.dx = e.clientX - sw.x;
+      sw.dy = Math.max(0, e.clientY - sw.y);
+      var side = Math.abs(sw.dx) > sw.dy;
+      el.style.transform = side ? 'translateX(' + sw.dx + 'px)' : 'translateY(' + sw.dy + 'px)';
+      el.style.opacity = String(Math.max(0.2, 1 - (side ? Math.abs(sw.dx) / 220 : sw.dy / 120)));
+    });
+    function swipeEnd(e) {
+      if (!sw || (e && e.pointerId !== sw.id)) return;
+      var s = sw;
+      sw = null;
+      el.style.transition = 'transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.28s ease';
+      if (Math.abs(s.dx) > 70 || s.dy > 36) {
+        gone = true;
+        el.style.transform = Math.abs(s.dx) > s.dy ? 'translateX(' + (s.dx > 0 ? 130 : -130) + '%)' : 'translateY(160%)';
+        el.style.opacity = '0';
+        setTimeout(function () { el.remove(); }, 280);
+      } else {
+        el.style.transform = '';
+        el.style.opacity = '';
+        timer = setTimeout(dismiss, 1800);
+      }
+    }
+    el.addEventListener('pointerup', swipeEnd);
+    el.addEventListener('pointercancel', swipeEnd);
+    return el;
+  }
+
+  window.InprivUI = {
+    icon: icon, logo: LOGO, toast: toast, liquid: liquid, enhance: enhance,
+    setTheme: function (t, from) { if (t === 'light' || t === 'dark') changeTheme(t, from); else setTheme(t); },
+    toggleTheme: toggleTheme, theme: effectiveTheme, syncTheme: syncTheme, hydrate: hydrateIcons
+  };
+
+  function boot() {
+    detectLite();
+    injectSprite();
+    hydrateIcons(doc);
+    fillTicker();
+    syncTheme();
+    bindSheen();
+    watchLiquid();
+    liquid('.switcher');
+    bindSwitcher();
+    doc.addEventListener('click', function (e) {
+      var tb = e.target.closest && e.target.closest('[data-theme-toggle]');
+      if (tb) toggleTheme(tb);
+    });
+    // Escape closes the topmost dialog (pages close theirs on a scrim click)
+    doc.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape') return;
+      var open = doc.querySelectorAll('.modal-overlay.open, .modal-backdrop.open');
+      if (open.length) open[open.length - 1].dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+  }
+  if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', boot);
+  else boot();
+})();
+</script>
+<script>
+(() => {
+  const SERVICES = [
+    { id: "site", name: "Website", host: "inpriv.xyz", href: "https://inpriv.xyz/?home", icon: "globe" },
+    { id: "mail", name: "Mail", host: "mail.inpriv.xyz", href: "https://mail.inpriv.xyz/", icon: "mail" },
+    { id: "temp", name: "Temp", host: "temp.inpriv.xyz", href: "https://temp.inpriv.xyz/", icon: "hourglass" },
+    { id: "id", name: "Inpriv ID", host: "id.inpriv.xyz", href: "https://id.inpriv.xyz/", icon: "id" },
+  ];
+  const NAMES = Object.fromEntries(SERVICES.map((s) => [s.id, s.name]));
+  const RANGE_LABEL = { "24h": "24 hours", "7d": "7 days", "30d": "30 days", "90d": "90 days" };
+  const STATE_LABEL = { up: "Running", slow: "Slow", down: "Down", maint: "Maintenance" };
+  const REFRESH_MS = 60_000;
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  // filters live in the URL, so a view can be shared
+  const q = new URLSearchParams(location.search);
+  const pick = (v, list, d) => (list.includes(v) ? v : d);
+  const ui = {
+    range: pick(q.get("range"), ["24h", "7d", "30d", "90d"], "24h"),
+    service: pick(q.get("site"), ["all", ...SERVICES.map((s) => s.id)], "all"),
+    view: pick(q.get("show"), ["uptime", "speed"], "uptime"),
+  };
+  const cache = {};   // range → { at, data }
+  let data = null;
+  let loading = 0;
+
+  // ── formatting ──
+  const fmtTime = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" });
+  const fmtDay = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
+  const fmtDayTime = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  const sameDay = (a, b) => new Date(a).toDateString() === new Date(b).toDateString();
+  const pct = (v) => v == null ? "—" : v >= 0.99995 ? "100%" : (Math.floor(v * 10000) / 100).toFixed(2) + "%";
+  const ms = (v) => v == null ? "—" : v >= 1000 ? (v / 1000).toFixed(v >= 10000 ? 0 : 1) + " s" : Math.round(v) + " ms";
+  function dur(d) {
+    const m = Math.round(d / 60000);
+    if (m < 1) return "under a minute";
+    if (m < 60) return m + " min";
+    const h = Math.floor(m / 60), r = m % 60;
+    if (h < 48) return h + " h" + (r ? " " + r + " min" : "");
+    return Math.round(h / 24) + " days";
+  }
+  function ago(t) {
+    const m = Math.floor((Date.now() - t) / 60000);
+    if (m < 1) return "just now";
+    if (m < 60) return m + " min ago";
+    const h = Math.floor(m / 60);
+    return h < 48 ? h + " h ago" : Math.floor(h / 24) + " days ago";
+  }
+  function span(a, b) {
+    if (data && data.bucket >= 86400000) {
+      const last = b - 1;
+      return sameDay(a, last) ? fmtDay.format(a) : fmtDay.format(a) + " – " + fmtDay.format(last);
+    }
+    return fmtDayTime.format(a) + " – " + (sameDay(a, b) ? fmtTime.format(b) : fmtDayTime.format(b));
+  }
+
+  // numbers glide to their new value instead of jumping
+  function tween(el, to, format, html) {
+    const from = el._v;
+    el._v = to;
+    const put = (v) => { if (html) el.innerHTML = html(v); else el.textContent = format(v); };
+    if (to == null || from == null || reduced || from === to) { put(to); return; }
+    cancelAnimationFrame(el._raf);
+    const t0 = performance.now();
+    const step = (now) => {
+      const k = Math.min(1, (now - t0) / 650);
+      const e = 1 - Math.pow(1 - k, 3);
+      put(from + (to - from) * e);
+      if (k < 1) el._raf = requestAnimationFrame(step);
+    };
+    el._raf = requestAnimationFrame(step);
+  }
+
+  // ── bucket helpers ──
+  // bucket = [checks, up, slow, down, maint, avg ms, max ms]
+  function bucketState(b) {
+    if (!b[0]) return "none";
+    if (b[3]) return "down";
+    if (b[4]) return "maint";
+    if (b[2]) return "slow";
+    return "up";
+  }
+  function totalsFor(ids) {
+    const t = [0, 0, 0, 0, 0, 0, 0];
+    data.services.filter((s) => ids.includes(s.id)).forEach((s) => s.totals.forEach((v, i) => (t[i] += v)));
+    return t;
+  }
+
+  // ── service cards ──
+  const cards = {};
+  function buildCards() {
+    const box = $("services");
+    SERVICES.forEach((s, i) => {
+      const el = document.createElement("article");
+      el.className = "svc card glass reveal skel d" + Math.min(5, i + 2);
+      el.dataset.id = s.id;
+      el.innerHTML =
+        '<div class="svc-head">' +
+          '<span class="tile">' + InprivUI.icon(s.icon) + '</span>' +
+          '<div class="svc-name"><h3>' + esc(s.name) + '</h3>' +
+          '<a href="' + s.href + '">' + '<span>' + esc(s.host) + '</span>' + InprivUI.icon("arrow-up-right") + '</a></div>' +
+          '<span class="state" role="status">Checking</span>' +
+        '</div>' +
+        '<div class="chart" tabindex="0" role="img"></div>' +
+        '<div class="axis"><span class="a0"></span><span>Now</span></div>' +
+        '<dl class="stats">' +
+          '<div><dt>Uptime</dt><dd class="st-up">—</dd></div>' +
+          '<div><dt>Average</dt><dd class="st-avg">—</dd></div>' +
+          '<div><dt>Last check</dt><dd class="st-last">—</dd></div>' +
+        '</dl>';
+      box.appendChild(el);
+      const c = {
+        el, chart: el.querySelector(".chart"), state: el.querySelector(".state"),
+        up: el.querySelector(".st-up"), avg: el.querySelector(".st-avg"), last: el.querySelector(".st-last"),
+        a0: el.querySelector(".a0"), sel: -1, key: "",
+      };
+      bindChart(c, s.id);
+      cards[s.id] = c;
+      // a skeleton strip until the first answer
+      c.chart.innerHTML = '<div class="bars">' + '<i class="bar"></i>'.repeat(48) + "</div>";
+    });
+    InprivUI.hydrate && InprivUI.hydrate(box);
+  }
+
+  function renderCard(id, animate) {
+    const c = cards[id];
+    const s = data.services.find((x) => x.id === id);
+    if (!s) return;
+    c.el.classList.remove("skel");
+
+    const st = s.state || null;
+    const label = st ? STATE_LABEL[st] : "No data yet";
+    if (c.state.textContent !== label) {
+      c.state.className = "state " + (st || "");
+      c.state.textContent = label;
+      if (c.key) { void c.state.offsetWidth; c.state.classList.add("swap"); }
+    }
+
+    tween(c.up, s.uptime, pct);
+    tween(c.avg, s.avg, ms);
+    c.last.textContent = s.state === "down" ? "No answer" : s.state === "maint" ? "Paused" : ms(s.ms);
+    c.last.classList.toggle("muted", s.ms == null);
+    c.a0.textContent = RANGE_LABEL[data.range] + " ago";
+
+    const key = data.range + ui.view;
+    const enter = animate && !reduced && c.key !== key;
+    c.key = key;
+    if (ui.view === "uptime") drawBars(c, s, enter);
+    else drawLine(c, s, enter);
+
+    const down = s.totals[3];
+    c.chart.setAttribute("aria-label",
+      s.name + ", last " + RANGE_LABEL[data.range] + ": " + pct(s.uptime) + " uptime" +
+      (down ? ", " + down + " failed " + (down === 1 ? "check" : "checks") : "") +
+      (s.avg != null ? ", average response " + ms(s.avg) : "") + ". Use the arrow keys to read each bar.");
+  }
+
+  function drawBars(c, s, enter) {
+    let wrap = c.chart.querySelector(".bars");
+    if (!wrap || wrap.children.length !== s.buckets.length || c.chart.querySelector(".line")) {
+      c.chart.innerHTML = '<div class="bars"></div>';
+      wrap = c.chart.firstChild;
+      wrap.innerHTML = s.buckets.map((_, i) => '<i class="bar" style="--i:' + i + '"></i>').join("");
+    }
+    s.buckets.forEach((b, i) => { wrap.children[i].className = "bar " + bucketState(b) + (i === c.sel ? " sel" : ""); });
+    if (enter) { wrap.classList.remove("enter"); void wrap.offsetWidth; wrap.classList.add("enter"); }
+  }
+
+  function drawLine(c, s, enter) {
+    const n = s.buckets.length;
+    const vals = s.buckets.map((b) => b[5]);
+    const top = Math.max(100, ...vals.filter((v) => v != null)) * 1.15;
+    const W = n * 10, H = 100;
+    const x = (i) => i * 10 + 5;
+    const y = (v) => H - (v / top) * H;
+    // the line breaks where there's no reading (down, paused or no data)
+    let line = "", area = "", run = [];
+    const flush = () => {
+      if (!run.length) return;
+      if (run.length === 1) run.push([run[0][0] + 0.01, run[0][1]]);
+      line += "M" + run.map((p) => p[0].toFixed(1) + " " + p[1].toFixed(1)).join("L");
+      area += "M" + run[0][0].toFixed(1) + " " + H + "L" + run.map((p) => p[0].toFixed(1) + " " + p[1].toFixed(1)).join("L") + "L" + run[run.length - 1][0].toFixed(1) + " " + H + "Z";
+      run = [];
+    };
+    vals.forEach((v, i) => { if (v == null) flush(); else run.push([x(i), y(v)]); });
+    flush();
+    let marks = "";
+    s.buckets.forEach((b, i) => {
+      if (b[3]) marks += '<rect class="gap" x="' + (i * 10 + 1) + '" y="' + (H - 6) + '" width="8" height="6" rx="1.5"/>';
+      else if (b[4] && b[5] == null) marks += '<rect class="gapm" x="' + (i * 10 + 1) + '" y="' + (H - 6) + '" width="8" height="6" rx="1.5"/>';
+    });
+    const slowY = data.slow_ms < top ? '<line class="slowline" x1="0" x2="' + W + '" y1="' + y(data.slow_ms) + '" y2="' + y(data.slow_ms) + '"/>' : "";
+    c.chart.innerHTML =
+      '<svg class="line' + (enter ? " enter" : "") + '" viewBox="0 0 ' + W + " " + H + '" preserveAspectRatio="none" aria-hidden="true">' +
+        '<line class="grid" x1="0" x2="' + W + '" y1="0.5" y2="0.5"/><line class="grid" x1="0" x2="' + W + '" y1="' + (H - 0.5) + '" y2="' + (H - 0.5) + '"/>' +
+        slowY + '<path class="area" d="' + area + '"/><path class="stroke" d="' + line + '"/>' + marks +
+      "</svg>" +
+      '<span class="ymax">' + ms(top) + "</span>" +
+      '<span class="cross"></span><span class="dot"></span>';
+    c.top = top;
+    if (c.sel >= 0) pointAt(c, s, c.sel);
+  }
+
+  // ── hover, touch and keyboard on a chart ──
+  const tip = $("tip");
+  let tipFor = null;
+  function bindChart(c, id) {
+    const at = (e) => {
+      const r = c.chart.getBoundingClientRect();
+      const n = data ? data.services[0].buckets.length : 48;
+      return Math.max(0, Math.min(n - 1, Math.floor(((e.clientX - r.left) / r.width) * n)));
+    };
+    c.chart.addEventListener("pointermove", (e) => { if (data) select(c, id, at(e)); });
+    c.chart.addEventListener("pointerdown", (e) => { if (data) select(c, id, at(e)); });
+    c.chart.addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") unselect(c); });
+    c.chart.addEventListener("blur", () => unselect(c));
+    c.chart.addEventListener("keydown", (e) => {
+      if (!data) return;
+      const n = data.services[0].buckets.length;
+      let i = c.sel < 0 ? n - 1 : c.sel;
+      if (e.key === "ArrowLeft") i--;
+      else if (e.key === "ArrowRight") i++;
+      else if (e.key === "Home") i = 0;
+      else if (e.key === "End") i = n - 1;
+      else if (e.key === "Escape") { unselect(c); return; }
+      else return;
+      e.preventDefault();
+      select(c, id, Math.max(0, Math.min(n - 1, i)));
+    });
+  }
+  function select(c, id, i) {
+    if (tipFor && tipFor !== c) unselect(tipFor);
+    tipFor = c;
+    const s = data.services.find((x) => x.id === id);
+    const b = s.buckets[i];
+    if (!b) return;
+    c.sel = i;
+    c.chart.classList.add("hovering");
+    c.chart.querySelectorAll(".bar.sel").forEach((x) => x.classList.remove("sel"));
+    const bar = c.chart.querySelector(".bars") && c.chart.querySelector(".bars").children[i];
+    if (bar) bar.classList.add("sel");
+    if (ui.view === "speed") pointAt(c, s, i);
+
+    const t0 = data.start + i * data.bucket;
+    const stState = bucketState(b);
+    const color = { up: "color-mix(in srgb, var(--text) 46%, transparent)", slow: "var(--accent)", down: "var(--danger)", maint: "var(--text-2)" }[stState];
+    let html = "<b>" + esc(span(t0, t0 + data.bucket)) + "</b>";
+    if (!b[0]) html += '<div class="tl">No checks yet</div>';
+    else {
+      const counted = b[0] - b[4];
+      const okN = b[1] + b[2];
+      if (counted) html += '<div class="tl" style="--c:' + color + '">' + pct(okN / counted) + " up · " + b[0] + (b[0] === 1 ? " check" : " checks") + "</div>";
+      if (b[3]) html += '<div class="tl" style="--c:var(--danger)">' + b[3] + (b[3] === 1 ? " failed check" : " failed checks") + "</div>";
+      if (b[2]) html += '<div class="tl" style="--c:var(--accent)">' + b[2] + " slow</div>";
+      if (b[4]) html += '<div class="tl" style="--c:var(--text-2)">Maintenance' + (counted ? "" : " · " + b[4] + (b[4] === 1 ? " check" : " checks")) + "</div>";
+      if (b[5] != null) html += "<div>Average " + ms(b[5]) + " · slowest " + ms(b[6]) + "</div>";
+    }
+    tip.innerHTML = html;
+    // place it over the bar, kept inside the screen
+    const r = c.chart.getBoundingClientRect();
+    const cx = r.left + ((i + 0.5) / s.buckets.length) * r.width;
+    const tw = tip.offsetWidth, th = tip.offsetHeight;
+    const left = Math.max(12, Math.min(innerWidth - tw - 12, cx - tw / 2));
+    let top = r.top - th - 10;
+    if (top < 8) top = r.bottom + 10;
+    tip.style.transform = "translate(" + Math.round(left) + "px," + Math.round(top) + "px)";
+    tip.classList.add("on");
+  }
+  function pointAt(c, s, i) {
+    const n = s.buckets.length;
+    const v = s.buckets[i] && s.buckets[i][5];
+    const cross = c.chart.querySelector(".cross"), dot = c.chart.querySelector(".dot");
+    if (!cross) return;
+    const left = ((i + 0.5) / n) * 100 + "%";
+    cross.style.left = left;
+    dot.style.left = left;
+    dot.classList.toggle("on", v != null);
+    if (v != null) dot.style.top = (100 - (v / c.top) * 100) + "%";
+  }
+  function unselect(c) {
+    if (!c || c.sel < 0) return;
+    c.sel = -1;
+    c.chart.classList.remove("hovering");
+    c.chart.querySelectorAll(".bar.sel").forEach((x) => x.classList.remove("sel"));
+    if (tipFor === c) { tip.classList.remove("on"); tipFor = null; }
+  }
+  // a tap anywhere else, or scrolling, closes the tooltip on touch screens
+  document.addEventListener("pointerdown", (e) => { if (tipFor && !tipFor.chart.contains(e.target)) unselect(tipFor); });
+  addEventListener("scroll", () => { if (tipFor) unselect(tipFor); }, { passive: true });
+
+  // ── the rest of the page ──
+  function visibleIds() {
+    return ui.service === "all" ? SERVICES.map((s) => s.id) : [ui.service];
+  }
+
+  function renderHero() {
+    const h = $("headline");
+    const list = data.services.filter((s) => visibleIds().includes(s.id));
+    const names = (st) => list.filter((s) => s.state === st).map((s) => s.name);
+    const join = (a) => a.length < 2 ? a[0] : a.slice(0, -1).join(", ") + " and " + a[a.length - 1];
+    const since = (st) => {
+      const t = data.incidents.filter((x) => !x.ended && x.kind === st && visibleIds().includes(x.service)).map((x) => x.started);
+      return t.length ? "Since " + (sameDay(Math.min(...t), Date.now()) ? fmtTime : fmtDayTime).format(Math.min(...t)) + "." : "";
+    };
+    const one = ui.service !== "all";
+    let a, b;
+    const down = names("down"), maint = names("maint"), slow = names("slow");
+    if (!data.checked) { a = "No checks yet."; b = "The first one runs within 5 minutes."; }
+    else if (down.length) { a = join(down) + (down.length > 1 ? " are" : " is") + " down."; b = since("down") || "We're checking every 5 minutes."; }
+    else if (maint.length) { a = join(maint) + (maint.length > 1 ? " are" : " is") + " paused for maintenance."; b = since("maint") || "It'll be back shortly."; }
+    else if (slow.length) { a = join(slow) + (slow.length > 1 ? " are" : " is") + " slow right now."; b = "Everything else is running."; }
+    else if (one) { a = list[0].name + " is running."; b = "Checked every 5 minutes, day and night."; }
+    else { a = "Everything is running."; b = "Checked every 5 minutes, day and night."; }
+    const html = esc(a) + "<br><span>" + esc(b) + "</span>";
+    if (h.innerHTML !== html) {
+      h.innerHTML = html;
+      h.classList.remove("reveal", "d1", "swap"); void h.offsetWidth; h.classList.add("swap");
+    }
+  }
+
+  function renderLive() {
+    const el = $("live");
+    if (!data) return;
+    if (!data.checked) { el.textContent = "Waiting for the first check"; el.classList.add("stale"); return; }
+    const late = Date.now() - data.checked > data.interval * 3;
+    el.classList.toggle("stale", late);
+    el.textContent = late
+      ? "No new checks since " + fmtDayTime.format(data.checked) + ". The checker may be behind."
+      : "Live · last check " + ago(data.checked) + " · " + fmtTime.format(data.checked);
+  }
+
+  function renderSummary() {
+    const ids = visibleIds();
+    const t = totalsFor(ids);
+    const counted = t[0] - t[4];
+    tween($("sumUptime"), counted ? (t[1] + t[2]) / counted : null, pct);
+    tween($("sumAvg"), t[6] ? t[5] / t[6] : null, null, (v) => v == null ? "—" : v >= 1000 ? (v / 1000).toFixed(1) + "<small>s</small>" : Math.round(v) + "<small>ms</small>");
+    tween($("sumInc"), incidents().length, (v) => String(Math.round(v)));
+  }
+
+  function incidents() {
+    const ids = visibleIds();
+    return data.incidents.filter((x) => ids.includes(x.service));
+  }
+
+  function renderIncidents() {
+    const list = incidents();
+    $("incCount").textContent = list.length;
+    const box = $("incList");
+    if (!list.length) {
+      box.innerHTML =
+        '<div class="empty"><span class="tile">' + InprivUI.icon("check") + "</span>" +
+        "<h3>No incidents</h3><p>" + (ui.service === "all" ? "Every site" : esc(NAMES[ui.service])) +
+        " answered every check in the last " + RANGE_LABEL[data.range] + ", apart from anything shown in the bars above as slow.</p></div>";
+      if (!list.length && !data.checked) box.querySelector("p").textContent = "Incidents show up here once the checks have started.";
+      return;
+    }
+    box.innerHTML = list.map((x) => {
+      const name = NAMES[x.service] || x.service;
+      const now = !x.ended;
+      const title = x.kind === "down"
+        ? name + (now ? " is down" : " was down")
+        : name + (now ? " is paused for maintenance" : " was paused for maintenance");
+      const end = x.ended || Date.now();
+      const when = now
+        ? "Since " + fmtDayTime.format(x.started) + " · " + dur(end - x.started) + " so far"
+        : fmtDayTime.format(x.started) + " – " + (sameDay(x.started, x.ended) ? fmtTime : fmtDayTime).format(x.ended) + " · " + dur(x.ended - x.started);
+      return '<div class="inc ' + x.kind + (now ? " now" : "") + '">' +
+        '<span class="tile">' + InprivUI.icon(x.kind === "down" ? "alert" : "clock") + "</span>" +
+        '<div class="inc-main"><div class="inc-title">' + esc(title) + '</div><div class="inc-meta">' + esc(when) + "</div>" +
+        (x.note ? '<div class="inc-note">“' + esc(x.note) + "”</div>" : "") + "</div>" +
+        (now ? '<span class="badge">Ongoing</span>' : "") + "</div>";
+    }).join("");
+  }
+
+  function renderNotice() {
+    $("notice").hidden = !data.notice;
+    $("noticeText").textContent = data.notice || "";
+  }
+
+  function renderFilters() {
+    [["rangeSeg", ui.range], ["serviceSeg", ui.service], ["viewSeg", ui.view]].forEach(([id, v]) => {
+      $(id).querySelectorAll("button").forEach((b) => {
+        const on = b.dataset.v === v;
+        b.classList.toggle("on", on);
+        b.setAttribute("aria-selected", on ? "true" : "false");
+      });
+    });
+    $("legend").hidden = ui.view !== "uptime";
+    $("legendSpeed").hidden = ui.view === "uptime";
+  }
+
+  function renderCardsVisibility(animate) {
+    const ids = visibleIds();
+    SERVICES.forEach((s) => {
+      const el = cards[s.id].el;
+      const show = ids.includes(s.id);
+      if (el.hidden === !show) return;
+      el.hidden = !show;
+      el.classList.remove("reveal", "show");
+      if (show && animate && !reduced) { void el.offsetWidth; el.classList.add("show"); }
+      if (!show) unselect(cards[s.id]);
+    });
+  }
+
+  function render(animate) {
+    renderFilters();
+    if (!data) return;
+    renderNotice();
+    renderHero();
+    renderLive();
+    renderSummary();
+    renderCardsVisibility(animate);
+    SERVICES.forEach((s) => renderCard(s.id, animate));
+    renderIncidents();
+    if (tipFor && tipFor.sel >= 0) select(tipFor, tipFor.el.dataset.id, tipFor.sel);
+  }
+
+  // ── loading ──
+  async function load(force) {
+    const range = ui.range;
+    const hit = cache[range];
+    if (!force && hit && Date.now() - hit.at < 30_000) { data = hit.data; render(true); return; }
+    const mine = ++loading;
+    const btn = $("refreshBtn");
+    btn.querySelector(".i") && btn.querySelector(".i").classList.add("spin-keep");
+    try {
+      const res = await fetch("/api/status?range=" + range, { headers: { Accept: "application/json" } });
+      if (!res.ok) throw new Error();
+      const d = await res.json();
+      cache[range] = { at: Date.now(), data: d };
+      if (mine !== loading || range !== ui.range) return;
+      const first = !data;
+      data = d;
+      $("error").hidden = true;
+      render(true);
+      if (first) setTimeout(() => SERVICES.forEach((s) => cards[s.id].el.classList.remove("reveal")), 900);
+    } catch {
+      if (mine !== loading) return;
+      $("error").hidden = false;
+      $("error").textContent = data
+        ? "Couldn't reach the status service. Showing the last numbers we had."
+        : "Couldn't reach the status service. Trying again in a minute.";
+    } finally {
+      if (mine === loading) btn.querySelector(".i") && btn.querySelector(".i").classList.remove("spin-keep");
+    }
+  }
+
+  function setUi(key, v) {
+    if (ui[key] === v) return;
+    ui[key] = v;
+    const p = new URLSearchParams();
+    if (ui.range !== "24h") p.set("range", ui.range);
+    if (ui.service !== "all") p.set("site", ui.service);
+    if (ui.view !== "uptime") p.set("show", ui.view);
+    history.replaceState(null, "", location.pathname + (p.toString() ? "?" + p : ""));
+    if (key === "range") { renderFilters(); load(); }
+    else render(true);
+  }
+
+  [["rangeSeg", "range"], ["serviceSeg", "service"], ["viewSeg", "view"]].forEach(([id, key]) => {
+    const seg = $(id);
+    seg.addEventListener("click", (e) => {
+      const b = e.target.closest("button");
+      if (b && b.dataset.v) setUi(key, b.dataset.v);
+    });
+    seg.addEventListener("keydown", (e) => {
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      const bs = [...seg.querySelectorAll("button")];
+      const i = bs.findIndex((b) => b.classList.contains("on"));
+      const n = bs[Math.max(0, Math.min(bs.length - 1, i + (e.key === "ArrowRight" ? 1 : -1)))];
+      e.preventDefault();
+      n.focus();
+      n.click();
+    });
+  });
+  $("refreshBtn").addEventListener("click", () => load(true).then(() => InprivUI.toast("Up to date")));
+
+  buildCards();
+  renderFilters();
+  InprivUI.liquid(".seg");
+  load();
+
+  // refresh every minute while the page is open; the "x min ago" ticks too
+  setInterval(() => { if (!document.hidden) load(true); }, REFRESH_MS);
+  setInterval(renderLive, 15_000);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && cache[ui.range] && Date.now() - cache[ui.range].at > 30_000) load(true);
+  });
+})();
+</script>
+</body>
+</html>

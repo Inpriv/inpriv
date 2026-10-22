@@ -18,7 +18,7 @@ on:
         description: Worker to deploy
         type: choice
         default: all
-        options: [all, inpriv, inpriv-admin, inpriv-id, inpriv-mail, inpriv-temp]
+        options: [all, inpriv, inpriv-admin, inpriv-id, inpriv-mail, inpriv-status, inpriv-temp]
 
 jobs:
   changes:
@@ -44,6 +44,9 @@ jobs:
             inpriv-mail:
               - '.mail/worker/**'
               - 'common/*.js'
+            inpriv-status:
+              - '.status/worker/**'
+              - 'common/*.js'
             inpriv-temp:
               - '.temp/worker/**'
               - 'common/*.js'
@@ -52,7 +55,7 @@ jobs:
           CHANGED: ${{ steps.filter.outputs.changes }}
           CHOSEN: ${{ inputs.worker }}
         run: |
-          all='["inpriv","inpriv-admin","inpriv-id","inpriv-mail","inpriv-temp"]'
+          all='["inpriv","inpriv-admin","inpriv-id","inpriv-mail","inpriv-status","inpriv-temp"]'
           if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
             if [ "$CHOSEN" = "all" ]; then echo "workers=$all"; else echo "workers=[\"$CHOSEN\"]"; fi
           else
@@ -79,6 +82,7 @@ jobs:
             inpriv-admin) echo "path=.admin/worker" ;;
             inpriv-id)    echo "path=.id/worker" ;;
             inpriv-mail)  echo "path=.mail/worker" ;;
+            inpriv-status) echo "path=.status/worker" ;;
             inpriv-temp)  echo "path=.temp/worker" ;;
           esac >> "$GITHUB_OUTPUT"
       - uses: cloudflare/wrangler-action@v3
