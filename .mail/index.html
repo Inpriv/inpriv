@@ -356,9 +356,10 @@ button, .btn, .icon-btn, [role="tab"], [role="switch"] { user-select: none; -web
    The centre is measured from the bottom edge: on Android the transition
    snapshot also covers the area under the address bar, so it starts above
    the visible page, while its bottom matches the viewport's bottom. */
-@property --vt-r { syntax: '<length>'; inherits: true; initial-value: 0px; }
+@property --vt-p { syntax: '<number>'; inherits: true; initial-value: 0; }
 ::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
 html.vt-theme::view-transition-new(root) {
+  --vt-r: calc(36px + (var(--vt-reach, 150vmax) - 36px) * var(--vt-p));
   -webkit-mask: radial-gradient(circle at var(--vt-x) calc(100% - var(--vt-yb)), #000 calc(var(--vt-r) - 36px), rgb(0 0 0 / 0.5) calc(var(--vt-r) - 12px), transparent var(--vt-r));
   mask: radial-gradient(circle at var(--vt-x) calc(100% - var(--vt-yb)), #000 calc(var(--vt-r) - 36px), rgb(0 0 0 / 0.5) calc(var(--vt-r) - 12px), transparent var(--vt-r));
   animation: vt-spread 0.95s cubic-bezier(0.5, 0, 0.2, 1) both;
@@ -367,7 +368,9 @@ html.vt-theme::view-transition-old(root) {
   transform-origin: var(--vt-x) calc(100% - var(--vt-yb));
   animation: vt-settle 0.9s cubic-bezier(0.65, 0, 0.25, 1) both;
 }
-@keyframes vt-spread { from { --vt-r: 36px; } to { --vt-r: var(--vt-reach, 150vmax); } }
+/* the keyframes animate a plain number (0 → 1): Firefox can't interpolate
+   keyframes built from var(), and would jump straight to the end */
+@keyframes vt-spread { from { --vt-p: 0; } to { --vt-p: 1; } }
 /* a ring that ripples out of the button the moment it's tapped; it has its
    own transition layer so it draws above both the old and the new page */
 .theme-ripple {
@@ -393,6 +396,10 @@ html.vt-theme::view-transition-old(root) {
    every frame. Lite keeps the look but uses a solid tint instead of blur
    and holds the backdrop still. */
 html.lite .track { animation: none; }
+/* calm (Firefox, set by inpriv-ui.js): Firefox redraws every backdrop blur
+   whenever anything behind it moves, so the codes hold still there; the
+   glass keeps its blur */
+html.calm .track { animation: none; }
 html.lite *, html.lite *::before, html.lite *::after { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
 html.lite .glass { background: var(--bg); background: color-mix(in srgb, var(--bg) 86%, var(--text) 7%); }
 html.lite .glass::after { display: none; }
@@ -1203,6 +1210,7 @@ html, body { overscroll-behavior-y: contain; }
     try { localStorage.setItem(PERF_KEY, JSON.stringify({ lite: !!on, until: Date.now() + 7 * 864e5 })); } catch (e) {}
   }
   function detectLite() {
+    if (/Firefox\//.test(navigator.userAgent)) doc.documentElement.classList.add('calm');
     var saved = null;
     try { saved = JSON.parse(localStorage.getItem(PERF_KEY) || 'null'); } catch (e) {}
     if (saved && saved.until > Date.now()) { doc.documentElement.classList.toggle('lite', !!saved.lite); return; }

@@ -237,6 +237,7 @@
     try { localStorage.setItem(PERF_KEY, JSON.stringify({ lite: !!on, until: Date.now() + 7 * 864e5 })); } catch (e) {}
   }
   function detectLite() {
+    if (/Firefox\//.test(navigator.userAgent)) doc.documentElement.classList.add('calm');
     var saved = null;
     try { saved = JSON.parse(localStorage.getItem(PERF_KEY) || 'null'); } catch (e) {}
     if (saved && saved.until > Date.now()) { doc.documentElement.classList.toggle('lite', !!saved.lite); return; }
