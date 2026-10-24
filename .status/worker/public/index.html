@@ -675,6 +675,7 @@ footer nav { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 1
           <button type="button" role="tab" data-v="mail">Mail</button>
           <button type="button" role="tab" data-v="temp">Temp</button>
           <button type="button" role="tab" data-v="id">ID</button>
+          <button type="button" role="tab" data-v="loopwright">loopwright</button>
         </div>
         <div class="seg" id="viewSeg" role="tablist" aria-label="Show">
           <button type="button" role="tab" data-v="uptime" aria-label="Uptime"><i data-icon="check"></i><span class="lbl">Uptime</span></button>
@@ -727,6 +728,7 @@ footer nav { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 1
       <a href="https://mail.inpriv.xyz/">Mail</a>
       <a href="https://temp.inpriv.xyz/">Temp</a>
       <a href="https://id.inpriv.xyz/">Inpriv ID</a>
+      <a href="https://lw.inpriv.xyz/">loopwright</a>
       <a href="https://inpriv.xyz/privacy">Privacy</a>
       <a href="https://github.com/Inpriv/inpriv">GitHub</a>
     </nav>
@@ -1305,6 +1307,7 @@ footer nav { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 1
     { id: "mail", name: "Mail", host: "mail.inpriv.xyz", href: "https://mail.inpriv.xyz/", icon: "mail" },
     { id: "temp", name: "Temp", host: "temp.inpriv.xyz", href: "https://temp.inpriv.xyz/", icon: "hourglass" },
     { id: "id", name: "Inpriv ID", host: "id.inpriv.xyz", href: "https://id.inpriv.xyz/", icon: "id" },
+    { id: "loopwright", name: "loopwright", host: "lw.inpriv.xyz", href: "https://lw.inpriv.xyz/", icon: "cpu" },
   ];
   const NAMES = Object.fromEntries(SERVICES.map((s) => [s.id, s.name]));
   const RANGE_LABEL = { "24h": "24 hours", "7d": "7 days", "30d": "30 days", "90d": "90 days" };
