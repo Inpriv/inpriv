@@ -26,7 +26,9 @@
 <meta name="color-scheme" content="dark light">
 <meta name="theme-color" content="#0c0c0b" media="(prefers-color-scheme: dark)">
 <meta name="theme-color" content="#ebe9e4" media="(prefers-color-scheme: light)">
-<link rel="icon" type="image/png" href="/icon.png">
+<link rel="icon" type="image/svg+xml" href="/icon.svg?v=3">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=3">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=3">
 <style id="inpriv-ui">
 /* Inpriv UI core — tokens, glass, backdrop, header, liquid pill, motion.
    Source of truth for every page. `node common/ui/sync.mjs` copies it into
@@ -443,7 +445,7 @@ h1, h2 { text-wrap: balance; }
 #viewSeg { min-width: 180px; }
 #serviceSeg {
   grid-column: 1 / -1; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px;
-  padding: 0; background: none; box-shadow: none; border-radius: 0;
+  border-radius: 999px;
 }
 .seg { display: flex; padding: 4px; border-radius: 999px; background: var(--well); box-shadow: inset 0 0 0 1px var(--hairline); user-select: none; -webkit-user-select: none; touch-action: pan-y; }
 .seg button {
@@ -458,12 +460,9 @@ h1, h2 { text-wrap: balance; }
 .seg button .short { display: none; }
 .seg .i { width: 16px; height: 16px; vertical-align: -3px; margin-right: 5px; }
 #serviceSeg button {
-  height: 44px; padding: 0 8px; border-radius: 14px;
-  background: var(--fill); box-shadow: inset 0 0 0 1px var(--hairline);
-  transition: background-color 0.18s, color 0.18s, box-shadow 0.18s;
+  height: 44px; padding: 0 6px;
 }
-#serviceSeg button:hover { background: var(--fill-2); }
-#serviceSeg button.on { background: var(--fill-3); box-shadow: inset 0 0 0 1px var(--spec); }
+#serviceSeg .liquid-thumb { transition: transform 0.25s var(--spring), width 0.25s var(--spring), height 0.25s var(--spring); }
 
 /* ── summary tiles ── */
 .tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
@@ -636,8 +635,10 @@ footer nav { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 1
 @media (max-width: 560px) {
   .filters { grid-template-columns: minmax(0, 1fr); gap: 10px; }
   #viewSeg { grid-row: 3; min-width: 0; }
-  #serviceSeg { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   #rangeSeg button, #viewSeg button { height: 44px; }
+}
+@media (max-width: 600px) {
+  #serviceSeg { grid-template-columns: repeat(3, minmax(0, 1fr)); border-radius: 26px; }
 }
 @media (max-width: 480px) {
   .card { padding: 18px; border-radius: 28px; }
@@ -1797,6 +1798,26 @@ footer nav { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 1
   buildCards();
   renderFilters();
   InprivUI.liquid(".seg:not(#serviceSeg)");
+  // A two-dimensional pill keeps the same selected state when phone tabs wrap.
+  const serviceSeg = $("serviceSeg");
+  const serviceThumb = document.createElement("span");
+  serviceThumb.className = "liquid-thumb";
+  serviceThumb.setAttribute("aria-hidden", "true");
+  serviceSeg.classList.add("liquid");
+  serviceSeg.prepend(serviceThumb);
+  let serviceFrame = 0;
+  function positionServiceThumb() {
+    serviceFrame = 0;
+    const selected = serviceSeg.querySelector("button.on");
+    if (!selected) return;
+    serviceThumb.style.width = selected.offsetWidth + "px";
+    serviceThumb.style.height = selected.offsetHeight + "px";
+    serviceThumb.style.transform = `translate3d(${selected.offsetLeft}px,${selected.offsetTop}px,0)`;
+  }
+  const queueServiceThumb = () => { serviceFrame ||= requestAnimationFrame(positionServiceThumb); };
+  new ResizeObserver(queueServiceThumb).observe(serviceSeg);
+  new MutationObserver(queueServiceThumb).observe(serviceSeg, { subtree: true, attributes: true, attributeFilter: ["class", "aria-selected"] });
+  positionServiceThumb();
   load();
 
   // refresh every minute while the page is open; the "x min ago" ticks too
