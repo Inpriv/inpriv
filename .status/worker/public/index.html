@@ -438,8 +438,13 @@ h1, h2 { text-wrap: balance; }
 .notice[hidden] { display: none; }
 
 /* ── filters ── */
-.filters { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
-.filters .row2 { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.filters { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; }
+#rangeSeg, #viewSeg { min-width: 0; }
+#viewSeg { min-width: 180px; }
+#serviceSeg {
+  grid-column: 1 / -1; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px;
+  padding: 0; background: none; box-shadow: none; border-radius: 0;
+}
 .seg { display: flex; padding: 4px; border-radius: 999px; background: var(--well); box-shadow: inset 0 0 0 1px var(--hairline); user-select: none; -webkit-user-select: none; touch-action: pan-y; }
 .seg button {
   flex: 1; min-width: 0; height: 38px; padding: 0 10px; border: 0; border-radius: 999px;
@@ -452,6 +457,13 @@ h1, h2 { text-wrap: balance; }
 .seg button.on { color: var(--text); }
 .seg button .short { display: none; }
 .seg .i { width: 16px; height: 16px; vertical-align: -3px; margin-right: 5px; }
+#serviceSeg button {
+  height: 44px; padding: 0 8px; border-radius: 14px;
+  background: var(--fill); box-shadow: inset 0 0 0 1px var(--hairline);
+  transition: background-color 0.18s, color 0.18s, box-shadow 0.18s;
+}
+#serviceSeg button:hover { background: var(--fill-2); }
+#serviceSeg button.on { background: var(--fill-3); box-shadow: inset 0 0 0 1px var(--spec); }
 
 /* ── summary tiles ── */
 .tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
@@ -622,7 +634,10 @@ footer nav { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 1
   .chart { height: 52px; }
 }
 @media (max-width: 560px) {
-  .filters .row2 { grid-template-columns: minmax(0, 1fr); }
+  .filters { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  #viewSeg { grid-row: 3; min-width: 0; }
+  #serviceSeg { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  #rangeSeg button, #viewSeg button { height: 44px; }
 }
 @media (max-width: 480px) {
   .card { padding: 18px; border-radius: 28px; }
@@ -668,19 +683,17 @@ footer nav { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 1
         <button type="button" role="tab" data-v="30d"><span class="long">30 days</span><span class="short">30 d</span></button>
         <button type="button" role="tab" data-v="90d"><span class="long">90 days</span><span class="short">90 d</span></button>
       </div>
-      <div class="row2">
-        <div class="seg" id="serviceSeg" role="tablist" aria-label="Site">
-          <button type="button" role="tab" data-v="all">All</button>
-          <button type="button" role="tab" data-v="site"><span class="long">Website</span><span class="short">Site</span></button>
-          <button type="button" role="tab" data-v="mail">Mail</button>
-          <button type="button" role="tab" data-v="temp">Temp</button>
-          <button type="button" role="tab" data-v="id">ID</button>
-          <button type="button" role="tab" data-v="loopwright">loopwright</button>
-        </div>
-        <div class="seg" id="viewSeg" role="tablist" aria-label="Show">
-          <button type="button" role="tab" data-v="uptime" aria-label="Uptime"><i data-icon="check"></i><span class="lbl">Uptime</span></button>
-          <button type="button" role="tab" data-v="speed" aria-label="Response time"><i data-icon="zap"></i><span class="lbl">Speed</span></button>
-        </div>
+      <div class="seg" id="viewSeg" role="tablist" aria-label="Show">
+        <button type="button" role="tab" data-v="uptime" aria-label="Uptime"><i data-icon="check"></i><span class="lbl">Uptime</span></button>
+        <button type="button" role="tab" data-v="speed" aria-label="Response time"><i data-icon="zap"></i><span class="lbl">Speed</span></button>
+      </div>
+      <div class="seg" id="serviceSeg" role="tablist" aria-label="Site">
+        <button type="button" role="tab" data-v="all">All</button>
+        <button type="button" role="tab" data-v="site"><span class="long">Website</span><span class="short">Site</span></button>
+        <button type="button" role="tab" data-v="mail">Mail</button>
+        <button type="button" role="tab" data-v="temp">Temp</button>
+        <button type="button" role="tab" data-v="id">ID</button>
+        <button type="button" role="tab" data-v="loopwright">loopwright</button>
       </div>
     </div>
     <dl class="tiles">
@@ -1783,7 +1796,7 @@ footer nav { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 1
 
   buildCards();
   renderFilters();
-  InprivUI.liquid(".seg");
+  InprivUI.liquid(".seg:not(#serviceSeg)");
   load();
 
   // refresh every minute while the page is open; the "x min ago" ticks too
