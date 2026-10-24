@@ -445,7 +445,7 @@ h1, h2 { text-wrap: balance; }
 #viewSeg { min-width: 180px; }
 #serviceSeg {
   grid-column: 1 / -1; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px;
-  border-radius: 999px;
+  border-radius: 999px; overflow: hidden;
 }
 .seg { display: flex; padding: 4px; border-radius: 999px; background: var(--well); box-shadow: inset 0 0 0 1px var(--hairline); user-select: none; -webkit-user-select: none; touch-action: pan-y; }
 .seg button {
@@ -462,7 +462,10 @@ h1, h2 { text-wrap: balance; }
 #serviceSeg button {
   height: 44px; padding: 0 6px;
 }
-#serviceSeg .liquid-thumb { transition: transform 0.25s var(--spring), width 0.25s var(--spring), height 0.25s var(--spring); }
+#serviceSeg .liquid-thumb { transition: transform 0.25s var(--out), width 0.25s var(--out), height 0.25s var(--out); }
+#serviceSeg button.on { touch-action: none; cursor: grab; }
+#serviceSeg.dragging, #serviceSeg.dragging button { cursor: grabbing; }
+#serviceSeg.dragging .liquid-thumb { transition: none; }
 
 /* ── summary tiles ── */
 .tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
@@ -1805,17 +1808,77 @@ footer nav { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 1
   serviceThumb.setAttribute("aria-hidden", "true");
   serviceSeg.classList.add("liquid");
   serviceSeg.prepend(serviceThumb);
-  let serviceFrame = 0;
+  let serviceFrame = 0, serviceDrag = null, serviceClickUntil = 0;
+  const clampService = (value, low, high) => Math.max(low, Math.min(Math.max(low, high), value));
+  function paintServiceThumb(x, y, width, height) {
+    const maxX = serviceSeg.clientWidth - width - 4;
+    const maxY = serviceSeg.clientHeight - height - 4;
+    serviceThumb.style.width = width + "px";
+    serviceThumb.style.height = height + "px";
+    serviceThumb.style.transform = `translate3d(${clampService(x, 4, maxX)}px,${clampService(y, 4, maxY)}px,0)`;
+  }
   function positionServiceThumb() {
     serviceFrame = 0;
+    if (serviceDrag) {
+      const d = serviceDrag;
+      paintServiceThumb(d.x, d.y, d.width, d.height);
+      return;
+    }
     const selected = serviceSeg.querySelector("button.on");
     if (!selected) return;
-    serviceThumb.style.width = selected.offsetWidth + "px";
-    serviceThumb.style.height = selected.offsetHeight + "px";
-    serviceThumb.style.transform = `translate3d(${selected.offsetLeft}px,${selected.offsetTop}px,0)`;
+    paintServiceThumb(selected.offsetLeft, selected.offsetTop, selected.offsetWidth, selected.offsetHeight);
   }
   const queueServiceThumb = () => { serviceFrame ||= requestAnimationFrame(positionServiceThumb); };
-  new ResizeObserver(queueServiceThumb).observe(serviceSeg);
+  serviceSeg.addEventListener("pointerdown", (e) => {
+    if (!e.isPrimary || e.button !== 0 || serviceDrag) return;
+    serviceClickUntil = 0;
+    if (!e.target.closest("button")?.classList.contains("on")) return;
+    const rect = serviceSeg.getBoundingClientRect();
+    const thumb = serviceThumb.getBoundingClientRect();
+    if (e.clientX < thumb.left || e.clientX > thumb.right || e.clientY < thumb.top || e.clientY > thumb.bottom) return;
+    serviceDrag = { id: e.pointerId, startX: e.clientX, startY: e.clientY, x0: thumb.left - rect.left, y0: thumb.top - rect.top, x: thumb.left - rect.left, y: thumb.top - rect.top, width: thumb.width, height: thumb.height, active: false };
+    serviceSeg.setPointerCapture(e.pointerId);
+  });
+  serviceSeg.addEventListener("pointermove", (e) => {
+    const d = serviceDrag;
+    if (!d || e.pointerId !== d.id) return;
+    const dx = e.clientX - d.startX, dy = e.clientY - d.startY;
+    if (!d.active && Math.hypot(dx, dy) < 4) return;
+    if (!d.active) {
+      d.active = true;
+      serviceSeg.classList.add("dragging");
+    }
+    e.preventDefault();
+    d.x = clampService(d.x0 + dx, 4, serviceSeg.clientWidth - d.width - 4);
+    d.y = clampService(d.y0 + dy, 4, serviceSeg.clientHeight - d.height - 4);
+    queueServiceThumb();
+  });
+  function releaseServiceDrag(e, cancelled = false) {
+    const d = serviceDrag;
+    if (!d || (e && e.pointerId !== d.id)) return;
+    serviceDrag = null;
+    serviceSeg.classList.remove("dragging");
+    if (serviceSeg.hasPointerCapture(d.id)) serviceSeg.releasePointerCapture(d.id);
+    if (d.active && !cancelled) {
+      serviceClickUntil = performance.now() + 250;
+      const buttons = [...serviceSeg.querySelectorAll("button")];
+      const cx = d.x + d.width / 2, cy = d.y + d.height / 2;
+      const distance = (b) => Math.hypot(b.offsetLeft + b.offsetWidth / 2 - cx, b.offsetTop + b.offsetHeight / 2 - cy);
+      buttons.reduce((best, b) => distance(b) < distance(best) ? b : best).click();
+    }
+    queueServiceThumb();
+  }
+  serviceSeg.addEventListener("pointerup", (e) => releaseServiceDrag(e));
+  serviceSeg.addEventListener("pointercancel", (e) => releaseServiceDrag(e, true));
+  serviceSeg.addEventListener("lostpointercapture", (e) => releaseServiceDrag(e, true));
+  serviceSeg.addEventListener("dragstart", (e) => e.preventDefault());
+  serviceSeg.addEventListener("click", (e) => {
+    if (e.isTrusted && performance.now() < serviceClickUntil) {
+      serviceClickUntil = 0;
+      e.preventDefault(); e.stopImmediatePropagation();
+    }
+  }, true);
+  new ResizeObserver(() => { releaseServiceDrag(null, true); queueServiceThumb(); }).observe(serviceSeg);
   new MutationObserver(queueServiceThumb).observe(serviceSeg, { subtree: true, attributes: true, attributeFilter: ["class", "aria-selected"] });
   positionServiceThumb();
   load();
