@@ -27,7 +27,7 @@ import { pageResponse, apiHeaders } from "../../../common/security.js";
 
 // gate = the service id the admin kill-switches use (common/gate.js)
 const SERVICES = [
-  { id: "site", gate: "landing", name: "Website", host: "inpriv.xyz", probe: "https://inpriv.xyz/" },
+  { id: "site", gate: "landing", name: "Landing", host: "inpriv.xyz", probe: "https://inpriv.xyz/" },
   { id: "mail", gate: "mail", name: "Mail", host: "mail.inpriv.xyz", probe: "https://mail.inpriv.xyz/api/v1/health", db: "MAIL_DB" },
   { id: "temp", gate: "temp", name: "Temp", host: "temp.inpriv.xyz", probe: "https://temp.inpriv.xyz/api/health", db: "TEMP_DB" },
   { id: "id", gate: "account", name: "Inpriv ID", host: "id.inpriv.xyz", probe: "https://id.inpriv.xyz/api/health", db: "ID_DB" },
