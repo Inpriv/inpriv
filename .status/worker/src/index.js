@@ -31,6 +31,7 @@ const SERVICES = [
   { id: "mail", gate: "mail", name: "Mail", host: "mail.inpriv.xyz", probe: "https://mail.inpriv.xyz/api/v1/health", db: "MAIL_DB" },
   { id: "temp", gate: "temp", name: "Temp", host: "temp.inpriv.xyz", probe: "https://temp.inpriv.xyz/api/health", db: "TEMP_DB" },
   { id: "id", gate: "account", name: "Inpriv ID", host: "id.inpriv.xyz", probe: "https://id.inpriv.xyz/api/health", db: "ID_DB" },
+  { id: "loopwright", name: "loopwright", host: "lw.inpriv.xyz", probe: "https://lw.inpriv.xyz/healthz" },
 ];
 const STATE_URL = "https://admin.inpriv.xyz/public/state";
 
@@ -160,7 +161,7 @@ async function runChecks(env, scheduledTime) {
 }
 
 async function checkService(env, svc, gate) {
-  if (gate.paused(svc.gate)) return { state: "maint", ms: null, code: 0, note: gate.message(svc.gate) };
+  if (svc.gate && gate.paused(svc.gate)) return { state: "maint", ms: null, code: 0, note: gate.message(svc.gate) };
   let r = await checkOnce(env, svc);
   if (!r.ok) {
     await new Promise((done) => setTimeout(done, RETRY_AFTER_MS));
