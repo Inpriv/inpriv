@@ -11,8 +11,8 @@
 <script>
   try { var t = localStorage.getItem('inpriv_theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}
 </script>
-<title>Inpriv Status: is Mail, Temp or Inpriv ID down?</title>
-<meta name="description" content="Live status of Inpriv Mail, Temp, Inpriv ID and inpriv.xyz. Every site is checked every 5 minutes, day and night, with 90 days of uptime and incidents.">
+<title>Inpriv Status: Mail, Temp, ID, loopwright and 4dots</title>
+<meta name="description" content="Live status of Inpriv Mail, Temp, Inpriv ID, inpriv.xyz, loopwright and 4dots.app. Every site is checked every 5 minutes, day and night, with 90 days of uptime and incidents.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Inpriv">
 <meta property="og:title" content="Inpriv Status">
@@ -698,6 +698,7 @@ footer nav { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 1
         <button type="button" role="tab" data-v="temp">Temp</button>
         <button type="button" role="tab" data-v="id">ID</button>
         <button type="button" role="tab" data-v="loopwright">loopwright</button>
+        <button type="button" role="tab" data-v="4dots">4dots</button>
       </div>
     </div>
     <dl class="tiles">
@@ -732,7 +733,7 @@ footer nav { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 1
   <section class="card glass reveal d4" aria-labelledby="howTitle">
     <div class="card-head"><h2 id="howTitle">How we check</h2></div>
     <ul class="how">
-      <li><i data-icon="clock"></i><span><b>Every 5 minutes, day and night.</b> Cloudflare's network opens each site's health page, and for Mail, Temp and ID also reads from its database.</span></li>
+      <li><i data-icon="clock"></i><span><b>Every 5 minutes, day and night.</b> Cloudflare's network opens each site's health page, and for Mail, Temp and ID also reads from its database. For 4dots, it checks that both the app and encrypted storage report healthy.</span></li>
       <li><i data-icon="alert"></i><span><b>Down</b> means no healthy answer within 8 seconds, twice in a row. <b>Slow</b> means the answer took longer than 1.5 seconds.</span></li>
       <li><i data-icon="history"></i><span><b>Maintenance</b> is when we paused a site on purpose. It doesn't count against uptime. Checks are kept for 90 days.</span></li>
       <li><i data-icon="shield-check"></i><span><b>Nothing about you.</b> This page loads nothing from other sites, and we keep no record of who looks at it.</span></li>
@@ -746,6 +747,7 @@ footer nav { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 1
       <a href="https://temp.inpriv.xyz/">Temp</a>
       <a href="https://id.inpriv.xyz/">Inpriv ID</a>
       <a href="https://lw.inpriv.xyz/">loopwright</a>
+      <a href="https://4dots.app/">4dots</a>
       <a href="https://inpriv.xyz/privacy">Privacy</a>
       <a href="https://github.com/Inpriv/inpriv">GitHub</a>
     </nav>
@@ -1325,6 +1327,7 @@ footer nav { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 1
     { id: "temp", name: "Temp", host: "temp.inpriv.xyz", href: "https://temp.inpriv.xyz/", icon: "hourglass" },
     { id: "id", name: "Inpriv ID", host: "id.inpriv.xyz", href: "https://id.inpriv.xyz/", icon: "id" },
     { id: "loopwright", name: "loopwright", host: "lw.inpriv.xyz", href: "https://lw.inpriv.xyz/", icon: "cpu" },
+    { id: "4dots", name: "4dots", host: "4dots.app", href: "https://4dots.app/", icon: "lock" },
   ];
   const NAMES = Object.fromEntries(SERVICES.map((s) => [s.id, s.name]));
   const RANGE_LABEL = { "24h": "24 hours", "7d": "7 days", "30d": "30 days", "90d": "90 days" };
