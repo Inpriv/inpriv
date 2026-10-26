@@ -14,7 +14,7 @@
 // Routes:
 //   GET /                      the page
 //   GET /api/status?range=24h  services, history buckets and incidents
-//                              (range: 24h | 7d | 30d | 90d)
+//                              (range: 1h | 24h | 7d | 30d)
 //   GET /api/health
 //
 // Nothing about visitors is stored or logged.
@@ -48,10 +48,10 @@ const KEEP_HOURLY_MS = 92 * DAY;
 
 // span shown, size of one bar, and where the numbers come from
 const RANGES = {
+  "1h": { span: HOUR, bucket: 5 * MIN, raw: true },
   "24h": { span: DAY, bucket: 30 * MIN, raw: true },
   "7d": { span: 7 * DAY, bucket: 4 * HOUR },
   "30d": { span: 30 * DAY, bucket: DAY },
-  "90d": { span: 90 * DAY, bucket: 2 * DAY },
 };
 const API_CACHE_S = 30;
 

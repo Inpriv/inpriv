@@ -684,10 +684,10 @@ footer nav { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 1
   <section class="card glass reveal d2" aria-label="Filters and summary">
     <div class="filters">
       <div class="seg" id="rangeSeg" role="tablist" aria-label="Time range">
+        <button type="button" role="tab" data-v="1h"><span class="long">1 hour</span><span class="short">1 h</span></button>
         <button type="button" role="tab" data-v="24h"><span class="long">24 hours</span><span class="short">24 h</span></button>
         <button type="button" role="tab" data-v="7d"><span class="long">7 days</span><span class="short">7 d</span></button>
         <button type="button" role="tab" data-v="30d"><span class="long">30 days</span><span class="short">30 d</span></button>
-        <button type="button" role="tab" data-v="90d"><span class="long">90 days</span><span class="short">90 d</span></button>
       </div>
       <div class="seg" id="viewSeg" role="tablist" aria-label="Show">
         <button type="button" role="tab" data-v="uptime" aria-label="Uptime"><i data-icon="check"></i><span class="lbl">Uptime</span></button>
@@ -1332,7 +1332,7 @@ footer nav { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 1
     { id: "4dots", name: "4dots", host: "4dots.app", href: "https://4dots.app/", icon: "lock" },
   ];
   const NAMES = Object.fromEntries(SERVICES.map((s) => [s.id, s.name]));
-  const RANGE_LABEL = { "24h": "24 hours", "7d": "7 days", "30d": "30 days", "90d": "90 days" };
+  const RANGE_LABEL = { "1h": "1 hour", "24h": "24 hours", "7d": "7 days", "30d": "30 days" };
   const STATE_LABEL = { up: "Running", slow: "Slow", down: "Down", maint: "Maintenance" };
   const REFRESH_MS = 60_000;
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -1343,7 +1343,7 @@ footer nav { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 1
   const q = new URLSearchParams(location.search);
   const pick = (v, list, d) => (list.includes(v) ? v : d);
   const ui = {
-    range: pick(q.get("range"), ["24h", "7d", "30d", "90d"], "24h"),
+    range: pick(q.get("range"), ["1h", "24h", "7d", "30d"], "24h"),
     service: pick(q.get("site"), ["all", ...SERVICES.map((s) => s.id)], "all"),
     view: pick(q.get("show"), ["uptime", "speed"], "uptime"),
   };
