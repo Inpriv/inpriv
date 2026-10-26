@@ -444,7 +444,7 @@ h1, h2 { text-wrap: balance; }
 #rangeSeg, #viewSeg { min-width: 0; }
 #viewSeg { min-width: 180px; }
 #serviceSeg {
-  grid-column: 1 / -1; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px;
+  grid-column: 1 / -1; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px;
   border-radius: 999px; overflow: hidden;
 }
 .seg { display: flex; padding: 4px; border-radius: 999px; background: var(--well); box-shadow: inset 0 0 0 1px var(--hairline); user-select: none; -webkit-user-select: none; touch-action: pan-y; }
@@ -640,8 +640,10 @@ footer nav { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 1
   #viewSeg { grid-row: 3; min-width: 0; }
   #rangeSeg button, #viewSeg button { height: 44px; }
 }
-@media (max-width: 600px) {
-  #serviceSeg { grid-template-columns: repeat(3, minmax(0, 1fr)); border-radius: 26px; }
+@media (max-width: 700px) {
+  #serviceSeg { grid-template-columns: repeat(12, minmax(0, 1fr)); border-radius: 26px; }
+  #serviceSeg button { grid-column: span 3; }
+  #serviceSeg button:nth-of-type(n + 5) { grid-column: span 4; }
 }
 @media (max-width: 480px) {
   .card { padding: 18px; border-radius: 28px; }
