@@ -32,6 +32,7 @@ const SERVICES = [
   { id: "temp", gate: "temp", name: "Temp", host: "temp.inpriv.xyz", probe: "https://temp.inpriv.xyz/api/health", db: "TEMP_DB" },
   { id: "id", gate: "account", name: "Inpriv ID", host: "id.inpriv.xyz", probe: "https://id.inpriv.xyz/api/health", db: "ID_DB" },
   { id: "loopwright", name: "loopwright", host: "lw.inpriv.xyz", probe: "https://lw.inpriv.xyz/healthz" },
+  { id: "4dots", name: "4dots", host: "4dots.app", probe: "https://4dots.app/api/status", healthServices: ["app", "storage"] },
 ];
 const STATE_URL = "https://admin.inpriv.xyz/public/state";
 
@@ -181,8 +182,19 @@ async function checkOnce(env, svc) {
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
     code = res.status;
-    await res.body?.cancel();
-    if (code !== 200) return { ok: false, code };
+    if (code !== 200) {
+      await res.body?.cancel();
+      return { ok: false, code };
+    }
+    if (svc.healthServices) {
+      // 4dots returns 200 even when encrypted storage is down or degraded.
+      const health = await res.json();
+      if (!Array.isArray(health.services) || !svc.healthServices.every((id) =>
+        health.services.some((s) => s.id === id && s.status === "operational")
+      )) return { ok: false, code };
+    } else {
+      await res.body?.cancel();
+    }
     if (svc.db) await env[svc.db].prepare("SELECT 1").first();
     return { ok: true, code, ms: Date.now() - t0 };
   } catch {
