@@ -1,0 +1,14 @@
+/* Keep the header anchored while Mail and Temp trade places beneath it. */
+@media (min-width: 768px) {
+  .shell > .top { width: min(100vw - 32px, 760px); align-self: center; }
+}
+html[data-mode-arrival] #mainView,
+html[data-mode-arrival] .shell > :not(.top):not(#bannerSlot) { opacity: 0 !important; }
+html[data-mode-arrival] .top .reveal { animation: none !important; }
+html[data-mode-arrival], html[data-mode-entering], html[data-mode-leaving] { overflow-x: clip; }
+html[data-mode-leaving] .bottom-nav,
+html[data-mode-leaving] .fab { opacity: 0; transition: opacity .12s ease; }
+@media (prefers-reduced-motion: reduce) {
+  html[data-mode-arrival] #mainView,
+  html[data-mode-arrival] .shell > :not(.top):not(#bannerSlot) { opacity: 1 !important; }
+}
