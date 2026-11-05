@@ -2071,7 +2071,7 @@ async function api(path, opts = {}) {
    here to move the key into a format-2 ring with a new key for future mail.
    ========================================================================== */
 const KEY_ITERS = 600000;
-const MIN_PASSPHRASE = 12;
+const MIN_PASSPHRASE = 8;
 const RING_AAD = utf8.enc('inpriv-mail-keyring-v2');
 const RSA = { name: 'RSA-OAEP', hash: 'SHA-256' };
 
@@ -2231,7 +2231,7 @@ async function keyProof(purpose, privKey) {
 // passwords this page knows: the server has seen those, so they can't
 // protect the keys.
 function passphraseProblem(p, confirm, avoid = []) {
-  if (p.length < MIN_PASSPHRASE) return `Use at least ${MIN_PASSPHRASE} characters. A few unrelated words work well.`;
+  if (p.length < MIN_PASSPHRASE) return `Use at least ${MIN_PASSPHRASE} characters; 12 or more is recommended. A few unrelated words work well.`;
   if (p.length > 1000) return 'That passphrase is too long.';
   if (confirm !== undefined && p !== confirm) return "The two passphrases don't match.";
   const n = (s) => String(s).normalize('NFC').trim();
@@ -2594,7 +2594,7 @@ function renderAuthForm(mode) {
         <div class="field-hint" id="regHint"></div>
       </div>
 
-      ${pwField('regPassword', 'Inpriv password <span class="opt">(12+ characters)</span>', 'new-password', 'A few unrelated words', 'Use this password for both Inpriv ID and Mail.')}
+      ${pwField('regPassword', 'Inpriv password <span class="opt">(8+ characters; 12+ recommended)</span>', 'new-password', 'A few unrelated words', 'Use this password for both Inpriv ID and Mail.')}
 
       <div class="field">
         <label for="regRecovery">Recovery email <span class="opt">(optional)</span></label>
@@ -2786,7 +2786,7 @@ function promptSetPassphrase({ mode, ticket, oldPkcs8, avoid = [] }) {
     body: `
       <form id="setPassForm">
         <div class="sec-badge">${mkIcon('info')}<span>${PASSPHRASE_NOTE}</span></div>
-        ${pwField('newPass', `Mailbox passphrase <span class="opt">(${MIN_PASSPHRASE}+ characters)</span>`, 'new-password', 'A few unrelated words')}
+        ${pwField('newPass', `Mailbox passphrase <span class="opt">(${MIN_PASSPHRASE}+ characters; 12+ recommended)</span>`, 'new-password', 'A few unrelated words')}
         ${pwField('newPassConfirm', 'Repeat the passphrase', 'new-password', 'Passphrase again')}
         <button type="submit" class="btn btn-primary btn-block" id="setPassBtn">
           <span>${upgrade ? 'Upgrade mailbox' : 'Create mailbox'}</span> ${mkIcon('lock')}
@@ -2964,7 +2964,7 @@ function promptReset() {
             <input type="text" id="resetCode" inputmode="numeric" maxlength="6" placeholder="6-digit code" autocomplete="one-time-code">
           </div>
         </div>
-        ${pwField('resetNew', `New mailbox passphrase <span class="opt">(${MIN_PASSPHRASE}+ characters)</span>`, 'new-password', 'A few unrelated words')}
+        ${pwField('resetNew', `New mailbox passphrase <span class="opt">(${MIN_PASSPHRASE}+ characters; 12+ recommended)</span>`, 'new-password', 'A few unrelated words')}
         ${pwField('resetNewConfirm', 'Repeat the new passphrase', 'new-password', 'Passphrase again')}
         <label class="check-row"><input type="checkbox" id="resetAck"> <span>I understand that the mail I have now can't be opened again.</span></label>
         <button type="submit" class="btn btn-danger btn-block" id="resetBtn">
@@ -4092,7 +4092,7 @@ function openChangePassphrase() {
       </div>
       <form id="chgForm">
         ${pwField('chgOld', 'Current passphrase', 'current-password', 'Current passphrase')}
-        ${pwField('chgNew', `New passphrase <span class="opt">(${MIN_PASSPHRASE}+ characters)</span>`, 'new-password', 'A few unrelated words')}
+        ${pwField('chgNew', `New passphrase <span class="opt">(${MIN_PASSPHRASE}+ characters; 12+ recommended)</span>`, 'new-password', 'A few unrelated words')}
         ${pwField('chgNewConfirm', 'Repeat the new passphrase', 'new-password', 'New passphrase again')}
         <div class="sec-badge">${mkIcon('info')}<span>Other sessions sign out, and devices that skip the passphrase need it once more.</span></div>
         <div class="modal-actions">

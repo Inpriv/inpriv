@@ -326,7 +326,7 @@ export default {
           recoveryEmail = null;
         }
 
-        if (password.length < 10) return bad("password too short (min 10 characters)");
+        if (password.length < 8) return bad("password too short (min 8 characters)");
         if (password.length > 200) return bad("password too long");
         if (nick && !/^[a-zA-Z0-9._\- ]{1,24}$/.test(nick)) return bad("nickname: 1-24 chars");
 
@@ -1005,7 +1005,7 @@ export default {
         const body = await request.json();
         const current = String(body.current || "");
         const next = String(body.next || "");
-        if (next.length < 10) return bad("new password too short (min 10)");
+        if (next.length < 8) return bad("new password too short (min 8)");
         if (next.length > 200) return bad("new password too long");
         if (!(await rateLimit(env.DB, `pwchange:${me.uid}`, 10, 3_600_000))) return bad("too many tries — wait an hour", 429);
         const u = await env.DB.prepare("SELECT pass_hash, pass_salt, pass_iters FROM users WHERE id = ?").bind(me.uid).first();
