@@ -48,6 +48,7 @@ test('Mail recommends twelve, refuses seven, and creates and opens a mailbox wit
     await fresh.click('.bottom-nav [data-nav="account"]');
     await fresh.waitForSelector('#chgPassBtn');
     await fresh.click('#chgPassBtn');
+    await fresh.waitForSelector('.modal-overlay.open #chgOld');
     await fresh.type('#chgOld', 'eight888');
     await fresh.type('#chgNew', 'short77');
     await fresh.type('#chgNewConfirm', 'short77');
