@@ -975,6 +975,28 @@ html, body { overscroll-behavior-y: contain; }
 .device-name { font-size: 14px; font-weight: 550; }
 .device-meta { font-size: 12.5px; color: var(--text-3); font-variant-numeric: tabular-nums; }
 .hidden { display: none !important; }
+
+/* Touch-first Mail: keep steady surfaces and controls clear of the keyboard. */
+@media (pointer: coarse) {
+  .eye-toggle { width: 44px; height: 44px; right: 2px; }
+  .btn-text, .fmt-btn, .tab-seg button, .auth-segmented button { min-height: 44px; }
+  button, a, input, textarea { touch-action: manipulation; }
+}
+@media (max-width: 767px) {
+  .track { animation: none; }
+  .glass { background: var(--bg); background: color-mix(in srgb, var(--bg) 86%, var(--text) 7%); }
+  *, *::before, *::after { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+  .glass::after { display: none; }
+  .auth-box, .card, .dash-toolbar, .bottom-nav { animation-duration: 0.25s; }
+  .field input, .field textarea { scroll-margin-block: 100px; }
+  .modal-sheet { max-height: calc(100dvh - 16px); }
+}
+@media (max-width: 360px) {
+  .shell { width: calc(100% - 24px); }
+  .auth-box { padding: 18px 14px; }
+  .input-suffix { font-size: 12px; padding-inline: 6px; }
+  .input-wrap input:has(+ .input-suffix) { padding-right: 96px; }
+}
 </style>
 </head>
 <body>
@@ -1763,6 +1785,7 @@ const state = {
   searchQuery: '',
   idUser: null,          // Inpriv ID user object (if detected)
   unlocked: false,
+  restoringSession: true, // ID connect must wait for the Mail cookie check
   ssoTried: false,       // auto Quick Sign-In attempted this page load
   ssoBusy: false,
   dek: null,             // passphrase key kept in memory (Quick Unlock enrolment)
@@ -1901,9 +1924,9 @@ async function api(path, opts = {}) {
    recipient's key and to the sender's own key (for the Sent box).
    Mailbox keys (format 2): every private key of the mailbox — the key ring —
    is sealed with AES-256-GCM under a key derived from the mailbox passphrase
-   (PBKDF2-SHA-256, 600,000 iterations, random salt). The passphrase and the
-   key derived from it never leave this page; the server keeps the sealed
-   ring and can't open it.
+   (PBKDF2-SHA-256, 600,000 iterations, random salt). The derived key never leaves this page. New accounts use the
+   sign-in password as the passphrase, so a server that captures that
+   password could open the sealed ring.
    Format 1 (before October 2026): one private key sealed under the Inpriv ID
    password, which the server also receives at sign-in. It's only opened
    here to move the key into a format-2 ring with a new key for future mail.
@@ -2297,10 +2320,8 @@ function updateIdStatusHeader() {
 
 /* ============================================================================
    AUTH VIEWS
-   Two separate secrets:
-   - the Inpriv ID password signs you in. It goes to the server, which checks
-     it (and 2FA) and opens a session;
-   - the mailbox passphrase unlocks your keys in this page. It's never sent.
+   New accounts use one password for ID and browser-side key wrapping.
+   Existing accounts can still have a separate mailbox passphrase.
    ========================================================================== */
 function renderAuth(initialMode = 'login') {
   $('#bottomNavContainer').innerHTML = '';
@@ -2314,7 +2335,7 @@ function renderAuth(initialMode = 'login') {
         <div class="auth-header">
           <div class="auth-header-icon">${mkIcon('mail_lock')}</div>
           <h1 class="auth-title">Your private mailbox.<br><span>Unlocked in your browser.</span></h1>
-          <p class="auth-subtitle">Sign in with your Inpriv ID. Your mailbox passphrase comes next: it unlocks your keys on this device and is never sent to Inpriv.</p>
+          <p class="auth-subtitle">One Inpriv password for ID and Mail. Older accounts with a separate mailbox passphrase can still use it.</p>
         </div>
 
         <div id="ssoBannerContainer"></div>
@@ -2395,7 +2416,7 @@ function idle(btn) {
   if (btn.dataset.label) btn.innerHTML = btn.dataset.label;
 }
 
-const PASSPHRASE_NOTE = `<strong>Nobody can reset your mailbox passphrase, not even Inpriv.</strong> Keep it in a password manager or write it down. If you lose it, mail sent to you so far can't be opened again.`;
+const PASSPHRASE_NOTE = `<strong>Keep your mailbox password or passphrase safe.</strong> Keep it in a password manager or write it down. If you lose it, mail sent to you so far can't be opened again.`;
 
 function renderAuthForm(mode) {
   const area = $('#authFormArea');
@@ -2409,7 +2430,7 @@ function renderAuthForm(mode) {
             <span class="input-suffix">@${DOMAIN}</span>
           </div>
         </div>
-        ${pwField('authPassword', 'Inpriv ID password', 'current-password', 'Password')}
+        ${pwField('authPassword', 'Inpriv password', 'current-password', 'Password')}
         <button type="submit" class="btn btn-primary btn-block" id="authSubmitBtn">
           <span>Sign in</span> ${mkIcon('arrow_forward')}
         </button>
@@ -2434,13 +2455,7 @@ function renderAuthForm(mode) {
         <div class="field-hint" id="regHint"></div>
       </div>
 
-      ${pwField('regPassword', 'Inpriv ID password <span class="opt">(10+ characters)</span>', 'new-password', 'Sign-in password')}
-      ${pwField('regPasswordConfirm', 'Repeat the password', 'new-password', 'Sign-in password again')}
-
-      <div class="sec-badge">${mkIcon('key')}<span>Your <strong>mailbox passphrase</strong> locks your mailbox keys in this browser. It's never sent to Inpriv and must be different from your password. ${PASSPHRASE_NOTE}</span></div>
-
-      ${pwField('regPassphrase', `Mailbox passphrase <span class="opt">(${MIN_PASSPHRASE}+ characters)</span>`, 'new-password', 'A few unrelated words')}
-      ${pwField('regPassphraseConfirm', 'Repeat the passphrase', 'new-password', 'Passphrase again')}
+      ${pwField('regPassword', 'Inpriv password <span class="opt">(12+ characters)</span>', 'new-password', 'A few unrelated words', 'Use this password for both Inpriv ID and Mail.')}
 
       <div class="field">
         <label for="regRecovery">Recovery email <span class="opt">(optional)</span></label>
@@ -2455,6 +2470,7 @@ function renderAuthForm(mode) {
       <button type="submit" class="btn btn-primary btn-block" id="regSubmitBtn">
         <span>Create account</span> ${mkIcon('arrow_forward')}
       </button>
+      <div class="sec-badge">${mkIcon('key')}<span>Inpriv receives this password at sign-in; it also locks your mailbox keys. Keep it safe. You can set a separate mailbox passphrase in Account.</span></div>
       <p class="legal-note">By creating an account you agree to the <a href="https://inpriv.xyz/terms" target="_blank" rel="noopener">Terms</a> and the <a href="https://inpriv.xyz/privacy" target="_blank" rel="noopener">Privacy Policy</a>.</p>
     </form>
   `;
@@ -2468,9 +2484,6 @@ function renderAuthForm(mode) {
     await handleRegister({
       username: $('#regUsername').value.trim().toLowerCase(),
       password: $('#regPassword').value,
-      confirm: $('#regPasswordConfirm').value,
-      passphrase: $('#regPassphrase').value,
-      passphraseConfirm: $('#regPassphraseConfirm').value,
       recovery: ($('#regRecovery').value || '').trim().toLowerCase(),
     });
   });
@@ -2533,6 +2546,7 @@ async function afterSignIn(res, ctx) {
   }
   if (res.status === 'needs_init') {
     if (ctx.pending && ctx.pending.passphrase) await createMailbox(res.init_ticket, ctx.pending.passphrase);
+    else if (ctx.password && !passphraseProblem(ctx.password)) await createMailbox(res.init_ticket, ctx.password);
     else promptSetPassphrase({ mode: 'create', ticket: res.init_ticket, avoid: [ctx.password] });
     return;
   }
@@ -2542,6 +2556,16 @@ async function afterSignIn(res, ctx) {
     setTimeout(() => toast('Your account is now an Inpriv ID', 'Same password. Add 2FA and a recovery email at id.inpriv.xyz.'), 600);
   }
   if (state.user.key_format === 2) {
+    if (ctx.password) {
+      try {
+        await unlockWithPassphrase(ctx.password);
+      } catch (e) { /* older accounts may have a separate passphrase */ }
+      if (state.unlocked) {
+        try { await enrolQuickUnlock(); } catch (e) {}
+        renderDashboard();
+        return;
+      }
+    }
     await tryQuickUnlock();
     return;
   }
@@ -2713,11 +2737,11 @@ async function upgradeMailbox(oldPkcs8, passphrase) {
 function promptUnlockSession() {
   authCard({
     icon: 'lock',
-    title: 'Unlock your mailbox.<br><span>The passphrase stays here.</span>',
-    sub: `Signed in as <strong>${escapeHtml(state.user.email)}</strong>. Enter your mailbox passphrase. It opens your keys in this browser and isn't sent anywhere.`,
+    title: 'Unlock your mailbox.<br><span>Open your keys here.</span>',
+    sub: `Signed in as <strong>${escapeHtml(state.user.email)}</strong>. Enter your Inpriv password, or your separate mailbox passphrase if you set one. This unlock step runs only in your browser.`,
     body: `
       <form id="sessionUnlockForm">
-        ${pwField('sessionPw', 'Mailbox passphrase', 'current-password', 'Mailbox passphrase')}
+        ${pwField('sessionPw', 'Password or mailbox passphrase', 'current-password', 'Password or passphrase')}
         <button type="submit" class="btn btn-primary btn-block" id="sessionUnlockBtn">
           <span>Unlock</span> ${mkIcon('lock_open')}
         </button>
@@ -2794,7 +2818,7 @@ function promptReset() {
     sub: 'Nobody can recover a mailbox passphrase. You can set a new one with a new key: your address keeps working and new mail arrives as usual, but <strong>mail sent to you so far stays in your mailbox and can never be opened again.</strong> This needs your Inpriv ID password (and your two-factor code if it’s on).',
     body: `
       <form id="resetForm">
-        ${pwField('resetPw', 'Inpriv ID password', 'current-password', 'Password')}
+        ${pwField('resetPw', 'Inpriv password', 'current-password', 'Password')}
         <div class="field hidden" id="resetCodeField">
           <label for="resetCode">Two-factor code</label>
           <div class="input-wrap">
@@ -2854,12 +2878,10 @@ function promptReset() {
 /* ---------- Registration ----------
    The Inpriv ID is created on id.inpriv.xyz with the password only; then
    the normal sign-in answers needs_init and the mailbox is created here
-   with the passphrase, which never leaves this page. */
-async function handleRegister({ username, password, confirm, passphrase, passphraseConfirm, recovery }) {
-  if (password !== confirm) { toast("Passwords don't match", 'Type the same password twice.', 'error'); return; }
-  if (password.length < 10) { toast('Password too short', 'Use at least 10 characters.', 'error'); return; }
-  const problem = passphraseProblem(passphrase, passphraseConfirm, [password]);
-  if (problem) { toast('Choose another passphrase', problem, 'error'); return; }
+   using the same password for browser-side key wrapping. */
+async function handleRegister({ username, password, recovery }) {
+  const problem = passphraseProblem(password);
+  if (problem) { toast('Choose another password', problem, 'error'); return; }
 
   const btn = $('#regSubmitBtn');
   const status = $('#regStatus');
@@ -2875,7 +2897,7 @@ async function handleRegister({ username, password, confirm, passphrase, passphr
     const d = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(d.error || 'could not create the account');
     if (status) status.innerHTML = `<span class="spinner"></span> Creating your mailbox keys…`;
-    await handleLogin(username, password, {}, { passphrase });
+    await handleLogin(username, password, {}, { passphrase: password });
     if (state.unlocked && d.verification_sent) toast('Check your recovery email', 'We sent a code to confirm it. Enter it on id.inpriv.xyz.');
   } catch (e) {
     toast('Registration failed', e.message, 'error');
@@ -3769,7 +3791,7 @@ function renderAccountScreen() {
       <div class="acc-info-row">
         <div style="flex:1;min-width:0">
           <div class="label">Mailbox passphrase</div>
-          <div class="qu-row-sub">Locks your keys in this browser. It's never sent to Inpriv, so nobody can reset it for you.</div>
+          <div class="qu-row-sub">New accounts use their Inpriv password to lock these keys. You can set a separate passphrase here. Changing your ID password later does not change this mailbox password or passphrase.</div>
         </div>
         <button class="copy-chip" id="chgPassBtn">${mkIcon('key')} <span>Change</span></button>
       </div>
@@ -4043,13 +4065,13 @@ async function bootstrap() {
      and there is no mailbox session yet. The mailbox stays locked until the
      passphrase or this device's Quick Unlock key opens it. */
   async function maybeAutoSso() {
-    if (state.signedIn || state.ssoTried || state.ssoBusy) return;
+    if (state.restoringSession || state.signedIn || state.ssoTried || state.ssoBusy) return;
     if (!window.InprivID || !window.InprivID.user || typeof window.InprivID.sso !== 'function') return;
     state.ssoTried = true;
     state.ssoBusy = true;
     try {
       const g = await new Promise((res) => window.InprivID.sso(res));
-      if (!g || !g.ok) return;
+      if (!g || !g.ok || state.signedIn) return;
       const d = await api('/sso', { method: 'POST', body: JSON.stringify({ grant: g.grant, state: g.state }) });
       if (d.status === 'totp_required') {
         promptTwoFactor({ username: d.username, nick: d.nick, ssoTicket: d.sso_ticket });
@@ -4071,6 +4093,7 @@ async function bootstrap() {
   } catch (e) {
     state.user = null;
   }
+  state.restoringSession = false;
   try { localStorage.removeItem('inpriv_token'); } catch (e) {}
 
   if (window.InprivID) {
@@ -4094,6 +4117,7 @@ async function bootstrap() {
   // URL parameters: start on the register card when ?register is present
   const urlParams = new URLSearchParams(window.location.search);
   renderAuth(urlParams.get('register') ? 'register' : 'login');
+  if (!urlParams.has('register')) maybeAutoSso();
 }
 
 document.addEventListener('DOMContentLoaded', bootstrap);

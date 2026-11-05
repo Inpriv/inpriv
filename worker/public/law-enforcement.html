@@ -87,7 +87,7 @@ code { font: 13.5px ui-monospace, "SF Mono", Consolas, monospace; background: va
 <main>
 <h1>Law Enforcement Guidelines</h1>
 <p class="lead">For police, prosecutors, courts and other authorities requesting data about Inpriv users. Users can read this page too: we publish it so everyone knows how requests are handled.</p>
-<p class="meta">Effective 22 October 2026</p>
+<p class="meta">Effective 5 November 2026</p>
 
 <div class="box">
 <p><strong>Requests go to <a href="mailto:legal@inpriv.xyz">legal@inpriv.xyz</a></strong>, sent from an official government email domain. Emergencies: see <a href="#emergency">below</a>. Requests in English are handled fastest.</p>
@@ -105,9 +105,9 @@ code { font: 13.5px ui-monospace, "SF Mono", Consolas, monospace; background: va
 <tr><td>Which network created a Temp inbox</td><td><strong>No.</strong> Not recorded.</td><td>—</td></tr>
 <tr><td>That an address was issued: the address, the kind of service (account, Temp, team) and the day</td><td>Yes</td><td>As long as Inpriv runs</td></tr>
 <tr><td>Mail metadata: the other party's address, subject line, time and size of each stored message</td><td>Yes, while the user hasn't deleted the message</td><td>Until the user deletes it</td></tr>
-<tr><td>Content of stored Mail messages (between Inpriv users, and mail from outside after it's stored)</td><td><strong>No.</strong> Encrypted to the user's keys, which are locked with a passphrase we never receive. Mail to and from other providers is readable to our server only while it passes through, and isn't kept in readable form.</td><td>—</td></tr>
+<tr><td>Content of stored Mail messages (between Inpriv users, and mail from outside after it's stored)</td><td><strong>No.</strong> Encrypted to the user's keys. New accounts lock those keys with the sign-in password, received during authentication but stored only as a salted hash. Capturing that password could allow a compromised or compelled server to decrypt stored mail. Separately chosen mailbox passphrases stay in the browser. Mail to and from other providers is readable to our server only while it passes through, and isn't kept in readable form.</td><td>—</td></tr>
 <tr><td>Temp inbox: address, created and expiry times, and received messages, including content</td><td>Only while the inbox exists</td><td>24 hours</td></tr>
-<tr><td>Passwords, mailbox passphrases, private keys</td><td><strong>No.</strong> Passwords reach our server at sign-in to be checked and are stored only as salted hashes. Passphrases and private keys never reach it.</td><td>—</td></tr>
+<tr><td>Passwords, mailbox passphrases, private keys</td><td><strong>No.</strong> Passwords reach our server at sign-in to be checked and are stored only as salted hashes. New Mail accounts also use that password to lock their keys. Separately chosen mailbox passphrases and private keys never reach the server.</td><td>—</td></tr>
 <tr><td>Real name, postal address, phone number, payment details, ID documents</td><td><strong>No.</strong> We don't collect them.</td><td>—</td></tr>
 </table></div>
 <p>Mail sent to or received from other providers passes through our email provider Resend and the other provider. They may hold their own records, under their own policies.</p>

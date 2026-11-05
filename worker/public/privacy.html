@@ -87,12 +87,12 @@ code { font: 13.5px ui-monospace, "SF Mono", Consolas, monospace; background: va
 <main>
 <h1>Privacy Policy</h1>
 <p class="lead">What Inpriv stores, what it can and can't read, how long it keeps things, and who else handles your data.</p>
-<p class="meta">Effective 22 October 2026. Earlier versions are in the <a href="https://github.com/Inpriv/inpriv/commits/main/worker/public/privacy.html">source history</a>.</p>
+<p class="meta">Effective 5 November 2026. Earlier versions are in the <a href="https://github.com/Inpriv/inpriv/commits/main/worker/public/privacy.html">source history</a>.</p>
 
 <div class="box">
 <p><strong>The short version</strong></p>
 <ul>
-<li>Mail between Inpriv users is <strong>end-to-end encrypted</strong> in the sender's browser. Your mailbox keys are locked with a <strong>mailbox passphrase</strong> that never leaves your device.</li>
+<li>Mail between Inpriv users is <strong>end-to-end encrypted</strong> in the sender's browser. New Mail accounts use one <strong>Inpriv password</strong> for sign-in and for locking mailbox keys in the browser. The server receives this password during authentication. A separate mailbox passphrase can be set in Account.</li>
 <li>Mail from or to other providers (Gmail, Outlook…) is <strong>normal email</strong>. Our mail provider and our server can read it while it passes through; incoming mail is then stored encrypted to your key.</li>
 <li>Subject lines, sender and recipient addresses, sizes and times are <strong>not</strong> encrypted. We need them to deliver and list your mail.</li>
 <li><strong>Temp</strong> inboxes are not encrypted. Their messages are deleted after 24 hours. The address itself is never given to anyone else.</li>
@@ -160,7 +160,7 @@ code { font: 13.5px ui-monospace, "SF Mono", Consolas, monospace; background: va
 <div class="scroll"><table>
 <tr><th>Data</th><th>Readable by us?</th></tr>
 <tr><td>Your public key and its key id</td><td>Yes. Others need it to write to you.</td></tr>
-<tr><td>Your key ring: your private keys, encrypted in your browser with a key made from your <strong>mailbox passphrase</strong> (PBKDF2-SHA-256, 600,000 iterations)</td><td><strong>No.</strong> The passphrase never reaches us. Someone who has the encrypted key ring could try to guess the passphrase, which is why it must be long and is never your password.</td></tr>
+<tr><td>Your key ring: your private keys, encrypted in your browser with a key made from your <strong>mailbox passphrase</strong> (PBKDF2-SHA-256, 600,000 iterations)</td><td><strong>No.</strong> New accounts use the sign-in password to lock this ring. We receive that password during authentication and store only a salted hash, but a compromised or compelled server could capture it and unlock the ring. A separate mailbox passphrase is used only in the browser. Someone with the encrypted ring could also try to guess its password or passphrase.</td></tr>
 <tr><td>For each message: the other party's address and display name, the <strong>subject</strong>, the time, read/unread, direction, the encrypted size and which key it was encrypted to</td><td><strong>Yes.</strong> Metadata needed to list and deliver mail.</td></tr>
 <tr><td>For each message: the body and its formatting</td><td><strong>No,</strong> once stored. It's encrypted to your key. Mail from or to other providers was readable while it passed through (section 2).</td></tr>
 <tr><td>Sessions: browser and system name, created and expiry times</td><td>Yes</td></tr>
@@ -224,7 +224,7 @@ code { font: 13.5px ui-monospace, "SF Mono", Consolas, monospace; background: va
 <h2 id="recovery">10. Account and key recovery</h2>
 <ul>
 <li><strong>Inpriv ID password:</strong> there's no reset by email yet. If you have two-factor on, a recovery code replaces a lost authenticator, not a lost password.</li>
-<li><strong>Mailbox passphrase:</strong> nobody can recover it, including us: we never have it. If you lose it, you can start over with a new key (with your password, and your two-factor code if it's on). Your address keeps working and new mail can be read, but <strong>mail sent to you before stays stored and can't be opened again.</strong> Recovering your account never gives anyone your earlier mail.</li>
+<li><strong>Mailbox passphrase:</strong> we do not store it in readable form. For new accounts it is initially the same as the sign-in password, which we receive during authentication. If you lose it, you can start over with a new key (with your password, and your two-factor code if it's on). Your address keeps working and new mail can be read, but <strong>mail sent to you before stays stored and can't be opened again.</strong> Recovering your account never gives anyone your earlier mail.</li>
 </ul>
 
 <h2 id="team">11. Mail you send to us</h2>
@@ -301,7 +301,7 @@ code { font: 13.5px ui-monospace, "SF Mono", Consolas, monospace; background: va
 <ul>
 <li>All traffic uses HTTPS, and every page tells browsers to use only HTTPS.</li>
 <li>Passwords are stored as salted hashes, 2FA secrets are encrypted at rest, and only hashes of session tokens are stored.</li>
-<li>Your mailbox keys are locked with a passphrase we never receive. Mail that other people send you is encrypted to a public key you can check: Mail shows each key's id and warns you when a known recipient's key changes.</li>
+<li>Your mailbox keys are locked in your browser. New accounts use the sign-in password, which we receive during authentication; a separate passphrase stays in your browser. Mail that other people send you is encrypted to a public key you can check: Mail shows each key's id and warns you when a known recipient's key changes.</li>
 <li>Pages only run their own scripts, and email content is shown in a frame that can't run any.</li>
 <li>The admin panel needs a separate authenticator code; every lookup of user records in it is logged.</li>
 </ul>

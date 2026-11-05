@@ -73,9 +73,8 @@ async function register(page, u) {
   await page.waitForSelector("#regForm", { visible: true });
   await type(page, "#regUsername", u);
   await type(page, "#regPassword", PW);
-  await type(page, "#regPasswordConfirm", PW);
-  await type(page, "#regPassphrase", PP);
-  await type(page, "#regPassphraseConfirm", PP);
+  assert.equal(await page.$('#regPassphrase'), null);
+  assert.equal(await page.$$eval('#regForm input', (els) => els.length), 3);
   await shot(page, "01-register");
   await page.click("#regSubmitBtn");
   await page.waitForSelector("#searchInput", { timeout: 60000 });
@@ -123,7 +122,7 @@ describe("Mail in the browser", () => {
   let s;
   before(async () => { s = await openPage(); });
 
-  test("sign-up: the passphrase never leaves the page; the password only goes to sign-in", async () => {
+  test("sign-up: one password creates ID and Mail; only auth requests receive it", async () => {
     await register(s.page, u);
     await shot(s.page, "02-inbox");
     assert.deepEqual(await leaks(s.log, PP), [], "passphrase in a request");
@@ -134,11 +133,70 @@ describe("Mail in the browser", () => {
     assert.equal(row.key_format, 2);
   });
 
+  test("the same password signs in to ID and opens Mail in a fresh browser", async () => {
+    const id = new L.Client(L.URLS.id);
+    assert.equal((await id.post('/api/login', { username: u, password: PW })).status, 200);
+    const o = await openPage(URLS.mail + '/');
+    await type(o.page, '#authUsername', u);
+    await type(o.page, '#authPassword', PW);
+    await submit(o.page, '#loginForm');
+    await o.page.waitForSelector('#searchInput', { timeout: 30000 });
+    assert.equal(await o.page.$('#sessionUnlockForm'), null);
+    assert.deepEqual(o.log.errors, []);
+    await o.ctx.close();
+  });
+
   test("this device opens again without the passphrase (Skip mailbox passphrase on)", async () => {
     await keepBodies(s.log);
     await s.page.reload({ waitUntil: "load" });
     await s.page.waitForSelector("#searchInput", { timeout: 30000 });
     assert.deepEqual(await leaks(s.log, PP), []);
+  });
+
+  test("phone layouts fit narrow screens and avoid backdrop repainting", async () => {
+    for (const width of [320, 360, 390, 767]) {
+      await s.page.setViewport({ width, height: 844 });
+      const layout = await s.page.evaluate(() => ({
+        width: document.documentElement.scrollWidth,
+        blur: getComputedStyle(document.querySelector('.glass')).backdropFilter,
+        drift: getComputedStyle(document.querySelector('.track')).animationName,
+      }));
+      assert.ok(layout.width <= width, JSON.stringify(layout));
+      assert.equal(layout.blur, 'none');
+      assert.equal(layout.drift, 'none');
+    }
+    await s.page.setViewport({ width: 390, height: 844 });
+  });
+
+  test("ID connect during session restore never starts another sign-in", async () => {
+    await s.page.evaluateOnNewDocument(() => {
+      window.__ssoCalls = 0;
+      document.addEventListener('DOMContentLoaded', () => setTimeout(() => {
+        window.InprivID = { user: { username: 'test' }, sso(cb) {
+          window.__ssoCalls++;
+          cb({ ok: false });
+        } };
+        window.dispatchEvent(new CustomEvent('inpriv:connect', { detail: { user: window.InprivID.user } }));
+      }, 50));
+    });
+    await s.page.setRequestInterception(true);
+    const delayMe = async (r) => {
+      if (r.isInterceptResolutionHandled()) return;
+      if (r.url().endsWith('/api/v1/me')) await L.sleep(800);
+      if (!r.isInterceptResolutionHandled()) await r.continue();
+    };
+    s.page.on('request', delayMe);
+    try {
+      for (let i = 0; i < 4; i++) {
+        await s.page.reload({ waitUntil: 'load' });
+        await s.page.waitForSelector('#searchInput', { timeout: 30000 });
+        assert.equal(await s.page.evaluate(() => window.__ssoCalls), 0);
+        assert.equal(await s.page.$('#mfaForm'), null);
+      }
+    } finally {
+      s.page.off('request', delayMe);
+      await s.page.setRequestInterception(false);
+    }
   });
 
   test("a long inbox on a tall screen fades in top to bottom, with no gaps", async () => {
@@ -218,7 +276,7 @@ describe("Mail in the browser", () => {
     assert.equal(fp.replace(/ /g, ""), id);
     assert.ok(await s.page.$(".device-row"), "this device is listed");
     await s.page.click("#chgPassBtn");
-    await type(s.page, "#chgOld", PP);
+    await type(s.page, "#chgOld", PW);
     await type(s.page, "#chgNew", "a brand new mailbox phrase");
     await type(s.page, "#chgNewConfirm", "a brand new mailbox phrase");
     await s.page.click("#chgBtn");
@@ -247,6 +305,38 @@ describe("Mail in the browser", () => {
   });
 
   test("no page errors", () => assert.deepEqual(s.log.errors, []));
+});
+
+describe('2FA with the shared password', () => {
+  test('a fresh sign-in requires a valid code; repeated refreshes keep the session', async () => {
+    const u = 'mfa' + L.rand();
+    const setup = await openPage();
+    await register(setup.page, u);
+    const id = new L.Client(L.URLS.id);
+    assert.equal((await id.post('/api/login', { username: u, password: PW })).status, 200);
+    const { secret } = await L.enable2fa(id);
+    await setup.ctx.close();
+    const o = await openPage(URLS.mail + '/');
+    await type(o.page, '#authUsername', u);
+    await type(o.page, '#authPassword', PW);
+    await submit(o.page, '#loginForm');
+    await o.page.waitForSelector('#mfaForm');
+    assert.equal(await o.page.$('#searchInput'), null);
+    await type(o.page, '#mfaCode', L.wrongCode(L.totp(secret)));
+    await submit(o.page, '#mfaForm');
+    await o.page.waitForFunction(() => /Sign-in failed/.test(document.querySelector('.toast')?.textContent || ''));
+    assert.equal(await o.page.$('#searchInput'), null);
+    await type(o.page, '#mfaCode', L.totp(secret));
+    await submit(o.page, '#mfaForm');
+    await o.page.waitForSelector('#searchInput', { timeout: 30000 });
+    for (let i = 0; i < 4; i++) {
+      await o.page.reload({ waitUntil: 'load' });
+      await o.page.waitForSelector('#searchInput', { timeout: 30000 });
+      assert.equal(await o.page.$('#mfaForm'), null);
+    }
+    assert.deepEqual(o.log.errors, []);
+    await o.ctx.close();
+  });
 });
 
 describe("upgrading a format-1 mailbox in the browser", () => {
