@@ -7,6 +7,12 @@ const read = (p) => readFileSync(`${ROOT}/${p}`, "utf8");
 const src = read("common/ui/mail-render.js").trimEnd();
 let fails = 0;
 for (const page of [".mail/index.html", ".temp/index.html"]) {
+  for (const [tag, id, file] of [['script', 'inpriv-mode-switch', 'mode-switch.js'], ['style', 'inpriv-mode-switch-css', 'mode-switch.css']]) {
+    const block = read(page).match(new RegExp('<' + tag + ' id="' + id + '">\\n([\\s\\S]*?)\\n</' + tag + '>'));
+    const matches = !!block && block[1] === read('common/ui/' + file).trimEnd();
+    console.log(`${matches ? 'ok  ' : 'FAIL'} ${page}: inlined ${file} matches`);
+    if (!matches) fails++;
+  }
   const m = read(page).match(/<script id="inpriv-mail-render">\n([\s\S]*?)\n<\/script>/);
   const ok = !!m && m[1] === src;
   console.log(`${ok ? "ok  " : "FAIL"} ${page}: inlined renderer matches common/ui/mail-render.js`);

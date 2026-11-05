@@ -11,6 +11,144 @@
 <script>
   try { var t = localStorage.getItem('inpriv_theme') || localStorage.getItem('inpriv-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}
 </script>
+<script id="inpriv-mode-switch">
+/* Mail ⇄ Temp: a directional handoff across the two origins.
+   The fragment carries only the source mode, never account or mailbox data. */
+(function () {
+  'use strict';
+  var doc = document, root = doc.documentElement;
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var pending = 0, recovery = 0, effects = [], observer;
+  var from = /^#inpriv-switch=(mail|temp)$/.exec(location.hash);
+  if (from) {
+    history.replaceState(history.state, '', location.pathname + location.search);
+    if (!reduce.matches && root.animate) root.dataset.modeArrival = from[1];
+  }
+
+  function content() {
+    var main = doc.getElementById('mainView');
+    if (main) return main.children.length ? [main] : [];
+    return Array.from(doc.querySelectorAll('.shell > :not(.top):not(#bannerSlot)'));
+  }
+  function reset() {
+    clearTimeout(pending); clearTimeout(recovery);
+    pending = recovery = 0;
+    if (observer) observer.disconnect();
+    effects.forEach(function (a) { a.cancel(); });
+    effects = [];
+    delete root.dataset.modeArrival;
+    delete root.dataset.modeLeaving;
+  }
+  function motion(el, frames, options) {
+    var a = el.animate(frames, options);
+    effects.push(a);
+    return a;
+  }
+  function arrive() {
+    if (!root.dataset.modeArrival) return;
+    var parts = content();
+    if (!parts.length) return;
+    if (observer) observer.disconnect();
+    var direction = root.dataset.modeArrival === 'mail' ? 1 : -1;
+    // These are one-shot entrances: don't restart them when the handoff ends.
+    doc.querySelectorAll('.top .reveal').forEach(function (el) { el.style.animation = 'none'; });
+    root.dataset.modeEntering = '';
+    delete root.dataset.modeArrival;
+    parts.forEach(function (el, i) {
+      el.style.animation = 'none';
+      el.querySelectorAll('.reveal, .auth-box, .card, .dash-toolbar, .msg-card, .empty-state').forEach(function (child) { child.style.animation = 'none'; });
+      motion(el, [
+        { opacity: 0, transform: 'translate3d(' + direction * 28 + 'px,8px,0) scale(.985)' },
+        { opacity: 1, transform: 'translate3d(' + direction * -1.5 + 'px,0,0) scale(1)', offset: .8 },
+        { opacity: 1, transform: 'none' }
+      ], { duration: 460, delay: Math.min(i * 35, 105), easing: 'cubic-bezier(.16,1,.3,1)', fill: 'backwards' });
+    });
+    recovery = setTimeout(function () { delete root.dataset.modeEntering; effects = []; }, 650);
+  }
+  doc.addEventListener('DOMContentLoaded', function () {
+    if (!root.dataset.modeArrival) return;
+    observer = new MutationObserver(arrive);
+    observer.observe(doc.body, { childList: true, subtree: true });
+    arrive();
+    // A delayed session/API must never keep the page invisible.
+    setTimeout(function () { if (root.dataset.modeArrival) reset(); }, 1200);
+  });
+
+  // Registered in the head, before the shared switcher's click delegate.
+  // Element-level drag suppression still runs first in the capture phase.
+  doc.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('[data-mode-switch] a[data-mode]');
+    if (!a || e.defaultPrevented) return;
+    if (e.button > 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || a.hasAttribute('download') || (a.target && a.target !== '_self')) {
+      // Leave the native action intact without the older delegate taking over.
+      e.stopImmediatePropagation();
+      return;
+    }
+    e.preventDefault();
+    if (pending || root.hasAttribute('data-mode-leaving')) return;
+    if (a.getAttribute('aria-current') === 'page') return;
+    var nav = a.closest('[data-mode-switch]'), source = nav.dataset.modeSwitch;
+    if (reduce.matches || !root.animate) { location.assign(a.href); return; }
+    reset();
+    delete root.dataset.modeEntering;
+    var direction = a.dataset.mode === 'temp' ? 1 : -1;
+    root.dataset.modeLeaving = '';
+    nav.querySelectorAll('a').forEach(function (link) {
+      if (link.getAttribute('aria-current') === 'page') link.setAttribute('data-was-current', '');
+      link.removeAttribute('aria-current');
+    });
+    a.setAttribute('aria-current', 'page');
+    motion(nav, [
+      { transform: 'scale(1)' },
+      { transform: 'scale(1.025,.97)', offset: .35 },
+      { transform: 'scale(1)' }
+    ], { duration: 320, easing: 'cubic-bezier(.2,.8,.2,1)' });
+    content().forEach(function (el) {
+      motion(el, [
+        { opacity: 1, transform: 'none' },
+        { opacity: 0, transform: 'translate3d(' + direction * -20 + 'px,-3px,0) scale(.99)' }
+      ], { duration: 180, easing: 'cubic-bezier(.4,0,1,1)', fill: 'forwards' });
+    });
+    var destination = new URL(a.href);
+    destination.hash = 'inpriv-switch=' + source;
+    pending = setTimeout(function () {
+      pending = 0;
+      location.assign(destination.href);
+      // Recover if navigation is cancelled or a beforeunload prompt stays.
+      recovery = setTimeout(function () {
+        reset();
+        nav.querySelectorAll('a').forEach(function (link) {
+          link.removeAttribute('aria-current');
+          if (link.hasAttribute('data-was-current')) {
+            link.setAttribute('aria-current', 'page');
+            link.removeAttribute('data-was-current');
+          }
+        });
+      }, 1600);
+    }, 180);
+  });
+  window.addEventListener('pageshow', function (e) { if (e.persisted) { reset(); delete root.dataset.modeEntering; } });
+  reduce.addEventListener('change', function () {
+    if (reduce.matches && !root.hasAttribute('data-mode-leaving')) { reset(); delete root.dataset.modeEntering; }
+  });
+})();
+</script>
+<style id="inpriv-mode-switch-css">
+/* Keep the header anchored while Mail and Temp trade places beneath it. */
+@media (min-width: 768px) {
+  .shell > .top { width: min(100vw - 32px, 760px); align-self: center; }
+}
+html[data-mode-arrival] #mainView,
+html[data-mode-arrival] .shell > :not(.top):not(#bannerSlot) { opacity: 0 !important; }
+html[data-mode-arrival] .top .reveal { animation: none !important; }
+html[data-mode-arrival], html[data-mode-entering], html[data-mode-leaving] { overflow-x: clip; }
+html[data-mode-leaving] .bottom-nav,
+html[data-mode-leaving] .fab { opacity: 0; transition: opacity .12s ease; }
+@media (prefers-reduced-motion: reduce) {
+  html[data-mode-arrival] #mainView,
+  html[data-mode-arrival] .shell > :not(.top):not(#bannerSlot) { opacity: 1 !important; }
+}
+</style>
 <title>Temp Mail: free disposable email, no sign-up | Inpriv</title>
 <meta name="description" content="Free temp mail: get a disposable @inpriv.xyz address instantly. No sign-up, mail arrives in seconds, only your browser can open it, gone after 24 hours.">
 <meta property="og:type" content="website">
@@ -1276,9 +1414,9 @@ footer a { color: var(--text-2); text-underline-offset: 3px; }
   <header class="top">
     <a class="brand reveal" href="https://inpriv.xyz/?home" aria-label="Inpriv home"><span data-logo></span><span>Inpriv <span>Temp</span></span></a>
     <div class="top-actions reveal d1">
-      <nav class="switcher glass" aria-label="Switch between Mail and Temp">
-        <a href="https://mail.inpriv.xyz/"><i data-icon="mail"></i><span>Mail</span></a>
-        <a href="https://temp.inpriv.xyz/" aria-current="page"><i data-icon="hourglass"></i><span>Temp</span></a>
+      <nav class="switcher glass" data-mode-switch="temp" aria-label="Switch between Mail and Temp">
+        <a data-mode="mail" href="https://mail.inpriv.xyz/"><i data-icon="mail"></i><span>Mail</span></a>
+        <a data-mode="temp" href="https://temp.inpriv.xyz/" aria-current="page"><i data-icon="hourglass"></i><span>Temp</span></a>
       </nav>
       <button class="icon-btn" type="button" data-theme-toggle aria-label="Switch theme"></button>
     </div>
