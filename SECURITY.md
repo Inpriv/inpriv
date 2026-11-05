@@ -47,7 +47,7 @@ All services run as Cloudflare Workers with Cloudflare D1 databases. The full de
 | **Mail**, from outside | the message while it's received; it's then stored encrypted to your key | the stored body afterwards |
 | **Mail**, to outside | the message while it's handed to the mail relay | — (regular email is not end-to-end encrypted) |
 | **Temp** | everything in the inbox (not end-to-end encrypted, deleted after 24 h) | — |
-| **Inpriv ID** | username, recovery email, sign-in records; the password while it's checked at sign-in | the stored password (only a salted hash), the mailbox passphrase |
+| **Inpriv ID** | username, recovery email, sign-in records; the password while it's checked at sign-in | the stored password (only a salted hash), a separately chosen mailbox passphrase |
 
 ### Cryptography
 
@@ -55,7 +55,7 @@ All services run as Cloudflare Workers with Cloudflare D1 databases. The full de
 |---|---|
 | Mailbox key pair | RSA-OAEP 2048, SHA-256; key id = first 128 bits of SHA-256 over the public key (SPKI) |
 | Message encryption | AES-256-GCM, a fresh key per message, wrapped with RSA-OAEP to the recipient and to the sender |
-| Key ring protection (format 2) | AES-256-GCM (AAD `inpriv-mail-keyring-v2`) with a key from PBKDF2-SHA-256 (600,000 iterations, 16-byte salt) of the **mailbox passphrase**, which never leaves the browser |
+| Key ring protection (format 2) | AES-256-GCM (AAD `inpriv-mail-keyring-v2`) with a key from PBKDF2-SHA-256 (600,000 iterations, 16-byte salt) of the **mailbox passphrase**; for new accounts this is initially the sign-in password, which the server receives during authentication |
 | Key ring changes | proof of possession: the server encrypts a random value to the current public key; the browser must return it |
 | Password storage | chained PBKDF2-SHA-256 (300,000 iterations), 16-byte random salt |
 | Two-factor | TOTP (RFC 6238), secret sealed with AES-256-GCM at rest |
@@ -67,6 +67,7 @@ Format 1 (mailboxes created before 22 October 2026) sealed the private key with 
 ### Threat model, in short
 
 - **Protected:** stored message bodies and private keys against someone who reads the databases or backups (as strong as the mailbox passphrase, which they can try to guess offline), an operator who only reads stored data, and a passive network observer.
+- **Shared password:** new Mail accounts use one password for ID authentication and mailbox key wrapping. A compromised or compelled authentication server could capture it and decrypt the stored key ring and mail. Users can set a separate mailbox passphrase in Account; existing separate passphrases are preserved. Changing the ID password later does not rewrap an existing mailbox ring: it still needs its previous password or passphrase.
 - **Not protected:** a server or deployment that serves modified page code (it could capture the passphrase), a compromised browser or device, metadata (who, when, subject), and mail to or from other providers while it passes through. Public keys come from the server; Mail shows key ids and warns when a known recipient's key changes, but nothing checks keys automatically.
 - **Email content** is shown in a sandboxed frame without scripts, after a parser-based sanitizer, with remote images blocked until the reader asks.
 - **Skip mailbox passphrase** keeps a device key in the browser's storage. Anyone with that browser profile, or any script running on mail.inpriv.xyz, can open the mailbox with it.
