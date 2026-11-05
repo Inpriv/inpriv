@@ -1136,6 +1136,35 @@ html, body { overscroll-behavior-y: contain; }
   .input-suffix { font-size: 12px; padding-inline: 6px; }
   .input-wrap input:has(+ .input-suffix) { padding-right: 96px; }
 }
+
+/* Quiet progress, with one continuous surface from opening to inbox. */
+#authFormArea { position: relative; }
+.auth-ghost { position: absolute; top: 0; left: 0; width: 100%; pointer-events: none; }
+.btn[aria-busy="true"]:disabled { opacity: 1; cursor: progress; }
+#regStatus { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.mail-opening-toolbar { height: 106px; display: flex; flex-direction: column; gap: 10px; }
+.mail-opening-toolbar i { display: block; height: 48px; border-radius: 999px; background: var(--fill-2); }
+.mail-opening-toolbar i + i { width: 230px; max-width: 80%; }
+.mail-loading { padding: 18px; border-radius: 24px; background: var(--bg); background: color-mix(in srgb, var(--bg) 94%, var(--text) 4%); box-shadow: inset 0 0 0 1px var(--hairline); }
+.mail-loading-label { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.mail-loading-label > div { flex: 1; min-width: 0; }
+.mail-loading-label strong { display: block; font-size: 14px; font-weight: 600; color: var(--text-2); }
+.mail-loading-label div > span { display: block; margin-top: 3px; font-size: 12.5px; color: var(--text-3); }
+.mail-loading-label > .spinner { width: 15px; height: 15px; color: var(--text-3); }
+.mail-loading-icon { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; background: var(--fill-2); color: var(--text-2); }
+.mail-loading-icon .i { width: 18px; height: 18px; }
+.mail-placeholders { animation: mail-breathe 1.5s ease-in-out infinite alternate; }
+.mail-placeholder { display: flex; align-items: center; gap: 12px; height: 64px; padding: 0 12px; border-radius: 18px; background: var(--fill); margin-top: 8px; }
+.mail-placeholder > i { width: 34px; height: 34px; border-radius: 50%; background: var(--fill-2); }
+.mail-placeholder > div { flex: 1; }
+.mail-placeholder b, .mail-placeholder-lines b { display: block; height: 8px; width: 55%; border-radius: 8px; background: var(--fill-2); }
+.mail-placeholder b + b { margin-top: 9px; width: 82%; }
+.mail-placeholder-lines b { width: 94%; margin-top: 14px; }
+.mail-placeholder-lines b:last-child { width: 65%; }
+.mail-placeholder > i, .mail-placeholder b, .mail-placeholder-lines b { background: color-mix(in srgb, var(--text) 12%, transparent); }
+.decrypting .mail-loading { width: 100%; background: transparent; box-shadow: none; padding: 4px; }
+@keyframes mail-breathe { from { opacity: .45; } to { opacity: .85; } }
+@media (prefers-reduced-motion: reduce) { .mail-placeholders { animation: none; } }
 </style>
 </head>
 <body>
@@ -1920,6 +1949,7 @@ const state = {
   currentKeyId: null,    // the key new mail is encrypted to
   pubKey: null,          // RSA-OAEP CryptoKey of the current key
   messages: [],
+  messagesOwner: null,   // only reuse a list fetched for this signed-in account
   activeTab: 'inbox',    // 'inbox' | 'sent' | 'account'
   searchQuery: '',
   idUser: null,          // Inpriv ID user object (if detected)
@@ -2491,14 +2521,15 @@ function renderAuth(initialMode = 'login') {
 
   $$('#authSeg button').forEach(btn => {
     btn.addEventListener('click', () => {
+      if (!changeAuthForm(btn.dataset.mode)) return;
       $$('#authSeg button').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      renderAuthForm(btn.dataset.mode);
     });
   });
 
   renderAuthForm(initialMode);
   checkInprivIdSso();
+  revealMailView();
 }
 
 // Signed in on id.inpriv.xyz (One Tap): offer that account's name.
@@ -2547,18 +2578,69 @@ function busy(btn, label) {
   if (!btn) return;
   btn.dataset.label = btn.dataset.label || btn.innerHTML;
   btn.disabled = true;
-  btn.innerHTML = `<span class="spinner"></span> <span>${label}</span>`;
+  btn.setAttribute('aria-busy', 'true');
+  btn.innerHTML = `<span class="spinner" aria-hidden="true"></span> <span>${label}</span>`;
 }
 function idle(btn) {
   if (!btn) return;
   btn.disabled = false;
+  btn.removeAttribute('aria-busy');
   if (btn.dataset.label) btn.innerHTML = btn.dataset.label;
 }
 
 const PASSPHRASE_NOTE = `<strong>Keep your mailbox password or passphrase safe.</strong> Keep it in a password manager or write it down. If you lose it, mail sent to you so far can't be opened again.`;
 
+
+// Only the auth card's bounds resize; text slides and fades without stretching.
+function changeAuthForm(mode) {
+  const area = $('#authFormArea');
+  if (area.dataset.mode === mode || area.querySelector('[type="submit"]:disabled')) return false;
+  const height = area.getBoundingClientRect().height;
+  if (area.finishTransition) area.finishTransition();
+  const old = area.firstElementChild;
+  const direction = mode === 'register' ? 1 : -1;
+  renderAuthForm(mode);
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches || !area.animate) return true;
+  const next = area.firstElementChild, target = area.getBoundingClientRect().height;
+  old.classList.add('auth-ghost');
+  old.inert = true;
+  old.setAttribute('aria-hidden', 'true');
+  [old, ...old.querySelectorAll('[id]')].forEach(el => { if (el.id) el.id = 'leaving-' + el.id; });
+  area.appendChild(old);
+  area.style.height = height + 'px';
+  area.style.overflow = 'clip';
+  const animations = [
+    area.animate([{ height: height + 'px' }, { height: target + 'px' }], { duration: 280, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'forwards' }),
+    old.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: `translateX(${-direction * 10}px)` }], { duration: 120, fill: 'forwards' }),
+    next.animate([{ opacity: 0, transform: `translateX(${direction * 12}px)` }, { opacity: 1, transform: 'none' }], { duration: 240, delay: 35, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'backwards' })
+  ];
+  const finish = () => {
+    animations.forEach(a => a.cancel()); old.remove();
+    area.style.height = ''; area.style.overflow = '';
+    if (area.finishTransition === finish) area.finishTransition = null;
+  };
+  area.finishTransition = finish;
+  Promise.allSettled(animations.map(a => a.finished)).then(() => { if (area.finishTransition === finish) finish(); });
+  return true;
+}
+
+function mailLoading(title, subtitle, rows = 3) {
+  return `<div class="mail-loading" role="status"><div class="mail-loading-label"><span class="mail-loading-icon">${mkIcon('mail')}</span><div><strong>${title}</strong><span>${subtitle}</span></div><span class="spinner" aria-hidden="true"></span></div><div class="mail-placeholders" aria-hidden="true">${rows ? Array.from({ length: rows }, () => '<div class="mail-placeholder"><i></i><div><b></b><b></b></div></div>').join('') : '<div class="mail-placeholder-lines"><b></b><b></b><b></b></div>'}</div></div>`;
+}
+
+function revealMailView(preserveSurface = false) {
+  const main = $('#mainView');
+  if (!main.dataset.waiting) return;
+  delete main.dataset.waiting;
+  main.querySelectorAll('.auth-box, .dash-toolbar, .empty-state').forEach(el => { el.style.animation = 'none'; });
+  if (!preserveSurface && !matchMedia('(prefers-reduced-motion: reduce)').matches && main.animate && !main.getAnimations().some(a => a.playState === 'running')) {
+    main.animate([{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }], { duration: 210, easing: 'ease-out' });
+  }
+}
+
 function renderAuthForm(mode) {
   const area = $('#authFormArea');
+  area.dataset.mode = mode;
   if (mode === 'login') {
     area.innerHTML = `
       <form id="loginForm">
@@ -2604,7 +2686,7 @@ function renderAuthForm(mode) {
         <div class="field-hint">We confirm it with a code. It can't reset your password or your mailbox passphrase.</div>
       </div>
 
-      <div id="regStatus"></div>
+      <div id="regStatus" role="status" aria-live="polite"></div>
 
       <button type="submit" class="btn btn-primary btn-block" id="regSubmitBtn">
         <span>Create account</span> ${mkIcon('arrow_forward')}
@@ -2660,6 +2742,7 @@ function authCard({ icon, title, sub, body }) {
       </div>
     </div>`;
   bindEyeToggles();
+  revealMailView();
 }
 
 /* ---------- Sign in ----------
@@ -3024,9 +3107,10 @@ async function handleRegister({ username, password, recovery }) {
 
   const btn = $('#regSubmitBtn');
   const status = $('#regStatus');
-  if (btn) btn.disabled = true;
+  busy(btn, 'Creating account…');
+  $$('#authSeg button').forEach(b => { b.disabled = true; });
   try {
-    if (status) status.innerHTML = `<span class="spinner"></span> Creating your Inpriv ID…`;
+    if (status) status.textContent = 'Creating your account.';
     const r = await fetch(ID_API + '/api/register', {
       method: 'POST',
       credentials: 'include',
@@ -3035,13 +3119,16 @@ async function handleRegister({ username, password, recovery }) {
     });
     const d = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(d.error || 'could not create the account');
-    if (status) status.innerHTML = `<span class="spinner"></span> Creating your mailbox keys…`;
+    busy(btn, 'Preparing mailbox…');
+    if (status) status.textContent = 'Preparing your mailbox.';
     await handleLogin(username, password, {}, { passphrase: password });
     if (state.unlocked && d.verification_sent) toast('Check your recovery email', 'We sent a code to confirm it. Enter it on id.inpriv.xyz.');
   } catch (e) {
     toast('Registration failed', e.message, 'error');
-    if (btn) btn.disabled = false;
     if (status) status.textContent = '';
+  } finally {
+    if (btn && btn.isConnected) { idle(btn); if (status) status.textContent = ''; }
+    $$('#authSeg button').forEach(b => { b.disabled = false; });
   }
 }
 
@@ -3049,6 +3136,8 @@ function logout() {
   api('/logout', { method: 'POST' }).catch(() => {});
   state.user = null;
   state.signedIn = false;
+  state.messages = [];
+  state.messagesOwner = null;
   lockMailbox();
   toast('Signed out', 'Your keys were removed from this page.');
   renderAuth();
@@ -3087,10 +3176,7 @@ function renderDashboard() {
     </div>
 
     <div class="msg-list" id="messageListArea">
-      <div class="empty-state">
-        <span class="spinner"></span>
-        <div class="empty-state-title">Loading messages…</div>
-      </div>
+      ${mailLoading('Fetching your mail…', 'Your inbox will appear here.')}
     </div>
   `;
 
@@ -3116,6 +3202,8 @@ function renderDashboard() {
 
   $('#refreshBtn').addEventListener('click', loadMessages);
 
+  if (state.messagesOwner === state.user.id) { updateCounts(); renderMessageCards(); }
+  revealMailView(true);
   loadMessages();
 }
 
@@ -3124,6 +3212,15 @@ function renderBottomNav() {
   if (!container) return;
 
   const unreadCount = state.messages.filter(m => m.direction === 'inbound' && !m.is_read).length;
+  const existing = container.querySelector('.bottom-nav');
+  if (existing) {
+    updateNavActive();
+    const inbox = existing.querySelector('[data-nav="inbox"]');
+    const dot = inbox.querySelector('.badge-dot');
+    if (unreadCount && !dot) inbox.insertAdjacentHTML('beforeend', '<span class="badge-dot"></span>');
+    else if (!unreadCount && dot) dot.remove();
+    return;
+  }
 
   container.innerHTML = `
     <nav class="bottom-nav glass">
@@ -3162,7 +3259,7 @@ function renderBottomNav() {
 
 function renderFab() {
   const container = $('#fabContainer');
-  if (!container) return;
+  if (!container || container.querySelector('#desktopFab')) return;
   container.innerHTML = `
     <button class="fab" id="desktopFab">
       ${mkIcon('edit')} <span>Compose</span>
@@ -3189,10 +3286,13 @@ function updateNavActive() {
 
 /* ---------- Load & Render Messages ---------- */
 async function loadMessages() {
+  const owner = state.user && state.user.id;
   const refreshBtn = $('#refreshBtn');
   if (refreshBtn) refreshBtn.classList.add('is-refreshing');
   try {
     const data = await api('/messages');
+    if (!state.signedIn || !state.user || state.user.id !== owner) return;
+    state.messagesOwner = owner;
     state.messages = data.items || [];
     updateCounts();
     renderMessageCards();
@@ -3200,6 +3300,10 @@ async function loadMessages() {
     if (e.status === 401) {
       logout();
       return;
+    }
+    if (state.messagesOwner !== owner && $('#messageListArea')) {
+      $('#messageListArea').innerHTML = `<div class="empty-state" role="status"><div class="empty-state-title">Your mail couldn't load.</div><p class="empty-state-desc">Check your connection and try again.</p><button class="btn btn-outlined" id="retryMailBtn">Try again</button></div>`;
+      $('#retryMailBtn').addEventListener('click', loadMessages);
     }
     toast('Failed to load messages', e.message, 'error');
   } finally {
@@ -3321,6 +3425,7 @@ function renderPlainBody(el, text) {
 
 async function openMessageView(id) {
   const container = $('#modalContainer');
+  const preview = state.messages.find(m => m.id === id);
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay open';
   overlay.innerHTML = `
@@ -3329,16 +3434,16 @@ async function openMessageView(id) {
         <div class="view-header">
           <button class="icon-btn" id="viewBackBtn" title="Back" aria-label="Back">${mkIcon('arrow_back')}</button>
           <div class="view-title-wrap">
-            <h2 class="view-title" id="viewSubject">Loading message…</h2>
+            <h2 class="view-title" id="viewSubject">${escapeHtml(preview?.subject || 'Opening message…')}</h2>
           </div>
           <button class="icon-btn" id="viewDeleteBtn" title="Delete message" aria-label="Delete message">${mkIcon('delete')}</button>
         </div>
 
         <div class="view-from">
-          <div class="msg-avatar" id="viewAvatar">·</div>
+          <div class="msg-avatar" id="viewAvatar">${initials(preview?.peer_label || preview?.peer_address)}</div>
           <div class="view-from-text">
-            <div class="view-from-name" id="viewFrom">—</div>
-            <div class="view-from-sub">to <span id="viewTo">—</span></div>
+            <div class="view-from-name" id="viewFrom">${escapeHtml(preview?.direction === 'outbound' ? state.user.email : (preview?.peer_label || preview?.peer_address || ''))}</div>
+            <div class="view-from-sub">to <span id="viewTo">${escapeHtml(preview?.direction === 'inbound' ? state.user.email : (preview?.peer_address || ''))}</span></div>
           </div>
           <div class="view-from-date" id="viewDate"></div>
         </div>
@@ -3360,8 +3465,8 @@ async function openMessageView(id) {
           <button type="button" class="copy-chip" id="viewLoadImages">Load images</button>
         </div>
 
-        <div class="view-body-box decrypting" id="viewBody">
-          <span class="spinner"></span> Decrypting in browser memory…
+        <div class="view-body-box decrypting" id="viewBody" aria-busy="true">
+          ${mailLoading('Opening message…', 'Just a moment.', 0)}
         </div>
 
         <!-- allow-same-origin lets this page measure the message to size the
@@ -3375,8 +3480,8 @@ async function openMessageView(id) {
         <p class="view-hint hidden" id="viewLinkHint">Links open in a new tab. The site you open sees your IP address.</p>
 
         <div class="view-actions-bar">
-          <button class="btn btn-outlined" id="viewCopyBtn">${mkIcon('content_copy')} <span>Copy Body</span></button>
-          <button class="btn btn-primary" id="viewReplyBtn">${mkIcon('reply')} <span>Reply</span></button>
+          <button class="btn btn-outlined" id="viewCopyBtn" disabled>${mkIcon('content_copy')} <span>Copy Body</span></button>
+          <button class="btn btn-primary" id="viewReplyBtn" disabled>${mkIcon('reply')} <span>Reply</span></button>
         </div>
       </div>
     </div>
@@ -3416,6 +3521,7 @@ async function openMessageView(id) {
 
   try {
     const msg = await api(`/messages/${id}`);
+    if (!overlay.isConnected || !overlay.classList.contains('open')) return;
     $('#viewSubject').textContent = msg.subject || '(No Subject)';
     $('#viewFrom').textContent = msg.direction === 'inbound' ? (msg.peer_label || msg.peer_address) : state.user.email;
     $('#viewTo').textContent = msg.direction === 'inbound' ? state.user.email : (msg.peer_label || msg.peer_address);
@@ -3466,8 +3572,10 @@ async function openMessageView(id) {
       }
     }
 
+    if (!overlay.isConnected || !overlay.classList.contains('open')) return;
     const bodyEl = $('#viewBody');
     bodyEl.classList.remove('decrypting');
+    bodyEl.removeAttribute('aria-busy');
     renderPlainBody(bodyEl, decryptedText);
     if (decryptFailed) {
       bodyEl.innerHTML = `<span style="color:var(--md-error)">${mkIcon('error')} ${escapeHtml(decryptedText)}</span>`;
@@ -3479,6 +3587,7 @@ async function openMessageView(id) {
     // its own colours, so it is not recoloured for the dark theme.
     const richWrap = $('#viewRichWrap');
     const toggle = $('#viewFormatToggle');
+    if (!matchMedia('(prefers-reduced-motion: reduce)').matches && bodyEl.animate) bodyEl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180 });
     if (richHtml && !decryptFailed) {
       const frame = $('#viewRichFrame');
       const show = (remote) => {
@@ -3562,6 +3671,8 @@ async function openMessageView(id) {
       toast('Copied to clipboard', 'Decrypted message text copied.');
     });
 
+    $('#viewCopyBtn').disabled = false;
+    $('#viewReplyBtn').disabled = false;
     $('#viewReplyBtn').addEventListener('click', () => {
       close();
       const replyTo = msg.direction === 'inbound' ? (msg.peer_address || msg.peer_label) : msg.peer_address;
@@ -3569,8 +3680,10 @@ async function openMessageView(id) {
       openComposeModal(replyTo, replySub);
     });
   } catch (err) {
+    if (!overlay.isConnected || !overlay.classList.contains('open')) return;
     const bodyEl = $('#viewBody');
     bodyEl.classList.remove('decrypting');
+    bodyEl.removeAttribute('aria-busy');
     bodyEl.innerHTML = `<span style="color:var(--md-error)">${mkIcon('error')} ${escapeHtml(err.message)}</span>`;
   }
 }
@@ -4179,6 +4292,8 @@ async function tryQuickUnlock({ avoid = [] } = {}) {
 
 async function bootstrap() {
   renderShell();
+  $('#mainView').dataset.waiting = 'true';
+  $('#mainView').innerHTML = '<div class="mail-opening-toolbar" aria-hidden="true"><i></i><i></i></div>' + mailLoading('Opening Mail…', 'Getting things ready for you.');
   InprivUI.liquid('.auth-segmented, .tab-seg, .view-format-toggle, .bottom-nav');
 
   const handleIdUser = (u) => {

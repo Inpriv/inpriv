@@ -620,7 +620,7 @@ html.theme-fade, html.theme-fade *, html.theme-fade *::before, html.theme-fade *
   font: 600 clamp(15px, 4vw, 19px)/1.3 var(--font-mono); letter-spacing: -0.01em;
   word-break: break-all; user-select: all; -webkit-user-select: all;
 }
-.addr-value.skeleton { color: var(--text-3); user-select: none; }
+.addr-value.skeleton { color: var(--text-2); user-select: none; word-break: normal; font: 500 14px/1.4 var(--font); }
 .addr-value.swap { animation: pop-in 0.38s var(--spring) backwards; }
 
 .btn {
@@ -1434,8 +1434,8 @@ footer a { color: var(--text-2); text-underline-offset: 3px; }
       <span class="pill hot" id="expiryChip" title="Time until this inbox deletes itself"><i data-icon="clock"></i><span id="expiryText">—</span></span>
     </div>
     <div class="addr">
-      <div class="addr-value skeleton" id="addrValue" aria-live="polite">generating…</div>
-      <button class="btn btn-primary copy-btn" id="copyBtn" type="button"><i data-icon="copy"></i>Copy</button>
+      <div class="addr-value skeleton" id="addrValue" aria-live="polite" aria-busy="true">Reserving a temporary inbox…</div>
+      <button class="btn btn-primary copy-btn" id="copyBtn" type="button" disabled><i data-icon="copy"></i>Copy</button>
     </div>
     <div class="actions">
       <button class="btn btn-glass" id="newBtn" type="button"><i data-icon="dice"></i>New address</button>
@@ -1752,11 +1752,14 @@ footer a { color: var(--text-2); text-underline-offset: 3px; }
   function clearMailbox() { localStorage.removeItem(STORE_KEY); }
 
   async function createMailbox() {
-    $('addrValue').textContent = 'generating…';
+    $('copyBtn').disabled = true;
+    $('addrValue').textContent = 'Reserving a temporary inbox…';
+    $('addrValue').setAttribute('aria-busy', 'true');
     $('addrValue').classList.add('skeleton');
-    const { status, data } = await api('/api/mailbox', { method: 'POST', body: '{}', noAuth: true });
+    const { status, data } = await api('/api/mailbox', { method: 'POST', body: '{}', noAuth: true }).catch(() => ({ status: 0, data: { error: 'Check your connection and try again.' } }));
     if (status !== 201) {
-      $('addrValue').textContent = 'could not create mailbox';
+      $('addrValue').removeAttribute('aria-busy');
+      $('addrValue').textContent = 'Could not reserve an inbox. Try again.';
       toast(data.error || 'Could not create a mailbox', 'error', true);
       return;
     }
@@ -1782,6 +1785,8 @@ footer a { color: var(--text-2); text-underline-offset: 3px; }
     const el = $('addrValue');
     el.textContent = mailbox.address;
     el.classList.remove('skeleton');
+    el.removeAttribute('aria-busy');
+    $('copyBtn').disabled = false;
     if (swap) { el.classList.remove('swap'); void el.offsetWidth; el.classList.add('swap'); }
   }
 
@@ -2083,6 +2088,7 @@ footer a { color: var(--text-2); text-underline-offset: 3px; }
       const saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
       if (saved?.address && saved?.token && saved.expires_at > Date.now()) {
         mailbox = saved;
+        $('addrValue').textContent = 'Opening your temporary inbox…';
         const { status } = await api('/api/mailbox');
         if (status === 200) {
           renderAddress(); refresh();
