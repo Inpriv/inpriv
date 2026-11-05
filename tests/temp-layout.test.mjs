@@ -23,7 +23,7 @@ before(async () => {
 });
 after(async () => { await browser?.close(); await new Promise(r => server?.close(r)); });
 
-for (const name of ['birch-lantern-tdm2t', 'a'.repeat(32)]) {
+for (const name of ['sample-layout-12345', 'a'.repeat(32)]) {
   for (const width of [320, 360, 390, 768]) {
     test(`${name.length}-character local part at ${width}px stays on one line and copies in full`, async () => {
       address = name + '@inpriv.xyz';
