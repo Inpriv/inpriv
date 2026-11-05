@@ -150,7 +150,7 @@ test('Temp explains reservation and restoration without exposing a fake address'
   });
   try {
     await p.goto(temp + '#inpriv-switch=mail', { waitUntil: 'load' });
-    assert.match(await p.$eval('#addrValue', e => e.textContent), /Reserving a temporary inbox/);
+    assert.match(await p.$eval('#addrValue', e => e.textContent), /Reserving…/);
     assert.equal(await p.$eval('#addrValue', e => e.getAttribute('aria-busy')), 'true');
     assert.equal(await p.$eval('#copyBtn', e => e.disabled), true);
     await shot(p, 'reserving-temp');
