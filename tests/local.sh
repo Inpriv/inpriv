@@ -52,6 +52,9 @@ EOF
     # cookie names) and doesn't rewrite hosts in headers.
     python3 -c 'import re,sys; s=open(sys.argv[1]).read(); open(sys.argv[2],"w").write(re.sub(r"(?ms)^routes = \[.*?^\]\n", "", s))' \
       "$ROOT/$dir/wrangler.toml" "$ROOT/$dir/wrangler.dev.toml"
+    if [ "$dir" = ".temp/worker" ]; then
+      sed -i 's@^main = .*@main = "../../tests/temp-worker.mjs"@' "$ROOT/$dir/wrangler.dev.toml"
+    fi
     (cd "$ROOT/$dir" && setsid nohup $WR dev -c wrangler.dev.toml --local --persist-to "$STATE" --port "$port" --ip 127.0.0.1 \
       --test-scheduled < /dev/null > "$LOGS/$port.log" 2>&1 & echo $! >> "$LOGS/pids")
     sleep 2

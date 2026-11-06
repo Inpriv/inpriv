@@ -946,8 +946,11 @@ html, body { overscroll-behavior-y: contain; }
 
 /* ── reader: a near full-page sheet; the message scrolls under a pinned header ── */
 .modal-sheet.reader {
+  --reader-surface: var(--bg);
+  --reader-surface: color-mix(in srgb, var(--bg) 96%, var(--text) 4%);
   max-width: 860px; height: calc(100dvh - 48px); max-height: none;
   padding: 0; overflow: hidden;
+  background: var(--reader-surface);
 }
 .reader .view-sheet {
   flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
@@ -957,8 +960,8 @@ html, body { overscroll-behavior-y: contain; }
   position: sticky; top: 0; z-index: 2;
   margin: 0 -22px; padding: 14px 16px 12px;
   align-items: center;
-  background: color-mix(in srgb, var(--bg) 82%, transparent);
-  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  background: var(--reader-surface);
+  -webkit-backdrop-filter: none; backdrop-filter: none;
   box-shadow: 0 1px 0 var(--hairline);
 }
 .reader .view-title {
@@ -979,6 +982,8 @@ html, body { overscroll-behavior-y: contain; }
 .view-tools .sec-badge span { overflow: hidden; text-overflow: ellipsis; }
 .view-tools .sec-badge .i { width: 15px; height: 15px; }
 .reader .view-format-toggle { align-self: auto; }
+.view-unsubscribe { min-height: 44px; font-size: 13px; }
+#unsubscribeOpenLink { text-decoration: none; }
 /* the sheet scrolls; its sections must keep their full height instead of
    shrinking to fit the screen (that clipped Rich mail and let Plain text
    spill out of its box under the buttons) */
@@ -1000,7 +1005,8 @@ html, body { overscroll-behavior-y: contain; }
 .reader .view-actions-bar {
   position: sticky; bottom: 0; z-index: 2;
   margin: auto -22px 0; padding: 12px 22px max(16px, var(--safe-bottom));
-  background: linear-gradient(to top, color-mix(in srgb, var(--bg) 92%, transparent) 65%, transparent);
+  background: var(--reader-surface);
+  box-shadow: 0 -1px 0 var(--hairline);
 }
 @media (max-width: 600px) {
   .modal-overlay:has(.reader) { padding: 8px 8px max(8px, var(--safe-bottom)); }
@@ -1072,7 +1078,7 @@ html .bottom-nav.glass {
   display: flex; flex-direction: column; overflow-y: auto;
   padding: 22px 18px 20px; border-radius: 32px;
   /* opaque glass: a blurred scrim behind it already does the frosting */
-  background: var(--glass-tint), color-mix(in srgb, var(--bg) 88%, transparent);
+  background: var(--glass-tint), var(--bg);
   box-shadow: inset 0 1px 0.5px var(--spec), var(--shadow-lg);
   transform: translateY(24px) scale(0.98);
   transition: transform 0.45s var(--spring);
@@ -1253,6 +1259,8 @@ html .bottom-nav.glass {
 .info-sheet > .modal-head { flex-shrink: 0; }
 .info-content { min-height: 0; overflow-y: auto; color: var(--text-2); font-size: 14.5px; line-height: 1.6; }
 .info-content p { margin: 0 0 18px; }
+.info-content strong { overflow-wrap: anywhere; }
+.info-sheet .modal-actions .btn { max-width: 100%; height: auto; min-height: 48px; padding-top: 12px; padding-bottom: 12px; white-space: normal; text-align: center; }
 .info-note { font-size: 12.5px; color: var(--text-3); }
 .install-steps { margin: 0 0 22px; padding-left: 22px; }
 .install-steps li { padding: 4px 0 4px 3px; }
@@ -2024,6 +2032,89 @@ html .bottom-nav.glass {
   }
 
   window.InprivMailRender = { build: build };
+})();
+</script>
+<script id="inpriv-mail-unsubscribe">
+/* Sender-provided unsubscribe actions. Discovery never makes a request.
+   HTML discovery receives only the renderer's remote-blocked document. */
+(function () {
+  'use strict';
+
+  function publicHost(host) {
+    host = host.toLowerCase().replace(/\.$/, '');
+    return host.includes('.') && !/^[\d.]+$/.test(host) &&
+      /^[a-z0-9.-]+$/.test(host) && !/\.(localhost|local|internal|lan|home)$/.test(host);
+  }
+
+  function parse(raw) {
+    if (typeof raw !== 'string' || raw.length > 4096) return null;
+    raw = raw.trim();
+    if (!raw || /[\u0000-\u0020\u007f-\u009f\\]/.test(raw)) return null;
+    try {
+      var url = new URL(raw);
+      if (url.protocol === 'https:' || url.protocol === 'http:') {
+        if (url.username || url.password || !publicHost(url.hostname)) return null;
+        return { kind: 'web', href: url.href, host: url.hostname };
+      }
+      if (url.protocol !== 'mailto:' || url.hash) return null;
+      var to = decodeURIComponent(url.pathname);
+      if (to.length > 254 || /[\u0000-\u0020\u007f-\u009f]/.test(to) || !/^[^\s@,;<>?]+@[^\s@,;<>?]+$/.test(to) || !publicHost(to.split('@')[1])) return null;
+      var subject = '', body = '', seen = new Set();
+      for (var pair of url.searchParams) {
+        var name = pair[0].toLowerCase();
+        if ((name !== 'subject' && name !== 'body') || seen.has(name)) return null;
+        seen.add(name);
+        if (name === 'subject') subject = pair[1];
+        else body = pair[1];
+      }
+      if (subject.length > 200 || /[\u0000-\u001f\u007f-\u009f]/.test(subject)) return null;
+      if (body.length > 10000 || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/.test(body)) return null;
+      return { kind: 'email', to: to, subject: subject || 'Unsubscribe', body: body || 'Please unsubscribe me from this mailing list.' };
+    } catch (e) { return null; }
+  }
+
+  function fromHeader(header) {
+    if (typeof header !== 'string' || header.length > 8192) return null;
+    var candidates = [], match, re = /<([^<>]+)>/g;
+    while ((match = re.exec(header))) {
+      var action = parse(match[1].replace(/[\r\n\t ]/g, ''));
+      if (action) candidates.push(action);
+    }
+    return candidates.find(function (a) { return a.kind === 'web' && a.href.startsWith('https:'); }) ||
+      candidates.find(function (a) { return a.kind === 'email'; }) || candidates[0] || null;
+  }
+
+  function find(header, safeHtml, text) {
+    var action = fromHeader(header);
+    if (action) return action;
+    if (safeHtml) {
+      var doc = new DOMParser().parseFromString(safeHtml, 'text/html');
+      var links = doc.querySelectorAll('a[href]');
+      for (var i = 0; i < links.length; i++) {
+        var label = links[i].textContent.replace(/\s+/g, ' ').trim();
+        if (label.length > 160 || !/\bunsubscribe\b/i.test(label) || /\b(not|never|don't)\b/i.test(label)) continue;
+        action = parse(links[i].getAttribute('href'));
+        if (action) return action;
+      }
+    }
+    // Old plain-text mail can expose a labeled URL or an unsubscribe path.
+    var lines = String(text || '').split(/\r?\n/);
+    for (var j = 0; j < lines.length; j++) {
+      var line = lines[j], urls = line.match(/(?:https?:\/\/|mailto:)[^\s<>"\[\]]+/gi) || [];
+      for (var k = 0; k < urls.length; k++) {
+        var raw = urls[k].replace(/[.,;!?)]+$/, '');
+        var labeled = /^(?:to\s+)?unsubscribe\b[\s:—–-]*(?:here\b[\s:]*)?$/i.test(line.slice(0, line.indexOf(urls[k])).trim().replace(/[\[<]$/, '').trim());
+        var path = false;
+        try { path = /(?:^|\/)(?:unsubscribe|opt[-_]?out)(?:\/|$)/i.test(new URL(raw).pathname); } catch (e) {}
+        if (!labeled && !path) continue;
+        action = parse(raw);
+        if (action) return action;
+      }
+    }
+    return null;
+  }
+
+  window.InprivUnsubscribe = { parse: parse, fromHeader: fromHeader, find: find };
 })();
 </script>
 <script>
@@ -3550,6 +3641,7 @@ async function openMessageView(id) {
             <button type="button" class="fmt-btn active" id="viewFmtRich">${mkIcon('palette')} <span>Rich</span></button>
             <button type="button" class="fmt-btn" id="viewFmtPlain">${mkIcon('subject')} <span>Plain</span></button>
           </div>
+          <button type="button" class="copy-chip view-unsubscribe hidden" id="viewUnsubscribeBtn">Unsubscribe</button>
           <div class="sec-badge" id="viewSecBadge">
             ${mkIcon('verified_user')}
             <span>Encrypted</span>
@@ -3684,11 +3776,12 @@ async function openMessageView(id) {
     // its own colours, so it is not recoloured for the dark theme.
     const richWrap = $('#viewRichWrap');
     const toggle = $('#viewFormatToggle');
+    const safeRich = richHtml && !decryptFailed ? InprivMailRender.build(richHtml, { remote: false }) : null;
     if (!matchMedia('(prefers-reduced-motion: reduce)').matches && bodyEl.animate) bodyEl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180 });
     if (richHtml && !decryptFailed) {
       const frame = $('#viewRichFrame');
       const show = (remote) => {
-        const out = InprivMailRender.build(richHtml, { remote });
+        const out = remote ? InprivMailRender.build(richHtml, { remote: true }) : safeRich;
         frame.srcdoc = out.doc;
         $('#viewRemoteBar').classList.toggle('hidden', remote || !out.blocked);
         $('#viewLinkHint').classList.toggle('hidden', !out.links);
@@ -3755,6 +3848,15 @@ async function openMessageView(id) {
       toggle.classList.add('hidden');
     }
 
+    if (msg.direction === 'inbound' && !decryptFailed) {
+      const action = InprivUnsubscribe.find(payload?.list_unsubscribe, safeRich?.doc || '', decryptedText);
+      if (action) {
+        const button = $('#viewUnsubscribeBtn');
+        button.classList.remove('hidden');
+        button.addEventListener('click', () => openUnsubscribeSheet(action));
+      }
+    }
+
     // Mark as read in local list
     const target = state.messages.find(x => x.id === id);
     if (target && !decryptFailed) {
@@ -3802,7 +3904,7 @@ function contactSuggestions(q) {
   return [...seen].filter((u) => u.includes(q)).slice(0, 8);
 }
 
-function openComposeModal(prefillTo = '', prefillSubject = '') {
+function openComposeModal(prefillTo = '', prefillSubject = '', prefillBody = '') {
   const container = $('#modalContainer');
   if (!container) return;
   container.innerHTML = '';
@@ -3855,7 +3957,7 @@ function openComposeModal(prefillTo = '', prefillSubject = '') {
 
       <div class="field">
         <label for="cmpBody">Message</label>
-        <textarea id="cmpBody" rows="7" placeholder="Type your message here…"></textarea>
+        <textarea id="cmpBody" rows="7" placeholder="Type your message here…">${escapeHtml(String(prefillBody || ''))}</textarea>
       </div>
 
       <div class="compose-actions">
@@ -4161,10 +4263,23 @@ async function installMailApp() {
 
 function showWhatsNew() {
   openInfoSheet("What's new", `
-    <article class="release-entry"><div class="release-date">6 November 2026 <span class="release-tag">Latest</span></div><h3>Mail, at home on your phone.</h3><ul><li>Install Inpriv Mail from Account. A dark startup screen and your saved theme welcome you back.</li><li>A clear offline screen if you open Mail without a connection. Your mail stays online; it isn't saved for offline reading.</li></ul></article>
+    <article class="release-entry"><div class="release-date">6 November 2026 <span class="release-tag">Latest</span></div><h3>Mail, at home on your phone.</h3><ul><li>Install Inpriv Mail from Account. A dark startup screen and your saved theme welcome you back.</li><li>A solid message reader and an Unsubscribe button for sender-provided links or email requests.</li><li>A clear offline screen if you open Mail without a connection. Your mail stays online; it isn't saved for offline reading.</li></ul></article>
     <article class="release-entry"><div class="release-date">5–6 November 2026</div><h3>A smoother everyday inbox.</h3><ul><li>Switch between Mail and Temp with a connected slide, and between Sign in and Create account with a softer transition.</li><li>Calmer inbox and message loading, readable progress, and a bottom bar that stays clear of the mail behind it.</li><li>Refresh Mail without being asked for an extra two-factor code while your session is still valid.</li></ul></article>
     <article class="release-entry"><div class="release-date">5 November 2026</div><h3>One account, a simpler start.</h3><ul><li>Choose a username and one Inpriv password for ID and Mail. Recovery email is optional.</li><li>Passwords can be 8 characters or more; 12 or more is recommended.</li><li>Existing separate mailbox passphrases still work. You can also choose a separate one in Account.</li></ul></article>
   `);
+}
+
+function openUnsubscribeSheet(action) {
+  if (action.kind === 'web') {
+    openInfoSheet('Unsubscribe', `<p>Open the sender’s unsubscribe page at <strong>${escapeHtml(action.host)}</strong>. Follow the instructions there to finish.</p><p class="info-note">This link comes from the email. Opening it shares your IP address with that site.</p><div class="modal-actions"><a class="btn btn-primary" id="unsubscribeOpenLink" href="${escapeHtml(action.href)}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">Open unsubscribe page ${mkIcon('arrow_outward')}</a></div>`);
+    $('#unsubscribeOpenLink')?.addEventListener('click', () => $('#mailInfoClose')?.click());
+  } else {
+    openInfoSheet('Unsubscribe by email', `<p>Prepare an unsubscribe request to <strong>${escapeHtml(action.to)}</strong>. You can review it before sending.</p><div class="modal-actions"><button type="button" class="btn btn-primary" id="unsubscribeReviewBtn">Review email ${mkIcon('arrow_forward')}</button></div>`);
+    $('#unsubscribeReviewBtn')?.addEventListener('click', () => {
+      $('#mailInfoClose')?.click();
+      openComposeModal(action.to, action.subject, action.body);
+    });
+  }
 }
 
 function renderAccountScreen() {

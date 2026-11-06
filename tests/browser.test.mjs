@@ -275,6 +275,7 @@ describe("Mail in the browser", () => {
     const id = L.db("mail").prepare("SELECT key_id FROM users WHERE username = ?").get(u).key_id;
     assert.equal(fp.replace(/ /g, ""), id);
     assert.ok(await s.page.$(".device-row"), "this device is listed");
+    await s.page.$eval('#chgPassBtn', e => e.scrollIntoView({ block: 'center', behavior: 'instant' }));
     await s.page.click("#chgPassBtn");
     await type(s.page, "#chgOld", PW);
     await type(s.page, "#chgNew", "a brand new mailbox phrase");
