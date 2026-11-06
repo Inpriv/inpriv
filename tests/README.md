@@ -13,6 +13,7 @@ node --test --test-concurrency=1 tests/browser.test.mjs   # 11 checks in headles
 node --test tests/mode-switch.test.mjs  # Mail/Temp motion, history, reduced motion, notice spacing
 node --test tests/loading-ui.test.mjs   # delayed creation, inbox, reader and Temp loading states
 node --test tests/temp-layout.test.mjs  # long Temp addresses, resizing and full-value copying (local fixtures)
+CHROME=/path/to/chrome node --test tests/pwa.test.mjs # manifests, startup themes, offline/cache boundaries, install/settings UI (local fixtures)
 node tests/probe.mjs                   # before/after probes (run on main too)
 node tests/check-inline.mjs            # inlined renderer + served page copies match
 tests/local.sh down                    # stop, delete local state and .dev.vars
