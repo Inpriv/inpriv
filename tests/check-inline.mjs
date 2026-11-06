@@ -6,6 +6,10 @@ import { ROOT } from "./lib.mjs";
 const read = (p) => readFileSync(`${ROOT}/${p}`, "utf8");
 const src = read("common/ui/mail-render.js").trimEnd();
 let fails = 0;
+const unsubscribe = read('.mail/index.html').match(/<script id="inpriv-mail-unsubscribe">\n([\s\S]*?)\n<\/script>/);
+const unsubscribeMatches = !!unsubscribe && unsubscribe[1] === read('common/ui/mail-unsubscribe.js').trimEnd();
+console.log(`${unsubscribeMatches ? 'ok  ' : 'FAIL'} Mail: inlined unsubscribe helper matches`);
+if (!unsubscribeMatches) fails++;
 for (const page of ['index.html', '.mail/index.html', '.temp/index.html', 'worker/public/offline.html', '.mail/worker/public/offline.html', '.temp/worker/public/offline.html']) {
   const block = read(page).match(/<script id="inpriv-pwa">\n([\s\S]*?)\n<\/script>/);
   const ok = !!block && block[1] === read('common/ui/pwa.js').trimEnd();

@@ -12,6 +12,7 @@ import { logAccess, purgeAccessLog } from "../../../common/access-log.js";
 import { clientKey, originAllowed, isUnsafeMethod, pageResponse, apiHeaders, uaFamily } from "../../../common/security.js";
 import { TEAM_MAILBOXES, normalizeLocal, tryClaim, claimOwner, claimMany, ensureClaims } from "../../../common/addresses.js";
 import { sanitizeEmailHtml } from "../../../common/email-html.js";
+import { listUnsubscribeHeader } from "./list-unsubscribe.js";
 import { WorkerEntrypoint } from "cloudflare:workers";
 
 export { TEAM_MAILBOXES };
@@ -459,6 +460,7 @@ async function handleInbound(request, env) {
   let text = null;
   let rawHtml = null;
   let fromName = null;
+  let listUnsubscribe = null;
 
   if (readKey && emailId) {
     try {
@@ -467,6 +469,7 @@ async function handleInbound(request, env) {
       });
       if (res.ok) {
         const email = await res.json();
+        listUnsubscribe = listUnsubscribeHeader(email.headers);
         text = String(email.text || "").slice(0, INBOUND_MAX_TEXT_CHARS) || null;
         rawHtml = String(email.html || "").slice(0, INBOUND_MAX_HTML_CHARS) || null;
         if (!text && rawHtml) text = htmlToText(rawHtml).slice(0, INBOUND_MAX_TEXT_CHARS) || null;
@@ -517,6 +520,7 @@ async function handleInbound(request, env) {
   // the same envelope as the plain text. Remote images stay blocked in the
   // reader until the person loads them.
   const payload = { v: 1, text: plaintext };
+  if (listUnsubscribe) payload.list_unsubscribe = listUnsubscribe;
   if (rawHtml) {
     try {
       const safe = await sanitizeEmailHtml(rawHtml);
