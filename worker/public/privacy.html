@@ -87,7 +87,7 @@ code { font: 13.5px ui-monospace, "SF Mono", Consolas, monospace; background: va
 <main>
 <h1>Privacy Policy</h1>
 <p class="lead">What Inpriv stores, what it can and can't read, how long it keeps things, and who else handles your data.</p>
-<p class="meta">Effective 5 November 2026. Earlier versions are in the <a href="https://github.com/Inpriv/inpriv/commits/main/worker/public/privacy.html">source history</a>.</p>
+<p class="meta">Effective 6 November 2026. Earlier versions are in the <a href="https://github.com/Inpriv/inpriv/commits/main/worker/public/privacy.html">source history</a>.</p>
 
 <div class="box">
 <p><strong>The short version</strong></p>
@@ -217,6 +217,7 @@ code { font: 13.5px ui-monospace, "SF Mono", Consolas, monospace; background: va
 <li><strong>Mail:</strong> a sign-in cookie of the same kind, for mail.inpriv.xyz only. While Mail is open, your unlocked keys are held in the page's memory and are dropped when you sign out or close it. The page also remembers the key ids of people you've written to, to warn you if one changes.</li>
 <li><strong>Mail, with "Skip mailbox passphrase" on:</strong> a random device key and device id in the browser's storage. With them, this browser opens your mailbox without the passphrase. Anyone who can use this browser profile can open your mailbox too, and so could any script that managed to run on mail.inpriv.xyz. Use it only on devices you trust. Turning it off on any device removes it from every device; you can also forget single devices in Mail's Account tab.</li>
 <li><strong>Temp:</strong> the access key for your current inbox, in the browser's storage, until the inbox expires or you delete it.</li>
+<li><strong>Installed apps:</strong> a service worker caches public icons and an offline page on your device. Account/API responses, messages, attachments, session tokens and mailbox keys are never added to those caches. Older app-shell caches are removed when the new service worker activates.</li>
 <li>Everywhere: your theme and a few display preferences.</li>
 </ul>
 <p>Clearing your browser's site data removes all of this.</p>

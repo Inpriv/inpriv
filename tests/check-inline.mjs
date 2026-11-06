@@ -6,6 +6,17 @@ import { ROOT } from "./lib.mjs";
 const read = (p) => readFileSync(`${ROOT}/${p}`, "utf8");
 const src = read("common/ui/mail-render.js").trimEnd();
 let fails = 0;
+for (const page of ['index.html', '.mail/index.html', '.temp/index.html', 'worker/public/offline.html', '.mail/worker/public/offline.html', '.temp/worker/public/offline.html']) {
+  const block = read(page).match(/<script id="inpriv-pwa">\n([\s\S]*?)\n<\/script>/);
+  const ok = !!block && block[1] === read('common/ui/pwa.js').trimEnd();
+  console.log(`${ok ? 'ok  ' : 'FAIL'} ${page}: PWA startup matches`);
+  if (!ok) fails++;
+}
+for (const file of ['sw.js', 'worker/public/sw.js', '.mail/worker/public/sw.js', '.temp/worker/public/sw.js']) {
+  const ok = read(file).replace(/\r\n/g, '\n').trimEnd() === read('common/ui/pwa-sw.js').trimEnd();
+  console.log(`${ok ? 'ok  ' : 'FAIL'} ${file}: public-only service worker matches`);
+  if (!ok) fails++;
+}
 for (const page of [".mail/index.html", ".temp/index.html"]) {
   for (const [tag, id, file] of [['script', 'inpriv-mode-switch', 'mode-switch.js'], ['style', 'inpriv-mode-switch-css', 'mode-switch.css']]) {
     const block = read(page).match(new RegExp('<' + tag + ' id="' + id + '">\\n([\\s\\S]*?)\\n</' + tag + '>'));

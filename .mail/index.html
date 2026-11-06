@@ -4,13 +4,86 @@
   Part of Inpriv (https://inpriv.xyz) · Inpriv Labs
   Copyright (c) 2026 Inpriv Labs — MIT License
 -->
-<html lang="en">
+<html lang="en" data-install-ui>
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<meta name="color-scheme" content="dark light" />
-<meta name="theme-color" content="#0c0c0b" media="(prefers-color-scheme: dark)" />
-<meta name="theme-color" content="#ebe9e4" media="(prefers-color-scheme: light)" />
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#0c0c0b" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#ebe9e4" media="(prefers-color-scheme: light)">
+<style id="inpriv-startup">html { background: #0c0c0b; color-scheme: dark; }</style>
+<script id="inpriv-pwa">
+/* Installed-app startup: paint before the UI core loads, then stay in sync. */
+(function () {
+  'use strict';
+  var root = document.documentElement;
+  var system = window.matchMedia('(prefers-color-scheme: light)');
+  var standalone = window.matchMedia('(display-mode: standalone)');
+  try {
+    var saved = localStorage.getItem('inpriv_theme') || localStorage.getItem('inpriv-theme');
+    if (saved === 'light' || saved === 'dark') root.dataset.theme = saved;
+  } catch (e) {}
+  function paint() {
+    var theme = root.dataset.theme || (system.matches ? 'light' : 'dark');
+    var color = theme === 'light' ? '#ebe9e4' : '#0c0c0b';
+    root.style.backgroundColor = color;
+    root.style.colorScheme = theme;
+    document.querySelectorAll('meta[name="theme-color"]').forEach(function (meta) {
+      meta.content = color;
+    });
+    // In an app window, the brand is this app's home, not another origin.
+    var brand = document.querySelector('.top .brand');
+    if (brand && (standalone.matches || navigator.standalone === true)) {
+      brand.href = '/';
+      var name = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+      brand.setAttribute('aria-label', (name ? name.content : 'Inpriv') + ' home');
+    }
+  }
+  paint();
+  window.addEventListener('inpriv:theme', paint);
+  window.addEventListener('pageshow', paint);
+  if (system.addEventListener) system.addEventListener('change', paint);
+  var deferred = null, installed = false, installing = false;
+  function state() {
+    return { installed: installed || standalone.matches || navigator.standalone === true, installing: installing, canPrompt: !!deferred };
+  }
+  function changed() {
+    window.dispatchEvent(new CustomEvent('inpriv:pwa', { detail: state() }));
+  }
+  window.addEventListener('beforeinstallprompt', function (event) {
+    if (!root.hasAttribute('data-install-ui')) return;
+    event.preventDefault();
+    deferred = event; installing = false; changed();
+  });
+  window.addEventListener('appinstalled', function () {
+    installed = true; installing = false; deferred = null; changed();
+  });
+  if (standalone.addEventListener) standalone.addEventListener('change', changed);
+  window.InprivPWA = {
+    state: state,
+    install: async function () {
+      if (state().installed) return 'installed';
+      if (installing) return 'pending';
+      if (!deferred) return 'unavailable';
+      var event = deferred;
+      deferred = null; installing = true; changed();
+      try {
+        // Invoke the prompt before awaiting anything, while the tap is active.
+        var choice = await event.prompt();
+        if (!choice || !choice.outcome) choice = await event.userChoice;
+        installing = !!(choice && choice.outcome === 'accepted' && !installed);
+        changed();
+        return choice && choice.outcome || 'dismissed';
+      } catch (e) { installing = false; changed(); return 'unavailable'; }
+    }
+  };
+  window.addEventListener('load', function () {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' }).catch(function () {});
+    }
+  });
+})();
+</script>
 <link rel="icon" type="image/svg+xml" href="/icon.svg?v=3">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=3">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=3">
@@ -31,6 +104,11 @@
 <meta name="twitter:image" content="https://inpriv.xyz/og/mail.png?v=2">
 <meta name="twitter:image:alt" content="Inpriv Mail: end-to-end encrypted email">
 <link rel="canonical" href="https://mail.inpriv.xyz/">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Inpriv Mail">
+<meta name="application-name" content="Inpriv Mail">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -201,11 +279,8 @@ html[data-mode-leaving] .fab { opacity: 0; transition: opacity .12s ease; }
   html[data-mode-arrival] .shell > :not(.top):not(#bannerSlot) { opacity: 1 !important; }
 }
 </style>
-<title>Inpriv Mail: free end-to-end encrypted email</title>
+<title>Inpriv Mail</title>
 <meta name="robots" content="index, follow">
-<script>
-  try { var t = localStorage.getItem('inpriv_theme') || localStorage.getItem('inpriv-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}
-</script>
 <script src="https://id.inpriv.xyz/id.js" data-service="mail" data-accounts defer></script>
 <style id="inpriv-ui">
 /* Inpriv UI core — tokens, glass, backdrop, header, liquid pill, motion.
@@ -1172,6 +1247,21 @@ html .bottom-nav.glass {
 .decrypting .mail-loading { width: 100%; background: transparent; box-shadow: none; padding: 4px; }
 @keyframes mail-breathe { from { opacity: .45; } to { opacity: .85; } }
 @media (prefers-reduced-motion: reduce) { .mail-placeholders { animation: none; } }
+
+#installMailBtn, #whatsNewBtn { min-height: 44px; flex-shrink: 0; }
+.info-sheet { max-width: 520px; overflow: hidden; background: var(--bg); background: color-mix(in srgb, var(--bg) 96%, var(--text) 4%); }
+.info-sheet > .modal-head { flex-shrink: 0; }
+.info-content { min-height: 0; overflow-y: auto; color: var(--text-2); font-size: 14.5px; line-height: 1.6; }
+.info-content p { margin: 0 0 18px; }
+.info-note { font-size: 12.5px; color: var(--text-3); }
+.install-steps { margin: 0 0 22px; padding-left: 22px; }
+.install-steps li { padding: 4px 0 4px 3px; }
+.release-entry + .release-entry { margin-top: 22px; padding-top: 22px; border-top: 1px solid var(--hairline); }
+.release-date { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-3); }
+.release-tag { padding: 2px 8px; border-radius: 999px; background: var(--fill-2); color: var(--text-2); }
+.release-entry h3 { margin: 9px 0; font: 650 18px/1.3 var(--font-display); color: var(--text); letter-spacing: -.02em; }
+.release-entry ul { margin: 0; padding-left: 18px; }
+.release-entry li + li { margin-top: 7px; }
 </style>
 </head>
 <body>
@@ -4005,6 +4095,78 @@ function openComposeModal(prefillTo = '', prefillSubject = '') {
 /* ============================================================================
    ACCOUNT & INPRIV ID SHEET
    ========================================================================== */
+function updateInstallButton() {
+  const button = $('#installMailBtn');
+  if (!button) return;
+  const app = window.InprivPWA ? InprivPWA.state() : {};
+  button.disabled = !!(app.installed || app.installing);
+  button.setAttribute('aria-label', app.installed ? 'Inpriv Mail is installed' : app.installing ? 'Installing Inpriv Mail' : 'Install Inpriv Mail');
+  button.innerHTML = `${mkIcon(app.installed ? 'check_circle' : 'download')} <span>${app.installed ? 'Installed' : app.installing ? 'Installing…' : 'Install'}</span>`;
+  $('#installMailHint').textContent = app.installed
+    ? 'Open Mail from your home screen or app launcher.'
+    : app.installing ? 'Finish the installation in your browser.' : 'Open Mail from your home screen in its own window.';
+}
+window.addEventListener('inpriv:pwa', updateInstallButton);
+
+function openInfoSheet(title, body) {
+  if ($('#mailInfoSheet')) return;
+  const previous = document.activeElement;
+  const overlay = document.createElement('div');
+  overlay.id = 'mailInfoSheet';
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `<section class="modal-sheet info-sheet" role="dialog" aria-modal="true" aria-labelledby="mailInfoTitle"><div class="modal-head"><h2 class="modal-title" id="mailInfoTitle">${escapeHtml(title)}</h2><button type="button" class="icon-btn" id="mailInfoClose" aria-label="Close">${mkIcon('close')}</button></div><div class="info-content">${body}</div></section>`;
+  $('#modalContainer').appendChild(overlay);
+  const close = () => {
+    if (overlay.inert) return;
+    overlay.inert = true;
+    overlay.setAttribute('aria-hidden', 'true');
+    overlay.classList.remove('open');
+    window.removeEventListener('keydown', trap, true);
+    setTimeout(() => overlay.remove(), 320);
+    if (previous && previous.isConnected) previous.focus();
+  };
+  const trap = e => {
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); }
+    if (e.key !== 'Tab') return;
+    const stops = [...overlay.querySelectorAll('button, a[href]')].filter(el => !el.disabled);
+    const first = stops[0], last = stops[stops.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  };
+  window.addEventListener('keydown', trap, true);
+  $('#mailInfoClose').addEventListener('click', close);
+  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    if (overlay.inert || !overlay.isConnected) return;
+    overlay.classList.add('open');
+    if (!overlay.contains(document.activeElement)) $('#mailInfoClose')?.focus();
+  }));
+}
+
+async function installMailApp() {
+  const result = window.InprivPWA ? await InprivPWA.install() : 'unavailable';
+  if (result === 'accepted') toast('Installation started', 'Follow your browser to finish adding Mail.');
+  if (result === 'unavailable') {
+    const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const android = /Android/.test(navigator.userAgent);
+    const steps = ios
+      ? '<li>Open mail.inpriv.xyz in Safari.</li><li>Tap Share, then <strong>Add to Home Screen</strong>.</li><li>Confirm the name and tap <strong>Add</strong>.</li>'
+      : android
+        ? '<li>Open Chrome’s menu <strong>⋮</strong>.</li><li>Choose <strong>Install and create shortcut</strong> or <strong>Add to Home screen</strong>.</li><li>Choose <strong>Install</strong> and follow the prompt.</li>'
+        : '<li>Open this page in Chrome or Edge.</li><li>Use the install icon in the address bar, or your browser’s menu.</li><li>Choose <strong>Install Inpriv Mail</strong> or <strong>Install page as app</strong>, then confirm.</li>';
+    openInfoSheet('Install Inpriv Mail', `<p>Keep your mailbox a tap away, in its own app window.</p><ol class="install-steps">${steps}</ol><p class="info-note">Already added an older shortcut? Remove that shortcut and install Mail directly from mail.inpriv.xyz. Your account stays the same.</p><p class="info-note">Opening Temp, Inpriv ID, or another site may show browser controls.</p>`);
+  }
+  updateInstallButton();
+}
+
+function showWhatsNew() {
+  openInfoSheet("What's new", `
+    <article class="release-entry"><div class="release-date">6 November 2026 <span class="release-tag">Latest</span></div><h3>Mail, at home on your phone.</h3><ul><li>Install Inpriv Mail from Account. A dark startup screen and your saved theme welcome you back.</li><li>A clear offline screen if you open Mail without a connection. Your mail stays online; it isn't saved for offline reading.</li></ul></article>
+    <article class="release-entry"><div class="release-date">5–6 November 2026</div><h3>A smoother everyday inbox.</h3><ul><li>Switch between Mail and Temp with a connected slide, and between Sign in and Create account with a softer transition.</li><li>Calmer inbox and message loading, readable progress, and a bottom bar that stays clear of the mail behind it.</li><li>Refresh Mail without being asked for an extra two-factor code while your session is still valid.</li></ul></article>
+    <article class="release-entry"><div class="release-date">5 November 2026</div><h3>One account, a simpler start.</h3><ul><li>Choose a username and one Inpriv password for ID and Mail. Recovery email is optional.</li><li>Passwords can be 8 characters or more; 12 or more is recommended.</li><li>Existing separate mailbox passphrases still work. You can also choose a separate one in Account.</li></ul></article>
+  `);
+}
+
 function renderAccountScreen() {
   const main = $('#mainView');
   const older = state.ring ? state.ring.keys.length - 1 : 0;
@@ -4036,6 +4198,21 @@ function renderAccountScreen() {
         <a href="https://id.inpriv.xyz" target="_blank" rel="noopener" class="copy-chip">
           ${mkIcon('open_in_new')} <span>Open ID</span>
         </a>
+      </div>
+
+      <div class="acc-info-row" style="align-items:flex-start">
+        <div style="flex:1;min-width:0">
+          <div class="label">Inpriv Mail app</div>
+          <div class="qu-row-sub" id="installMailHint">Open Mail from your home screen in its own window.</div>
+        </div>
+        <button type="button" class="copy-chip" id="installMailBtn">${mkIcon('download')} <span>Install</span></button>
+      </div>
+      <div class="acc-info-row" style="align-items:flex-start">
+        <div style="flex:1;min-width:0">
+          <div class="label">What's new</div>
+          <div class="qu-row-sub">A home for Mail on your phone, smoother loading, and easier account setup.</div>
+        </div>
+        <button type="button" class="copy-chip" id="whatsNewBtn">${mkIcon('info')} <span>View</span></button>
       </div>
 
       <div class="acc-info-row" style="align-items:flex-start">
@@ -4099,6 +4276,9 @@ function renderAccountScreen() {
     navigator.clipboard.writeText(fingerprint(state.currentKeyId));
     toast('Key copied');
   });
+  $('#installMailBtn').addEventListener('click', installMailApp);
+  $('#whatsNewBtn').addEventListener('click', showWhatsNew);
+  updateInstallButton();
   $('#chgPassBtn').addEventListener('click', openChangePassphrase);
   $('#revokeOthersBtn').addEventListener('click', async () => {
     try {
