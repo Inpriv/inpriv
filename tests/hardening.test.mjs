@@ -214,7 +214,7 @@ test('verification binds only the current address and only the latest code works
 test('the local status Worker serves its API using local storage', async () => {
   const res = await fetch('http://127.0.0.1:8793/api/health');
   assert.equal(res.status, 200);
-  assert.equal((await res.json()).release, '2026-11-08');
+  assert.equal((await res.json()).release, '2026-11-09');
   const status = await fetch('http://127.0.0.1:8793/api/status');
   assert.equal(status.status, 200);
 });

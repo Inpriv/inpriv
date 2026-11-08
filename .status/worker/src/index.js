@@ -64,7 +64,7 @@ export default {
     const path = url.pathname;
 
     if (path === "/api/health") {
-      return apiHeaders(json({ ok: true, release: "2026-11-08", service: "inpriv-status", time: new Date().toISOString() }));
+      return apiHeaders(json({ ok: true, release: "2026-11-09", service: "inpriv-status", time: new Date().toISOString() }));
     }
     if (path === "/api/status") {
       if (request.method !== "GET" && request.method !== "HEAD") return apiHeaders(json({ error: "Method not allowed" }, 405));

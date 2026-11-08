@@ -105,7 +105,7 @@ async function routeApi(request, env, url) {
   const method = request.method;
 
   if (path === "/api/health") {
-    return json({ ok: true, release: "2026-11-08", service: "inpriv-temp", time: new Date().toISOString() });
+    return json({ ok: true, release: "2026-11-09", service: "inpriv-temp", time: new Date().toISOString() });
   }
 
   // public maintenance state (used by the frontend to show the info banner)

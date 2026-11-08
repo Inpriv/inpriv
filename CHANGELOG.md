@@ -1,6 +1,6 @@
 # Changelog
 
-## 8 November 2026
+## 9 November 2026
 
 - Load older Mail in pages of 200 messages, including messages with matching timestamps.
 - Require the current mailbox key before replacing it, and a fresh second factor for sensitive account changes when two-factor authentication is on.

@@ -303,8 +303,10 @@ describe("Mail in the browser", () => {
     await type(s.page, "#chgOld", PW);
     await type(s.page, "#chgNew", "a brand new mailbox phrase");
     await type(s.page, "#chgNewConfirm", "a brand new mailbox phrase");
-    await s.page.click("#chgBtn");
-    await s.page.waitForFunction(() => /Passphrase changed/.test([...document.querySelectorAll(".toast")].map((t) => t.textContent).join(" ")), { timeout: 30000 });
+    await submit(s.page, "#chgForm");
+    await s.page.waitForFunction(() => /Passphrase changed/.test([...document.querySelectorAll(".toast")].map((t) => t.textContent).join(" ")), { timeout: 30000 }).catch(async () => {
+      throw new Error('Passphrase change did not finish: ' + await toastText(s.page));
+    });
     assert.deepEqual(await leaks(s.log, "a brand new mailbox phrase"), []);
     assert.deepEqual(await leaks(s.log, PP), []);
   });

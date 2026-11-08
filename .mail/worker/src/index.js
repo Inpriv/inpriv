@@ -660,7 +660,7 @@ async function api(request, env, ctx, url, path) {
   }
 
   if (path === "/api/v1/health") {
-    return json({ status: "ok", release: "2026-11-08", service: "inpriv-mail", domain: DOMAIN, time: now() });
+    return json({ status: "ok", release: "2026-11-09", service: "inpriv-mail", domain: DOMAIN, time: now() });
   }
 
   // ══════════════════════════════════════════════════════════════════════

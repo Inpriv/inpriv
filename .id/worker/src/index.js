@@ -258,7 +258,7 @@ export default {
     if (path === "/api/health") {
       // Bounded compatibility migration; no code or hash enters logs.
       await protectLegacyCodes(env);
-      return json({ service: "inpriv-id", status: "ok", version: "1.1.0", release: "2026-11-08" });
+      return json({ service: "inpriv-id", status: "ok", version: "1.1.0", release: "2026-11-09" });
     }
 
     try {
