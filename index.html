@@ -790,6 +790,9 @@ html.theme-fade, html.theme-fade *, html.theme-fade *::before, html.theme-fade *
   }
   /* phones: both choices fit on the first screen; the whole card is the link */
   @media (max-width: 560px) {
+    footer nav { flex-wrap: nowrap; gap: 2px; }
+    footer a { gap: 4px; padding: 0 3px; white-space: nowrap; }
+    footer .i { width: 16px; height: 16px; }
     .hero { padding-top: 10px; }
     .hero p { font-size: 15px; }
     .choice { gap: 12px; padding: 16px 16px 16px 14px; border-radius: 28px; }
