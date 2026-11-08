@@ -1,3 +1,4 @@
+throw new Error("Retired unsafe test. Use tests/local.sh and tests/api.test.mjs; this script must not contact production.");
 // Real-delivery E2E for Inpriv Mail inbound:
 // register a throwaway account (real RSA-OAEP keys), send a REAL email to it
 // via Resend, poll until the svix-signed webhook stores it, then decrypt the

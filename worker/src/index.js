@@ -18,7 +18,7 @@ export default {
     const moved = canonicalRedirect(request);
     if (moved) return moved;
 
-    const gate = await maintenanceGate("landing");
+    const gate = await maintenanceGate("landing", env);
     if (gate.locked) return maintenancePage("Inpriv", gate.message);
 
     if (path === "/index.html") {

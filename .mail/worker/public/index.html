@@ -1342,6 +1342,12 @@ html .bottom-nav.glass {
     chevron: '<path d="m9 6 6 6-6 6"/>',
     'chevron-down': '<path d="m6 9 6 6 6-6"/>',
     github: '<path fill="currentColor" stroke="none" d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02a9.58 9.58 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2Z"/>',
+    home: '<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9v10a2 2 0 0 0 2 2h3v-6h4v6h3a2 2 0 0 0 2-2V9"/>',
+    sliders: '<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>',
+    megaphone: '<path d="M3 11v2a1 1 0 0 0 1 1h3l6 4V6L7 10H4a1 1 0 0 0-1 1Z"/><path d="M17 9a4 4 0 0 1 0 6"/><path d="M8 14v4a2 2 0 0 0 4 0"/>',
+    grid: '<rect x="4" y="4" width="6" height="6" rx="1.5"/><rect x="14" y="4" width="6" height="6" rx="1.5"/><rect x="4" y="14" width="6" height="6" rx="1.5"/><rect x="14" y="14" width="6" height="6" rx="1.5"/>',
+    'arrow-up': '<path d="M12 19V5"/><path d="m6 11 6-6 6 6"/>',
+    activity: '<path d="M3 12h4l3-8 4 16 3-8h4"/>',
     leaf: '<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>'
   };
   // Material Symbols names still used by page scripts → sprite ids
@@ -1356,7 +1362,9 @@ html .bottom-nav.glass {
     palette: 'rich', subject: 'plain', memory: 'cpu', check_circle: 'check', error: 'alert',
     schedule: 'clock', casino: 'dice', attach_file: 'clip', block: 'ban', light_mode: 'sun',
     dark_mode: 'moon', devices: 'monitor', bolt: 'zap', hub: 'link', badge: 'id',
-    visibility_lock: 'lock', person: 'user'
+    visibility_lock: 'lock', person: 'user',
+    shield_lock: 'shield', tune: 'sliders', campaign: 'megaphone', apps: 'grid', upgrade: 'arrow-up',
+    monitor_heart: 'activity', privacy_tip: 'shield', check: 'check', progress_activity: 'refresh'
   };
   function iconId(name) { name = ALIAS[name] || name; return P[name] ? name : 'info'; }
   function icon(name, cls) {
@@ -3225,9 +3233,10 @@ function promptReset() {
   authCard({
     icon: 'alert',
     title: 'Start over with a new key.<br><span>Earlier mail stays locked.</span>',
-    sub: 'Nobody can recover a mailbox passphrase. You can set a new one with a new key: your address keeps working and new mail arrives as usual, but <strong>mail sent to you so far stays in your mailbox and can never be opened again.</strong> This needs your Inpriv ID password (and your two-factor code if it’s on).',
+    sub: 'Replacing your mailbox key requires the current mailbox passphrase, your Inpriv password, and a fresh two-factor code when enabled. If the current passphrase is lost and no device can unlock it, the key cannot be replaced.',
     body: `
       <form id="resetForm">
+        ${pwField('resetCurrent', 'Current mailbox passphrase', 'current-password', 'Mailbox passphrase')}
         ${pwField('resetPw', 'Inpriv password', 'current-password', 'Password')}
         <div class="field hidden" id="resetCodeField">
           <label for="resetCode">Two-factor code</label>
@@ -3257,6 +3266,8 @@ function promptReset() {
     const btn = $('#resetBtn');
     busy(btn, 'Creating a new key…');
     try {
+      await unlockWithPassphrase($('#resetCurrent').value);
+      const proof = await keyProof('reset');
       const fresh = await newRingKey();
       const ring = { v: 2, current: fresh.entry.id, keys: [fresh.entry] };
       const keys = await loadRing(ring);
@@ -3264,7 +3275,7 @@ function promptReset() {
       const code = $('#resetCode').value.trim();
       const r = await api('/keys/reset', {
         method: 'POST',
-        body: JSON.stringify({ password: pw, code: code || undefined, public_key: fresh.spki, key_id: fresh.entry.id, envelope })
+        body: JSON.stringify({ password: pw, code: code || undefined, public_key: fresh.spki, key_id: fresh.entry.id, envelope, previous_salt: state.user.priv_salt, ...proof })
       });
       if (r.status === 'totp_required') {
         $('#resetCodeField').classList.remove('hidden');
@@ -3325,6 +3336,8 @@ function logout() {
   state.user = null;
   state.signedIn = false;
   state.messages = [];
+  state.nextCursor = null;
+  state.messagesLoading = false;
   state.messagesOwner = null;
   lockMailbox();
   toast('Signed out', 'Your keys were removed from this page.');
@@ -3473,15 +3486,20 @@ function updateNavActive() {
 }
 
 /* ---------- Load & Render Messages ---------- */
-async function loadMessages() {
+async function loadMessages(older = false) {
+  older = older === true;
+  if (state.messagesLoading) return;
+  state.messagesLoading = true;
   const owner = state.user && state.user.id;
   const refreshBtn = $('#refreshBtn');
   if (refreshBtn) refreshBtn.classList.add('is-refreshing');
   try {
-    const data = await api('/messages');
+    const data = await api('/messages' + (older && state.nextCursor ? '?cursor=' + encodeURIComponent(state.nextCursor) : ''));
     if (!state.signedIn || !state.user || state.user.id !== owner) return;
     state.messagesOwner = owner;
-    state.messages = data.items || [];
+    const items = data.items || [];
+    state.messages = older ? [...state.messages, ...items.filter(m => !state.messages.some(old => old.id === m.id))] : items;
+    state.nextCursor = data.next_cursor || null;
     updateCounts();
     renderMessageCards();
   } catch (e) {
@@ -3495,8 +3513,28 @@ async function loadMessages() {
     }
     toast('Failed to load messages', e.message, 'error');
   } finally {
+    state.messagesLoading = false;
     if (refreshBtn && refreshBtn.isConnected) refreshBtn.classList.remove('is-refreshing');
   }
+}
+
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+function appendOlderButton(list) {
+  if (!state.nextCursor) return;
+  const button = el('button', 'btn btn-outlined', 'Load older mail');
+  button.type = 'button';
+  button.id = 'loadOlderBtn';
+  button.addEventListener('click', async () => {
+    button.disabled = true;
+    button.textContent = 'Loading older mail…';
+    try { await loadMessages(true); } finally { button.disabled = false; button.textContent = 'Load older mail'; }
+  });
+  list.append(button);
 }
 
 function updateCounts() {
@@ -3537,6 +3575,7 @@ function renderMessageCards() {
         </div>
       </div>
     `;
+    appendOlderButton(listArea);
     return;
   }
 
@@ -3545,23 +3584,22 @@ function renderMessageCards() {
   const top = Math.max(0, listArea.getBoundingClientRect().top);
   const onScreen = Math.max(6, Math.ceil((window.innerHeight - top) / 68) + 1);
   const step = Math.min(30, 350 / onScreen);
-  listArea.innerHTML = filtered.map((m, i) => `
-    <div class="msg-card ${m.is_read ? '' : 'unread'}${i < onScreen ? '' : ' still'}" data-id="${m.id}"${i < onScreen ? ` style="animation-delay:${Math.round(i * step)}ms"` : ''}>
-      <div class="msg-avatar" style="background:${avatarBg(m.peer_label || m.peer_address)}">${initials(m.peer_label || m.peer_address)}</div>
-      <div class="msg-body-meta">
-        <div class="msg-top-line">
-          <div class="msg-peer-name">${escapeHtml(m.peer_label || m.peer_address)}</div>
-          <div class="msg-time-badge">${fmtTime(m.created_at)}</div>
-        </div>
-        <div class="msg-subject-line">${escapeHtml(m.subject || '(No Subject)')}</div>
-      </div>
-      ${!m.is_read && m.direction === 'inbound' ? '<div class="unread-indicator"></div>' : ''}
-    </div>
-  `).join('');
-
-  $$('.msg-card').forEach(card => {
-    card.addEventListener('click', () => openMessageView(parseInt(card.dataset.id, 10)));
-  });
+  listArea.replaceChildren(...filtered.map((m, i) => {
+    const card = el('div', `msg-card ${m.is_read ? '' : 'unread'}${i < onScreen ? '' : ' still'}`);
+    card.dataset.id = m.id;
+    if (i < onScreen) card.style.animationDelay = Math.round(i * step) + 'ms';
+    const avatar = el('div', 'msg-avatar', initials(m.peer_label || m.peer_address));
+    avatar.style.background = avatarBg(m.peer_label || m.peer_address);
+    const meta = el('div', 'msg-body-meta');
+    const top = el('div', 'msg-top-line');
+    top.append(el('div', 'msg-peer-name', m.peer_label || m.peer_address), el('div', 'msg-time-badge', fmtTime(m.created_at)));
+    meta.append(top, el('div', 'msg-subject-line', m.subject || '(No Subject)'));
+    card.append(avatar, meta);
+    if (!m.is_read && m.direction === 'inbound') card.append(el('div', 'unread-indicator'));
+    card.addEventListener('click', () => openMessageView(m.id));
+    return card;
+  }));
+  appendOlderButton(listArea);
 }
 
 /* ============================================================================
@@ -4263,9 +4301,9 @@ async function installMailApp() {
 
 function showWhatsNew() {
   openInfoSheet("What's new", `
-    <article class="release-entry"><div class="release-date">6 November 2026 <span class="release-tag">Latest</span></div><h3>Mail, at home on your phone.</h3><ul><li>Install Inpriv Mail from Account. A dark startup screen and your saved theme welcome you back.</li><li>A solid message reader and an Unsubscribe button for sender-provided links or email requests.</li><li>A clear offline screen if you open Mail without a connection. Your mail stays online; it isn't saved for offline reading.</li></ul></article>
-    <article class="release-entry"><div class="release-date">5–6 November 2026</div><h3>A smoother everyday inbox.</h3><ul><li>Switch between Mail and Temp with a connected slide, and between Sign in and Create account with a softer transition.</li><li>Calmer inbox and message loading, readable progress, and a bottom bar that stays clear of the mail behind it.</li><li>Refresh Mail without being asked for an extra two-factor code while your session is still valid.</li></ul></article>
-    <article class="release-entry"><div class="release-date">5 November 2026</div><h3>One account, a simpler start.</h3><ul><li>Choose a username and one Inpriv password for ID and Mail. Recovery email is optional.</li><li>Passwords can be 8 characters or more; 12 or more is recommended.</li><li>Existing separate mailbox passphrases still work. You can also choose a separate one in Account.</li></ul></article>
+    <article class="release-entry"><div class="release-date">9 November 2026 <span class="release-tag">Latest</span></div><h3>Older mail, within reach.</h3><ul><li>Mail older than the newest 200 messages is now reachable with Load older mail.</li><li>Messages with the same arrival time stay in a consistent order as you load more.</li></ul></article>
+    <article class="release-entry"><div class="release-date">8 November 2026</div><h3>More protection for your account.</h3><ul><li>Changing your password, turning off two-factor authentication, replacing recovery codes, or deleting your account now asks for a fresh second-factor code when two-factor is enabled.</li><li>Each authenticator code can be used once. An unused recovery code also works for these account changes.</li><li>Replacing a mailbox key now requires opening the current key first. A lost mailbox passphrase cannot be bypassed with your sign-in password.</li></ul></article>
+    <article class="release-entry"><div class="release-date">8 November 2026</div><h3>Clearer privacy and sending limits.</h3><ul><li>Deleting your account also removes its security and access-log entries.</li><li>Temp gives you a generated address when your requested name is unavailable.</li><li>Confirm a recovery email in Inpriv ID before sending Mail to other providers. Sending limits help protect delivery for everyone.</li></ul></article>
   `);
 }
 
@@ -4325,7 +4363,7 @@ function renderAccountScreen() {
       <div class="acc-info-row" style="align-items:flex-start">
         <div style="flex:1;min-width:0">
           <div class="label">What's new</div>
-          <div class="qu-row-sub">A home for Mail on your phone, smoother loading, and easier account setup.</div>
+          <div class="qu-row-sub">Older mail is now reachable with Load older mail.</div>
         </div>
         <button type="button" class="copy-chip" id="whatsNewBtn">${mkIcon('info')} <span>View</span></button>
       </div>

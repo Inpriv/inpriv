@@ -112,15 +112,7 @@ export function tempLocal() {
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-let _ready = false;
-export async function ensureClaims(db) {
-  if (_ready) return;
-  await db.prepare(
-    "CREATE TABLE IF NOT EXISTS address_claims (local TEXT PRIMARY KEY, owner TEXT NOT NULL, claimed_on TEXT NOT NULL)"
-  ).run();
-  await db.prepare("CREATE TABLE IF NOT EXISTS app_meta (k TEXT PRIMARY KEY, v TEXT)").run();
-  _ready = true;
-}
+export async function ensureClaims(db) { /* Schema is managed by D1 migrations. */ }
 
 // A plain INSERT for a D1 batch: if the name is already claimed the batch
 // fails as a whole, so the claim and what it guards land together or not at all.

@@ -36,7 +36,7 @@ export class Client {
     this.cookies = new Map();
     // a fresh made-up address per client, so per-network limits don't carry
     // over between clients or runs
-    this.ip = ip || `10.${RUN}.${(++ipCounter >> 8) & 255}.${ipCounter & 255}`;
+    this.ip = ip || `10.${RUN}.${(++ipCounter) & 255}.1`;
     this.lastSetCookie = [];
   }
   // Local only: every Worker runs its own workerd process on the same SQLite
@@ -227,7 +227,8 @@ export async function enable2fa(idClient) {
   if (s.status !== 200) throw new Error("2fa setup " + JSON.stringify(s.body));
   // the test secret is fixed in the DB so codes are predictable
   const secret = s.body.secret;
-  const c = await idClient.post("/api/2fa/confirm", { code: totp(secret) });
+  let c = await idClient.post("/api/2fa/confirm", { code: totp(secret, Date.now() - 30_000) });
+  if (c.status === 401) c = await idClient.post("/api/2fa/confirm", { code: totp(secret, Date.now() - 30_000) });
   if (c.status !== 200) throw new Error("2fa confirm " + JSON.stringify(c.body));
   return { secret, recovery: c.body.recovery_codes };
 }

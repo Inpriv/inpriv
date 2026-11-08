@@ -81,3 +81,11 @@ CREATE TABLE IF NOT EXISTS device_keys (
 );
 CREATE INDEX IF NOT EXISTS idx_device_keys_user ON device_keys(user_id);
 CREATE INDEX IF NOT EXISTS idx_device_keys_dev ON device_keys(user_id, device_id);
+
+CREATE TABLE IF NOT EXISTS team_messages (id INTEGER PRIMARY KEY AUTOINCREMENT, mailbox TEXT NOT NULL, direction TEXT NOT NULL, from_addr TEXT, from_name TEXT, to_addr TEXT, subject TEXT, text TEXT, attachments TEXT, is_read INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL, resend_id TEXT);
+CREATE INDEX IF NOT EXISTS idx_team_box ON team_messages(mailbox, created_at);
+
+CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
+CREATE INDEX IF NOT EXISTS idx_key_challenges_expires_at ON key_challenges(expires_at);
+CREATE INDEX IF NOT EXISTS idx_rl_counters_exp ON rl_counters(exp);
+CREATE INDEX IF NOT EXISTS idx_messages_owner_created ON messages(owner_id, created_at DESC, id DESC);

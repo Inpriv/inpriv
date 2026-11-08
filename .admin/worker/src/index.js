@@ -1,3 +1,5 @@
+import { json as sharedJson } from "../../../common/http.js";
+import { hotp, base32Decode, verifyTOTP as matchTOTP } from "../../../common/crypto.js";
 // ── Inpriv Admin — private control plane ────────────────────────────────────
 // admin.inpriv.xyz — TOTP login (one admin, username in the ADMIN_USER
 // secret), service kill-switches,
@@ -73,7 +75,13 @@ export default {
 
     try {
       if (path === "/public/state") {
-        return await publicState(env, { "Access-Control-Allow-Origin": "*" }, request);
+        const origin = request.headers.get("Origin");
+        const allowed = Object.values(SERVICES_META).some((service) => service.url === origin);
+        const res = await publicState(env, {}, request);
+        const headers = new Headers(res.headers);
+        headers.set("Vary", "Origin");
+        if (allowed) headers.set("Access-Control-Allow-Origin", origin);
+        return new Response(res.body, { status: res.status, headers });
       }
       if (path === "/api/login" && method === "POST") return apiHeaders(await login(request, env, cors, waitUntil));
 
@@ -135,14 +143,8 @@ async function sweepOwn(env) {
 }
 
 // ── storage: admin_kv in D1 ──────────────────────────────────────────────────
-let _kvReady = false;
-async function ensureKv(env) {
-  if (_kvReady) return;
-  await env.ID_DB.prepare(
-    "CREATE TABLE IF NOT EXISTS admin_kv (k TEXT PRIMARY KEY, v TEXT NOT NULL, exp INTEGER)"
-  ).run();
-  _kvReady = true;
-}
+async function ensureKv(env) { /* Schema is managed by D1 migrations. */ }
+
 async function kvGet(env, k) {
   await ensureKv(env);
   const row = await env.ID_DB.prepare("SELECT v, exp FROM admin_kv WHERE k = ?").bind(k).first();
@@ -331,48 +333,10 @@ async function logout(request, env, cors) {
 }
 
 // ── TOTP (RFC 6238, SHA-1, 6 digits, ±1 step) ────────────────────────────────
-const B32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-function base32Decode(s) {
-  s = s.replace(/=+$/, "").toUpperCase().replace(/\s/g, "");
-  let bits = 0, val = 0;
-  const out = [];
-  for (const c of s) {
-    const idx = B32.indexOf(c);
-    if (idx < 0) continue;
-    val = (val << 5) | idx;
-    bits += 5;
-    if (bits >= 8) {
-      out.push((val >>> (bits - 8)) & 0xff);
-      bits -= 8;
-    }
-  }
-  return new Uint8Array(out);
-}
-
-// withStep: return the matching time step instead of true (replay check)
-async function verifyTOTP(code, b32Secret, nowS, withStep = false) {
-  if (!b32Secret) return false;
-  const key = base32Decode(b32Secret);
-  if (!key.length) return false;
-  const step = Math.floor(nowS / 30);
-  // check the current step FIRST — it matches ~97% of real logins, so the
-  // usual path costs one HMAC instead of three
-  for (const off of [0, -1, 1]) {
-    if (timingSafeEq(code, await hotp(key, step + off))) return withStep ? step + off : true;
-  }
-  return false;
-}
-
-async function hotp(key, counter) {
-  const buf = new ArrayBuffer(8);
-  const dv = new DataView(buf);
-  dv.setUint32(0, Math.floor(counter / 2 ** 32));
-  dv.setUint32(4, counter >>> 0);
-  const k = await crypto.subtle.importKey("raw", key, { name: "HMAC", hash: "SHA-1" }, false, ["sign"]);
-  const mac = new Uint8Array(await crypto.subtle.sign("HMAC", k, buf));
-  const o = mac[19] & 0x0f;
-  const bin = ((mac[o] & 0x7f) << 24) | (mac[o + 1] << 16) | (mac[o + 2] << 8) | mac[o + 3];
-  return String(bin % 1e6).padStart(6, "0");
+async function verifyTOTP(code, secret, nowS, withStep = false) {
+  if (!secret) return false;
+  const step = await matchTOTP(code, base32Decode(secret), nowS * 1000);
+  return withStep ? step : step !== false;
 }
 
 function timingSafeEq(a, b) {
@@ -396,11 +360,12 @@ async function publicState(env, cors, request) {
   // Edge-cache the public state briefly: gate checks from every tool worker
   // hit this endpoint.
   const cache = caches.default;
-  const cacheKey = new Request("https://cache.local/public/state", request);
+  const cacheKey = new Request("https://cache.local/public/state-v2");
   let res = await cache.match(cacheKey);
   if (!res) {
     const st = await getState(env);
-    const body = JSON.stringify({ global: st.global, info: st.info, services: st.services, ts: Date.now() });
+    const flags = (value) => ({ locked: !!value?.locked, ts: value?.ts || 0 });
+    const body = JSON.stringify({ global: flags(st.global), info: { active: false }, services: Object.fromEntries(Object.entries(st.services).map(([key, value]) => [key, flags(value)])), ts: Date.now() });
     res = new Response(body, {
       status: 200,
       headers: {
@@ -478,12 +443,7 @@ async function getAudit(env, cors) {
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────
-function json(obj, status, cors, extraHeaders = {}) {
-  return new Response(JSON.stringify(obj), {
-    status,
-    headers: { "content-type": "application/json", "cache-control": "no-store", ...cors, ...extraHeaders },
-  });
-}
+const json = (body, status = 200, cors = {}, extra = {}) => sharedJson(body, status, { ...cors, ...extra });
 
 // exported for tests
 export { verifyTOTP, hotp, base32Decode, timingSafeEq };

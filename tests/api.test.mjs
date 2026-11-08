@@ -201,14 +201,16 @@ describe("passphrase change, reset and Quick Unlock devices", () => {
     const m = await L.newMailbox(u, PW, PP);
     const id = new Client(URLS.id);
     await id.post("/api/login", { login: u, password: PW });
-    const { secret } = await L.enable2fa(id);
+    const { secret, recovery } = await L.enable2fa(id);
     const relog = new Client(URLS.mail);
     await relog.post("/api/v1/login", { username: u, password: PW, code: L.totp(secret) });
     const k = await L.newKey();
     const body = { public_key: k.spki, key_id: k.id, envelope: await L.sealRing([k], k.id, "brand new passphrase") };
     assert.equal((await relog.post("/api/v1/keys/reset", body)).status, 401, "session alone");
     assert.equal((await relog.post("/api/v1/keys/reset", { ...body, password: PW })).body.status, "totp_required");
-    const r = await relog.post("/api/v1/keys/reset", { ...body, password: PW, code: L.totp(secret) });
+    const challenge = (await relog.post("/api/v1/keys/challenge", { purpose: "reset" })).body;
+    const answer = await crypto.subtle.decrypt({ name: "RSA-OAEP" }, m.key.priv, L.b64d(challenge.challenge));
+    const r = await relog.post("/api/v1/keys/reset", { ...body, password: PW, recovery: recovery[0], previous_salt: m.user.priv_salt, challenge_id: challenge.challenge_id, challenge_answer: L.b64(answer) });
     assert.equal(r.status, 200);
     assert.equal(r.body.user.key_id, k.id);
     void m;
@@ -466,8 +468,8 @@ describe("one owner per @inpriv.xyz address, never reissued", () => {
   test("concurrent Temp claims of one custom name: exactly one wins", async () => {
     const name = "race" + L.rand(6);
     const rs = await Promise.all(Array.from({ length: 8 }, () => new Client(URLS.temp).post("/api/mailbox", { local: name })));
-    assert.equal(rs.filter((r) => r.status === 201).length, 1, JSON.stringify(rs.map((r) => r.status)));
-    assert.ok(rs.every((r) => [201, 409].includes(r.status)));
+    assert.ok(rs.every((r) => r.status === 201));
+    assert.equal(rs.filter(r => r.body.address === name + "@inpriv.xyz").length, 1);
   });
 
   test("Temp and ID racing for the same name: exactly one wins", async () => {
@@ -476,9 +478,9 @@ describe("one owner per @inpriv.xyz address, never reissued", () => {
       new Client(URLS.temp).post("/api/mailbox", { local: name }),
       new Client(URLS.id).post("/api/register", { username: name, password: PW }),
     ]);
-    assert.equal([t.status === 201, i.status === 200].filter(Boolean).length, 1, `${t.status} ${i.status}`);
+    assert.equal([t.body.address === name + "@inpriv.xyz", i.status === 200].filter(Boolean).length, 1, `${t.status} ${i.status}`);
     const owner = L.db("id").prepare("SELECT owner FROM address_claims WHERE local = ?").get(name).owner;
-    assert.equal(owner, t.status === 201 ? "temp" : "id");
+    assert.equal(owner, t.body.address === name + "@inpriv.xyz" ? "temp" : "id");
   });
 
   test("an expired Temp address is never handed out again", async () => {
@@ -489,7 +491,9 @@ describe("one owner per @inpriv.xyz address, never reissued", () => {
     assert.equal(await L.scheduled(URLS.temp), 200);
     await L.sleep(500);
     assert.equal(L.db("temp").prepare("SELECT COUNT(*) n FROM mailboxes WHERE address = ?").get(mb.address).n, 0, "inbox removed");
-    assert.equal((await new Client(URLS.temp).post("/api/mailbox", { local: name })).status, 409);
+    const fallback = await new Client(URLS.temp).post("/api/mailbox", { local: name });
+    assert.equal(fallback.status, 201);
+    assert.notEqual(fallback.body.address, String(name).toLowerCase() + "@inpriv.xyz");
     assert.equal((await new Client(URLS.id).post("/api/register", { username: name, password: PW })).status, 409);
     const claim = L.db("id").prepare("SELECT * FROM address_claims WHERE local = ?").get(name);
     assert.equal(claim.owner, "temp");
@@ -500,15 +504,17 @@ describe("one owner per @inpriv.xyz address, never reissued", () => {
     const u = "del" + L.rand();
     const id = await L.registerId(u, PW);
     assert.equal((await id.post("/api/account/delete", { password: PW })).status, 200);
-    assert.equal((await new Client(URLS.temp).post("/api/mailbox", { local: u })).status, 409);
+    const fallback = await new Client(URLS.temp).post("/api/mailbox", { local: u });
+    assert.equal(fallback.status, 201);
+    assert.notEqual(fallback.body.address, String(u).toLowerCase() + "@inpriv.xyz");
     assert.equal((await new Client(URLS.id).post("/api/register", { username: u, password: PW })).status, 409);
   });
 
   test("Temp can't claim an account, team or reserved address; the answer doesn't say which", async () => {
     for (const name of [alice.username, "support", "dmarc", "amber-fox-12"]) {
       const r = await new Client(URLS.temp).post("/api/mailbox", { local: name });
-      assert.equal(r.status, 409, name);
-      assert.equal(r.body.error, "That address isn't available — try another");
+      assert.equal(r.status, 201, name);
+      assert.notEqual(r.body.address, name + "@inpriv.xyz");
     }
   });
 
@@ -527,7 +533,9 @@ describe("one owner per @inpriv.xyz address, never reissued", () => {
   });
 
   test("case is normalized: ALICE is alice", async () => {
-    assert.equal((await new Client(URLS.temp).post("/api/mailbox", { local: alice.username.toUpperCase() })).status, 409);
+    const fallback = await new Client(URLS.temp).post("/api/mailbox", { local: alice.username.toUpperCase() });
+    assert.equal(fallback.status, 201);
+    assert.notEqual(fallback.body.address, String(alice.username.toUpperCase()).toLowerCase() + "@inpriv.xyz");
     const r = await new Client(URLS.mail).post("/api/v1/login", { username: alice.username.toUpperCase() + "@INPRIV.XYZ", password: PW });
     assert.equal(r.body.status, "ok");
   });

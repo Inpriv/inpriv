@@ -5,7 +5,7 @@ import { maintenanceGate, maintenancePage } from "../../../common/gate.js";
 import { logAccess } from "../../../common/access-log.js";
 import { notFound } from "../../../common/errors.js";
 import { canonicalRedirect } from "../../../common/canonical.js";
-import { clientKey, originAllowed, isUnsafeMethod, pageResponse, withHeaders } from "../../../common/security.js";
+import { clientNet, originAllowed, isUnsafeMethod, pageResponse, withHeaders } from "../../../common/security.js";
 import { isReservedLocal, claimStatement, ensureClaims, backfillIdClaims, claimOwner } from "../../../common/addresses.js";
 import {
   SESSION_TTL_MS, PASS_ITERS,
@@ -13,7 +13,7 @@ import {
   passHash, constantTimeEq, sealString, openString,
   base32Decode, base32Encode, verifyTOTP,
   rateLimit, overLimit, bump, parseUA, ipPrefix, sendMail, emailShell, emailAddr, codeBlock,
-  sessionCookie, clearCookie,
+  sessionCookie, clearCookie, protectCode, codeMatches, consumeFactor, factorStatement,
 } from "./lib.js";
 
 const newToken = () => b64(crypto.getRandomValues(new Uint8Array(32)));
@@ -26,7 +26,7 @@ const SERVICE_META = {
 
 async function publicUser(env, uid, full = false) {
   const u = await env.DB.prepare(
-    "SELECT id, username, email, recovery_email, nick, email_verified, recovery_email_verified, totp_enabled, created_at, last_login FROM users WHERE id = ?"
+    "SELECT id, username, email, recovery_email, pending_recovery_email, nick, email_verified, recovery_email_verified, totp_enabled, created_at, last_login FROM users WHERE id = ?"
   ).bind(uid).first();
   if (!u) return null;
   const username = u.username || (u.email ? u.email.split("@")[0] : "user");
@@ -43,52 +43,20 @@ async function publicUser(env, uid, full = false) {
     totp_enabled: !!u.totp_enabled,
   };
   if (full) {
-    out.recovery_email = u.recovery_email || null;
-    out.recovery_email_verified = !!u.recovery_email_verified;
+    out.recovery_email = u.pending_recovery_email || u.recovery_email || null;
+    out.recovery_email_verified = !u.pending_recovery_email && !!u.recovery_email_verified;
     out.created_at = u.created_at;
     out.last_login = u.last_login;
   }
   return out;
 }
 
-// Lazy table creation: the SSO/settings tables ship after the initial
-// deploy, so every endpoint that touches them calls this first. D1 keeps the
-// DDL cached; the "already exists" case is a cheap no-op.
-let tablesReady = false;
+// Compatibility helpers remain for callers; migrations own the schema.
 // Usernames of deleted accounts. Kept forever so an address is never
 // reassigned (ID sign-up and Temp custom names both check it).
-let _retiredReady = false;
-async function ensureRetired(db) {
-  if (_retiredReady) return;
-  await db.prepare("CREATE TABLE IF NOT EXISTS retired_usernames (username TEXT PRIMARY KEY, retired_at INTEGER NOT NULL)").run();
-  _retiredReady = true;
-}
+async function ensureRetired(db) { /* Schema is managed by D1 migrations. */ }
 
-async function ensureTables(env) {
-  if (tablesReady) return;
-  // D1 runs batches inside a transaction; SQLite cannot run some DDL there,
-  // so create the tables one by one (no-op once they exist).
-  for (const ddl of [
-    `CREATE TABLE IF NOT EXISTS service_grants (
-       id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-       service TEXT NOT NULL, state TEXT NOT NULL, created_at INTEGER NOT NULL,
-       expires_at INTEGER NOT NULL, used_at INTEGER)`,
-    `CREATE INDEX IF NOT EXISTS idx_grants_user ON service_grants(user_id, created_at)`,
-    `CREATE TABLE IF NOT EXISTS user_settings (
-       user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-       quick_unlock INTEGER NOT NULL DEFAULT 1, updated_at INTEGER NOT NULL)`,
-    `CREATE TABLE IF NOT EXISTS quick_unlock (
-       user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-       blob TEXT NOT NULL, updated_at INTEGER NOT NULL)`,
-    `CREATE TABLE IF NOT EXISTS consents (
-       user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-       service TEXT NOT NULL, granted_at INTEGER NOT NULL, last_used INTEGER,
-       PRIMARY KEY (user_id, service))`,
-  ]) {
-    await env.DB.prepare(ddl).run();
-  }
-  tablesReady = true;
-}
+async function ensureTables(env) { /* Schema is managed by D1 migrations. */ }
 
 async function logEvent(db, uid, kind, req) {
   await db
@@ -103,17 +71,22 @@ async function logEvent(db, uid, kind, req) {
 // Recovery-email code. Earlier unused codes are deleted first, so the only
 // valid code is the latest one, for the address currently on the account.
 async function sendRecoveryCode(env, uid) {
-  const u = await env.DB.prepare("SELECT email, recovery_email, recovery_email_verified FROM users WHERE id = ?").bind(uid).first();
+  const u = await env.DB.prepare("SELECT email, COALESCE(pending_recovery_email, recovery_email) AS recovery_email, CASE WHEN pending_recovery_email IS NULL THEN recovery_email_verified ELSE 0 END AS recovery_email_verified FROM users WHERE id = ?").bind(uid).first();
   if (!u || !u.recovery_email) return { ok: false, status: 400, error: "add a recovery email first" };
   if (u.recovery_email_verified) return { ok: true, already: true };
+  // Same acknowledgement, but no email to somebody else's owned address.
+  if (await env.DB.prepare("SELECT 1 FROM users WHERE recovery_email = ? AND id != ?").bind(u.recovery_email, uid).first()) return { ok: true };
+
   if (!(await rateLimit(env.DB, `verify:${uid}`, 5, 3_600_000))) {
     return { ok: false, status: 429, error: "too many codes — try again in an hour" };
   }
+  if (!(await rateLimit(env.DB, `recipient:${await sha256hex(u.recovery_email)}`, 3, 3_600_000)))
+    return { ok: false, status: 429, error: "too many emails to this address — try again in an hour" };
   const code = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1_000_000).padStart(6, "0");
   await env.DB.batch([
     env.DB.prepare("DELETE FROM email_codes WHERE user_id = ? AND purpose = 'verify' AND used_at IS NULL").bind(uid),
     env.DB.prepare("INSERT INTO email_codes (id, user_id, code_hash, purpose, expires_at) VALUES (?,?,?,?,?)")
-      .bind(uuid(), uid, await sha256hex(code), "verify", now() + 15 * 60_000),
+      .bind(uuid(), uid, await protectCode(env, u.recovery_email + "\0" + code), "verify", now() + 15 * 60_000),
   ]);
   const to = u.recovery_email;
   const sent = await sendMail(env, to, `${code} is your Inpriv verification code`,
@@ -129,16 +102,17 @@ async function sendRecoveryCode(env, uid) {
   return { ok: true };
 }
 
-async function createSession(db, userId, req, totpOk) {
+async function createSession(db, userId, req, totpOk, factor = null) {
   const token = newToken();
   const id = await sha256hex(token);
   const label = parseUA(req.headers.get("User-Agent"));
-  await db
-    .prepare(
-      "INSERT INTO sessions (id, user_id, label, ip_prefix, created_at, last_used, expires_at, totp_ok) VALUES (?,?,?,?,?,?,?,?)"
-    )
-    .bind(id, userId, label, ipPrefix(req), now(), now(), now() + SESSION_TTL_MS, totpOk ? 1 : 0)
-    .run();
+  const insert = db.prepare(
+    "INSERT INTO sessions (id, user_id, label, ip_prefix, created_at, last_used, expires_at, totp_ok) SELECT ?,?,?,?,?,?,?,?" + (factor ? " WHERE changes() = 1" : "")
+  ).bind(id, userId, label, ipPrefix(req), now(), now(), now() + SESSION_TTL_MS, totpOk ? 1 : 0);
+  if (factor) {
+    const result = await db.batch([factor, insert]);
+    if (result[1].meta.changes !== 1) return null;
+  } else await insert.run();
   return { token, id };
 }
 
@@ -196,8 +170,8 @@ async function authUser(req, env, rotate = true) {
     const r = await rotateSession(env.DB, row);
     token = r.token;
     row = { ...row, sid: r.id };
-  } else {
-    await env.DB.prepare("UPDATE sessions SET last_used = ? WHERE id = ?").bind(now(), row.sid).run();
+  } else if (now() - row.last_used >= 300_000) {
+    await env.DB.prepare("UPDATE sessions SET last_used = ? WHERE id = ? AND last_used <= ?").bind(now(), row.sid, now() - 300_000).run();
   }
   return { row, token, uid: row.uid, via };
 }
@@ -257,7 +231,7 @@ export default {
       return bad("request refused: unknown origin", 403);
     }
 
-    const gate = await maintenanceGate("account");
+    const gate = await maintenanceGate("account", env);
     if (gate.locked && path !== "/api/health") return maintenancePage("Inpriv ID", gate.message);
 
     // ── One Tap widget: /id.js — loadable from every *.inpriv.xyz page ──
@@ -282,13 +256,15 @@ export default {
     }
 
     if (path === "/api/health") {
-      return json({ service: "inpriv-id", status: "ok", version: "1.1.0" });
+      // Bounded compatibility migration; no code or hash enters logs.
+      await protectLegacyCodes(env);
+      return json({ service: "inpriv-id", status: "ok", version: "1.1.0", release: "2026-11-09" });
     }
 
     try {
       // ═══ PUBLIC: REGISTER ═══
       if (path === "/api/register" && request.method === "POST") {
-        if (!(await rateLimit(env.DB, `reg:${clientKey(request)}`, 5, 3_600_000)))
+        if (!(await rateLimit(env.DB, `reg:${(clientNet(request) || "unknown")}`, 5, 3_600_000)))
           return bad("too many registrations from this network — try again later", 429);
 
         const body = await request.json();
@@ -343,8 +319,8 @@ export default {
         }
 
         const dup = await env.DB.prepare(
-          "SELECT 1 FROM users WHERE username = ? OR email = ? OR (recovery_email IS NOT NULL AND recovery_email = ?)"
-        ).bind(username, inprivEmail, recoveryEmail || "__none__").first();
+          "SELECT 1 FROM users WHERE username = ? OR email = ?"
+        ).bind(username, inprivEmail).first();
         if (dup) return bad("an account with this Inpriv ID or recovery email already exists", 409);
 
         // Never issue an ID whose @inpriv.xyz address is already delivered by
@@ -375,7 +351,7 @@ export default {
           await env.DB.batch([
             claimStatement(env.DB, username, "id"),
             env.DB.prepare(
-              "INSERT INTO users (id, username, email, recovery_email, nick, pass_hash, pass_salt, pass_iters, created_at) VALUES (?,?,?,?,?,?,?,?,?)"
+              "INSERT INTO users (id, username, email, pending_recovery_email, nick, pass_hash, pass_salt, pass_iters, created_at) VALUES (?,?,?,?,?,?,?,?,?)"
             ).bind(uid, username, inprivEmail, recoveryEmail, nick || username, ph, salt, PASS_ITERS, now()),
           ]);
         } catch (e) {
@@ -386,27 +362,11 @@ export default {
         }
         await logEvent(env.DB, uid, "register", request);
 
-        let sentOk = false;
-        if (recoveryEmail) {
-          const code = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1_000_000).padStart(6, "0");
-          await env.DB.prepare(
-            "INSERT INTO email_codes (id, user_id, code_hash, purpose, expires_at) VALUES (?,?,?,?,?)"
-          ).bind(uuid(), uid, await sha256hex(code), "verify", now() + 15 * 60_000).run();
-          const sent = await sendMail(
-            env, recoveryEmail,
-            `${code} is your Inpriv verification code`,
-            `Confirm ${recoveryEmail} as the recovery email for ${inprivEmail}.\n\nYour code: ${code}\n\nEnter it on id.inpriv.xyz. It expires in 15 minutes.\n\nDidn't ask for this? You can ignore this email.`,
-            emailShell("Confirm your recovery email",
-              `Enter this code on <a href="https://id.inpriv.xyz" style="color:inherit">id.inpriv.xyz</a> to use ${emailAddr(recoveryEmail)} as the recovery email for ${emailAddr(inprivEmail)}.` +
-              `${codeBlock(code)}It expires in 15 minutes.`,
-              `Your code: ${code}. It expires in 15 minutes.`)
-          );
-          sentOk = sent.ok;
-        }
+        if (recoveryEmail) await sendRecoveryCode(env, uid);
 
         const s = await createSession(env.DB, uid, request, true);
         return json(
-          { user: await publicUser(env, uid, true), verification_sent: sentOk },
+          { user: await publicUser(env, uid), verification_sent: false },
           200,
           { ...cors, "Set-Cookie": sessionCookie(s.token) }
         );
@@ -414,7 +374,7 @@ export default {
 
       // ═══ PUBLIC: LOGIN ═══
       if (path === "/api/login" && request.method === "POST") {
-        if (!(await rateLimit(env.DB, `login:${clientKey(request)}`, 10, 15 * 60_000)))
+        if (!(await rateLimit(env.DB, `login:${(clientNet(request) || "unknown")}`, 10, 15 * 60_000)))
           return bad("too many attempts — wait 15 minutes", 429);
 
         const body = await request.json();
@@ -489,27 +449,12 @@ export default {
         if (!(await rateLimit(env.DB, `mfau:${p.user_id}`, 10, 15 * 60_000)))
           return bad("too many wrong codes — wait 15 minutes", 429);
 
-        if (recovery) {
-          const hash = await sha256hex(recovery);
-          const rc = await env.DB.prepare(
-            "SELECT id FROM recovery_codes WHERE user_id = ? AND code_hash = ? AND used_at IS NULL"
-          ).bind(p.user_id, hash).first();
-          if (!rc) return bad("invalid recovery code", 401);
-          await env.DB.prepare("UPDATE recovery_codes SET used_at = ? WHERE id = ?").bind(now(), rc.id).run();
-          await logEvent(env.DB, p.user_id, "recovery_used", request);
-        } else {
-          if (!/^\d{6}$/.test(code)) return bad("enter the 6-digit code");
-          const trow = await env.DB.prepare(
-            "SELECT secret_enc FROM totp_secrets WHERE user_id = ? AND confirmed = 1"
-          ).bind(p.user_id).first();
-          const secret = trow ? await openString(env, trow.secret_enc) : null;
-          if (!secret || !(await verifyTOTP(code, base32Decode(secret), now()))) {
-            return bad("invalid code", 401);
-          }
-        }
-
+        const factor = await factorStatement(env, p.user_id, { code, recovery });
+        if (!factor) return bad("invalid or already used two-factor code", 401);
+        const s = await createSession(env.DB, p.user_id, request, true, factor);
+        if (!s) return bad("invalid or already used two-factor code", 401);
+        if (recovery) await logEvent(env.DB, p.user_id, "recovery_used", request);
         await env.DB.prepare("DELETE FROM pending_2fa WHERE id = ?").bind(pid).run();
-        const s = await createSession(env.DB, p.user_id, request, true);
         await env.DB.prepare("UPDATE users SET last_login = ? WHERE id = ?").bind(now(), p.user_id).run();
         return json(
           { user: await publicUser(env, p.user_id, true) },
@@ -727,7 +672,7 @@ export default {
         const body = await request.json().catch(() => ({}));
         const uname = String(body.username || "").toLowerCase().split("@")[0];
         const code = String(body.code || "").trim();
-        if (!/^\d{6}$/.test(code)) return bad("invalid code", 400);
+        if (!/^\d{6}$/.test(code) && !body.recovery) return bad("invalid code", 400);
         if (!uname) return bad("invalid username", 400);
         if (!(await rateLimit(env.DB, `tverify:${uname}`, 10, 10 * 60_000)))
           return bad("too many attempts — try again in 10 minutes", 429);
@@ -735,11 +680,7 @@ export default {
           "SELECT id FROM users WHERE username = ? OR email = ?"
         ).bind(uname, uname + "@inpriv.xyz").first();
         if (!u) return json({ ok: false }, 200, cors); // anti-enumeration: same shape
-        const trow = await env.DB.prepare(
-          "SELECT secret_enc FROM totp_secrets WHERE user_id = ? AND confirmed = 1"
-        ).bind(u.id).first();
-        const secret = trow ? await openString(env, trow.secret_enc) : null;
-        const okFlag = !!(secret && (await verifyTOTP(code, base32Decode(secret), now())));
+        const okFlag = await consumeFactor(env, u.id, body);
         return json({ ok: okFlag }, 200, cors);
       }
 
@@ -819,15 +760,19 @@ export default {
         if (!(await rateLimit(env.DB, `vconfirm:${me.uid}`, 8, 15 * 60_000))) {
           return bad("too many tries — wait 15 minutes, then ask for a new code", 429);
         }
-        const hash = await sha256hex(code);
-        const row = await env.DB.prepare(
-          "SELECT id, expires_at, used_at FROM email_codes WHERE user_id = ? AND purpose = 'verify' AND code_hash = ? ORDER BY expires_at DESC LIMIT 1"
-        ).bind(me.uid, hash).first();
-        if (!row || row.used_at || row.expires_at < now()) return bad("invalid or expired code", 401);
-        await env.DB.batch([
-          env.DB.prepare("UPDATE email_codes SET used_at = ? WHERE id = ?").bind(now(), row.id),
-          env.DB.prepare("UPDATE users SET recovery_email_verified = 1, email_verified = 1 WHERE id = ?").bind(me.uid),
-        ]);
+        const address = (await env.DB.prepare("SELECT COALESCE(pending_recovery_email, recovery_email) AS email FROM users WHERE id = ?").bind(me.uid).first()).email;
+        const row = await env.DB.prepare("SELECT id, code_hash, expires_at, used_at FROM email_codes WHERE user_id = ? AND purpose = 'verify' ORDER BY expires_at DESC LIMIT 1").bind(me.uid).first();
+        if (!row || row.used_at || row.expires_at < now() || !(await codeMatches(env, address + "\0" + code, row.code_hash))) return bad("invalid or expired code", 401);
+        try {
+          const result = await env.DB.batch([
+            env.DB.prepare("UPDATE email_codes SET used_at = ? WHERE id = ? AND used_at IS NULL AND EXISTS (SELECT 1 FROM users WHERE id = ? AND COALESCE(pending_recovery_email, recovery_email) = ?)").bind(now(), row.id, me.uid, address),
+            env.DB.prepare("UPDATE users SET recovery_email = ?, pending_recovery_email = NULL, recovery_email_verified = 1, email_verified = 1 WHERE id = ? AND changes() = 1").bind(address, me.uid),
+          ]);
+          if (result[1].meta.changes !== 1) return bad("invalid or expired code", 401);
+        } catch (error) {
+          if (/UNIQUE|constraint/i.test(String(error.message))) return bad("this address is already confirmed on another account", 409);
+          throw error;
+        }
         return out({ ok: true, user: await publicUser(env, me.uid, true) }, 200, cors);
       }
 
@@ -845,7 +790,7 @@ export default {
         } else {
           recoveryEmail = null;
         }
-        const cur = await env.DB.prepare("SELECT recovery_email, recovery_email_verified FROM users WHERE id = ?").bind(me.uid).first();
+        const cur = await env.DB.prepare("SELECT COALESCE(pending_recovery_email, recovery_email) AS recovery_email, CASE WHEN pending_recovery_email IS NULL THEN recovery_email_verified ELSE 0 END AS recovery_email_verified FROM users WHERE id = ?").bind(me.uid).first();
         // same address again: keep its status; if it's still waiting, send a fresh code
         if ((cur.recovery_email || null) === recoveryEmail) {
           if (!recoveryEmail || cur.recovery_email_verified) {
@@ -855,15 +800,9 @@ export default {
           if (!r.ok) return out({ error: r.error }, r.status, cors);
           return out({ ok: true, user: await publicUser(env, me.uid, true), code_sent: true }, 200, cors);
         }
-        if (recoveryEmail) {
-          const taken = await env.DB.prepare(
-            "SELECT 1 FROM users WHERE id != ? AND (recovery_email = ? OR email = ?)"
-          ).bind(me.uid, recoveryEmail, recoveryEmail).first();
-          if (taken) return bad("this email is already used by another Inpriv account", 409);
-        }
         await env.DB.batch([
-          env.DB.prepare("UPDATE users SET recovery_email = ?, recovery_email_verified = 0, email_verified = 0 WHERE id = ?")
-            .bind(recoveryEmail, me.uid),
+          env.DB.prepare("UPDATE users SET pending_recovery_email = ?, recovery_email = CASE WHEN ? IS NULL THEN NULL ELSE recovery_email END, recovery_email_verified = CASE WHEN ? IS NULL THEN 0 ELSE recovery_email_verified END, email_verified = CASE WHEN ? IS NULL THEN 0 ELSE email_verified END WHERE id = ?")
+            .bind(recoveryEmail, recoveryEmail, recoveryEmail, recoveryEmail, me.uid),
           env.DB.prepare("DELETE FROM email_codes WHERE user_id = ? AND purpose = 'verify' AND used_at IS NULL").bind(me.uid),
         ]);
         await logEvent(env.DB, me.uid, recoveryEmail ? "recovery_set" : "recovery_removed", request);
@@ -882,7 +821,7 @@ export default {
         const accountLabel = urow.username ? `${urow.username}@inpriv.xyz` : (urow.email || "user@inpriv.xyz");
         const otpauth = `otpauth://totp/Inpriv:${encodeURIComponent(accountLabel)}?secret=${secret}&issuer=Inpriv&algorithm=SHA1&digits=6&period=30`;
         await env.DB.prepare(
-          "INSERT INTO totp_secrets (user_id, secret_enc, confirmed, created_at) VALUES (?,?,0,?) ON CONFLICT(user_id) DO UPDATE SET secret_enc = excluded.secret_enc, confirmed = 0"
+          "INSERT INTO totp_secrets (user_id, secret_enc, confirmed, created_at) VALUES (?,?,0,?) ON CONFLICT(user_id) DO UPDATE SET secret_enc = excluded.secret_enc, confirmed = 0, last_step = NULL"
         ).bind(me.uid, await sealString(env, secret), now()).run();
         // the page draws the QR code itself; the secret never goes to another service
         return out({ secret, otpauth }, 200, cors);
@@ -893,18 +832,14 @@ export default {
         if (!/^\d{6}$/.test(code)) return bad("enter the 6-digit code");
         if (me.row.totp_enabled) return bad("two-factor is already on", 409);
         if (!(await rateLimit(env.DB, `tconfirm:${me.uid}`, 10, 15 * 60_000))) return bad("too many tries — wait 15 minutes", 429);
-        const trow = await env.DB.prepare("SELECT secret_enc FROM totp_secrets WHERE user_id = ?").bind(me.uid).first();
-        const secret = trow ? await openString(env, trow.secret_enc) : null;
-        if (!secret || !(await verifyTOTP(code, base32Decode(secret), now()))) {
-          return bad("invalid code — try the next one", 401);
-        }
+        if (!(await consumeFactor(env, me.uid, body, true))) return bad("invalid or already used code — try the next one", 401);
         const codes = [];
         const stmts = [];
         for (let i = 0; i < 10; i++) {
           const raw = newToken().slice(0, 4) + "-" + newToken().slice(0, 4);
           codes.push(raw);
           stmts.push(env.DB.prepare("INSERT INTO recovery_codes (id, user_id, code_hash) VALUES (?,?,?)")
-            .bind(uuid(), me.uid, await sha256hex(raw.toLowerCase())));
+            .bind(uuid(), me.uid, await protectCode(env, raw.toLowerCase())));
         }
         stmts.push(env.DB.prepare("UPDATE totp_secrets SET confirmed = 1 WHERE user_id = ?").bind(me.uid));
         stmts.push(env.DB.prepare("UPDATE users SET totp_enabled = 1 WHERE id = ?").bind(me.uid));
@@ -930,13 +865,15 @@ export default {
         if (!(await rateLimit(env.DB, `pwcheck:${me.uid}`, 10, 3_600_000))) return bad("too many tries — wait an hour", 429);
         const candidate = await passHash(String(body.password || ""), u.pass_salt, u.pass_iters);
         if (!constantTimeEq(candidate, u.pass_hash)) return bad("wrong password", 401);
+        if (me.row.totp_enabled && !(await consumeFactor(env, me.uid, body)))
+          return bad("enter a fresh two-factor code or an unused recovery code", 401);
         const codes = [];
         const stmts = [env.DB.prepare("DELETE FROM recovery_codes WHERE user_id = ?").bind(me.uid)];
         for (let i = 0; i < 10; i++) {
           const raw = newToken().slice(0, 4) + "-" + newToken().slice(0, 4);
           codes.push(raw);
           stmts.push(env.DB.prepare("INSERT INTO recovery_codes (id, user_id, code_hash) VALUES (?,?,?)")
-            .bind(uuid(), me.uid, await sha256hex(raw.toLowerCase())));
+            .bind(uuid(), me.uid, await protectCode(env, raw.toLowerCase())));
         }
         await env.DB.batch(stmts);
         await logEvent(env.DB, me.uid, "recovery_new", request);
@@ -948,6 +885,8 @@ export default {
         const u = await env.DB.prepare("SELECT pass_hash, pass_salt, pass_iters FROM users WHERE id = ?").bind(me.uid).first();
         const candidate = await passHash(String(body.password || ""), u.pass_salt, u.pass_iters);
         if (!constantTimeEq(candidate, u.pass_hash)) return bad("wrong password", 401);
+        if (me.row.totp_enabled && !(await consumeFactor(env, me.uid, body)))
+          return bad("enter a fresh two-factor code or an unused recovery code", 401);
         await env.DB.batch([
           env.DB.prepare("DELETE FROM totp_secrets WHERE user_id = ?").bind(me.uid),
           env.DB.prepare("DELETE FROM recovery_codes WHERE user_id = ?").bind(me.uid),
@@ -1011,6 +950,8 @@ export default {
         const u = await env.DB.prepare("SELECT pass_hash, pass_salt, pass_iters FROM users WHERE id = ?").bind(me.uid).first();
         const candidate = await passHash(current, u.pass_salt, u.pass_iters);
         if (!constantTimeEq(candidate, u.pass_hash)) return bad("current password is wrong", 401);
+        if (me.row.totp_enabled && !(await consumeFactor(env, me.uid, body)))
+          return bad("enter a fresh two-factor code or an unused recovery code", 401);
         const salt = b64(crypto.getRandomValues(new Uint8Array(16)));
         const ph = await passHash(next, salt);
         await env.DB.batch([
@@ -1032,9 +973,14 @@ export default {
         const u = await env.DB.prepare("SELECT pass_hash, pass_salt, pass_iters FROM users WHERE id = ?").bind(me.uid).first();
         const candidate = await passHash(String(body.password || ""), u.pass_salt, u.pass_iters);
         if (!constantTimeEq(candidate, u.pass_hash)) return bad("wrong password", 401);
+        if (me.row.totp_enabled && !(await consumeFactor(env, me.uid, body)))
+          return bad("enter a fresh two-factor code or an unused recovery code", 401);
         const gone = await env.DB.prepare("SELECT username FROM users WHERE id = ?").bind(me.uid).first();
-        await logEvent(env.DB, me.uid, "account_delete", request);
-        await env.DB.prepare("DELETE FROM users WHERE id = ?").bind(me.uid).run();
+        await env.DB.batch([
+          env.DB.prepare("DELETE FROM access_log WHERE account IN (?, ?)").bind(gone?.username || me.uid, me.uid),
+          env.DB.prepare("DELETE FROM auth_events WHERE user_id = ?").bind(me.uid),
+          env.DB.prepare("DELETE FROM users WHERE id = ?").bind(me.uid),
+        ]);
         if (gone && gone.username) {
           // the address is never handed to anyone else (mail meant for the old
           // owner must not reach a new one): its address claim stays, and the
@@ -1063,4 +1009,13 @@ export default {
 function encSalt(email) {
   const e = new TextEncoder().encode("pepper:" + email);
   return b64(e.subarray(0, 16));
+}
+
+async function protectLegacyCodes(env) {
+  for (const table of ["recovery_codes", "email_codes"]) {
+    const rows = await env.DB.prepare(`SELECT id, code_hash FROM ${table} WHERE code_hash NOT LIKE 'sealed:%' AND code_hash NOT LIKE 'legacy-sealed:%' LIMIT 100`).all();
+    if (rows.results.length) await env.DB.batch(await Promise.all(rows.results.map(async (row) => env.DB.prepare(
+      `UPDATE ${table} SET code_hash = ? WHERE id = ? AND code_hash = ?`
+    ).bind("legacy-sealed:" + await sealString(env, row.code_hash), row.id, row.code_hash))));
+  }
 }

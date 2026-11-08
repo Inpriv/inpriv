@@ -1,9 +1,8 @@
 # Security tests
 
 Local only: every Worker runs under `wrangler dev` with test-only secrets and
-local D1 databases. Nothing here talks to production (the maintenance gate
-still reads `admin.inpriv.xyz/public/state`, read-only, and the Mail page loads
-`id.js` from id.inpriv.xyz, which does nothing on localhost).
+local D1 databases. The maintenance gate reads the local admin Worker only. The Mail page loads
+`id.js` from id.inpriv.xyz, which does nothing on localhost.
 
 ```bash
 tests/local.sh up                      # start landing, temp, admin, id, mail (+ HTML test Worker)

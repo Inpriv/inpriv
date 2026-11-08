@@ -63,6 +63,29 @@ const leaks = async (log, secret) => [
   ...log.requests.filter((r) => r.url.includes(secret) || r.headers.includes(secret)),
   ...log.sent.concat(await log.bodies()).filter((r) => r.url.includes(secret) || r.body.includes(secret)),
 ];
+
+test('older mail loads from the inbox and message text cannot create elements', async () => {
+  const username = 'paged' + L.rand();
+  const m = await L.newMailbox(username, PW, PW);
+  const db = L.db('mail');
+  const insert = db.prepare("INSERT INTO messages (owner_id, direction, peer_address, peer_label, subject, encrypted_aes_key, iv, ciphertext, auth_tag, created_at) VALUES (?, 'inbound', 'sender@example.test', ?, ?, '', '', '', '', ?)");
+  const hostile = '<img src=x onerror=alert(1)>';
+  for (let i = 0; i < 205; i++) insert.run(m.user.id, hostile, hostile + i, 1000 + i);
+  const s = await openPage(URLS.mail + '/');
+  try {
+    await type(s.page, '#authUsername', username);
+    await type(s.page, '#authPassword', PW);
+    await submit(s.page, '#loginForm');
+    await s.page.waitForSelector('#loadOlderBtn', { timeout: 30000 });
+    assert.equal(await s.page.$$eval('.msg-card', cards => cards.length), 200);
+    assert.equal(await s.page.$$eval('.msg-card img', nodes => nodes.length), 0);
+    assert.equal(await s.page.$eval('.msg-peer-name', node => node.textContent), hostile);
+    await s.page.click('#loadOlderBtn');
+    await s.page.waitForFunction(() => document.querySelectorAll('.msg-card').length === 205);
+    assert.equal(await s.page.$('#loadOlderBtn'), null);
+    assert.deepEqual(s.log.errors, []);
+  } finally { await s.ctx.close(); }
+});
 // bodies recorded by pages that were navigated away from
 async function keepBodies(log) { log.sent.push(...(await log.bodies())); }
 // requests to anything but this machine (data: and about: load nothing)
@@ -280,8 +303,10 @@ describe("Mail in the browser", () => {
     await type(s.page, "#chgOld", PW);
     await type(s.page, "#chgNew", "a brand new mailbox phrase");
     await type(s.page, "#chgNewConfirm", "a brand new mailbox phrase");
-    await s.page.click("#chgBtn");
-    await s.page.waitForFunction(() => /Passphrase changed/.test([...document.querySelectorAll(".toast")].map((t) => t.textContent).join(" ")), { timeout: 30000 });
+    await submit(s.page, "#chgForm");
+    await s.page.waitForFunction(() => /Passphrase changed/.test([...document.querySelectorAll(".toast")].map((t) => t.textContent).join(" ")), { timeout: 30000 }).catch(async () => {
+      throw new Error('Passphrase change did not finish: ' + await toastText(s.page));
+    });
     assert.deepEqual(await leaks(s.log, "a brand new mailbox phrase"), []);
     assert.deepEqual(await leaks(s.log, PP), []);
   });
@@ -432,18 +457,19 @@ describe("look and feel in Firefox", () => {
     assert.equal(await o.page.$eval(".track", (t) => getComputedStyle(t).animationName), "none");
     // sample the circle's progress on every frame of the transition: it must
     // pass through values in between, not jump from start to end
+    const before = await o.page.evaluate(() => window.InprivUI.theme());
     await o.page.evaluate(() => {
       window.__p = [];
-      const t0 = performance.now();
+      window.__themeStop = false;
       requestAnimationFrame(function f() {
         const v = getComputedStyle(document.documentElement, "::view-transition-new(root)").getPropertyValue("--vt-p");
         if (v !== "") window.__p.push(+v);
-        if (performance.now() - t0 < 1600) requestAnimationFrame(f);
+        if (!window.__themeStop) requestAnimationFrame(f);
       });
+      document.querySelector('[data-theme-toggle]').click();
     });
-    const before = await o.page.evaluate(() => window.InprivUI.theme());
-    await o.page.click("[data-theme-toggle]");
-    await L.sleep(1900);
+    await o.page.waitForFunction(() => window.__p.some(v => v > 0.05 && v < 0.95), { timeout: 10000 });
+    await o.page.evaluate(() => { window.__themeStop = true; });
     const p = await o.page.evaluate(() => window.__p);
     assert.ok(p.some((v) => v > 0.05 && v < 0.95), "in-between values: " + p.join(" "));
     assert.notEqual(await o.page.evaluate(() => window.InprivUI.theme()), before);

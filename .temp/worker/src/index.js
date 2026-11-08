@@ -1,3 +1,6 @@
+import { json as sharedJson } from "../../../common/http.js";
+import { verifySvix } from "../../../common/svix.js";
+import { rateLimit as sharedRateLimit } from "../../../common/rate-limit.js";
 // ─────────────────────────────────────────────────────────────────────────────
 // Inpriv Temp — disposable email addresses on inpriv.xyz
 //
@@ -15,8 +18,8 @@
 import { notFound } from "../../../common/errors.js";
 import { canonicalRedirect } from "../../../common/canonical.js";
 import { purgeAccessLog } from "../../../common/access-log.js";
-import { maintenancePage as sharedMaintenancePage } from "../../../common/gate.js";
-import { clientKey, originAllowed, isUnsafeMethod, pageResponse, apiHeaders, withHeaders } from "../../../common/security.js";
+import { maintenanceGate as sharedMaintenanceGate, maintenancePage as sharedMaintenancePage } from "../../../common/gate.js";
+import { clientNet, originAllowed, isUnsafeMethod, pageResponse, apiHeaders, withHeaders } from "../../../common/security.js";
 import { isReservedLocal, tempLocal, tryClaim, claimMany, ensureClaims, backfillIdClaims } from "../../../common/addresses.js";
 import { sanitizeEmailHtml } from "../../../common/email-html.js";
 
@@ -53,29 +56,7 @@ export { verifySvix };
 
 // ── maintenance / kill-switch (admin.inpriv.xyz) ─────────────────────────────
 
-let gateCache = { data: null, until: 0 };
-
-async function maintenanceGate(env) {
-  const now = Date.now();
-  if (gateCache.data && gateCache.until > now) return gateCache.data;
-  try {
-    const res = await fetch("https://admin.inpriv.xyz/public/state", {
-      headers: { "User-Agent": "inpriv-temp-gate" },
-      cf: { cacheTtl: 2, cacheEverything: true },
-    });
-    const st = await res.json();
-    const svc = (st.services && st.services.temp) || { locked: false, message: "" };
-    const locked = !!(st.global && st.global.locked) || !!svc.locked;
-    const message = (st.global && st.global.locked && st.global.message) || svc.message || "";
-    const info = st.info && st.info.active ? st.info.message : null;
-    gateCache = { data: { locked, message, info }, until: now + 3_000 };
-    return gateCache.data;
-  } catch {
-    // admin unreachable → fail open (the tool stays up), retry soon
-    gateCache = { data: { locked: false, message: "", info: null }, until: now + 2_000 };
-    return gateCache.data;
-  }
-}
+const maintenanceGate = (env) => sharedMaintenanceGate("temp", env);
 
 function maintenancePage(gate) {
   return sharedMaintenancePage("Inpriv Temp", gate.message);
@@ -124,7 +105,7 @@ async function routeApi(request, env, url) {
   const method = request.method;
 
   if (path === "/api/health") {
-    return json({ ok: true, service: "inpriv-temp", time: new Date().toISOString() });
+    return json({ ok: true, release: "2026-11-09", service: "inpriv-temp", time: new Date().toISOString() });
   }
 
   // public maintenance state (used by the frontend to show the info banner)
@@ -249,7 +230,7 @@ async function createMailbox(request, env) {
   }
 
   // creating inboxes costs a permanent address each: limit it per network
-  const ipk = clientKey(request);
+  const ipk = clientNet(request);
   if (!(await rateLimit(env.ID_DB, `tempnew:${ipk}`, CREATE_HOURLY_LIMIT, 3_600_000)) ||
       (customLocal && !(await rateLimit(env.ID_DB, `tempcustom:${ipk}`, CUSTOM_HOURLY_LIMIT, 3_600_000)))) {
     return json({ error: "Too many new inboxes from your network — try again in an hour" }, 429);
@@ -272,7 +253,7 @@ async function createMailbox(request, env) {
       taken = !!(await env.DB.prepare("SELECT 1 FROM mailboxes WHERE address = ?").bind(`${customLocal}@${domain}`).first());
     }
     if (taken || !(await tryClaim(env.ID_DB, customLocal, "temp"))) {
-      return json({ error: "That address isn't available — try another" }, 409);
+      customLocal = null;
     }
   }
 
@@ -295,16 +276,7 @@ async function createMailbox(request, env) {
 }
 
 // Short-lived counters in the inpriv-id database (rl_counters, with expiry).
-async function rateLimit(db, key, limit, windowMs) {
-  const bucket = Math.floor(Date.now() / windowMs);
-  try {
-    const row = await db.prepare("SELECT c FROM rl_counters WHERE k = ? AND bucket = ?").bind(key, bucket).first();
-    if (row && row.c >= limit) return false;
-    await db.prepare("INSERT INTO rl_counters (k, bucket, c, exp) VALUES (?,?,1,?) ON CONFLICT(k,bucket) DO UPDATE SET c = c + 1")
-      .bind(key, bucket, (bucket + 1) * windowMs).run();
-  } catch { /* fail open: Temp stays usable if the counter table is busy */ }
-  return true;
-}
+const rateLimit = (db, key, limit, ms) => sharedRateLimit(db, key, limit, ms, { failOpen: true });
 
 async function authMailbox(request, env) {
   const header = request.headers.get("Authorization") || "";
@@ -581,38 +553,6 @@ async function insertMessage(env, r, attachmentsJson) {
 
 // ── Svix webhook verification (Standard Webhooks) ────────────────────────────
 
-async function verifySvix(secret, svixId, svixTs, svixSigHeader, rawBody) {
-  if (!secret || !svixId || !svixTs || !svixSigHeader || typeof rawBody !== "string") return false;
-
-  const b64Secret = secret.startsWith("whsec_") ? secret.slice("whsec_".length) : secret;
-  let key;
-  try {
-    key = await crypto.subtle.importKey(
-      "raw", base64ToBytes(b64Secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"],
-    );
-  } catch {
-    return false;
-  }
-  const mac = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`${svixId}.${svixTs}.${rawBody}`));
-  const expected = bytesToBase64(new Uint8Array(mac));
-
-  for (const part of svixSigHeader.split(/\s+/)) {
-    const comma = part.indexOf(",");
-    if (comma < 0) continue;
-    const version = part.slice(0, comma);
-    const sig = part.slice(comma + 1);
-    if (version === "v1" && timingSafeEqualStr(sig, expected)) return true;
-  }
-  return false;
-}
-
-function timingSafeEqualStr(a, b) {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
-}
-
 // ── Cron cleanup ─────────────────────────────────────────────────────────────
 
 async function handleScheduled(_event, env) {
@@ -688,9 +628,4 @@ function base64ToBytes(b64) {
   return bytes;
 }
 
-function json(data, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
-  });
-}
+const json = (body, status = 200) => sharedJson(body, status, { "Content-Type": "application/json; charset=utf-8" });

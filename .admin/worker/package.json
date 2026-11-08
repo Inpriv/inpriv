@@ -5,9 +5,9 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "test": "node test/totp.test.mjs && node test/auth.test.mjs"
+    "test": "node test/totp.test.mjs"
   },
   "devDependencies": {
-    "wrangler": "^4.83.0"
+    "wrangler": "4.83.0"
   }
 }

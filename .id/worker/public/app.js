@@ -463,7 +463,7 @@ $("verifyCode").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.
 $("pwChangeBtn").addEventListener("click", async () => {
   if (!$("pwCurrent").value || !$("pwNext").value) return toast("Fill in both password fields", false);
   try {
-    await api("/api/password/change", { current: $("pwCurrent").value, next: $("pwNext").value });
+    await api("/api/password/change", { current: $("pwCurrent").value, next: $("pwNext").value, ...actionFactor("pwActionFactor") });
     $("pwCurrent").value = $("pwNext").value = "";
     toast("Password changed. Other sessions, Inpriv Mail included, were signed out. Your mailbox passphrase stays the same.");
   } catch (ex) {
@@ -526,7 +526,7 @@ $("showCodesBtn").addEventListener("click", () => {
 });
 $("newCodesConfirm").addEventListener("click", async () => {
   try {
-    const out = await api("/api/2fa/recovery/new", { password: $("newCodesPw").value });
+    const out = await api("/api/2fa/recovery/new", { password: $("newCodesPw").value, ...actionFactor("codesActionFactor") });
     recoveryCodes = out.recovery_codes || [];
     $("newCodesPw").value = "";
     $("newCodesUI").hidden = true;
@@ -550,7 +550,7 @@ $("twoFADisableBtn").addEventListener("click", () => {
 
 $("twoFADisableConfirm").addEventListener("click", async () => {
   try {
-    await api("/api/2fa/disable", { password: $("twoFAPw").value });
+    await api("/api/2fa/disable", { password: $("twoFAPw").value, ...actionFactor("disableActionFactor") });
     user.totp_enabled = false;
     recoveryCodes = [];
     $("codesBox").hidden = true;
@@ -660,7 +660,7 @@ $("deleteBtn").addEventListener("click", () => {
 });
 $("deleteConfirmBtn").addEventListener("click", async () => {
   try {
-    await api("/api/account/delete", { password: $("deletePw").value });
+    await api("/api/account/delete", { password: $("deletePw").value, ...actionFactor("deleteActionFactor") });
     toast("Account deleted");
     setTimeout(() => location.reload(), 900);
   } catch (ex) {
@@ -739,3 +739,8 @@ function esc(s) {
     show("auth");
   }
 })();
+
+function actionFactor(id) {
+  const value = $(id).value.trim();
+  return /^\d{6}$/.test(value) ? { code: value } : { recovery: value };
+}

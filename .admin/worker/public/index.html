@@ -1585,14 +1585,25 @@ const fmtTime = (ms) => ms ? new Date(ms).toISOString().replace("T", " ").slice(
 function kv(pairs) {
   return `<dl class="rec-kv">${pairs.map(([k, v]) => `<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v == null || v === "" ? "—" : String(v))}</dd>`).join("")}</dl>`;
 }
+function el(tag, className, value) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (value !== undefined) node.textContent = value == null || value === "" ? "—" : String(value);
+  return node;
+}
 function table(rows, cols) {
-  if (!rows || !rows.length) return `<p class="rec-empty">Nothing stored.</p>`;
-  const head = cols.map((c) => `<th>${escapeHtml(c.label)}</th>`).join("");
-  const body = rows.map((r) => `<tr>${cols.map((c) => {
-    const v = c.fmt ? c.fmt(r[c.key], r) : r[c.key];
-    return `<td${c.wrap ? ' class="wrap"' : ""}>${escapeHtml(v == null || v === "" ? "—" : String(v))}</td>`;
-  }).join("")}</tr>`).join("");
-  return `<div class="rec-scroll"><table class="rec-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+  if (!rows || !rows.length) return '<p class="rec-empty">Nothing stored.</p>';
+  const scroll = el('div', 'rec-scroll'), grid = el('table', 'rec-table');
+  const head = el('thead'), headers = el('tr'), body = el('tbody');
+  for (const col of cols) headers.append(el('th', '', col.label));
+  head.append(headers);
+  for (const row of rows) {
+    const tr = el('tr');
+    for (const col of cols) tr.append(el('td', col.wrap ? 'wrap' : '', col.fmt ? col.fmt(row[col.key], row) : row[col.key]));
+    body.append(tr);
+  }
+  grid.append(head, body); scroll.append(grid);
+  return scroll.outerHTML;
 }
 // accounts an IP was used by, built from its access-log rows: what kind of
 // account, which events, how often, first and last time. Most recent first;
