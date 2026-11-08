@@ -63,6 +63,29 @@ const leaks = async (log, secret) => [
   ...log.requests.filter((r) => r.url.includes(secret) || r.headers.includes(secret)),
   ...log.sent.concat(await log.bodies()).filter((r) => r.url.includes(secret) || r.body.includes(secret)),
 ];
+
+test('older mail loads from the inbox and message text cannot create elements', async () => {
+  const username = 'paged' + L.rand();
+  const m = await L.newMailbox(username, PW, PW);
+  const db = L.db('mail');
+  const insert = db.prepare("INSERT INTO messages (owner_id, direction, peer_address, peer_label, subject, encrypted_aes_key, iv, ciphertext, auth_tag, created_at) VALUES (?, 'inbound', 'sender@example.test', ?, ?, '', '', '', '', ?)");
+  const hostile = '<img src=x onerror=alert(1)>';
+  for (let i = 0; i < 205; i++) insert.run(m.user.id, hostile, hostile + i, 1000 + i);
+  const s = await openPage(URLS.mail + '/');
+  try {
+    await type(s.page, '#authUsername', username);
+    await type(s.page, '#authPassword', PW);
+    await submit(s.page, '#loginForm');
+    await s.page.waitForSelector('#loadOlderBtn', { timeout: 30000 });
+    assert.equal(await s.page.$$eval('.msg-card', cards => cards.length), 200);
+    assert.equal(await s.page.$$eval('.msg-card img', nodes => nodes.length), 0);
+    assert.equal(await s.page.$eval('.msg-peer-name', node => node.textContent), hostile);
+    await s.page.click('#loadOlderBtn');
+    await s.page.waitForFunction(() => document.querySelectorAll('.msg-card').length === 205);
+    assert.equal(await s.page.$('#loadOlderBtn'), null);
+    assert.deepEqual(s.log.errors, []);
+  } finally { await s.ctx.close(); }
+});
 // bodies recorded by pages that were navigated away from
 async function keepBodies(log) { log.sent.push(...(await log.bodies())); }
 // requests to anything but this machine (data: and about: load nothing)

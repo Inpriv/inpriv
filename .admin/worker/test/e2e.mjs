@@ -1,3 +1,4 @@
+throw new Error("Retired unsafe test. Use tests/local.sh and tests/api.test.mjs; this script must not contact production.");
 // E2E admin dashboard: TOTP login → kill-switches → rate limit.
 // Usage: node test/e2e.mjs <totp-secret-file>
 import fs from "node:fs/promises";

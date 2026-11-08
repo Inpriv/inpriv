@@ -14,12 +14,14 @@ routes = [
 binding = "DB"
 database_name = "inpriv-mail"
 database_id = "d5c75cf0-46ba-4721-99fc-da18d2ccbabe"
+migrations_dir = "migrations"
 
 # Inpriv ID Central Account D1 Database (read/verify SSO accounts)
 [[d1_databases]]
 binding = "ID_DB"
 database_name = "inpriv-id"
 database_id = "1cd1ca2e-51fd-40d9-94d8-aa75f989291b"
+migrations_dir = "../../.id/worker/migrations"
 
 [triggers]
 crons = ["17 3 * * *"]

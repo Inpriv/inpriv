@@ -147,9 +147,9 @@ code { font: 13.5px ui-monospace, "SF Mono", Consolas, monospace; background: va
 <tr><th>Data</th><th>Why</th></tr>
 <tr><td>Username and your <code>@inpriv.xyz</code> address</td><td>Identify your account and deliver your mail</td></tr>
 <tr><td>Display name (optional)</td><td>Shown to people you write to</td></tr>
-<tr><td>Recovery email (optional), whether it's verified, and short-lived hashed verification codes</td><td>Confirm that the address is yours. It can't reset your password or your mailbox passphrase, and we don't use it for anything else.</td></tr>
+<tr><td>Recovery email (optional), verification status, pending address changes and short-lived protected verification codes</td><td>Confirm that the address is yours and allow sending Mail to other providers. It can't reset your password or your mailbox passphrase.</td></tr>
 <tr><td>Password hash and salt (PBKDF2-SHA-256, 300,000 iterations)</td><td>Check your password when you sign in. Your password itself reaches our server over HTTPS at sign-in and is checked, not stored.</td></tr>
-<tr><td>Two-factor secret (encrypted at rest) and hashed one-time recovery codes</td><td>Two-factor authentication, if you turn it on</td></tr>
+<tr><td>Two-factor secret and one-time recovery codes (protected at rest), and the last accepted authenticator time step</td><td>Two-factor authentication, if you turn it on</td></tr>
 <tr><td>Sessions: browser and system name, the first part of your IP address (e.g. <code>203.0</code>), created / last used / expiry times</td><td>Keep you signed in, and let you see and sign out sessions</td></tr>
 <tr><td>Security events: type (sign-in, failed sign-in, password or 2FA change…), the first part of your IP address, browser name, time</td><td>Your security log on id.inpriv.xyz</td></tr>
 <tr><td>Settings ("Skip mailbox passphrase"), connected services and profile preferences (encrypted at rest)</td><td>Make the services behave the way you chose</td></tr>
@@ -185,7 +185,7 @@ code { font: 13.5px ui-monospace, "SF Mono", Consolas, monospace; background: va
 <li><strong>The inbox:</strong> its address, a hash of the access key your browser holds, and created and expiry times.</li>
 <li><strong>Messages:</strong> sender, recipient, subject, text and HTML body (with anything that could run removed), attachments (up to 512 KB each, 2 MB per message), size and time. These are stored <strong>unencrypted</strong>, so don't use Temp for anything sensitive.</li>
 <li><strong>Deletion:</strong> the inbox and its messages are deleted once it expires, 24 hours after it's created; cleanup runs every hour. Messages are never kept longer than 7 days in any case. You can delete an inbox yourself at any time.</li>
-<li><strong>Not logged:</strong> creating an inbox isn't written to the access log, and we don't record which network created it. Short-lived counters limit how many inboxes one network can create per hour.</li>
+<li><strong>Not logged:</strong> creating an inbox isn't written to the access log. Hourly creation counters use an IPv4 /24 or IPv6 /48 network prefix, without the inbox address, and are removed within an hour after their window ends.</li>
 </ul>
 
 <h2 id="addresses">6. Addresses are never reused</h2>
@@ -201,14 +201,16 @@ code { font: 13.5px ui-monospace, "SF Mono", Consolas, monospace; background: va
 <li>the <strong>network</strong> your IP address belongs to, not the full address: the first three parts of an IPv4 address (<code>203.0.113.0/24</code>) or the first 48 bits of an IPv6 address;</li>
 <li>the country and network operator (ASN) for that address, and your browser family and system (for example "Firefox · Linux").</li>
 </ul>
-<p>It's written when you create, sign in to or change your Inpriv ID (failed sign-ins included), sign in to Mail, create or upgrade a mailbox, change your mailbox passphrase or send a message. It doesn't record <strong>recipients</strong>, message content, passwords, passphrases, keys, tokens or recovery codes. <strong>Entries are deleted after 30 days</strong>, including after you delete your account.</p>
+<p>It's written when you create, sign in to or change your Inpriv ID (failed sign-ins included), sign in to Mail, create or upgrade a mailbox, change your mailbox passphrase or send a message. It doesn't record <strong>recipients</strong>, message content, passwords, passphrases, keys, tokens or recovery codes. <strong>Entries are deleted after 30 days</strong>, or when you delete your account, whichever comes first.</p>
 <p>A network, a country and a time are not anonymous: combined with an account, they can still point to a person or a household.</p>
 <p><strong>Entries written before 22 October 2026</strong> hold the full IP address, the full browser string and, for sent mail, the recipient address. They're deleted 90 days after they were written, so all of them are gone by 20 January 2027.</p>
-<p>Separately, your <strong>security log</strong> on id.inpriv.xyz (section 3) keeps the first part of your IP address and your browser name for 90 days, so you can review your own account.</p>
+<p>Separately, your <strong>security log</strong> on id.inpriv.xyz (section 3) keeps the first part of your IP address and your browser name for 90 days, so you can review your own account. Account deletion removes these entries too.</p>
 
 <h2 id="content">8. Images and links in email</h2>
 <p>Emails often load images from the sender's servers, which tells the sender that you opened the message, when, your IP address and your browser. Mail and Temp block all of that by default: images, tracking pixels, stylesheets, fonts and other files hosted elsewhere. Scripts, forms and embedded pages never run.</p>
 <p>If you choose <strong>Load images</strong> for a message, your browser fetches that message's images from the sender's servers, and the sender learns the above. Opening a <strong>link</strong> takes you to the other site, which sees your IP address and browser; Inpriv doesn't pass on which page you came from.</p>
+
+<p>To limit verification emails and outgoing mail, short-lived counters store a SHA-256 digest of the destination address and the number of attempts in an hourly or daily window. These digests are not anonymous: an address can be guessed and hashed for comparison. Counters do not link Temp inboxes to their creators. ID counters are removed within an hour after their window ends; Mail counters are removed by the daily cleanup, within a day after expiry.</p>
 
 <h2 id="device">9. On your device</h2>
 <p>We don't use tracking or advertising cookies. The sites store only what they need to work:</p>
@@ -225,7 +227,7 @@ code { font: 13.5px ui-monospace, "SF Mono", Consolas, monospace; background: va
 <h2 id="recovery">10. Account and key recovery</h2>
 <ul>
 <li><strong>Inpriv ID password:</strong> there's no reset by email yet. If you have two-factor on, a recovery code replaces a lost authenticator, not a lost password.</li>
-<li><strong>Mailbox passphrase:</strong> we do not store it in readable form. For new accounts it is initially the same as the sign-in password, which we receive during authentication. If you lose it, you can start over with a new key (with your password, and your two-factor code if it's on). Your address keeps working and new mail can be read, but <strong>mail sent to you before stays stored and can't be opened again.</strong> Recovering your account never gives anyone your earlier mail.</li>
+<li><strong>Mailbox passphrase:</strong> we do not store it in readable form. For new accounts it is initially the same as the sign-in password, which we receive during authentication. Replacing a mailbox key requires proof that you can open the current key, as well as your password and, when enabled, a fresh two-factor or recovery code. If no device can unlock the mailbox and the passphrase is lost, we cannot replace its key or recover its mail.</li>
 </ul>
 
 <h2 id="team">11. Mail you send to us</h2>
@@ -247,9 +249,10 @@ code { font: 13.5px ui-monospace, "SF Mono", Consolas, monospace; background: va
 <tr><td>Inpriv ID account, mailbox, key ring and stored mail</td><td>You delete your account. Deleting your Inpriv ID also deletes your mailbox and all its mail.</td></tr>
 <tr><td>Individual messages</td><td>You delete them</td></tr>
 <tr><td>Sessions</td><td>Expiry (30 days) or sign-out. Changing your password or two-factor setting, or signing out everywhere, ends your Mail sessions too.</td></tr>
-<tr><td>Access log</td><td>30 days (entries written before 22 October 2026: 90 days)</td></tr>
-<tr><td>Your security log (ID security events)</td><td>90 days</td></tr>
-<tr><td>Rate-limit counters, sign-in tickets</td><td>Minutes to hours; deleted hourly once expired</td></tr>
+<tr><td>Access log</td><td>30 days (entries written before 22 October 2026: 90 days), or until account deletion</td></tr>
+<tr><td>Your security log (ID security events)</td><td>90 days, or until account deletion</td></tr>
+<tr><td>Rate-limit counters</td><td>Hourly or daily windows; ID: removed within an hour after expiry; Mail: within a day after expiry. Network limits use IPv4 /24 or IPv6 /48 prefixes.</td></tr>
+<tr><td>Sign-in tickets</td><td>Minutes; deleted hourly once expired</td></tr>
 <tr><td>Temp inboxes and their messages</td><td>24 hours (at most 7 days for any message)</td></tr>
 <tr><td>Which addresses were ever issued (section 6)</td><td>As long as Inpriv runs</td></tr>
 <tr><td>Verification codes</td><td>15 minutes</td></tr>

@@ -1,3 +1,5 @@
+import { maintenanceGate } from "../../../common/gate.js";
+import { json as sharedJson } from "../../../common/http.js";
 // ─────────────────────────────────────────────────────────────────────────────
 // Inpriv Status — status.inpriv.xyz
 //
@@ -34,7 +36,6 @@ const SERVICES = [
   { id: "loopwright", name: "loopwright", host: "lw.inpriv.xyz", probe: "https://lw.inpriv.xyz/healthz" },
   { id: "4dots", name: "4dots", host: "4dots.app", probe: "https://4dots.app/api/status", healthServices: ["app", "storage"] },
 ];
-const STATE_URL = "https://admin.inpriv.xyz/public/state";
 
 const MIN = 60_000;
 const HOUR = 60 * MIN;
@@ -63,7 +64,7 @@ export default {
     const path = url.pathname;
 
     if (path === "/api/health") {
-      return apiHeaders(json({ ok: true, service: "inpriv-status", time: new Date().toISOString() }));
+      return apiHeaders(json({ ok: true, release: "2026-11-08", service: "inpriv-status", time: new Date().toISOString() }));
     }
     if (path === "/api/status") {
       if (request.method !== "GET" && request.method !== "HEAD") return apiHeaders(json({ error: "Method not allowed" }, 405));
@@ -104,7 +105,7 @@ async function runChecks(env, scheduledTime) {
   const at = Math.floor(scheduledTime / TICK_MS) * TICK_MS;
   // a tick runs once, even if the cron fires twice
   if (await env.DB.prepare("SELECT 1 FROM checks WHERE at = ? LIMIT 1").bind(at).first()) return { at, skipped: true };
-  const gate = await adminState();
+  const gate = await adminState(env);
   const results = await Promise.all(SERVICES.map((svc) => checkService(env, svc, gate)));
 
   const open = await env.DB.prepare("SELECT id, service, kind FROM incidents WHERE ended IS NULL").all();
@@ -202,28 +203,14 @@ async function checkOnce(env, svc) {
   }
 }
 
-// The kill-switch state from admin. If admin can't be reached, nothing
-// counts as paused (the sites fail open the same way).
-let stateCache = { data: null, until: 0 };
-
-async function adminState() {
-  const now = Date.now();
-  let st = stateCache.until > now ? stateCache.data : null;
-  if (!st) {
-    try {
-      const res = await fetch(STATE_URL, { headers: { "User-Agent": "inpriv-status" }, signal: AbortSignal.timeout(4_000) });
-      st = res.ok ? await res.json() : {};
-    } catch {
-      st = {};
-    }
-    stateCache = { data: st, until: now + 15_000 };
-  }
-  const global = st.global && st.global.locked ? st.global : null;
-  const svc = (id) => (st.services && st.services[id]) || {};
+// Status remains public while sharing the services' maintenance decision.
+async function adminState(env) {
+  const states = new Map();
+  for (const svc of SERVICES) if (svc.gate) states.set(svc.gate, await maintenanceGate(svc.gate, env));
   return {
-    paused: (id) => !!global || !!svc(id).locked,
-    message: (id) => (global ? global.message : svc(id).message) || "",
-    info: st.info && st.info.active && st.info.message ? String(st.info.message) : null,
+    paused: (id) => !!states.get(id)?.locked,
+    message: (id) => states.get(id)?.message || "",
+    info: states.values().next().value?.info || null,
   };
 }
 
@@ -269,7 +256,7 @@ async function buildStatus(env, range) {
     env.DB.prepare(
       "SELECT service, kind, started, ended, last, checks, note FROM incidents WHERE ended IS NULL OR ended >= ? ORDER BY started DESC LIMIT 100"
     ).bind(start).all(),
-    adminState(),
+    adminState(env),
   ]);
 
   for (const r of rows.results ?? []) {
@@ -329,5 +316,5 @@ async function buildStatus(env, range) {
 }
 
 function json(data, status = 200) {
-  return new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json; charset=utf-8" } });
+  return sharedJson(data, status, { "Content-Type": "application/json; charset=utf-8" });
 }

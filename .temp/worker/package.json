@@ -9,6 +9,6 @@
     "test": "node test/svix.test.mjs"
   },
   "devDependencies": {
-    "wrangler": "^4.83.0"
+    "wrangler": "4.83.0"
   }
 }

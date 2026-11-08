@@ -21,6 +21,8 @@ on:
         options: [all, inpriv, inpriv-admin, inpriv-id, inpriv-mail, inpriv-status, inpriv-temp]
 
 jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
   changes:
     runs-on: ubuntu-latest
     outputs:
@@ -63,7 +65,7 @@ jobs:
           fi >> "$GITHUB_OUTPUT"
 
   deploy:
-    needs: changes
+    needs: [changes, ci]
     if: needs.changes.outputs.workers != '[]' && needs.changes.outputs.workers != ''
     runs-on: ubuntu-latest
     strategy:

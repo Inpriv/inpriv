@@ -1,9 +1,10 @@
+import { b64, b64d, now, uuid, sha256hex, passHash, constantTimeEq, base32Decode, base32Encode, verifyTOTP, PASS_ITERS } from "../../../common/crypto.js";
+export { b64, b64d, now, uuid, sha256hex, passHash, constantTimeEq, base32Decode, base32Encode, verifyTOTP, PASS_ITERS };
 // Inpriv ID — shared helpers: crypto, encoding, CORS, rate limit, e-mail.
 import { uaFamily } from "../../../common/security.js";
 
 export const SESSION_TTL_MS = 30 * 24 * 3600 * 1000;
 export const COOKIE_NAME = "inpriv_id";
-export const PASS_ITERS = 300_000; // 3 × 100k chained rounds (CF cap: 100k/call)
 
 export const ORIGINS = new Set([
   "https://inpriv.xyz",
@@ -16,22 +17,8 @@ export const ORIGINS = new Set([
 const enc = new TextEncoder();
 const dec = new TextDecoder();
 
-export const b64 = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf)));
-export const b64d = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
-export const now = () => Date.now();
-export const uuid = () => crypto.randomUUID();
-
-export async function sha256hex(s) {
-  const d = await crypto.subtle.digest("SHA-256", enc.encode(s));
-  return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-export function json(body, status = 200, extra = {}) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "Content-Type": "application/json", "Cache-Control": "no-store", ...extra },
-  });
-}
+import { json } from "../../../common/http.js";
+export { json };
 
 export const bad = (msg, status = 400) => json({ error: msg }, status);
 
@@ -54,36 +41,6 @@ export function corsFor(req, env) {
     };
   }
   return { Vary: "Origin" };
-}
-
-// ── password hashing (PBKDF2-SHA256, chained) ───────────────────────────────
-// Cloudflare caps deriveBits at 100 000 iterations per call, so we chain
-// 3 rounds × 100 000 = 300 000 effective iterations (OWASP-class work).
-// pass_iters stored per-user = total nominal iterations (must be a multiple
-// of 100 000 for verification to replay the same chain).
-const PBKDF2_CAP = 100_000;
-
-export async function passHash(password, saltB64, iters = PASS_ITERS) {
-  const rounds = Math.max(1, Math.floor(iters / PBKDF2_CAP));
-  let material = enc.encode(password);
-  let bits;
-  for (let r = 0; r < rounds; r++) {
-    const key = await crypto.subtle.importKey("raw", material, "PBKDF2", false, ["deriveBits"]);
-    bits = await crypto.subtle.deriveBits(
-      { name: "PBKDF2", hash: "SHA-256", salt: b64d(saltB64), iterations: Math.min(iters - r * PBKDF2_CAP, PBKDF2_CAP) },
-      key,
-      256
-    );
-    material = new Uint8Array(bits);
-  }
-  return b64(bits);
-}
-
-export function constantTimeEq(a, b) {
-  if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
 }
 
 // ── AES-256-GCM (TOTP secrets + vault) ──────────────────────────────────────
@@ -116,91 +73,8 @@ export async function openString(env, envelopeJson) {
   }
 }
 
-// ── base32 + TOTP (RFC 6238, SHA-1, 6 digits, ±1 step) ─────────────────────
-const B32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-
-export function base32Decode(s) {
-  let bits = 0, val = 0;
-  const out = [];
-  for (const ch of String(s).toUpperCase().replace(/=+$/, "").replace(/\s/g, "")) {
-    const i = B32.indexOf(ch);
-    if (i < 0) continue;
-    val = (val << 5) | i;
-    bits += 5;
-    if (bits >= 8) {
-      bits -= 8;
-      out.push((val >>> bits) & 0xff);
-    }
-  }
-  return new Uint8Array(out);
-}
-
-export function base32Encode(bytes) {
-  let bits = 0, val = 0, out = "";
-  for (const b of bytes) {
-    val = (val << 8) | b;
-    bits += 8;
-    while (bits >= 5) {
-      out += B32[(val >>> (bits - 5)) & 31];
-      bits -= 5;
-    }
-  }
-  if (bits > 0) out += B32[(val << (5 - bits)) & 31];
-  return out;
-}
-
-async function hotp(secretBytes, counter) {
-  const buf = new ArrayBuffer(8);
-  const view = new DataView(buf);
-  view.setUint32(0, Math.floor(counter / 0x100000000));
-  view.setUint32(4, counter >>> 0);
-  const key = await crypto.subtle.importKey("raw", secretBytes, { name: "HMAC", hash: "SHA-1" }, false, ["sign"]);
-  const mac = await crypto.subtle.sign("HMAC", key, new Uint8Array(buf));
-  const b = new Uint8Array(mac);
-  const off = b[19] & 0xf;
-  const code = ((b[off] & 0x7f) << 24) | (b[off + 1] << 16) | (b[off + 2] << 8) | b[off + 3];
-  return String(code % 1_000_000).padStart(6, "0");
-}
-
-export async function verifyTOTP(code, secretBytes, atMs) {
-  const step = Math.floor(atMs / 30_000);
-  for (let w = -1; w <= 1; w++) {
-    if (constantTimeEq(await hotp(secretBytes, step + w), code)) return true;
-  }
-  return false;
-}
-
-// ── rate limiting (D1 counters) ─────────────────────────────────────────────
-// Each counter row carries its expiry (exp), and the hourly cleanup
-// (purgeAccessLog) deletes expired rows, so no counter outlives its window
-// by more than an hour.
-let _rlReady = false;
-async function ensureRl(db) {
-  if (_rlReady) return;
-  try { await db.prepare("ALTER TABLE rl_counters ADD COLUMN exp INTEGER").run(); } catch { /* already there */ }
-  _rlReady = true;
-}
-
-export async function overLimit(db, key, limit, windowMs) {
-  const bucket = Math.floor(now() / windowMs);
-  const row = await db.prepare("SELECT c FROM rl_counters WHERE k = ? AND bucket = ?").bind(key, bucket).first();
-  return !!(row && row.c >= limit);
-}
-
-export async function bump(db, key, windowMs) {
-  await ensureRl(db);
-  const bucket = Math.floor(now() / windowMs);
-  await db
-    .prepare("INSERT INTO rl_counters (k, bucket, c, exp) VALUES (?,?,1,?) ON CONFLICT(k,bucket) DO UPDATE SET c = c + 1")
-    .bind(key, bucket, (bucket + 1) * windowMs)
-    .run();
-}
-
-export async function rateLimit(db, key, limit, windowMs) {
-  if (await overLimit(db, key, limit, windowMs)) return false;
-  await bump(db, key, windowMs);
-  return true;
-}
+export { rateLimit, overLimit, bump } from "../../../common/rate-limit.js";
+import { rateLimit } from "../../../common/rate-limit.js";
 
 // ── request context ─────────────────────────────────────────────────────────
 export const parseUA = uaFamily;
@@ -299,4 +173,42 @@ export function sessionCookie(token) {
 
 export function clearCookie() {
   return `${COOKIE_NAME}=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Strict; Partitioned`;
+}
+
+// Random-IV AES-GCM protects low-entropy codes even if the database leaks.
+// Legacy hashes remain readable so existing recovery codes keep working.
+export async function protectCode(env, code) {
+  return "sealed:" + await sealString(env, await sha256hex(code));
+}
+export async function codeMatches(env, code, stored) {
+  const modern = stored.startsWith("sealed:");
+  const hash = modern ? await openString(env, stored.slice(7)) : stored.startsWith("legacy-sealed:") ? await openString(env, stored.slice(14)) : stored;
+  const input = !modern && code.includes("\0") ? code.split("\0").pop() : code;
+  return constantTimeEq(await sha256hex(input), hash);
+}
+
+// Prepare a single conditional write; only its winner may use this factor.
+// A caller creating a session batches this write with the guarded INSERT.
+export async function factorStatement(env, uid, body, setup = false) {
+  const recovery = String(body.recovery || "").toLowerCase().trim();
+  if (recovery && !setup) {
+    const rows = await env.DB.prepare("SELECT id, code_hash FROM recovery_codes WHERE user_id = ? AND used_at IS NULL").bind(uid).all();
+    for (const row of rows.results) {
+      if (await codeMatches(env, recovery, row.code_hash)) {
+        return env.DB.prepare("UPDATE recovery_codes SET used_at = ? WHERE id = ? AND used_at IS NULL").bind(now(), row.id);
+      }
+    }
+    return null;
+  }
+  const code = String(body.code || "").trim();
+  if (!/^\d{6}$/.test(code)) return null;
+  const row = await env.DB.prepare("SELECT secret_enc, confirmed FROM totp_secrets WHERE user_id = ?").bind(uid).first();
+  const secret = row && (setup || row.confirmed) ? await openString(env, row.secret_enc) : null;
+  const step = secret ? await verifyTOTP(code, base32Decode(secret), now()) : false;
+  if (step === false) return null;
+  return env.DB.prepare("UPDATE totp_secrets SET last_step = ? WHERE user_id = ? AND (last_step IS NULL OR last_step < ?)").bind(step, uid, step);
+}
+export async function consumeFactor(env, uid, body, setup = false) {
+  const stmt = await factorStatement(env, uid, body, setup);
+  return !!stmt && (await stmt.run()).meta.changes === 1;
 }

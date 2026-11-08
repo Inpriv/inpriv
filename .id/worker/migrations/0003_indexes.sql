@@ -1,0 +1,11 @@
+CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
+CREATE INDEX IF NOT EXISTS idx_pending_2fa_expires_at ON pending_2fa(expires_at);
+CREATE INDEX IF NOT EXISTS idx_service_grants_expires_at ON service_grants(expires_at);
+CREATE INDEX IF NOT EXISTS idx_id_init_tickets_expires_at ON id_init_tickets(expires_at);
+CREATE INDEX IF NOT EXISTS idx_email_codes_expires_at ON email_codes(expires_at);
+CREATE INDEX IF NOT EXISTS idx_email_codes_user_id_purpose_code_hash ON email_codes(user_id, purpose, code_hash);
+CREATE INDEX IF NOT EXISTS idx_recovery_codes_user_id_code_hash ON recovery_codes(user_id, code_hash);
+CREATE INDEX IF NOT EXISTS idx_auth_events_at ON auth_events(at);
+CREATE INDEX IF NOT EXISTS idx_rl_counters_exp ON rl_counters(exp);
+CREATE INDEX IF NOT EXISTS idx_admin_kv_exp ON admin_kv(exp);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_recovery_email_uq ON users(recovery_email) WHERE recovery_email IS NOT NULL;

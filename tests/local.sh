@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Local test environment: every Worker under `wrangler dev`, one shared set of
 # local D1 databases, test-only secrets. Nothing here touches production
-# (the maintenance gate still reads admin.inpriv.xyz/public/state, read-only).
+# The maintenance gate reads only the local admin Worker.
 #
 #   tests/local.sh up     create databases + .dev.vars, start the Workers
 #   tests/local.sh down   stop them and delete the local state and .dev.vars
@@ -19,7 +19,7 @@ SERVICE_KEY="test-service-key-not-real"
 WHSEC="whsec_dGVzdC1vbmx5LXdlYmhvb2stc2VjcmV0LTEyMzQ="
 TOTP="JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP"
 
-workers=("worker:8795" ".temp/worker:8796" ".admin/worker:8797" ".id/worker:8798" ".mail/worker:8799" "tests/html-worker:8794")
+workers=(".status/worker:8793" "worker:8795" ".temp/worker:8796" ".admin/worker:8797" ".id/worker:8798" ".mail/worker:8799" "tests/html-worker:8794")
 
 up() {
   mkdir -p "$STATE" "$LOGS"
@@ -30,7 +30,6 @@ DEV_MAIL_LOG=1
 DEV_ORIGINS=http://127.0.0.1:8799,http://localhost:8799
 EOF
   cat > "$ROOT/.mail/worker/.dev.vars" <<EOF
-ID_ENC_KEY=$ENC_KEY
 SERVICE_KEY=$SERVICE_KEY
 RESEND_WEBHOOK_SECRET=$WHSEC
 ID_ORIGIN=http://127.0.0.1:8798
@@ -42,9 +41,13 @@ EOF
 ADMIN_USER=test-admin
 TOTP_SECRET=$TOTP
 EOF
-  (cd "$ROOT/.id/worker" && $WR d1 execute inpriv-id --local --persist-to "$STATE" --file ../schema.sql >/dev/null)
-  (cd "$ROOT/.mail/worker" && $WR d1 execute inpriv-mail --local --persist-to "$STATE" --file ../schema.sql >/dev/null)
-  (cd "$ROOT/.temp/worker" && $WR d1 execute inpriv-temp --local --persist-to "$STATE" --file schema.sql >/dev/null)
+  for dir in worker .mail/worker .id/worker .temp/worker .status/worker; do
+    printf '\nDEV_GATE_ORIGIN=http://127.0.0.1:8797\n' >> "$ROOT/$dir/.dev.vars"
+  done
+  (cd "$ROOT/.id/worker" && $WR d1 migrations apply inpriv-id --local --persist-to "$STATE" >/dev/null)
+  (cd "$ROOT/.mail/worker" && $WR d1 migrations apply inpriv-mail --local --persist-to "$STATE" >/dev/null)
+  (cd "$ROOT/.temp/worker" && $WR d1 migrations apply inpriv-temp --local --persist-to "$STATE" >/dev/null)
+  (cd "$ROOT/.status/worker" && $WR d1 migrations apply inpriv-status --local --persist-to "$STATE" >/dev/null)
   for w in "${workers[@]}"; do
     dir="${w%%:*}"; port="${w##*:}"
     # A copy of wrangler.toml without the production routes: wrangler dev
@@ -52,6 +55,9 @@ EOF
     # cookie names) and doesn't rewrite hosts in headers.
     python3 -c 'import re,sys; s=open(sys.argv[1]).read(); open(sys.argv[2],"w").write(re.sub(r"(?ms)^routes = \[.*?^\]\n", "", s))' \
       "$ROOT/$dir/wrangler.toml" "$ROOT/$dir/wrangler.dev.toml"
+    if [ "$dir" = ".status/worker" ]; then
+      sed -i 's@^main = .*@main = "../../tests/status-worker.mjs"@' "$ROOT/$dir/wrangler.dev.toml"
+    fi
     if [ "$dir" = ".temp/worker" ]; then
       sed -i 's@^main = .*@main = "../../tests/temp-worker.mjs"@' "$ROOT/$dir/wrangler.dev.toml"
     fi
@@ -75,11 +81,11 @@ down() {
     while read -r pid; do kill -- "-$pid" 2>/dev/null || true; done < "$LOGS/pids"
     sleep 1
   fi
-  for port in 8794 8795 8796 8797 8798 8799; do
-    pid=$(ss -ltnp 2>/dev/null | grep ":$port " | sed -n 's/.*pid=\([0-9]*\).*/\1/p' | head -1)
+  for port in 8793 8794 8795 8796 8797 8798 8799; do
+    pid=$(ss -ltnp 2>/dev/null | grep ":$port " | sed -n 's/.*pid=\([0-9]*\).*/\1/p' | head -1 || true)
     [ -n "$pid" ] && { kill "$pid" 2>/dev/null; sleep 1; kill -9 "$pid" 2>/dev/null; } || true
   done
-  rm -f "$ROOT/.id/worker/.dev.vars" "$ROOT/.mail/worker/.dev.vars" "$ROOT/.temp/worker/.dev.vars" "$ROOT/.admin/worker/.dev.vars"
+  rm -f "$ROOT/.status/worker/.dev.vars" "$ROOT/worker/.dev.vars" "$ROOT/.id/worker/.dev.vars" "$ROOT/.mail/worker/.dev.vars" "$ROOT/.temp/worker/.dev.vars" "$ROOT/.admin/worker/.dev.vars"
   for w in "${workers[@]}"; do rm -f "$ROOT/${w%%:*}/wrangler.dev.toml"; done
   rm -rf "$STATE" "$LOGS"
   echo down

@@ -28,20 +28,7 @@ export const ACCESS_LOG_DAYS = 30;
 export const LEGACY_LOG_DAYS = 90; // rows written before v2
 export const SECURITY_EVENT_DAYS = 90; // ID's own security log (auth_events), shown to the user
 
-let ready = false;
-async function ensure(db) {
-  if (ready) return;
-  await db.batch([
-    db.prepare(
-      "CREATE TABLE IF NOT EXISTS access_log (id INTEGER PRIMARY KEY AUTOINCREMENT, at INTEGER NOT NULL, service TEXT NOT NULL, event TEXT NOT NULL, account TEXT, detail TEXT, ip TEXT, country TEXT, asn INTEGER, ua TEXT)"
-    ),
-    db.prepare("CREATE INDEX IF NOT EXISTS idx_access_account ON access_log(account, at)"),
-    db.prepare("CREATE INDEX IF NOT EXISTS idx_access_ip ON access_log(ip, at)"),
-    db.prepare("CREATE INDEX IF NOT EXISTS idx_access_at ON access_log(at)"),
-  ]);
-  try { await db.prepare("ALTER TABLE access_log ADD COLUMN v INTEGER").run(); } catch { /* already there */ }
-  ready = true;
-}
+async function ensure(db) { /* Schema is managed by D1 migrations. */ }
 
 // service: "id" | "mail"; account: username.
 export async function logAccess(db, request, service, event, account) {
@@ -101,7 +88,6 @@ export async function purgeAccessLog(db, env = {}) {
   await run("DELETE FROM access_log WHERE v IS NULL AND at < ?", t - LEGACY_LOG_DAYS * 86_400_000);
   await run("DELETE FROM auth_events WHERE at < ?", t - SECURITY_EVENT_DAYS * 86_400_000);
   // counters written before they carried an expiry are dropped once
-  try { await db.prepare("ALTER TABLE rl_counters ADD COLUMN exp INTEGER").run(); } catch { /* already there */ }
   await run("DELETE FROM rl_counters WHERE exp IS NULL OR exp < ?", t);
   await run("DELETE FROM sessions WHERE expires_at < ?", t);
   await run("DELETE FROM pending_2fa WHERE expires_at < ?", t);

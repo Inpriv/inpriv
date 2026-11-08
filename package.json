@@ -1,0 +1,16 @@
+{
+  "name": "inpriv",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node tests/static.mjs && node common/ui/sync.mjs --check && node tests/check-inline.mjs",
+    "lint": "eslint common worker .id/worker/src .mail/worker/src .temp/worker/src .admin/worker/src .status/worker/src",
+    "test": "npm run test:unit",
+    "test:unit": "node --test tests/crypto.test.mjs tests/gate.test.mjs tests/migrations.test.mjs tests/budgets.test.mjs .status/worker/test/probe.test.mjs .temp/worker/test/svix.test.mjs .admin/worker/test/totp.test.mjs",
+    "test:integration": "node --test --test-concurrency=1 tests/api.test.mjs tests/hardening.test.mjs"
+  },
+  "devDependencies": {
+    "eslint": "9.39.5",
+    "wrangler": "4.83.0"
+  }
+}

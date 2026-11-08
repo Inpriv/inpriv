@@ -21,25 +21,26 @@ const GATE_TTL_MS = 3000;
 
 const cache = { data: null, until: 0 };
 
-export async function maintenanceGate(serviceId) {
+export async function maintenanceGate(serviceId, env = {}) {
   const now = Date.now();
   if (cache.data && cache.until > now) {
     return project(cache.data, serviceId);
   }
   let st = null;
   try {
-    const res = await fetch(GATE_URL, {
+    const res = await fetch(env.DEV_GATE_ORIGIN ? new URL("/public/state", env.DEV_GATE_ORIGIN).href : GATE_URL, {
       headers: { "User-Agent": "inpriv-gate" },
       cf: { cacheTtl: 2, cacheEverything: true },
     });
+    if (!res.ok) throw new Error("state request failed");
     st = await res.json();
+    if (typeof st?.global?.locked !== "boolean" || !st.services) throw new Error("invalid state");
     cache.data = st;
     cache.until = now + GATE_TTL_MS;
   } catch {
-    // fail open — services stay up when the admin panel is unreachable
-    cache.data = null;
+    console.error("maintenance state unavailable; retaining the last known state");
     cache.until = now + 2000;
-    return { locked: false, message: "", info: null };
+    return cache.data ? project(cache.data, serviceId) : { locked: true, message: "", info: null };
   }
   return project(st, serviceId);
 }

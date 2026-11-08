@@ -4,8 +4,8 @@ import test from "node:test";
 import vm from "node:vm";
 
 const source = readFileSync(new URL("../src/index.js", import.meta.url), "utf8");
-const probeSource = source.slice(source.indexOf("async function checkOnce("), source.indexOf("// The kill-switch state"));
-const servicesSource = source.slice(source.indexOf("const SERVICES ="), source.indexOf("const STATE_URL"));
+const probeSource = source.slice(source.indexOf("async function checkOnce("), source.indexOf("// Status remains public"));
+const servicesSource = source.slice(source.indexOf("const SERVICES ="), source.indexOf("const MIN ="));
 
 function probe(fetch) {
   const context = vm.createContext({ fetch, Date, AbortSignal, TIMEOUT_MS: 8_000 });

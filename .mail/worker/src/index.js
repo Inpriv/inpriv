@@ -1,3 +1,8 @@
+import { relayBudget } from "../../../common/relay-budget.js";
+import { json } from "../../../common/http.js";
+import { verifySvix } from "../../../common/svix.js";
+import { rateLimit as sharedRateLimit, overLimit as sharedOverLimit, bump as sharedBump } from "../../../common/rate-limit.js";
+import { PASS_ITERS, passHash, constantTimeEq } from "../../../common/crypto.js";
 // Inpriv Mail — mail.inpriv.xyz
 // Accounts are Inpriv IDs (id.inpriv.xyz). Sign-in uses the Inpriv ID
 // password; the mailbox private keys are locked with a separate mailbox
@@ -9,7 +14,7 @@ import { maintenanceGate, maintenancePage } from "../../../common/gate.js";
 import { notFound } from "../../../common/errors.js";
 import { canonicalRedirect } from "../../../common/canonical.js";
 import { logAccess, purgeAccessLog } from "../../../common/access-log.js";
-import { clientKey, originAllowed, isUnsafeMethod, pageResponse, apiHeaders, uaFamily } from "../../../common/security.js";
+import { clientNet, originAllowed, isUnsafeMethod, pageResponse, apiHeaders, uaFamily } from "../../../common/security.js";
 import { TEAM_MAILBOXES, normalizeLocal, tryClaim, claimOwner, claimMany, ensureClaims } from "../../../common/addresses.js";
 import { sanitizeEmailHtml } from "../../../common/email-html.js";
 import { listUnsubscribeHeader } from "./list-unsubscribe.js";
@@ -19,8 +24,6 @@ export { TEAM_MAILBOXES };
 
 const DOMAIN = "inpriv.xyz";
 const SESSION_TTL_MS = 30 * 24 * 3600 * 1000;
-const PASS_ITERS = 300_000;
-const PBKDF2_CAP = 100_000;
 
 // Mailbox keys, format 2: the browser derives a key from the mailbox
 // passphrase (PBKDF2-SHA-256, at least KEY_ITERS_MIN iterations) and seals
@@ -44,107 +47,23 @@ async function sha256hex(s) {
   return hexOf(await crypto.subtle.digest("SHA-256", typeof s === "string" ? enc.encode(s) : s));
 }
 
-function json(body, status = 200, extraHeaders = {}) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      "Content-Type": "application/json",
-      "Cache-Control": "no-store",
-      ...extraHeaders,
-    },
-  });
-}
-
 const bad = (msg, status = 400, extra = {}) =>
   json({ error: msg, detail: { message: msg } }, status, extra);
 
 const gone = () => bad("this endpoint was removed — reload the page", 410);
 
-// ── Password hashing (Chained PBKDF2-SHA256, matches Inpriv ID) ────────────
-async function passHash(password, saltB64, iters = PASS_ITERS) {
-  const rounds = Math.max(1, Math.ceil(iters / PBKDF2_CAP));
-  let material = enc.encode(password);
-  let bits = new ArrayBuffer(0);
-  for (let r = 0; r < rounds; r++) {
-    const take = Math.min(iters - r * PBKDF2_CAP, PBKDF2_CAP);
-    const key = await crypto.subtle.importKey("raw", material, "PBKDF2", false, ["deriveBits"]);
-    bits = await crypto.subtle.deriveBits(
-      { name: "PBKDF2", hash: "SHA-256", salt: b64d(saltB64), iterations: take },
-      key,
-      256
-    );
-    material = new Uint8Array(bits);
-  }
-  return b64(bits);
-}
-
-function constantTimeEq(a, b) {
-  if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
-}
-
 // ── Rate Limiting ──────────────────────────────────────────────────────────
 // Counters carry their expiry; the daily cron deletes expired rows.
-async function overLimit(db, key, limit, windowMs) {
-  const bucket = Math.floor(now() / windowMs);
-  try {
-    const row = await db.prepare("SELECT c FROM rl_counters WHERE k = ? AND bucket = ?").bind(key, bucket).first();
-    return !!(row && row.c >= limit);
-  } catch {
-    return false; // fail open on rate limit table error
-  }
-}
-async function bump(db, key, windowMs) {
-  const bucket = Math.floor(now() / windowMs);
-  try {
-    await db.prepare("INSERT INTO rl_counters (k, bucket, c, exp) VALUES (?,?,1,?) ON CONFLICT(k,bucket) DO UPDATE SET c = c + 1")
-      .bind(key, bucket, (bucket + 1) * windowMs).run();
-  } catch { /* fail open */ }
-}
-async function rateLimit(db, key, limit, windowMs) {
-  if (await overLimit(db, key, limit, windowMs)) return false;
-  await bump(db, key, windowMs);
-  return true;
-}
+const overLimit = (db, key, limit, ms) => sharedOverLimit(db, key, limit, ms, { failOpen: true });
+const bump = (db, key, ms) => sharedBump(db, key, ms, { failOpen: true });
+const rateLimit = (db, key, limit, ms) => sharedRateLimit(db, key, limit, ms, { failOpen: true });
 
 // ── Schema (additive; the same statements are in ../migrations) ────────────
-let _schemaReady = false;
-async function ensureSchema(env) {
-  if (_schemaReady) return;
-  for (const sql of [
-    "ALTER TABLE users ADD COLUMN key_format INTEGER NOT NULL DEFAULT 1",
-    "ALTER TABLE users ADD COLUMN key_id TEXT",
-    "ALTER TABLE users ADD COLUMN keys_updated_at INTEGER",
-    "ALTER TABLE messages ADD COLUMN key_id TEXT",
-    "ALTER TABLE rl_counters ADD COLUMN exp INTEGER",
-  ]) {
-    try { await env.DB.prepare(sql).run(); } catch { /* already there */ }
-  }
-  await env.DB.prepare(
-    "CREATE TABLE IF NOT EXISTS key_challenges (id TEXT PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, answer_hash TEXT NOT NULL, purpose TEXT NOT NULL, expires_at INTEGER NOT NULL)"
-  ).run();
-  await ensureDeviceKeys(env);
-  _schemaReady = true;
-}
+async function ensureSchema(env) { /* Schema is managed by D1 migrations. */ }
 
 // Quick Unlock device keys: one wrapped key per device (random id kept in
 // the browser), up to MAX_DEVICE_KEYS per mailbox.
-let _dkReady = false;
-async function ensureDeviceKeys(env) {
-  if (_dkReady) return;
-  await env.DB.batch([
-    env.DB.prepare(
-      "CREATE TABLE IF NOT EXISTS device_keys (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, wrapped_dek TEXT NOT NULL, created_at INTEGER NOT NULL, last_used INTEGER)"
-    ),
-    env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_device_keys_user ON device_keys(user_id)"),
-  ]);
-  try { await env.DB.prepare("ALTER TABLE device_keys ADD COLUMN device_id TEXT").run(); } catch { /* already there */ }
-  try { await env.DB.prepare("ALTER TABLE device_keys ADD COLUMN label TEXT").run(); } catch { /* already there */ }
-  await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_device_keys_dev ON device_keys(user_id, device_id)").run();
-  _dkReady = true;
-}
+async function ensureDeviceKeys(env) { /* Schema is managed by D1 migrations. */ }
 
 const MAX_DEVICE_KEYS = 10;
 const validDeviceId = (v) => typeof v === "string" && /^[A-Za-z0-9_-]{16,64}$/.test(v);
@@ -294,8 +213,8 @@ async function consumeChallenge(env, user, body, purpose) {
     "SELECT answer_hash, purpose, expires_at FROM key_challenges WHERE id = ? AND user_id = ?"
   ).bind(id, user.id).first();
   if (!row) return false;
-  await env.DB.prepare("DELETE FROM key_challenges WHERE id = ?").bind(id).run();
-  return row.purpose === purpose && row.expires_at >= now() && constantTimeEq(await sha256hex(answer), row.answer_hash);
+  const consumed = await env.DB.prepare("DELETE FROM key_challenges WHERE id = ? AND user_id = ?").bind(id, user.id).run();
+  return consumed.meta.changes === 1 && row.purpose === purpose && row.expires_at >= now() && constantTimeEq(await sha256hex(answer), row.answer_hash);
 }
 
 // ── Server-side Hybrid Encryption (for external inbound email) ─────────────
@@ -328,29 +247,6 @@ const SVIX_TOLERANCE_S = 5 * 60;            // reject webhook timestamps outside
 const INBOUND_MAX_TEXT_CHARS = 100_000;     // stored plaintext cap (encrypted at rest)
 const INBOUND_MAX_HTML_CHARS = 200_000;     // sanitized rich-part cap (encrypted at rest)
 
-async function verifySvix(secret, svixId, svixTs, svixSigHeader, rawBody) {
-  if (!secret || !svixId || !svixTs || !svixSigHeader || typeof rawBody !== "string") return false;
-
-  const b64Secret = secret.startsWith("whsec_") ? secret.slice("whsec_".length) : secret;
-  let key;
-  try {
-    key = await crypto.subtle.importKey(
-      "raw", b64d(b64Secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
-    );
-  } catch {
-    return false;
-  }
-  const mac = await crypto.subtle.sign("HMAC", key, enc.encode(`${svixId}.${svixTs}.${rawBody}`));
-  const expected = b64(mac);
-
-  for (const part of svixSigHeader.split(/\s+/)) {
-    const comma = part.indexOf(",");
-    if (comma < 0) continue;
-    if (part.slice(0, comma) === "v1" && constantTimeEq(part.slice(comma + 1), expected)) return true;
-  }
-  return false;
-}
-
 // Minimal HTML → readable plain text, for mail that has no text part. Only
 // the browser renders HTML, and only after its own sanitizer.
 function htmlToText(html) {
@@ -380,17 +276,7 @@ const TEAM_LABELS = {
   support: "Inpriv Support", abuse: "Inpriv Abuse", dmca: "Inpriv Copyright", legal: "Inpriv Legal",
   privacy: "Inpriv Privacy", security: "Inpriv Security", admin: "Inpriv", hello: "Inpriv",
 };
-let _teamReady = false;
-async function ensureTeam(env) {
-  if (_teamReady) return;
-  await env.DB.batch([
-    env.DB.prepare(
-      "CREATE TABLE IF NOT EXISTS team_messages (id INTEGER PRIMARY KEY AUTOINCREMENT, mailbox TEXT NOT NULL, direction TEXT NOT NULL, from_addr TEXT, from_name TEXT, to_addr TEXT, subject TEXT, text TEXT, attachments TEXT, is_read INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL, resend_id TEXT)"
-    ),
-    env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_team_box ON team_messages(mailbox, created_at)"),
-  ]);
-  _teamReady = true;
-}
+async function ensureTeam(env) { /* Schema is managed by D1 migrations. */ }
 
 async function handleInbound(request, env) {
   const secret = env.RESEND_WEBHOOK_SECRET;
@@ -613,18 +499,7 @@ async function syncIdConsent(env, username, force = false) {
 // kind "sso":  Quick Sign-In proved the ID session of a 2FA account; it lets
 //   /sso/verify ask for the second factor. It can never create a mailbox.
 // Single use, 10 minutes, only the hash is stored.
-let _iitReady = false;
-async function ensureIdInitTickets(env) {
-  if (_iitReady) return;
-  await env.ID_DB.batch([
-    env.ID_DB.prepare(
-      "CREATE TABLE IF NOT EXISTS id_init_tickets (id TEXT PRIMARY KEY, username TEXT NOT NULL, created_at INTEGER NOT NULL, expires_at INTEGER NOT NULL, used_at INTEGER)"
-    ),
-    env.ID_DB.prepare("CREATE INDEX IF NOT EXISTS idx_iit_username ON id_init_tickets(username, created_at)"),
-  ]);
-  try { await env.ID_DB.prepare("ALTER TABLE id_init_tickets ADD COLUMN kind TEXT").run(); } catch { /* already there */ }
-  _iitReady = true;
-}
+async function ensureIdInitTickets(env) { /* Schema is managed by D1 migrations. */ }
 
 async function mintTicket(env, username, kind) {
   await ensureIdInitTickets(env);
@@ -650,58 +525,6 @@ async function burnTicket(env, row) {
   const r = await env.ID_DB.prepare("UPDATE id_init_tickets SET used_at = ? WHERE id = ? AND used_at IS NULL")
     .bind(now(), row.id).run();
   return ((r.meta && r.meta.changes) || 0) === 1;
-}
-
-// ── TOTP verification against the Inpriv ID database (RFC 6238, SHA-1) ────
-// Used only when this Worker has ID_ENC_KEY (local tests); in production
-// Mail asks ID's /api/totp/verify, so the key only lives on ID.
-const ID_B32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-function idBase32Decode(s) {
-  let bits = 0, val = 0;
-  const out = [];
-  for (const ch of String(s).toUpperCase().replace(/=+$/, "").replace(/\s/g, "")) {
-    const i = ID_B32.indexOf(ch);
-    if (i < 0) continue;
-    val = (val << 5) | i;
-    bits += 5;
-    if (bits >= 8) { bits -= 8; out.push((val >>> bits) & 0xff); }
-  }
-  return new Uint8Array(out);
-}
-async function idHotp(secretBytes, counter) {
-  const buf = new ArrayBuffer(8);
-  const view = new DataView(buf);
-  view.setUint32(0, Math.floor(counter / 0x100000000));
-  view.setUint32(4, counter >>> 0);
-  const key = await crypto.subtle.importKey("raw", secretBytes, { name: "HMAC", hash: "SHA-1" }, false, ["sign"]);
-  const mac = await crypto.subtle.sign("HMAC", key, new Uint8Array(buf));
-  const b = new Uint8Array(mac);
-  const off = b[19] & 0xf;
-  const code = ((b[off] & 0x7f) << 24) | (b[off + 1] << 16) | (b[off + 2] << 8) | b[off + 3];
-  return String(code % 1_000_000).padStart(6, "0");
-}
-async function idVerifyTOTP(code, secretBytes, atMs) {
-  const step = Math.floor(atMs / 30_000);
-  for (let w = -1; w <= 1; w++) {
-    if (constantTimeEq(await idHotp(secretBytes, step + w), code)) return true;
-  }
-  return false;
-}
-async function openIdSecret(env, envelopeJson) {
-  try {
-    const { iv, ct } = JSON.parse(envelopeJson);
-    const raw = enc.encode(env.ID_ENC_KEY);
-    let keyBytes = raw;
-    if (keyBytes.length !== 32 && keyBytes.length === 44) {
-      try { keyBytes = b64d(env.ID_ENC_KEY); } catch { /* fallthrough */ }
-    }
-    if (keyBytes.length !== 32) return null;
-    const key = await crypto.subtle.importKey("raw", keyBytes, "AES-GCM", false, ["decrypt"]);
-    const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64d(iv) }, key, b64d(ct));
-    return dec.decode(pt);
-  } catch {
-    return null;
-  }
 }
 
 // Mail-only mailboxes (created on mail.inpriv.xyz before sign-up moved to
@@ -731,22 +554,7 @@ async function ensureIdAccount(env, mailUser) {
 // Second factor for an Inpriv ID account: a 6-digit TOTP code or a single-use
 // recovery code. Returns "ok", "missing" (nothing usable sent yet) or "bad".
 async function checkIdSecondFactor(env, idUserId, code, recovery) {
-  if (recovery) {
-    const rc = await env.ID_DB.prepare(
-      "SELECT id FROM recovery_codes WHERE user_id = ? AND code_hash = ? AND used_at IS NULL"
-    ).bind(idUserId, await sha256hex(recovery)).first();
-    if (!rc) return "bad";
-    const r = await env.ID_DB.prepare("UPDATE recovery_codes SET used_at = ? WHERE id = ? AND used_at IS NULL").bind(now(), rc.id).run();
-    return ((r.meta && r.meta.changes) || 0) === 1 ? "ok" : "bad";
-  }
-  if (!/^\d{6}$/.test(code)) return "missing";
-  if (env.ID_ENC_KEY) {
-    const trow = await env.ID_DB.prepare(
-      "SELECT secret_enc FROM totp_secrets WHERE user_id = ? AND confirmed = 1"
-    ).bind(idUserId).first();
-    const secret = trow ? await openIdSecret(env, trow.secret_enc) : null;
-    return secret && (await idVerifyTOTP(code, idBase32Decode(secret), now())) ? "ok" : "bad";
-  }
+  if (!recovery && !/^\d{6}$/.test(code)) return "missing";
   if (!env.SERVICE_KEY) return "bad";
   const u = await env.ID_DB.prepare("SELECT username FROM users WHERE id = ?").bind(idUserId).first();
   if (!u) return "bad";
@@ -754,7 +562,7 @@ async function checkIdSecondFactor(env, idUserId, code, recovery) {
     const r = await fetch(`${env.ID_ORIGIN || "https://id.inpriv.xyz"}/api/totp/verify`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Inpriv-Service": env.SERVICE_KEY },
-      body: JSON.stringify({ username: u.username, code }),
+      body: JSON.stringify({ username: u.username, code, recovery }),
     });
     const d = await r.json().catch(() => ({}));
     return r.ok && d.ok === true ? "ok" : "bad";
@@ -799,7 +607,7 @@ export default {
 
     // Static frontend assets pass-through
     if (!path.startsWith("/api/")) {
-      const gate = await maintenanceGate("mail");
+      const gate = await maintenanceGate("mail", env);
       if (gate.locked) return maintenancePage("Inpriv Mail", gate.message);
       const res = await env.ASSETS.fetch(request);
       if (res.status === 404) return notFound(request, "Inpriv Mail");
@@ -846,13 +654,13 @@ export default {
 };
 
 async function api(request, env, ctx, url, path) {
-  const gate = await maintenanceGate("mail");
+  const gate = await maintenanceGate("mail", env);
   if (gate.locked && path !== "/api/v1/health" && path !== "/api/v1/inbound") {
     return maintenancePage("Inpriv Mail", gate.message);
   }
 
   if (path === "/api/v1/health") {
-    return json({ status: "ok", service: "inpriv-mail", domain: DOMAIN, time: now() });
+    return json({ status: "ok", release: "2026-11-08", service: "inpriv-mail", domain: DOMAIN, time: now() });
   }
 
   // ══════════════════════════════════════════════════════════════════════
@@ -876,7 +684,7 @@ async function api(request, env, ctx, url, path) {
   try {
     await ensureSchema(env);
     const body = isUnsafeMethod(request) ? await request.json().catch(() => ({})) : {};
-    const ipk = clientKey(request);
+    const ipk = (clientNet(request) || "unknown");
 
     // Endpoints of the old password-wrapped key flow and the public account
     // lookups. They answer 410 so a page loaded before this release reloads.
@@ -1103,7 +911,7 @@ async function api(request, env, ctx, url, path) {
     // ── Proof-of-possession challenge (see createChallenge) ───────────────
     if (path === "/api/v1/keys/challenge" && request.method === "POST") {
       const purpose = String(body.purpose || "");
-      if (!["migrate", "rewrap", "device"].includes(purpose)) return bad("unknown purpose", 400);
+      if (!["migrate", "rewrap", "device", "reset"].includes(purpose)) return bad("unknown purpose", 400);
       if (!(await rateLimit(env.DB, `chal:${me.id}`, 60, 3_600_000))) return bad("too many requests", 429);
       return json(await createChallenge(env, me, purpose));
     }
@@ -1161,12 +969,12 @@ async function api(request, env, ctx, url, path) {
       return json({ ok: true, user: publicUser(user, { inpriv_id_synced: true }) });
     }
 
-    // ── Forgotten passphrase: start over with a new key ───────────────────
+    // ── Replace the mailbox key after proving possession ───────────────────
     // Nobody can recover the passphrase, so the earlier key ring is replaced
     // by a new one with one new key. Mail encrypted to the earlier keys stays
     // stored but can't be opened again. Because this hands future mail to a
-    // new key, it needs the Inpriv ID password and, when on, 2FA in this
-    // request: a session alone isn't enough.
+    // new key, it needs proof of the current private key, the Inpriv ID
+    // password and, when on, 2FA in this request: a session alone isn't enough.
     if (path === "/api/v1/keys/reset" && request.method === "POST") {
       if (!(await rateLimit(env.DB, `reset:${me.id}`, 5, 3_600_000))) return bad("too many attempts — wait an hour", 429);
       const idUser = env.ID_DB ? await env.ID_DB.prepare(`SELECT ${ID_USER_COLS} FROM users WHERE username = ?`).bind(me.username).first() : null;
@@ -1180,12 +988,15 @@ async function api(request, env, ctx, url, path) {
       if (k.error) return bad(k.error, 400);
       const e = readEnvelope(body);
       if (e.error) return bad(e.error, 400);
+      if (!(await consumeChallenge(env, me, body, "reset"))) return bad("key proof failed — unlock your current mailbox first", 403);
+      if (String(body.previous_salt || "") !== me.priv_salt) return bad("the mailbox changed meanwhile — reload", 409);
       const oldId = await keyIdOf(env, me);
+      const changed = await env.DB.prepare(
+        `UPDATE users SET public_key = ?, key_id = ?, key_format = ?, encrypted_private_key = ?, priv_iv = ?,
+                          priv_salt = ?, priv_iter = ?, keys_updated_at = ? WHERE id = ? AND public_key = ? AND priv_salt = ?`
+      ).bind(k.pub, k.id, KEY_FORMAT, e.epk, e.iv, e.salt, e.iter, now(), me.id, me.public_key, me.priv_salt).run();
+      if (changed.meta.changes !== 1) return bad("the mailbox changed meanwhile — reload", 409);
       await env.DB.batch([
-        env.DB.prepare(
-          `UPDATE users SET public_key = ?, key_id = ?, key_format = ?, encrypted_private_key = ?, priv_iv = ?,
-                            priv_salt = ?, priv_iter = ?, keys_updated_at = ? WHERE id = ?`
-        ).bind(k.pub, k.id, KEY_FORMAT, e.epk, e.iv, e.salt, e.iter, now(), me.id),
         env.DB.prepare("UPDATE messages SET key_id = ? WHERE owner_id = ? AND key_id IS NULL").bind(oldId, me.id),
         env.DB.prepare("DELETE FROM device_keys WHERE user_id = ?").bind(me.id),
         env.DB.prepare("DELETE FROM sessions WHERE user_id = ? AND id != ?").bind(me.id, auth.sid),
@@ -1284,12 +1095,21 @@ async function api(request, env, ctx, url, path) {
 
     // ── List Messages ─────────────────────────────────────────────────────
     if (path === "/api/v1/messages" && request.method === "GET") {
+      const cursor = url.searchParams.get("cursor");
+      let at = null, id = null;
+      if (cursor) {
+        if (!/^\d+:\d+$/.test(cursor)) return bad("invalid cursor", 400);
+        [at, id] = cursor.split(":").map(Number);
+        if (![at, id].every(Number.isSafeInteger)) return bad("invalid cursor", 400);
+      }
       const rows = await env.DB.prepare(
         `SELECT id, direction, peer_address, peer_label, subject, is_read, created_at
-         FROM messages WHERE owner_id = ?
-         ORDER BY created_at DESC LIMIT 200`
-      ).bind(me.id).all();
-      return json({ items: rows.results || [] });
+         FROM messages WHERE owner_id = ? ${cursor ? "AND (created_at, id) < (?, ?)" : ""}
+         ORDER BY created_at DESC, id DESC LIMIT 201`
+      ).bind(...(cursor ? [me.id, at, id] : [me.id])).all();
+      const items = (rows.results || []).slice(0, 200);
+      const last = items[items.length - 1];
+      return json({ items, next_cursor: rows.results.length > 200 ? `${last.created_at}:${last.id}` : null });
     }
 
     // ── Get Single Message Envelope (Marks Read) ──────────────────────────
@@ -1315,8 +1135,10 @@ async function api(request, env, ctx, url, path) {
       const subject = String(body.subject || "").slice(0, 200);
       const isExternal = body.mode === "external" || (rawTo.includes("@") && !rawTo.endsWith("@" + DOMAIN));
 
-      if (!(await rateLimit(env.DB, `send:${me.id}`, 40, 3_600_000))) {
-        return bad("rate limit exceeded (40 messages/hour)", 429);
+      if (!(await rateLimit(env.DB, `send:${me.id}`, 40, 3_600_000)) ||
+          !(await sharedRateLimit(env.DB, `send:${isExternal ? "external" : "internal"}:${me.id}`, isExternal ? 20 : 40, 3_600_000)) ||
+          !(await sharedRateLimit(env.DB, `send:day:${isExternal ? "external" : "internal"}:${me.id}`, isExternal ? 100 : 400, 86_400_000))) {
+        return bad("sending limit reached — try again later", 429);
       }
       if ((me.key_format || 1) !== KEY_FORMAT) return bad("set your mailbox passphrase first", 409);
       const myKeyId = await keyIdOf(env, me);
@@ -1325,6 +1147,8 @@ async function api(request, env, ctx, url, path) {
       const t = now();
 
       if (isExternal) {
+        const confirmed = await env.ID_DB.prepare("SELECT recovery_email_verified FROM users WHERE username = ?").bind(me.username).first();
+        if (!confirmed?.recovery_email_verified) return bad("confirm your recovery email on Inpriv ID before sending to other providers", 403);
         const toEmail = rawTo;
         if (!/^[^@\s<>,;]+@[^@\s<>,;]+\.[^@\s<>,;]+$/.test(toEmail) || toEmail.length > 254) {
           return bad("invalid recipient email address", 400);
@@ -1352,6 +1176,7 @@ async function api(request, env, ctx, url, path) {
         }
         if (ct.length > 300_000) return bad("message body exceeds maximum size (200 KB)", 400);
 
+        if (!(await relayBudget(env.DB, `user:${me.id}`, toEmail))) return bad("sending limit reached — try again later", 429);
         let resendRes;
         try {
           const res = await fetch("https://api.resend.com/emails", {
@@ -1498,6 +1323,7 @@ export class TeamMail extends WorkerEntrypoint {
     if (!text.trim()) throw new Error("the message is empty");
     const key = this.env.RESEND_API_KEY || this.env.RESEND_KEY;
     if (!key) throw new Error("sending isn't configured (RESEND_API_KEY)");
+    if (!(await relayBudget(this.env.DB, `team:${mailbox}`, to))) throw new Error("sending limit reached — try again later");
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },

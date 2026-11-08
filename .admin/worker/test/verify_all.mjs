@@ -1,3 +1,4 @@
+throw new Error("Retired unsafe test. Use tests/local.sh and tests/api.test.mjs; this script must not contact production.");
 // Comprehensive test for all 15 inpriv services + admin kill-switch + English UI
 import fs from "node:fs/promises";
 import crypto from "node:crypto";

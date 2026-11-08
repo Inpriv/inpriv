@@ -1,4 +1,4 @@
-// Copies the Inpriv UI core (inpriv-ui.css / inpriv-ui.js) into every page
+// Copies every shared UI module into its pages
 // and mirrors each source page into the folder its Worker serves.
 //
 //   node common/ui/sync.mjs          write
@@ -38,6 +38,14 @@ for (const [src, copy] of PAGES) {
   const before = readFileSync(path, "utf8");
   let html = fill(before, '<style id="inpriv-ui">', "</style>", css, src);
   html = fill(html, '<script id="inpriv-ui-js">', "</script>", js, src);
+  for (const [tag, id, module] of [
+    ['script', 'inpriv-pwa', 'pwa.js'], ['script', 'inpriv-mail-render', 'mail-render.js'],
+    ['script', 'inpriv-mail-unsubscribe', 'mail-unsubscribe.js'],
+    ['script', 'inpriv-mode-switch', 'mode-switch.js'], ['style', 'inpriv-mode-switch-css', 'mode-switch.css'],
+  ]) {
+    const open = `<${tag} id="${id}">`;
+    if (html.includes(open)) html = fill(html, open, `</${tag}>`, readFileSync(join(here, module), 'utf8').trimEnd(), src);
+  }
   const targets = [[path, before]];
   if (copy) {
     const cp = join(repo, copy);
@@ -51,5 +59,17 @@ for (const [src, copy] of PAGES) {
     if (check) console.log("out of date:", file.slice(repo.length + 1));
     else { writeFileSync(file, html); console.log("wrote", file.slice(repo.length + 1)); }
   }
+}
+for (const file of ['worker/public/offline.html', '.mail/worker/public/offline.html', '.temp/worker/public/offline.html']) {
+  const path = join(repo, file);
+  const old = readFileSync(path, 'utf8');
+  const html = fill(old, '<script id="inpriv-pwa">', '</script>', readFileSync(join(here, 'pwa.js'), 'utf8').trimEnd(), file);
+  if (html !== old) { stale++; if (check) console.log('out of date:', file); else writeFileSync(path, html); }
+}
+for (const file of ['sw.js', 'worker/public/sw.js', '.mail/worker/public/sw.js', '.temp/worker/public/sw.js']) {
+  const path = join(repo, file);
+  const old = readFileSync(path, 'utf8').replace(/\r\n/g, '\n');
+  const source = readFileSync(join(here, 'pwa-sw.js'), 'utf8');
+  if (old.trimEnd() !== source.trimEnd()) { stale++; if (check) console.log('out of date:', file); else writeFileSync(path, source); }
 }
 if (check && stale) process.exit(1);
