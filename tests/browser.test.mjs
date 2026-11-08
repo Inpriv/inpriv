@@ -457,18 +457,19 @@ describe("look and feel in Firefox", () => {
     assert.equal(await o.page.$eval(".track", (t) => getComputedStyle(t).animationName), "none");
     // sample the circle's progress on every frame of the transition: it must
     // pass through values in between, not jump from start to end
+    const before = await o.page.evaluate(() => window.InprivUI.theme());
     await o.page.evaluate(() => {
       window.__p = [];
-      const t0 = performance.now();
+      window.__themeStop = false;
       requestAnimationFrame(function f() {
         const v = getComputedStyle(document.documentElement, "::view-transition-new(root)").getPropertyValue("--vt-p");
         if (v !== "") window.__p.push(+v);
-        if (performance.now() - t0 < 1600) requestAnimationFrame(f);
+        if (!window.__themeStop) requestAnimationFrame(f);
       });
+      document.querySelector('[data-theme-toggle]').click();
     });
-    const before = await o.page.evaluate(() => window.InprivUI.theme());
-    await o.page.click("[data-theme-toggle]");
-    await L.sleep(1900);
+    await o.page.waitForFunction(() => window.__p.some(v => v > 0.05 && v < 0.95), { timeout: 10000 });
+    await o.page.evaluate(() => { window.__themeStop = true; });
     const p = await o.page.evaluate(() => window.__p);
     assert.ok(p.some((v) => v > 0.05 && v < 0.95), "in-between values: " + p.join(" "));
     assert.notEqual(await o.page.evaluate(() => window.InprivUI.theme()), before);
