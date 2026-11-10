@@ -127,13 +127,17 @@ test('Temp creation counters retain only a network prefix and taken names return
   assert.ok(rows.every(r => !r.k.includes('113.79') && r.k.includes('203.0.113.0/24')));
 });
 
-test('public state strips operator text and restricts browser origins', async () => {
+test('public state publishes operator text and restricts browser origins', async () => {
   for (const origin of ['https://evil.example', 'https://mail.inpriv.xyz']) {
     const r = await fetch(URLS.admin + '/public/state', { headers: { Origin: origin } });
     assert.equal(r.headers.get('access-control-allow-origin'), origin.endsWith('mail.inpriv.xyz') ? origin : null);
     const body = await r.json();
-    assert.ok(!('message' in body.global));
-    assert.ok(!('message' in body.info));
+    // The gate needs the operator's own words: the maintenance page and the
+    // notice show them. (They used to be stripped, so neither ever appeared.)
+    assert.equal(typeof body.global.message, 'string');
+    assert.equal(typeof body.info.message, 'string');
+    // an inactive notice publishes no draft text
+    if (!body.info.active) assert.equal(body.info.message, '');
   }
 });
 
