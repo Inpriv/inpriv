@@ -180,7 +180,7 @@ function defaultState() {
     services: {},
     // Account policies the services read from /public/state. `readState` merges
     // this default in, so a state row written before a flag existed picks it up.
-    settings: { allowExternalWithoutRecovery: false },
+    settings: { allowExternalWithoutRecovery: true },
     audit: [],
   };
 }
@@ -357,7 +357,7 @@ async function getState(env) {
   for (const s of SERVICES) {
     services[s] = st.services[s] || { locked: false, message: "" };
   }
-  return { global: st.global, info: st.info, services, settings: st.settings || { allowExternalWithoutRecovery: false } };
+  return { global: st.global, info: st.info, services, settings: st.settings || { allowExternalWithoutRecovery: true } };
 }
 
 async function publicState(env, cors, request) {

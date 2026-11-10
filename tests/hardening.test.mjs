@@ -162,11 +162,31 @@ test('legacy recovery hashes are protected without changing an issued recovery c
   assert.equal((await c.post('/api/2fa/disable', { password: PW, recovery: recovery[0] })).status, 200);
 });
 
-test('external sending requires a confirmed recovery email', async () => {
+test('external sending needs a confirmed recovery email only when the policy requires it', async () => {
   const m = await L.newMailbox('external' + L.rand(), PW, 'external test passphrase');
-  const r = await m.mail.post('/api/v1/messages/send', { mode: 'external', to: 'recipient@example.test', sender_key_id: m.key.id });
+  const send = () => m.mail.post('/api/v1/messages/send', { mode: 'external', to: 'recipient@example.test', sender_key_id: m.key.id });
+
+  // Default: allowed. (Locally the relay is not configured, so this answers
+  // 503 — what matters is that it is not the recovery gate refusing it.)
+  const open = await send();
+  assert.notEqual(open.status, 403);
+
+  // The operator can still require a confirmed recovery email.
+  L.db('id').prepare(
+    "UPDATE admin_kv SET v = json_set(v, '$.settings.allowExternalWithoutRecovery', json('false')) WHERE k='state'"
+  ).run();
+  let r = null;
+  for (let i = 0; i < 3 && (!r || r.status !== 403); i++) {
+    if (i) await L.sleep(12_000); // the admin caches for 3 s, the edge up to 30 s
+    r = await send();
+  }
   assert.equal(r.status, 403);
   assert.match(r.body.error, /confirm your recovery email/i);
+
+  // leave the local policy at the code default
+  L.db('id').prepare(
+    "UPDATE admin_kv SET v = json_set(v, '$.settings.allowExternalWithoutRecovery', json('true')) WHERE k='state'"
+  ).run();
 });
 
 test('registration has the same response for held and free recovery addresses', async () => {
