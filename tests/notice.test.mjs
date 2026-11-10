@@ -46,11 +46,14 @@ test("a notice set in admin reaches the banner endpoint, text and all", async ()
     return r.body && r.body.info === NOTICE;
   }, "the notice");
 
-  // every site answers the same thing, on its own path
+  // every site answers the same thing, on its own path (each keeps its own
+  // gate cache, so give the stale copy time to expire)
   const paths = [[URLS.mail, "/api/v1/maintenance"], [URLS.id, "/api/maintenance"], [URLS.temp, "/api/maintenance"]];
   for (const [base, path] of paths) {
-    const r = await new Client(base).get(path);
-    assert.equal(r.body.info, NOTICE, base + path);
+    await until(async () => {
+      const r = await new Client(base).get(path);
+      return r.body && r.body.info === NOTICE;
+    }, base + path, 120);
   }
 });
 
