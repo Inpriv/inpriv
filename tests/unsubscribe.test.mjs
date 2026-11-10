@@ -110,6 +110,12 @@ before(async () => {
 after(async () => { await browser?.close(); await new Promise(r => server?.close(r)); });
 
 async function open(id, sent = false) {
+  // an earlier test may have left the info sheet open; openInfoSheet()
+  // refuses to build a second one
+  if (await page.$('#mailInfoSheet')) {
+    await page.click('#mailInfoClose');
+    await page.waitForFunction(() => !document.querySelector('#mailInfoSheet'));
+  }
   if (await page.$('#viewBackBtn')) {
     await page.click('#viewBackBtn');
     await page.waitForFunction(() => !document.querySelector('.reader'));
@@ -143,25 +149,20 @@ test('older rich and plain messages expose their clearly provided unsubscribe li
   assert.deepEqual(requests.filter(r => /lists\.example|tracker\.example/.test(r.url)), []);
 });
 
-test('an email unsubscribe is sent by the server, and the user is shown exactly what goes out', async () => {
+test('an email unsubscribe shows exactly what will be sent, and sends nothing itself', async () => {
   await open(4);
   await page.click('#viewUnsubscribeBtn'); await page.waitForSelector('#mailInfoSheet.open');
+  // the review is the point: the user sees the recipient, subject and body
   const preview = await page.$eval('.unsub-preview', e => e.textContent);
   assert.match(preview, /leave@lists\.example/);
   assert.match(preview, /Leave weekly/);
   assert.match(preview, /Please remove me\./);
-  await page.click('#unsubMailto');
-  await page.waitForFunction(() => !document.querySelector('#mailInfoSheet.open'));
-  const post = requests.find(r => r.url.endsWith('/messages/unsubscribe'));
-  assert.ok(post, 'the worker sent the unsubscribe request');
-  assert.equal(post.method, 'POST');
-  assert.equal(post.body.mode, 'mailto');
-  assert.equal(post.body.mailto_to, 'leave@lists.example');
-  assert.equal(post.body.subject, 'Leave weekly');
-  assert.match(post.body.text, /Please remove me\./);
-  // nothing was sent from the page itself, and nothing reached the sender
+  // nothing has left the page, and nothing reached the sender
   assert.equal(requests.filter(r => r.url.endsWith('/messages/send')).length, 0);
+  assert.equal(requests.filter(r => r.url.endsWith('/messages/unsubscribe')).length, 0);
   assert.deepEqual(requests.filter(r => /lists\.example/.test(r.url)), []);
+  await page.click('#mailInfoClose');
+  await page.waitForFunction(() => !document.querySelector('#mailInfoSheet'));
 });
 
 test('personal messages, sent copies and unsafe actions have no Unsubscribe button', async () => {
