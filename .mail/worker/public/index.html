@@ -563,6 +563,17 @@ button, .btn, .icon-btn, [role="tab"], [role="switch"] { user-select: none; -web
 .toast-desc { font-size: 12.5px; font-weight: 400; color: var(--text-2); margin-top: 1px; }
 .toast:has(.toast-desc) { border-radius: 22px; }
 
+/* ── global notice banner (#bannerSlot, filled from /api/maintenance) ──── */
+/* A direct child of .shell: mode-switch.js keeps it out of the arrival
+   animation. The text is set with textContent, never innerHTML. */
+.banner {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 12px 16px; border-radius: 20px;
+  color: var(--text-2); font-size: 13.5px;
+  animation: rise 0.6s var(--out) backwards;
+}
+.banner .i { color: var(--accent); margin-top: 1px; }
+
 /* ── theme change ─────────────────────────────────────────────────────── */
 /* The new theme spreads from the tapped button as a soft-edged circle of
    ink; the old page eases back and blurs slightly underneath it.
@@ -973,6 +984,7 @@ html, body { overscroll-behavior-y: contain; }
 .view-from-text { flex: 1; min-width: 0; }
 .view-from-name { font-weight: 650; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .view-from-sub { color: var(--text-3); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.view-key { color: var(--text-3); font-size: 11.5px; font-variant-numeric: tabular-nums; letter-spacing: 0.02em; margin-top: 2px; }
 .view-from-date { flex: none; align-self: flex-start; padding-top: 3px; color: var(--text-3); font-size: 12.5px; font-variant-numeric: tabular-nums; }
 .view-tools { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .view-tools .sec-badge {
@@ -1118,6 +1130,9 @@ html .bottom-nav.glass {
 }
 .autocomplete-item:hover { background: var(--fill-2); }
 .autocomplete-item .i { color: var(--text-3); }
+/* a contact the resolver says can't receive right now (see /recipients/resolve) */
+.autocomplete-item.muted { opacity: 0.72; }
+.autocomplete-item em { font-style: normal; color: var(--text-3); font-size: 12px; }
 
 /* ── account ── */
 .card { padding: 22px; border-radius: 32px; animation: rise 0.6s var(--out) backwards; }
@@ -2634,6 +2649,32 @@ function toggleTheme() {
   InprivUI.toggleTheme();
 }
 
+/* ---------- Global notice (admin → Switches → Global notice) ----------
+   Read from /api/maintenance, which carries the kill-switch state. The text is
+   set with textContent, so operator text can never become markup. The slot is a
+   direct child of .shell, which keeps it out of the mode-arrival animation. */
+function showGlobalInfo(text) {
+  const slot = $('#bannerSlot');
+  if (!slot) return;
+  slot.replaceChildren();
+  const el = document.createElement('div');
+  el.className = 'banner glass';
+  el.insertAdjacentHTML('beforeend', mkIcon('info'));
+  const span = document.createElement('span');
+  span.textContent = text;
+  el.appendChild(span);
+  slot.appendChild(el);
+}
+
+async function loadGlobalInfo() {
+  try {
+    const r = await fetch('/api/v1/maintenance');
+    if (!r.ok) return;
+    const m = await r.json();
+    if (m.info) showGlobalInfo(m.info);
+  } catch { /* the notice is never worth blocking the page for */ }
+}
+
 function renderShell() {
   const app = $('#app');
   app.innerHTML = `
@@ -2648,6 +2689,8 @@ function renderShell() {
         <button class="icon-btn" id="themeToggle" type="button" data-theme-toggle aria-label="Switch theme"></button>
       </div>
     </header>
+
+    <div id="bannerSlot"></div>
 
     <main class="main-content" id="mainView"></main>
 
@@ -3670,6 +3713,7 @@ async function openMessageView(id) {
           <div class="view-from-text">
             <div class="view-from-name" id="viewFrom">${escapeHtml(preview?.direction === 'outbound' ? state.user.email : (preview?.peer_label || preview?.peer_address || ''))}</div>
             <div class="view-from-sub">to <span id="viewTo">${escapeHtml(preview?.direction === 'inbound' ? state.user.email : (preview?.peer_address || ''))}</span></div>
+            <div class="view-key" id="viewKey" hidden></div>
           </div>
           <div class="view-from-date" id="viewDate"></div>
         </div>
@@ -3756,6 +3800,18 @@ async function openMessageView(id) {
     $('#viewDate').title = new Date(msg.created_at).toLocaleString();
     $('#viewAvatar').textContent = initials(msg.peer_label || msg.peer_address);
     $('#viewFrom').title = msg.direction === 'inbound' ? (msg.peer_address || '') : state.user.email;
+
+    // The key this message was encrypted to: the same fingerprint the account
+    // screen shows, so a recipient can check it out of band.
+    const keyEl = $('#viewKey');
+    if (keyEl) {
+      if (msg.key_id) {
+        keyEl.hidden = false;
+        keyEl.textContent = `Encrypted to key ${fingerprint(msg.key_id)}`;
+      } else {
+        keyEl.hidden = true;
+      }
+    }
 
     const isExternalPeer = msg.peer_address && !msg.peer_address.toLowerCase().endsWith('@' + DOMAIN);
     const secEl = $('#viewSecBadge');
@@ -4085,26 +4141,37 @@ function openComposeModal(prefillTo = '', prefillSubject = '', prefillBody = '')
       sugg.classList.add('hidden');
       return;
     }
-    debTimer = setTimeout(() => {
+    debTimer = setTimeout(async () => {
       try {
         const users = contactSuggestions(q);
-        if (users.length > 0) {
-          sugg.innerHTML = users.map(u => `
-            <div class="autocomplete-item" data-u="${escapeHtml(u)}">
-              <span><strong>${escapeHtml(u)}</strong>@${DOMAIN}</span>
+        if (users.length === 0) { sugg.classList.add('hidden'); return; }
+        // Ask the server which of these can actually receive mail. It is the
+        // same resolver the send path uses, so a suggested name is a name that
+        // can be written to — and the ones that can't say why.
+        let states = {};
+        try {
+          const r = await api('/recipients/resolve', { method: 'POST', body: JSON.stringify({ names: users }) });
+          states = (r && r.states) || {};
+        } catch (_) { /* offline or rate-limited: show the names unmarked */ }
+        const note = (st) => st === 'id_no_mailbox' ? ' · hasn’t set up Mail'
+          : st === 'mailbox_no_key' ? ' · can’t receive right now'
+          : st === 'lookup_error' ? ' · couldn’t check' : '';
+        sugg.innerHTML = users.map(u => {
+          const n = note(states[u]);
+          return `
+            <div class="autocomplete-item${n ? ' muted' : ''}" data-u="${escapeHtml(u)}">
+              <span><strong>${escapeHtml(u)}</strong>@${DOMAIN}${n ? `<em>${escapeHtml(n)}</em>` : ''}</span>
               ${mkIcon('arrow_outward')}
             </div>
-          `).join('');
-          sugg.classList.remove('hidden');
-          $$('.autocomplete-item', sugg).forEach(item => {
-            item.addEventListener('click', () => {
-              toInput.value = item.dataset.u;
-              sugg.classList.add('hidden');
-            });
+          `;
+        }).join('');
+        sugg.classList.remove('hidden');
+        $$('.autocomplete-item', sugg).forEach(item => {
+          item.addEventListener('click', () => {
+            toInput.value = item.dataset.u;
+            sugg.classList.add('hidden');
           });
-        } else {
-          sugg.classList.add('hidden');
-        }
+        });
       } catch (_) {
         sugg.classList.add('hidden');
       }
@@ -4301,7 +4368,8 @@ async function installMailApp() {
 
 function showWhatsNew() {
   openInfoSheet("What's new", `
-    <article class="release-entry"><div class="release-date">9 November 2026 <span class="release-tag">Latest</span></div><h3>Older mail, within reach.</h3><ul><li>Mail older than the newest 200 messages is now reachable with Load older mail.</li><li>Messages with the same arrival time stay in a consistent order as you load more.</li></ul></article>
+    <article class="release-entry"><div class="release-date">11 November 2026 <span class="release-tag">Latest</span></div><h3>Mail that arrives, and an address that works from day one.</h3><ul><li>Mail sent to an Inpriv address that exists but has no mailbox yet is now retried instead of silently dropped, so it arrives once the mailbox is ready.</li><li>Creating an account now also creates your mailbox, with the keys made in your browser.</li><li>Writing to another Inpriv user says plainly when their mailbox isn't set up yet, and the suggestion list marks addresses that can't receive.</li><li>Read receipts for encryption: every message shows the key it was encrypted to, and a test proves the stored copy is unreadable without your passphrase.</li></ul></article>
+    <article class="release-entry"><div class="release-date">9 November 2026</div><h3>Older mail, within reach.</h3><ul><li>Mail older than the newest 200 messages is now reachable with Load older mail.</li><li>Messages with the same arrival time stay in a consistent order as you load more.</li></ul></article>
     <article class="release-entry"><div class="release-date">8 November 2026</div><h3>More protection for your account.</h3><ul><li>Changing your password, turning off two-factor authentication, replacing recovery codes, or deleting your account now asks for a fresh second-factor code when two-factor is enabled.</li><li>Each authenticator code can be used once. An unused recovery code also works for these account changes.</li><li>Replacing a mailbox key now requires opening the current key first. A lost mailbox passphrase cannot be bypassed with your sign-in password.</li></ul></article>
     <article class="release-entry"><div class="release-date">8 November 2026</div><h3>Clearer privacy and sending limits.</h3><ul><li>Deleting your account also removes its security and access-log entries.</li><li>Temp gives you a generated address when your requested name is unavailable.</li><li>Confirm a recovery email in Inpriv ID before sending Mail to other providers. Sending limits help protect delivery for everyone.</li></ul></article>
   `);
@@ -4632,6 +4700,7 @@ async function tryQuickUnlock({ avoid = [] } = {}) {
 
 async function bootstrap() {
   renderShell();
+  loadGlobalInfo();
   $('#mainView').dataset.waiting = 'true';
   $('#mainView').innerHTML = '<div class="mail-opening-toolbar" aria-hidden="true"><i></i><i></i></div>' + mailLoading('Opening Mail…', 'Getting things ready for you.');
   InprivUI.liquid('.auth-segmented, .tab-seg, .view-format-toggle, .bottom-nav');

@@ -18,6 +18,17 @@ import {
 
 const newToken = () => b64(crypto.getRandomValues(new Uint8Array(32)));
 
+// A single-use, 10-minute ticket that lets the page create the Mail mailbox
+// straight after sign-up. It is written to id_init_tickets, the table Inpriv
+// Mail reads, so Mail stays the only code that creates a mailbox.
+async function mintInitTicket(env, username) {
+  const tkt = newToken();
+  await env.DB.prepare(
+    "INSERT INTO id_init_tickets (id, username, created_at, expires_at, kind) VALUES (?,?,?,?,?)"
+  ).bind(await sha256hex(tkt), username, now(), now() + 10 * 60_000, "init").run();
+  return tkt;
+}
+
 // Services that redeem Quick Sign-In grants (data-service ids). Shown in the
 // Privacy tab under "Connected services" with their consent state.
 const SERVICE_META = {
@@ -232,7 +243,15 @@ export default {
     }
 
     const gate = await maintenanceGate("account", env);
-    if (gate.locked && path !== "/api/health") return maintenancePage("Inpriv ID", gate.message);
+    // /api/health (monitoring) and /api/maintenance (the notice banner) answer
+    // even while the site is locked.
+    if (gate.locked && path !== "/api/health" && path !== "/api/maintenance") {
+      return maintenancePage("Inpriv ID", gate.message);
+    }
+
+    if (path === "/api/maintenance") {
+      return json({ locked: gate.locked, message: gate.message, info: gate.info }, 200);
+    }
 
     // ── One Tap widget: /id.js — loadable from every *.inpriv.xyz page ──
     if (path === "/id.js" && request.method === "GET") {
@@ -365,8 +384,12 @@ export default {
         if (recoveryEmail) await sendRecoveryCode(env, uid);
 
         const s = await createSession(env.DB, uid, request, true);
+        // Lets the page create the mailbox immediately. Best-effort: a failure
+        // here must never fail the sign-up — Mail can be set up later.
+        let mailSetupTicket = null;
+        try { mailSetupTicket = await mintInitTicket(env, username); } catch { /* ignore */ }
         return json(
-          { user: await publicUser(env, uid), verification_sent: false },
+          { user: await publicUser(env, uid), verification_sent: false, mail_setup_ticket: mailSetupTicket },
           200,
           { ...cors, "Set-Cookie": sessionCookie(s.token) }
         );
@@ -544,6 +567,25 @@ export default {
           quick_unlock: !(settings && settings.quick_unlock === 0), // no row = on, as everywhere
           totp_enabled: !!u.totp_enabled, // service must enforce 2FA fallback
         }, 200, cors);
+      }
+
+      // ═══ MAILBOX READY? (asked right after sign-up) ═══
+      // The page hands the sealed key envelope to Inpriv Mail, then asks this
+      // to confirm; ID only reads Mail's database, it never writes a mailbox.
+      if (path === "/api/mailbox/status" && request.method === "GET") {
+        const mme = await authUser(request, env, true);
+        if (!mme) return bad("unauthorized", 401);
+        let ready = false;
+        try {
+          const u = await env.DB.prepare("SELECT username FROM users WHERE id = ?").bind(mme.uid).first();
+          if (u && env.MAIL_DB) {
+            const row = await env.MAIL_DB.prepare(
+              "SELECT 1 FROM users WHERE username = ? AND public_key IS NOT NULL AND public_key != ''"
+            ).bind(u.username).first();
+            ready = !!row;
+          }
+        } catch { ready = false; }
+        return json({ ready }, 200, cors);
       }
 
       // ═══ ACCOUNT SETTINGS (quick unlock toggle) ═══

@@ -278,6 +278,83 @@ const TEAM_LABELS = {
 };
 async function ensureTeam(env) { /* Schema is managed by D1 migrations. */ }
 
+// ── Recipient resolution ─────────────────────────────────────────────────────
+// One function decides whether an @inpriv.xyz address can receive mail, and if
+// not, why. The inbound webhook, the send path, the pubkey lookup and the
+// composer's suggestions all go through it, so they can't disagree about who
+// is reachable.
+//
+//   deliver         mailbox row + a usable public key
+//   id_no_mailbox   the Inpriv ID exists, its Mail mailbox has not been set up
+//   mailbox_no_key  the mailbox row exists without a usable public key
+//   never           no account, no claim, or a retired name (gone for good)
+//   foreign         the name belongs to Temp or to a team mailbox
+//   lookup_error    a database could not be read
+//
+// Only id_no_mailbox, mailbox_no_key and lookup_error are worth a retry: the
+// address exists, so the mail can still land. `never` and `foreign` answer 200
+// so a made-up address can't start a retry storm.
+const DELIVER = "deliver", ID_NO_MAILBOX = "id_no_mailbox", NO_KEY = "mailbox_no_key";
+const NEVER = "never", FOREIGN = "foreign", LOOKUP_ERROR = "lookup_error";
+
+function classifyRecipient(r) {
+  if (r.retired) return NEVER;                                   // never issued again
+  if (r.claim && r.claim.owner !== "id") return FOREIGN;         // temp inbox or team mailbox
+  if (r.mail) return r.mail.public_key ? DELIVER : NO_KEY;
+  if (r.id) return ID_NO_MAILBOX;
+  return NEVER;
+}
+
+// One address. Used by the webhook and the send path.
+async function resolveDelivery(env, name) {
+  const local = normalizeLocal(name);
+  if (!local) return { state: NEVER, mailbox: null };
+  try {
+    const [mail, id, claim, retired] = await Promise.all([
+      env.DB.prepare("SELECT id, username, address, public_key, key_id FROM users WHERE username = ?").bind(local).first(),
+      env.ID_DB.prepare("SELECT username FROM users WHERE username = ?").bind(local).first(),
+      env.ID_DB.prepare("SELECT owner FROM address_claims WHERE local = ?").bind(local).first(),
+      env.ID_DB.prepare("SELECT username FROM retired_usernames WHERE username = ?").bind(local).first(),
+    ]);
+    return { state: classifyRecipient({ mail, id, claim, retired }), mailbox: mail || null };
+  } catch (e) {
+    console.error("recipient lookup failed:", local, e && e.message);
+    return { state: LOOKUP_ERROR, mailbox: null };
+  }
+}
+
+// Up to 8 addresses in four queries (one per table), never 8 × 4.
+async function resolveDeliveries(env, names) {
+  const locals = [...new Set((names || []).map(normalizeLocal).filter(Boolean))].slice(0, 8);
+  if (!locals.length) return {};
+  const ph = locals.map(() => "?").join(",");
+  try {
+    const [mail, ids, claims, retired] = await Promise.all([
+      env.DB.prepare(`SELECT username, address, public_key, key_id FROM users WHERE username IN (${ph})`).bind(...locals).all(),
+      env.ID_DB.prepare(`SELECT username FROM users WHERE username IN (${ph})`).bind(...locals).all(),
+      env.ID_DB.prepare(`SELECT local, owner FROM address_claims WHERE local IN (${ph})`).bind(...locals).all(),
+      env.ID_DB.prepare(`SELECT username FROM retired_usernames WHERE username IN (${ph})`).bind(...locals).all(),
+    ]);
+    const mailBy = new Map((mail.results || []).map((r) => [r.username, r]));
+    const idSet = new Set((ids.results || []).map((r) => r.username));
+    const claimBy = new Map((claims.results || []).map((r) => [r.local, r]));
+    const retiredSet = new Set((retired.results || []).map((r) => r.username));
+    const out = {};
+    for (const local of locals) {
+      out[local] = classifyRecipient({
+        mail: mailBy.get(local),
+        id: idSet.has(local),
+        claim: claimBy.get(local),
+        retired: retiredSet.has(local),
+      });
+    }
+    return out;
+  } catch (e) {
+    console.error("recipient batch lookup failed:", e && e.message);
+    return Object.fromEntries(locals.map((l) => [l, LOOKUP_ERROR]));
+  }
+}
+
 async function handleInbound(request, env) {
   const secret = env.RESEND_WEBHOOK_SECRET;
   if (!secret) {
@@ -317,6 +394,7 @@ async function handleInbound(request, env) {
   ].map((s) => String(s).trim().toLowerCase()).filter(Boolean);
 
   let target = null, team = null;
+  const undeliverable = [];
   for (const r of recipients) {
     if (!r.endsWith("@" + DOMAIN)) continue;
     const local = r.slice(0, -("@" + DOMAIN).length);
@@ -324,12 +402,21 @@ async function handleInbound(request, env) {
   }
   for (const r of team ? [] : recipients) {
     if (!r.endsWith("@" + DOMAIN)) continue;
-    const row = await env.DB.prepare(
-      "SELECT id, username, address, public_key, key_id FROM users WHERE address = ?"
-    ).bind(r).first();
-    if (row && row.public_key) { target = row; break; }
+    const res = await resolveDelivery(env, r);
+    if (res.state === DELIVER) { target = res.mailbox; break; }
+    // The address belongs to someone but can't take mail yet: ask for a retry
+    // instead of acknowledging. A 200 here is what silently dropped mail.
+    if (res.state === ID_NO_MAILBOX || res.state === NO_KEY || res.state === LOOKUP_ERROR) {
+      undeliverable.push(`${r} (${res.state})`);
+    }
   }
-  if (!target && !team) return json({ ok: true, ignored: "no such mailbox" }); // 200 → no retry, no enumeration
+  if (!target && !team) {
+    if (undeliverable.length) {
+      console.error("inbound: recipient cannot receive yet:", undeliverable.join(", "), "svix:", svixId);
+      return json({ error: "recipient mailbox not ready", retry: true }, 503);
+    }
+    return json({ ok: true, ignored: "no such mailbox" }); // 200 → no retry, no enumeration
+  }
 
   // Svix delivers at least once: a retried event for a mailbox that already
   // stored it is acknowledged without storing it twice.
@@ -655,8 +742,15 @@ export default {
 
 async function api(request, env, ctx, url, path) {
   const gate = await maintenanceGate("mail", env);
-  if (gate.locked && path !== "/api/v1/health" && path !== "/api/v1/inbound") {
+  // The health probe, the inbound webhook and the notice endpoint answer even
+  // while the site is locked (monitoring, no lost mail, visible notice).
+  const exempt = path === "/api/v1/health" || path === "/api/v1/inbound" || path === "/api/v1/maintenance";
+  if (gate.locked && !exempt) {
     return maintenancePage("Inpriv Mail", gate.message);
+  }
+
+  if (path === "/api/v1/maintenance") {
+    return json({ locked: gate.locked, message: gate.message, info: gate.info }, 200);
   }
 
   if (path === "/api/v1/health") {
@@ -674,7 +768,14 @@ async function api(request, env, ctx, url, path) {
   // Everything else is called by the Mail page itself. State-changing
   // requests from any other origin (other sites, other *.inpriv.xyz pages)
   // are refused before they touch a session.
-  if (isUnsafeMethod(request) && !originAllowed(request)) {
+  //
+  // One exception: the Inpriv ID page creates the mailbox right after sign-up
+  // (one account for everything), and a cross-origin POST is the only way it
+  // can reach this endpoint. That request still needs a single-use init ticket
+  // minted by Inpriv ID, so it grants nothing on its own.
+  const idOrigin = (env.ID_ORIGIN || "https://id.inpriv.xyz").replace(/\/+$/, "");
+  const provisioning = path === "/api/v1/init-keys";
+  if (isUnsafeMethod(request) && !originAllowed(request, provisioning ? new Set([idOrigin]) : null)) {
     return bad("request refused: unknown origin", 403);
   }
   if (Number(request.headers.get("Content-Length") || 0) > MAX_BODY_BYTES) {
@@ -1084,13 +1185,28 @@ async function api(request, env, ctx, url, path) {
     // ruled out as the source of a swapped key otherwise.
     if ((m = path.match(/^\/api\/v1\/users\/([a-z0-9._-]+)\/pubkey$/)) && request.method === "GET") {
       if (!(await rateLimit(env.DB, `pk:${me.id}`, 300, 3_600_000))) return bad("too many lookups — wait a bit", 429);
-      const target = await env.DB.prepare(
-        "SELECT id, public_key, key_id, address FROM users WHERE username = ?"
-      ).bind(m[1].toLowerCase()).first();
-      if (target && target.public_key) {
-        return json({ public_key: target.public_key, key_id: await keyIdOf(env, target), address: target.address, has_keys: true });
+      const resolved = await resolveDelivery(env, m[1]);
+      const target = resolved.mailbox;
+      if (resolved.state === DELIVER && target) {
+        return json({ public_key: target.public_key, key_id: await keyIdOf(env, target), address: target.address, has_keys: true, state: DELIVER });
       }
-      return bad("recipient not found or has no mailbox yet", 404);
+      // The composer shows the state instead of guessing. 409 = exists but not
+      // set up yet (the sender can't fix it); 503 = temporary.
+      if (resolved.state === ID_NO_MAILBOX) return json({ state: resolved.state, error: "this address hasn't set up Mail yet" }, 409);
+      if (resolved.state === NO_KEY) return json({ state: resolved.state, error: "this mailbox can't receive mail right now" }, 503);
+      if (resolved.state === LOOKUP_ERROR) return json({ state: resolved.state, error: "couldn't check that address" }, 503);
+      return json({ state: resolved.state, error: "no Inpriv address like that" }, 404);
+    }
+
+    // ── Recipient states in one call (composer suggestions) ────────────────
+    // Same resolver as the webhook and the send path, so a suggested name is a
+    // name that can actually receive. Up to 8 names, one query per table.
+    if (path === "/api/v1/recipients/resolve" && request.method === "POST") {
+      if (!(await rateLimit(env.DB, `rr:${me.id}`, 30, 300_000))) {
+        return bad("too many lookups — wait a few minutes", 429);
+      }
+      const names = Array.isArray(body.names) ? body.names.slice(0, 8) : [];
+      return json({ states: await resolveDeliveries(env, names) });
     }
 
     // ── List Messages ─────────────────────────────────────────────────────
@@ -1147,8 +1263,13 @@ async function api(request, env, ctx, url, path) {
       const t = now();
 
       if (isExternal) {
-        const confirmed = await env.ID_DB.prepare("SELECT recovery_email_verified FROM users WHERE username = ?").bind(me.username).first();
-        if (!confirmed?.recovery_email_verified) return bad("confirm your recovery email on Inpriv ID before sending to other providers", 403);
+        // Admin policy (admin → Switches → Sending policy). On by default: a
+        // confirmed recovery email is required before sending to other
+        // providers, so a lost passphrase is always recoverable.
+        if (!gate.settings.allowExternalWithoutRecovery) {
+          const confirmed = await env.ID_DB.prepare("SELECT recovery_email_verified FROM users WHERE username = ?").bind(me.username).first();
+          if (!confirmed?.recovery_email_verified) return bad("confirm your recovery email on Inpriv ID before sending to other providers", 403);
+        }
         const toEmail = rawTo;
         if (!/^[^@\s<>,;]+@[^@\s<>,;]+\.[^@\s<>,;]+$/.test(toEmail) || toEmail.length > 254) {
           return bad("invalid recipient email address", 400);
@@ -1216,9 +1337,22 @@ async function api(request, env, ctx, url, path) {
       let toUser = rawTo;
       if (toUser.endsWith("@" + DOMAIN)) toUser = toUser.slice(0, -("@" + DOMAIN).length).trim();
 
-      const target = await env.DB.prepare("SELECT * FROM users WHERE username = ?").bind(toUser).first();
-      if (!target || !target.public_key) {
-        return bad("recipient not found or has no mailbox yet", 404);
+      // Same resolver as inbound and the suggestions: one answer for "can this
+      // address receive mail", so the composer can never promise a send the
+      // server then refuses.
+      const resolved = await resolveDelivery(env, toUser);
+      const target = resolved.mailbox;
+      if (resolved.state === ID_NO_MAILBOX) {
+        return bad(`${toUser}@${DOMAIN} hasn't set up Mail yet — ask them to open mail.inpriv.xyz once, then send again`, 409);
+      }
+      if (resolved.state === NO_KEY) {
+        return bad(`${toUser}@${DOMAIN} can't receive mail right now — try again later`, 503);
+      }
+      if (resolved.state === LOOKUP_ERROR) {
+        return bad("couldn't check that address — try again", 503);
+      }
+      if (resolved.state !== DELIVER || !target) {
+        return bad("no Inpriv address like that", 404);
       }
       // encrypted to the recipient's current key only: after a recipient
       // upgrades or resets, nothing new goes to the key they left behind

@@ -118,6 +118,7 @@ async function route(request, env, url, path, method, cors, sess, waitUntil) {
   if (path === "/api/global" && method === "POST") return await setGlobal(request, env, cors);
   if (path === "/api/info" && method === "POST") return await setInfo(request, env, cors);
   if (path === "/api/service" && method === "POST") return await setService(request, env, cors);
+  if (path === "/api/settings" && method === "POST") return await setSettings(request, env, cors);
   if (path === "/api/audit") return await getAudit(env, cors);
   if (path === "/api/records" && method === "GET") return await records(url, env, cors);
   if (path.startsWith("/api/team")) return await team(request, url, env, cors);
@@ -177,6 +178,9 @@ function defaultState() {
     global: { locked: false, message: "", ts: 0 },
     info: { active: false, message: "", ts: 0 },
     services: {},
+    // Account policies the services read from /public/state. `readState` merges
+    // this default in, so a state row written before a flag existed picks it up.
+    settings: { allowExternalWithoutRecovery: true },
     audit: [],
   };
 }
@@ -353,19 +357,34 @@ async function getState(env) {
   for (const s of SERVICES) {
     services[s] = st.services[s] || { locked: false, message: "" };
   }
-  return { global: st.global, info: st.info, services };
+  return { global: st.global, info: st.info, services, settings: st.settings || { allowExternalWithoutRecovery: true } };
 }
 
 async function publicState(env, cors, request) {
   // Edge-cache the public state briefly: gate checks from every tool worker
   // hit this endpoint.
   const cache = caches.default;
-  const cacheKey = new Request("https://cache.local/public/state-v2");
+  // v3: the payload carries the operator's own text (see `flags` below).
+  const cacheKey = new Request("https://cache.local/public/state-v3");
   let res = await cache.match(cacheKey);
   if (!res) {
     const st = await getState(env);
-    const flags = (value) => ({ locked: !!value?.locked, ts: value?.ts || 0 });
-    const body = JSON.stringify({ global: flags(st.global), info: { active: false }, services: Object.fromEntries(Object.entries(st.services).map(([key, value]) => [key, flags(value)])), ts: Date.now() });
+    // `message` is published: it is operator-authored text shown on a public
+    // page (the maintenance page) or in a public notice, so stripping it only
+    // made the operator's words silently disappear.
+    const flags = (value) => ({
+      locked: !!value?.locked,
+      message: String(value?.message || "").slice(0, 500),
+      ts: value?.ts || 0,
+    });
+    // A notice that isn't switched on publishes no text: the message field of
+    // an inactive notice is a draft, not something to hand out.
+    const info = {
+      active: !!st.info?.active,
+      message: st.info?.active ? String(st.info.message || "").slice(0, 500) : "",
+      ts: st.info?.ts || 0,
+    };
+    const body = JSON.stringify({ global: flags(st.global), info, services: Object.fromEntries(Object.entries(st.services).map(([key, value]) => [key, flags(value)])), settings: { allowExternalWithoutRecovery: !!st.settings?.allowExternalWithoutRecovery }, ts: Date.now() });
     res = new Response(body, {
       status: 200,
       headers: {
@@ -410,6 +429,21 @@ async function setInfo(request, env, cors) {
   await writeState(env, st);
   await audit(env, active ? "info_on" : "info_off", { message });
   return json({ ok: true }, 200, cors);
+}
+
+// Account policies. Stored in the same row as the kill switches so a service
+// sees them through the /public/state call it already makes.
+async function setSettings(request, env, cors) {
+  const b = await request.json().catch(() => ({}));
+  const st = await readState(env);
+  const settings = { ...(st.settings || {}) };
+  if (typeof b.allowExternalWithoutRecovery === "boolean") {
+    settings.allowExternalWithoutRecovery = b.allowExternalWithoutRecovery;
+  }
+  st.settings = settings;
+  await writeState(env, st);
+  await audit(env, settings.allowExternalWithoutRecovery ? "allow_external_on" : "allow_external_off", {});
+  return json({ ok: true, settings }, 200, cors);
 }
 
 async function setService(request, env, cors) {
