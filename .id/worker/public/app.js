@@ -213,9 +213,48 @@ $("logoutBtn").addEventListener("click", async () => {
     try {
       const out = await api("/api/privacy", { show_address: on });
       user.show_address = !!out.show_address;
+      renderSuggestSwitch();
       toast(on ? "People you write to will see your address" : "People you write to see “Anonymous Inpriv user”");
     } catch (e) {
       setSwitch("swAddress", !on);
+      toast(e.message, false);
+    } finally { saving = false; }
+  };
+  el.addEventListener("click", flip);
+  el.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); flip(); }
+  });
+})();
+
+// "Suggest my address to others": opt-in twice over. It only loosens what
+// "Show my address" already allows, so it stays unavailable while that is off.
+function renderSuggestSwitch() {
+  const el = $("swSuggest");
+  if (!el) return;
+  setSwitch("swSuggest", !!user.suggest_address);
+  const allowed = !!user.show_address;
+  el.setAttribute("aria-disabled", allowed ? "false" : "true");
+  el.title = allowed ? "" : "Turn on “Show my address” first";
+  const row = el.closest(".row");
+  if (row) row.style.opacity = allowed ? "" : "0.55";
+}
+
+(function () {
+  const el = $("swSuggest");
+  if (!el) return;
+  let saving = false;
+  const flip = async () => {
+    if (saving) return;
+    if (!user.show_address) { toast("Turn on “Show my address” first", false); return; }
+    saving = true;
+    const on = !el.classList.contains("on");
+    setSwitch("swSuggest", on);
+    try {
+      const out = await api("/api/privacy", { suggest_address: on });
+      user.suggest_address = !!out.suggest_address;
+      toast(on ? "Your address can be suggested to others" : "Your address is no longer suggested");
+    } catch (e) {
+      setSwitch("swSuggest", !on);
       toast(e.message, false);
     } finally { saving = false; }
   };
@@ -340,6 +379,7 @@ function renderProfile() {
   // privacy switches
   // server-side: Mail acts on it, so it is not part of the vault
   setSwitch("swAddress", !!user.show_address);
+  renderSuggestSwitch();
   setSwitch("swPrompt", vault.privacy.prompt);
   setSwitch("swVault", vault.privacy.vault);
   setSwitch("swLog", vault.privacy.log);

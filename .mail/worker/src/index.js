@@ -332,19 +332,28 @@ async function resolveDeliveries(env, names) {
   try {
     const [mail, ids, claims, retired] = await Promise.all([
       env.DB.prepare(`SELECT username, address, public_key, key_id FROM users WHERE username IN (${ph})`).bind(...locals).all(),
-      env.ID_DB.prepare(`SELECT username FROM users WHERE username IN (${ph})`).bind(...locals).all(),
+      env.ID_DB.prepare(`SELECT username, show_address, suggest_address FROM users WHERE username IN (${ph})`).bind(...locals).all(),
       env.ID_DB.prepare(`SELECT local, owner FROM address_claims WHERE local IN (${ph})`).bind(...locals).all(),
       env.ID_DB.prepare(`SELECT username FROM retired_usernames WHERE username IN (${ph})`).bind(...locals).all(),
     ]);
     const mailBy = new Map((mail.results || []).map((r) => [r.username, r]));
-    const idSet = new Set((ids.results || []).map((r) => r.username));
+    const idBy = new Map((ids.results || []).map((r) => [r.username, r]));
     const claimBy = new Map((claims.results || []).map((r) => [r.local, r]));
     const retiredSet = new Set((retired.results || []).map((r) => r.username));
     const out = {};
     for (const local of locals) {
+      const idRow = idBy.get(local);
+      // Suggestion is opt-in twice over: the address must be visible to the
+      // people you write to AND allowed to be suggested. Anything else answers
+      // exactly like a name that does not exist — same state, same shape — so
+      // this endpoint can't be used to test whether an address exists.
+      if (!idRow || idRow.show_address !== 1 || idRow.suggest_address !== 1) {
+        out[local] = NEVER;
+        continue;
+      }
       out[local] = classifyRecipient({
         mail: mailBy.get(local),
-        id: idSet.has(local),
+        id: idRow,
         claim: claimBy.get(local),
         retired: retiredSet.has(local),
       });
