@@ -37,7 +37,7 @@ const SERVICE_META = {
 
 async function publicUser(env, uid, full = false) {
   const u = await env.DB.prepare(
-    "SELECT id, username, email, recovery_email, pending_recovery_email, nick, email_verified, recovery_email_verified, totp_enabled, show_address, created_at, last_login FROM users WHERE id = ?"
+    "SELECT id, username, email, recovery_email, pending_recovery_email, nick, email_verified, recovery_email_verified, totp_enabled, show_address, suggest_address, created_at, last_login FROM users WHERE id = ?"
   ).bind(uid).first();
   if (!u) return null;
   const username = u.username || (u.email ? u.email.split("@")[0] : "user");
@@ -52,8 +52,10 @@ async function publicUser(env, uid, full = false) {
     avatar: "seed:" + u.id.slice(0, 8),
     email_verified: !!(u.recovery_email_verified || u.email_verified),
     totp_enabled: !!u.totp_enabled,
-    // Off by default: people you write to see "Anonymous Inpriv user".
+    // Both off by default: people you write to see "Anonymous Inpriv user",
+    // and your address is never offered in someone else's composer.
     show_address: u.show_address === 1,
+    suggest_address: u.suggest_address === 1,
   };
   if (full) {
     out.recovery_email = u.pending_recovery_email || u.recovery_email || null;
@@ -578,11 +580,20 @@ export default {
         const pme = await authUser(request, env, true);
         if (!pme) return bad("unauthorized", 401);
         const pb = await request.json().catch(() => ({}));
-        if (typeof pb.show_address !== "boolean") return bad("show_address (boolean) required", 400);
-        await env.DB.prepare("UPDATE users SET show_address = ? WHERE id = ?")
-          .bind(pb.show_address ? 1 : 0, pme.uid).run();
-        await logEvent(env.DB, pme.uid, pb.show_address ? "show_address_on" : "show_address_off", request);
-        return json({ ok: true, show_address: pb.show_address }, 200, cors);
+        const show = typeof pb.show_address === "boolean" ? pb.show_address : null;
+        const suggest = typeof pb.suggest_address === "boolean" ? pb.suggest_address : null;
+        if (show === null && suggest === null) {
+          return bad("show_address or suggest_address (boolean) required", 400);
+        }
+        // Stored independently; the mail worker only offers an address when
+        // both are on, so turning one off is enough to hide it.
+        const sets = [], binds = [], actions = [];
+        if (show !== null) { sets.push("show_address = ?"); binds.push(show ? 1 : 0); actions.push(show ? "show_address_on" : "show_address_off"); }
+        if (suggest !== null) { sets.push("suggest_address = ?"); binds.push(suggest ? 1 : 0); actions.push(suggest ? "suggest_address_on" : "suggest_address_off"); }
+        await env.DB.prepare(`UPDATE users SET ${sets.join(", ")} WHERE id = ?`).bind(...binds, pme.uid).run();
+        for (const action of actions) await logEvent(env.DB, pme.uid, action, request);
+        const row = await env.DB.prepare("SELECT show_address, suggest_address FROM users WHERE id = ?").bind(pme.uid).first();
+        return json({ ok: true, show_address: row.show_address === 1, suggest_address: row.suggest_address === 1 }, 200, cors);
       }
 
       // ═══ MAILBOX READY? (asked right after sign-up) ═══

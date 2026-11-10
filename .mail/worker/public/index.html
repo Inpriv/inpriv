@@ -4146,9 +4146,14 @@ const EXTERNAL_NOTE = 'Normal email, not end-to-end encrypted: readable to Inpri
 // your own mailbox only: there is no directory of Inpriv users to search.
 function contactSuggestions(q) {
   const seen = new Set();
+  const blocked = blockedSet();
   for (const m of state.messages) {
+    // A masked sender has no address we may show, so none to offer; a blocked
+    // one is not offered either. The server filters again (authoritatively).
+    if (isMasked(m)) continue;
     const a = String(m.peer_address || '').toLowerCase();
-    if (a.endsWith('@' + DOMAIN)) seen.add(a.slice(0, -(DOMAIN.length + 1)));
+    if (!a.endsWith('@' + DOMAIN) || blocked.has(a)) continue;
+    seen.add(a.slice(0, -(DOMAIN.length + 1)));
   }
   return [...seen].filter((u) => u.includes(q)).slice(0, 8);
 }

@@ -124,3 +124,53 @@ test("the unsubscribe endpoint refuses a link the guard rejects", async () => {
   // nothing was blocked by a failed attempt
   assert.equal((await b.mail.get("/api/v1/blocked")).body.blocked.length, 0);
 });
+
+test("a new account is not suggested, and answers exactly like a name that never existed", async () => {
+  const asker = await newMailbox("asker" + rand(), PW, "passphrase-a-123");
+  const hidden = await newMailbox("hidden" + rand(), PW, "passphrase-b-123");
+  const ghost = "ghost" + rand();
+
+  // a new account: both switches off
+  const idc = new Client(URLS.id);
+  assert.equal((await idc.post("/api/login", { username: hidden.username, password: PW })).status, 200);
+  const me = await idc.get("/api/me");
+  assert.equal(me.body.user.show_address, false);
+  assert.equal(me.body.user.suggest_address, false);
+
+  const one = await asker.mail.post("/api/v1/recipients/resolve", { names: [hidden.username] });
+  const two = await asker.mail.post("/api/v1/recipients/resolve", { names: [ghost] });
+  assert.equal(one.status, 200);
+  // the whole shape matches: same keys, same state, nothing that says "hidden"
+  assert.deepEqual(Object.keys(one.body), Object.keys(two.body));
+  assert.deepEqual(Object.keys(one.body.states), Object.keys(two.body.states).map(() => hidden.username));
+  assert.deepEqual(one.body.states[hidden.username], two.body.states[ghost]);
+  assert.equal(one.body.states[hidden.username], "never");
+
+  // delivery still works when the exact username is typed
+  assert.equal((await send(asker, hidden, "exact-username")).status, 200);
+  assert.ok(await inbox(hidden, "exact-username"));
+});
+
+test("an address is suggested only when both switches are on", async () => {
+  const asker = await newMailbox("asker2" + rand(), PW, "passphrase-a-123");
+  const visible = await newMailbox("shown" + rand(), PW, "passphrase-b-123");
+
+  const idc = new Client(URLS.id);
+  assert.equal((await idc.post("/api/login", { username: visible.username, password: PW })).status, 200);
+  // show on, suggest off: still not suggested
+  assert.equal((await idc.post("/api/privacy", { show_address: true, suggest_address: false })).status, 200);
+  let r = await asker.mail.post("/api/v1/recipients/resolve", { names: [visible.username] });
+  assert.equal(r.body.states[visible.username], "never");
+
+  // both on: suggested
+  const both = await idc.post("/api/privacy", { show_address: true, suggest_address: true });
+  assert.equal(both.status, 200);
+  assert.equal(both.body.suggest_address, true);
+  r = await asker.mail.post("/api/v1/recipients/resolve", { names: [visible.username] });
+  assert.equal(r.body.states[visible.username], "deliver");
+
+  // turning show off again hides it, without touching suggest
+  assert.equal((await idc.post("/api/privacy", { show_address: false })).status, 200);
+  r = await asker.mail.post("/api/v1/recipients/resolve", { names: [visible.username] });
+  assert.equal(r.body.states[visible.username], "never");
+});
