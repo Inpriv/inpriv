@@ -9,7 +9,7 @@
 import { maintenanceGate, maintenancePage } from "../../common/gate.js";
 import { notFound } from "../../common/errors.js";
 import { canonicalRedirect } from "../../common/canonical.js";
-import { pageResponse } from "../../common/security.js";
+import { pageResponse, apiHeaders } from "../../common/security.js";
 
 export default {
   async fetch(request, env, ctx) {
@@ -17,6 +17,17 @@ export default {
     const path = url.pathname;
     const moved = canonicalRedirect(request);
     if (moved) return moved;
+
+    // Public maintenance state for the notice banner. It has to answer while
+    // the site is locked, so it sits above the gate. apiHeaders adds the same
+    // headers as every other API response, no-store included: a cached notice
+    // would outlive the thing it announces.
+    if (path === "/api/maintenance") {
+      const gate = await maintenanceGate("landing", env);
+      return apiHeaders(new Response(JSON.stringify({ locked: gate.locked, message: gate.message, info: gate.info }), {
+        headers: { "content-type": "application/json" },
+      }));
+    }
 
     const gate = await maintenanceGate("landing", env);
     if (gate.locked) return maintenancePage("Inpriv", gate.message);

@@ -40,7 +40,7 @@ export async function maintenanceGate(serviceId, env = {}) {
   } catch {
     console.error("maintenance state unavailable; retaining the last known state");
     cache.until = now + 2000;
-    return cache.data ? project(cache.data, serviceId) : { locked: true, message: "", info: null };
+    return cache.data ? project(cache.data, serviceId) : { locked: true, message: "", info: null, settings: { allowExternalWithoutRecovery: true } };
   }
   return project(st, serviceId);
 }
@@ -51,7 +51,12 @@ function project(st, serviceId) {
   const message =
     (st.global && st.global.locked && st.global.message) || svc.message || "";
   const info = st.info && st.info.active ? st.info.message : null;
-  return { locked, message, info };
+  // Account policies travel with the gate so a service doesn't need a second
+  // request. Absent means "keep the historical behaviour".
+  const settings = {
+    allowExternalWithoutRecovery: st.settings?.allowExternalWithoutRecovery !== false,
+  };
+  return { locked, message, info, settings };
 }
 
 export function maintenancePage(serviceName, message) {

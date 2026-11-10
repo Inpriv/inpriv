@@ -294,6 +294,17 @@ button, .btn, .icon-btn, [role="tab"], [role="switch"] { user-select: none; -web
 .toast-desc { font-size: 12.5px; font-weight: 400; color: var(--text-2); margin-top: 1px; }
 .toast:has(.toast-desc) { border-radius: 22px; }
 
+/* ── global notice banner (#bannerSlot, filled from /api/maintenance) ──── */
+/* A direct child of .shell: mode-switch.js keeps it out of the arrival
+   animation. The text is set with textContent, never innerHTML. */
+.banner {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 12px 16px; border-radius: 20px;
+  color: var(--text-2); font-size: 13.5px;
+  animation: rise 0.6s var(--out) backwards;
+}
+.banner .i { color: var(--accent); margin-top: 1px; }
+
 /* ── theme change ─────────────────────────────────────────────────────── */
 /* The new theme spreads from the tapped button as a soft-edged circle of
    ink; the old page eases back and blurs slightly underneath it.
@@ -560,6 +571,21 @@ input:focus, textarea:focus { box-shadow: inset 0 0 0 1.5px var(--focus), 0 0 0 
 .admin-tabs button { flex: 1; min-width: 0; height: 40px; padding: 0 12px; border: 0; border-radius: 999px; background: transparent; cursor: pointer; color: var(--text-2); font-size: 14px; font-weight: 600; white-space: nowrap; }
 .admin-tabs button.on { color: var(--text); }
 [data-tab][hidden] { display: none !important; }
+
+/* phones: the tab strip scrolls sideways instead of pushing the page with it,
+   and record tables become stacked cards (each label comes from data-label) */
+@media (max-width: 480px) {
+  .admin-tabs { overflow-x: auto; scrollbar-width: none; }
+  .admin-tabs::-webkit-scrollbar { display: none; }
+  .admin-tabs button { flex: 0 0 auto; padding: 0 14px; }
+  .rec-scroll { max-height: none; overflow: visible; box-shadow: none; border-radius: 0; }
+  .rec-table, .rec-table tbody, .rec-table tr, .rec-table td { display: block; width: 100%; }
+  .rec-table thead { display: none; }
+  .rec-table tr { padding: 10px 0; border-bottom: 1px solid var(--hairline); }
+  .rec-table td { display: flex; gap: 10px; padding: 3px 0; border: 0; white-space: normal; }
+  .rec-table td::before { content: attr(data-label); flex: 0 0 92px; color: var(--text-3); font-weight: 600; }
+  .rec-table td.wrap { min-width: 0; }
+}
 
 /* temp */
 .temp-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px; }
@@ -1287,6 +1313,21 @@ input:focus, textarea:focus { box-shadow: inset 0 0 0 1.5px var(--focus), 0 0 0 
       </div>
     </section>
 
+    <!-- sending policy -->
+    <section class="card glass reveal d3" id="card-policy" data-tab="switches">
+      <h2><i data-icon="shield-check"></i> Sending policy</h2>
+      <p class="sub">Whether Mail lets an account write to other providers before its recovery email is confirmed. It <strong>doesn't block</strong> anything else, and Inpriv-to-Inpriv mail is unaffected.</p>
+      <div class="lock-row">
+        <span class="lock-status off" id="policy-status"></span>
+        <span class="grow"></span>
+        <div class="switch">
+          <input type="checkbox" id="policy-switch" aria-label="Allow sending to other providers without a confirmed recovery email">
+          <span class="sw-track"></span><span class="sw-thumb"></span>
+        </div>
+      </div>
+      <p class="sub" style="margin:12px 0 0">On (default): accounts may send to other providers without confirming a recovery email. Off: a confirmed recovery email is required first.</p>
+    </section>
+
     <!-- services -->
     <section class="card glass reveal d3" id="card-services" data-tab="switches">
       <h2><i data-icon="grid"></i> Services</h2>
@@ -1429,6 +1470,7 @@ async function refresh() {
     sessUser = st.user || sessUser;
     renderGlobal(st);
     renderInfo(st);
+    renderPolicy(st);
     renderServices(st);
     renderAudit(st.audit || []);
   } catch { toast("Couldn't load the current state", true); }
@@ -1466,6 +1508,18 @@ function renderInfo(st) {
     ? `${icon("campaign")} Showing`
     : `${icon("visibility_off")} Hidden`;
   if (document.activeElement !== $("info-msg")) $("info-msg").value = st.info.message || "";
+}
+
+function renderPolicy(st) {
+  const allow = !(st.settings && st.settings.allowExternalWithoutRecovery === false);
+  const input = $("policy-switch");
+  if (input) input.checked = allow;
+  const s = $("policy-status");
+  if (!s) return;
+  s.className = "lock-status " + (allow ? "off" : "on");
+  s.innerHTML = allow
+    ? `${icon("lock_open")} Not required`
+    : `${icon("lock")} Recovery email required`;
 }
 
 function renderServices(st) {
@@ -1540,6 +1594,15 @@ $("info-switch").addEventListener("change", async (e) => {
   } catch (err) { toast("Error: " + err.message, true); e.target.checked = !e.target.checked; }
   finally { busy(false); }
 });
+$("policy-switch").addEventListener("change", async (e) => {
+  busy(true);
+  try {
+    await post("/api/settings", { allowExternalWithoutRecovery: e.target.checked });
+    toast(e.target.checked ? "Recovery email no longer required to send" : "Recovery email required to send");
+    await refresh();
+  } catch (err) { toast("Error: " + err.message, true); e.target.checked = !e.target.checked; }
+  finally { busy(false); }
+});
 async function toggleService(id, locked) {
   busy(true);
   try {
@@ -1599,7 +1662,12 @@ function table(rows, cols) {
   head.append(headers);
   for (const row of rows) {
     const tr = el('tr');
-    for (const col of cols) tr.append(el('td', col.wrap ? 'wrap' : '', col.fmt ? col.fmt(row[col.key], row) : row[col.key]));
+    for (const col of cols) {
+      const td = el('td', col.wrap ? 'wrap' : '', col.fmt ? col.fmt(row[col.key], row) : row[col.key]);
+      // phones turn each row into a stacked card; the label comes from here
+      td.dataset.label = col.label;
+      tr.append(td);
+    }
     body.append(tr);
   }
   grid.append(head, body); scroll.append(grid);
@@ -1621,9 +1689,9 @@ function seenTable(d) {
   const rows = [...by.values()].sort((x, y) => y.last - x.last);
   const kind = (a) => a.services.has("temp") && a.services.size === 1 ? "Temp inbox" : "Inpriv account";
   return `<div class="rec-scroll"><table class="rec-table"><thead><tr><th>Account</th><th>Type</th><th>Events</th><th>Seen</th><th>First</th><th>Last</th></tr></thead><tbody>` +
-    rows.map((a) => `<tr><td><a href="#" class="rec-link" data-q="${escapeHtml(a.account)}">${escapeHtml(a.account)}</a></td>` +
-      `<td>${kind(a)}</td><td class="wrap">${escapeHtml([...a.events].map((e) => e.replace(/_/g, " ")).join(", "))}</td><td>${a.n}×</td>` +
-      `<td>${escapeHtml(fmtTime(a.first))}</td><td>${escapeHtml(fmtTime(a.last))}</td></tr>`).join("") +
+    rows.map((a) => `<tr><td data-label="Account"><a href="#" class="rec-link" data-q="${escapeHtml(a.account)}">${escapeHtml(a.account)}</a></td>` +
+      `<td data-label="Type">${kind(a)}</td><td class="wrap" data-label="Events">${escapeHtml([...a.events].map((e) => e.replace(/_/g, " ")).join(", "))}</td><td data-label="Seen">${a.n}×</td>` +
+      `<td data-label="First">${escapeHtml(fmtTime(a.first))}</td><td data-label="Last">${escapeHtml(fmtTime(a.last))}</td></tr>`).join("") +
     `</tbody></table></div>`;
 }
 function block(title, html) { return `<div class="rec-block"><h3>${escapeHtml(title)}</h3>${html}</div>`; }

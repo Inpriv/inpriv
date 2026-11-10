@@ -3,6 +3,12 @@
 
 const API = ""; // same origin
 
+// Where the mailbox is created from (the Mail worker). Local dev uses the
+// suite's fixed ports; production uses the public host.
+const MAIL_ORIGIN = /(^|\.)inpriv\.xyz$/.test(location.hostname)
+  ? "https://mail.inpriv.xyz"
+  : `http://${location.hostname}:8799`;
+
 // ── state ────────────────────────────────────────────────────────────────────
 // The session lives only in the HttpOnly cookie, which page scripts can't
 // read. Tokens kept by earlier versions of this page are removed.
@@ -163,6 +169,23 @@ $("regForm").addEventListener("submit", async (e) => {
     });
     user = out.user;
     toast("Account created. Welcome to Inpriv.");
+    // Create the Mail mailbox now, so mail to this address works from the
+    // first minute instead of failing until the account visits Mail. The keys
+    // are made and sealed here; only the public key and the sealed ring leave
+    // the browser. Best-effort: a failure never blocks the account.
+    if (out.mail_setup_ticket && window.InprivMailboxKeys) {
+      try {
+        $("regBtnTxt").textContent = "Preparing mailbox…";
+        await window.InprivMailboxKeys.provision({
+          username: out.user.username,
+          passphrase: $("regPass").value,
+          ticket: out.mail_setup_ticket,
+          mailOrigin: MAIL_ORIGIN,
+        });
+        const st = await api("/api/mailbox/status", null, "GET");
+        if (st.ready) toast("Your @inpriv.xyz mailbox is ready.");
+      } catch (_) { /* the panel offers Mail setup again */ }
+    }
     await enterPanel();
   } catch (ex) {
     err(ex.message);
@@ -180,6 +203,11 @@ $("logoutBtn").addEventListener("click", async () => {
 async function enterPanel() {
   show("panel");
   await refreshMe();
+  // An account created before sign-up made a mailbox has no address yet.
+  try {
+    const st = await api("/api/mailbox/status", null, "GET");
+    if (!st.ready) toast("Your mailbox isn't set up yet — open Mail to finish", false);
+  } catch { /* the panel works without Mail */ }
   await loadVault();
   renderProfile();
   loadSessions();
