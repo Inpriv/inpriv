@@ -1325,7 +1325,7 @@ input:focus, textarea:focus { box-shadow: inset 0 0 0 1.5px var(--focus), 0 0 0 
           <span class="sw-track"></span><span class="sw-thumb"></span>
         </div>
       </div>
-      <p class="sub" style="margin:12px 0 0">On (default): accounts may send to other providers without confirming a recovery email. Off: a confirmed recovery email is required first.</p>
+      <p class="sub" style="margin:12px 0 0">Off (default): a confirmed recovery email is required before sending to other providers. On: accounts may send without one.</p>
     </section>
 
     <!-- services -->
@@ -1511,7 +1511,7 @@ function renderInfo(st) {
 }
 
 function renderPolicy(st) {
-  const allow = !(st.settings && st.settings.allowExternalWithoutRecovery === false);
+  const allow = !!(st.settings && st.settings.allowExternalWithoutRecovery === true);
   const input = $("policy-switch");
   if (input) input.checked = allow;
   const s = $("policy-status");
