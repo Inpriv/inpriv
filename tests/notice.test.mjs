@@ -3,7 +3,7 @@
 // dropped by flags()), so the operator's words never appeared anywhere.
 import { test, after } from "node:test";
 import assert from "node:assert/strict";
-import { Client, URLS, rand, sleep, db } from "./lib.mjs";
+import { Client, URLS, rand, sleep, db, newMailbox } from "./lib.mjs";
 
 const admin = db("id");
 const landing = new Client(URLS.landing);
@@ -44,7 +44,7 @@ test("a notice set in admin reaches the banner endpoint, text and all", async ()
   await until(async () => {
     const r = await landing.get("/api/maintenance");
     return r.body && r.body.info === NOTICE;
-  }, "the notice");
+  }, "the notice", 220);
 
   // every site answers the same thing, on its own path (each keeps its own
   // gate cache, so give the stale copy time to expire)
@@ -70,6 +70,46 @@ test("the lock message is published, so the maintenance page shows it", async ()
       const r = await new Client(base).get("/", { raw: true });
       const html = await r.text();
       return r.status === 503 && html.includes(LOCK);
-    }, "the lock message on " + base, 120);
+    }, "the lock message on " + base, 220);
   }
+
+  // unlock again: the next test needs a working stack
+  writeState({
+    global: { locked: false, message: "", ts: 0 },
+    info: { active: false, message: "", ts: 0 },
+    services: {},
+    audit: [],
+  });
+  await until(async () => {
+    const r = await new Client(URLS.id).get("/", { raw: true });
+    return r.status === 200;
+  }, "the site to unlock", 220);
+});
+
+test('external sending needs a confirmed recovery email only when the policy requires it', async () => {
+  const m = await newMailbox('external' + rand(), "test-password-123", 'external test passphrase');
+  const send = () => m.mail.post('/api/v1/messages/send', { mode: 'external', to: 'recipient@example.test', sender_key_id: m.key.id });
+  const published = async (allow) => {
+    const r = await new Client(URLS.admin).get('/public/state');
+    return !!(r.body && r.body.settings && r.body.settings.allowExternalWithoutRecovery === allow);
+  };
+  const setPolicy = (allow) => db('id').prepare(
+    "UPDATE admin_kv SET v = json_set(v, '$.settings.allowExternalWithoutRecovery', json(?)) WHERE k='state'"
+  ).run(allow ? 'true' : 'false');
+
+  // Default: allowed. (Locally the relay is not configured, so this answers
+  // 503 — what matters is that it is not the recovery gate refusing it.)
+  assert.notEqual((await send()).status, 403);
+
+  // The operator turns the requirement back on.
+  setPolicy(false);
+  await until(() => published(false), 'the policy to be published', 120);
+  await sleep(4000); // the Mail worker keeps its own gate copy for a moment
+  const refused = await send();
+  assert.equal(refused.status, 403);
+  assert.match(refused.body.error, /confirm your recovery email/i);
+
+  // and back off again, so the local stack matches the code default
+  setPolicy(true);
+  await until(() => published(true), 'the default policy', 120);
 });

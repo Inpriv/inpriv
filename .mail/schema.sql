@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS messages (
   ciphertext        TEXT NOT NULL,               -- AES-GCM ct (tag split off)
   auth_tag          TEXT NOT NULL,
   key_id            TEXT,                        -- key the envelope was made for (hint)
+  peer_masked       INTEGER NOT NULL DEFAULT 0,   -- sender asked not to be named
   is_read           INTEGER NOT NULL DEFAULT 0,
   created_at        INTEGER NOT NULL
 );
@@ -84,6 +85,15 @@ CREATE INDEX IF NOT EXISTS idx_device_keys_dev ON device_keys(user_id, device_id
 
 CREATE TABLE IF NOT EXISTS team_messages (id INTEGER PRIMARY KEY AUTOINCREMENT, mailbox TEXT NOT NULL, direction TEXT NOT NULL, from_addr TEXT, from_name TEXT, to_addr TEXT, subject TEXT, text TEXT, attachments TEXT, is_read INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL, resend_id TEXT);
 CREATE INDEX IF NOT EXISTS idx_team_box ON team_messages(mailbox, created_at);
+
+-- Senders this account blocked: mail from them is dropped on arrival.
+CREATE TABLE IF NOT EXISTS blocked_senders (
+  user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  address    TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (user_id, address)
+);
+CREATE INDEX IF NOT EXISTS idx_blocked_senders_user ON blocked_senders(user_id);
 
 CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
 CREATE INDEX IF NOT EXISTS idx_key_challenges_expires_at ON key_challenges(expires_at);

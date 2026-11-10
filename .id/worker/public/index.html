@@ -1020,6 +1020,128 @@ html.theme-fade, html.theme-fade *, html.theme-fade *::before, html.theme-fade *
   else boot();
 })();
 </script>
+
+<script id="inpriv-mailbox-keys">
+// Inpriv — the mailbox key ceremony, shared by Inpriv Mail and Inpriv ID.
+//
+// One implementation, inlined into both pages by `node common/ui/sync.mjs`
+// (the pages must not drift: a key ring sealed with a different parameter is
+// unreadable). The private key is generated here, sealed here and never leaves
+// the browser: what travels is the public key (SPKI) and the sealed envelope.
+//
+// The page destructures what it needs:
+//   const { KEY_ITERS, RING_AAD, RSA, generateKeyPair, keyIdOf,
+//           derivePassphraseKey, openRing, sealRing, newRingKey } = InprivMailboxKeys;
+/* global window, crypto, TextEncoder, TextDecoder */
+(function () {
+  'use strict';
+
+  var KEY_ITERS = 600000;                                   // PBKDF2-SHA-256
+  var RING_AAD = new TextEncoder().encode('inpriv-mail-keyring-v2');
+  var RSA = { name: 'RSA-OAEP', hash: 'SHA-256' };
+
+  function b64enc(buf) {
+    var bytes = new Uint8Array(buf), s = '';
+    for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+    return btoa(s);
+  }
+  function b64dec(str) {
+    var raw = atob(str), out = new Uint8Array(raw.length);
+    for (var i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+    return out;
+  }
+  var utf8 = {
+    enc: function (s) { return new TextEncoder().encode(String(s)); },
+    dec: function (b) { return new TextDecoder().decode(b); }
+  };
+
+  function generateKeyPair() {
+    return crypto.subtle.generateKey(
+      { name: 'RSA-OAEP', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
+      true,
+      ['encrypt', 'decrypt']
+    );
+  }
+
+  // First 128 bits of SHA-256 over the public key (SPKI), in hex. The server
+  // computes the same value; people compare it to check a key.
+  async function keyIdOf(spki) {
+    var d = new Uint8Array(await crypto.subtle.digest('SHA-256', spki));
+    return Array.from(d.slice(0, 16), function (x) { return x.toString(16).padStart(2, '0'); }).join('');
+  }
+
+  async function derivePassphraseKey(passphrase, saltB64, iterations) {
+    var base = await crypto.subtle.importKey('raw', utf8.enc(String(passphrase).normalize('NFC')), 'PBKDF2', false, ['deriveKey']);
+    return crypto.subtle.deriveKey(
+      { name: 'PBKDF2', hash: 'SHA-256', salt: b64dec(saltB64), iterations: iterations },
+      base, { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
+  }
+
+  async function openRing(envelope, kek) {
+    var pt = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv: b64dec(envelope.priv_iv), additionalData: RING_AAD },
+      kek, b64dec(envelope.encrypted_private_key));
+    return JSON.parse(utf8.dec(pt));
+  }
+
+  // Seal a ring, then open the result again with a freshly derived key: nothing
+  // is sent unless it is known to open.
+  async function sealRing(ring, passphrase) {
+    var salt = b64enc(crypto.getRandomValues(new Uint8Array(16)).buffer);
+    var kek = await derivePassphraseKey(passphrase, salt, KEY_ITERS);
+    var iv = crypto.getRandomValues(new Uint8Array(12));
+    var ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv, additionalData: RING_AAD }, kek, utf8.enc(JSON.stringify(ring)));
+    var envelope = {
+      key_format: 2,
+      encrypted_private_key: b64enc(ct),
+      priv_iv: b64enc(iv.buffer),
+      priv_salt: salt,
+      priv_iter: KEY_ITERS
+    };
+    var again = await openRing(envelope, await derivePassphraseKey(passphrase, salt, KEY_ITERS));
+    if (JSON.stringify(again) !== JSON.stringify(ring)) throw new Error('key ring check failed');
+    return { envelope: envelope, kek: kek };
+  }
+
+  async function newRingKey() {
+    var kp = await generateKeyPair();
+    var spki = await crypto.subtle.exportKey('spki', kp.publicKey);
+    var pkcs8 = await crypto.subtle.exportKey('pkcs8', kp.privateKey);
+    return { entry: { id: await keyIdOf(spki), created: Date.now(), pkcs8: b64enc(pkcs8) }, spki: b64enc(spki) };
+  }
+
+  // Create a mailbox on Inpriv Mail with the ticket Inpriv ID minted at
+  // sign-up. Mail answers opaquely (no CORS on purpose); the caller confirms
+  // through /api/mailbox/status.
+  async function provision(opts) {
+    var username = String(opts.username || '').toLowerCase();
+    var passphrase = String(opts.passphrase || '');
+    if (!username || passphrase.length < 8) throw new Error('passphrase too short');
+    var k = await newRingKey();
+    var ring = { v: 2, current: k.entry.id, keys: [k.entry] };
+    var sealed = await sealRing(ring, passphrase);
+    await fetch(opts.mailOrigin + '/api/v1/init-keys', {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+      body: JSON.stringify({
+        init_ticket: opts.ticket,
+        public_key: k.spki,
+        key_id: k.entry.id,
+        envelope: sealed.envelope
+      })
+    });
+  }
+
+  window.InprivMailboxKeys = {
+    KEY_ITERS: KEY_ITERS, RING_AAD: RING_AAD, RSA: RSA,
+    generateKeyPair: generateKeyPair, keyIdOf: keyIdOf,
+    derivePassphraseKey: derivePassphraseKey, openRing: openRing,
+    sealRing: sealRing, newRingKey: newRingKey, provision: provision,
+    b64enc: b64enc, b64dec: b64dec
+  };
+})();
+</script>
 <div class="backdrop" aria-hidden="true">
   <div class="ticker"><div class="track"></div><div class="track"></div></div>
   <div class="grain"></div>
@@ -1268,8 +1390,8 @@ html.theme-fade, html.theme-fade *, html.theme-fade *::before, html.theme-fade *
           <p class="desc">How your account behaves across Inpriv.</p>
           <div class="group">
             <div class="row">
-              <div><div class="row-label">Show my nickname</div><div class="row-sub">Use your nickname instead of "anonymous" where others can see it</div></div>
-              <div class="switch on" id="swNick" role="switch" aria-checked="true" tabindex="0" aria-label="Show my nickname"></div>
+              <div><div class="row-label">Show my address to people I write to</div><div class="row-sub">Off: people see “Anonymous Inpriv user”. On: they see your Inpriv address.</div></div>
+              <div class="switch" id="swAddress" role="switch" aria-checked="false" tabindex="0" aria-label="Show my address to people I write to"></div>
             </div>
             <div class="row">
               <div><div class="row-label">Sign-in prompt</div><div class="row-sub">The small "Continue as…" prompt on Inpriv pages</div></div>
@@ -1322,7 +1444,6 @@ html.theme-fade, html.theme-fade *, html.theme-fade *::before, html.theme-fade *
 </div>
 
 <script src="/qr.js" defer></script>
-<script src="/mailbox-keys.js" defer></script>
 <script src="/app.js" defer></script>
 <script>
   // Global notice (admin → Switches → Global notice). The text is set with

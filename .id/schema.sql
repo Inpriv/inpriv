@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS users (
   email_verified          INTEGER NOT NULL DEFAULT 0,
   recovery_email_verified INTEGER NOT NULL DEFAULT 0,
   totp_enabled            INTEGER NOT NULL DEFAULT 0,
+  show_address            INTEGER NOT NULL DEFAULT 0,  -- 0 = "Anonymous Inpriv user"
   created_at              INTEGER NOT NULL,
   last_login              INTEGER
 );

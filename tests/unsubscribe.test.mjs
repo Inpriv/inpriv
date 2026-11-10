@@ -94,7 +94,9 @@ before(async () => {
   await page.setViewport({ width: 390, height: 844 });
   await page.setRequestInterception(true);
   page.on('request', r => {
-    requests.push({ url: r.url(), method: r.method() });
+    let body = null;
+    try { body = r.postData() ? JSON.parse(r.postData()) : null; } catch { body = null; }
+    requests.push({ url: r.url(), method: r.method(), body });
     if (r.url() === 'https://id.inpriv.xyz/id.js') return r.respond({ status: 200, contentType: 'text/javascript', body: '' });
     return r.url().startsWith(origin) || r.url().startsWith('about:') ? r.continue() : r.abort();
   });
@@ -141,18 +143,25 @@ test('older rich and plain messages expose their clearly provided unsubscribe li
   assert.deepEqual(requests.filter(r => /lists\.example|tracker\.example/.test(r.url)), []);
 });
 
-test('an email unsubscribe opens a correctly filled draft without sending it', async () => {
+test('an email unsubscribe is sent by the server, and the user is shown exactly what goes out', async () => {
   await open(4);
   await page.click('#viewUnsubscribeBtn'); await page.waitForSelector('#mailInfoSheet.open');
-  await page.click('#unsubscribeReviewBtn'); await page.waitForSelector('#cmpBody');
-  assert.equal(await page.$eval('#cmpTo', e => e.value), 'leave@lists.example');
-  assert.equal(await page.$eval('#cmpSubject', e => e.value), 'Leave weekly');
-  assert.equal(await page.$eval('#cmpBody', e => e.value), 'Please remove me.\nReference: fixture');
-  assert.equal(await page.$eval('#composeModeSeg .active', e => e.dataset.mode), 'external');
-  assert.match(await page.$eval('#composeCloseBtn', e => getComputedStyle(e.closest('.modal-sheet')).backgroundColor), /^(rgb\([^/]+\)|color\(srgb [^/]+\))$/);
+  const preview = await page.$eval('.unsub-preview', e => e.textContent);
+  assert.match(preview, /leave@lists\.example/);
+  assert.match(preview, /Leave weekly/);
+  assert.match(preview, /Please remove me\./);
+  await page.click('#unsubMailto');
+  await page.waitForFunction(() => !document.querySelector('#mailInfoSheet.open'));
+  const post = requests.find(r => r.url.endsWith('/messages/unsubscribe'));
+  assert.ok(post, 'the worker sent the unsubscribe request');
+  assert.equal(post.method, 'POST');
+  assert.equal(post.body.mode, 'mailto');
+  assert.equal(post.body.mailto_to, 'leave@lists.example');
+  assert.equal(post.body.subject, 'Leave weekly');
+  assert.match(post.body.text, /Please remove me\./);
+  // nothing was sent from the page itself, and nothing reached the sender
   assert.equal(requests.filter(r => r.url.endsWith('/messages/send')).length, 0);
-  if (shots) { await new Promise(r => setTimeout(r, 350)); await page.screenshot({ path: `${shots}/unsubscribe-draft.png` }); }
-  await page.click('#composeCloseBtn'); await page.waitForFunction(() => !document.getElementById('composeCloseBtn'));
+  assert.deepEqual(requests.filter(r => /lists\.example/.test(r.url)), []);
 });
 
 test('personal messages, sent copies and unsafe actions have no Unsubscribe button', async () => {

@@ -37,7 +37,7 @@ const SERVICE_META = {
 
 async function publicUser(env, uid, full = false) {
   const u = await env.DB.prepare(
-    "SELECT id, username, email, recovery_email, pending_recovery_email, nick, email_verified, recovery_email_verified, totp_enabled, created_at, last_login FROM users WHERE id = ?"
+    "SELECT id, username, email, recovery_email, pending_recovery_email, nick, email_verified, recovery_email_verified, totp_enabled, show_address, created_at, last_login FROM users WHERE id = ?"
   ).bind(uid).first();
   if (!u) return null;
   const username = u.username || (u.email ? u.email.split("@")[0] : "user");
@@ -52,6 +52,8 @@ async function publicUser(env, uid, full = false) {
     avatar: "seed:" + u.id.slice(0, 8),
     email_verified: !!(u.recovery_email_verified || u.email_verified),
     totp_enabled: !!u.totp_enabled,
+    // Off by default: people you write to see "Anonymous Inpriv user".
+    show_address: u.show_address === 1,
   };
   if (full) {
     out.recovery_email = u.pending_recovery_email || u.recovery_email || null;
@@ -567,6 +569,20 @@ export default {
           quick_unlock: !(settings && settings.quick_unlock === 0), // no row = on, as everywhere
           totp_enabled: !!u.totp_enabled, // service must enforce 2FA fallback
         }, 200, cors);
+      }
+
+      // ═══ PRIVACY: show my address to people I write to ═══
+      // Server-side on purpose (not the vault): Inpriv Mail has to act on it
+      // when it stores a message, and it can only read columns it can see.
+      if (path === "/api/privacy" && request.method === "POST") {
+        const pme = await authUser(request, env, true);
+        if (!pme) return bad("unauthorized", 401);
+        const pb = await request.json().catch(() => ({}));
+        if (typeof pb.show_address !== "boolean") return bad("show_address (boolean) required", 400);
+        await env.DB.prepare("UPDATE users SET show_address = ? WHERE id = ?")
+          .bind(pb.show_address ? 1 : 0, pme.uid).run();
+        await logEvent(env.DB, pme.uid, pb.show_address ? "show_address_on" : "show_address_off", request);
+        return json({ ok: true, show_address: pb.show_address }, 200, cors);
       }
 
       // ═══ MAILBOX READY? (asked right after sign-up) ═══

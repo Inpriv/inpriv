@@ -15,7 +15,7 @@ const MAIL_ORIGIN = /(^|\.)inpriv\.xyz$/.test(location.hostname)
 try { localStorage.removeItem("inpriv_id_token"); } catch {}
 let user = null;
 let mfaToken = null;
-let vault = { theme: null, avatar: "initials", privacy: { nick: true, prompt: true, vault: true, log: true } };
+let vault = { theme: null, avatar: "initials", privacy: { prompt: true, vault: true, log: true } };
 let recoveryCodes = [];
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -199,6 +199,32 @@ $("logoutBtn").addEventListener("click", async () => {
   location.reload();
 });
 
+// "Show my address": server-side, because Inpriv Mail acts on it when it stores
+// a message. Off by default → people you write to see "Anonymous Inpriv user".
+(function () {
+  const el = $("swAddress");
+  if (!el) return;
+  let saving = false;
+  const flip = async () => {
+    if (saving) return;
+    saving = true;
+    const on = !el.classList.contains("on");
+    setSwitch("swAddress", on);
+    try {
+      const out = await api("/api/privacy", { show_address: on });
+      user.show_address = !!out.show_address;
+      toast(on ? "People you write to will see your address" : "People you write to see “Anonymous Inpriv user”");
+    } catch (e) {
+      setSwitch("swAddress", !on);
+      toast(e.message, false);
+    } finally { saving = false; }
+  };
+  el.addEventListener("click", flip);
+  el.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); flip(); }
+  });
+})();
+
 // ── panel ────────────────────────────────────────────────────────────────────
 async function enterPanel() {
   show("panel");
@@ -312,7 +338,8 @@ function renderProfile() {
   if (user.totp_enabled && !recoveryCodes.length) loadRecoveryInfo();
 
   // privacy switches
-  setSwitch("swNick", vault.privacy.nick);
+  // server-side: Mail acts on it, so it is not part of the vault
+  setSwitch("swAddress", !!user.show_address);
   setSwitch("swPrompt", vault.privacy.prompt);
   setSwitch("swVault", vault.privacy.vault);
   setSwitch("swLog", vault.privacy.log);
@@ -434,7 +461,7 @@ function setSwitch(id, on) {
   sw.classList.toggle("on", !!on);
   sw.setAttribute("aria-checked", String(!!on));
 }
-["swNick", "swPrompt", "swVault", "swLog"].forEach((id) => {
+["swPrompt", "swVault", "swLog"].forEach((id) => {
   const el = $(id);
   const flip = () => {
     const on = !el.classList.contains("on");

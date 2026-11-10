@@ -41,6 +41,7 @@ for (const [src, copy] of PAGES) {
   for (const [tag, id, module] of [
     ['script', 'inpriv-pwa', 'pwa.js'], ['script', 'inpriv-mail-render', 'mail-render.js'],
     ['script', 'inpriv-mail-unsubscribe', 'mail-unsubscribe.js'],
+    ['script', 'inpriv-mailbox-keys', 'mailbox-keys.js'],
     ['script', 'inpriv-mode-switch', 'mode-switch.js'], ['style', 'inpriv-mode-switch-css', 'mode-switch.css'],
   ]) {
     const open = `<${tag} id="${id}">`;
