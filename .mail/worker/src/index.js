@@ -17,7 +17,8 @@ import { logAccess, purgeAccessLog } from "../../../common/access-log.js";
 import { clientNet, originAllowed, isUnsafeMethod, pageResponse, apiHeaders, uaFamily } from "../../../common/security.js";
 import { TEAM_MAILBOXES, normalizeLocal, tryClaim, claimOwner, claimMany, ensureClaims } from "../../../common/addresses.js";
 import { sanitizeEmailHtml } from "../../../common/email-html.js";
-import { listUnsubscribeHeader } from "./list-unsubscribe.js";
+import { listUnsubscribeHeader, listUnsubscribePostHeader } from "./list-unsubscribe.js";
+import { unsubscribeUrlProblem } from "./unsubscribe-guard.js";
 import { WorkerEntrypoint } from "cloudflare:workers";
 
 export { TEAM_MAILBOXES };
@@ -355,6 +356,24 @@ async function resolveDeliveries(env, names) {
   }
 }
 
+// Send the unsubscribe request a mailto: link asks for, through the relay, so
+// the user's own address and browser never touch the sender.
+async function sendUnsubscribeMail(env, to, subject, text) {
+  const key = env.RESEND_API_KEY || env.RESEND_KEY;
+  if (!key) return { ok: false, status: 503, error: "the mail relay is not configured" };
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ from: `unsubscribe@${DOMAIN}`, to: [to], subject, text }),
+    });
+    if (!res.ok) return { ok: false, status: 502, error: "the relay refused the unsubscribe message" };
+    return { ok: true };
+  } catch {
+    return { ok: false, status: 502, error: "the relay could not be reached" };
+  }
+}
+
 async function handleInbound(request, env) {
   const secret = env.RESEND_WEBHOOK_SECRET;
   if (!secret) {
@@ -434,6 +453,7 @@ async function handleInbound(request, env) {
   let rawHtml = null;
   let fromName = null;
   let listUnsubscribe = null;
+  let listUnsubscribePost = null;
 
   if (readKey && emailId) {
     try {
@@ -443,6 +463,7 @@ async function handleInbound(request, env) {
       if (res.ok) {
         const email = await res.json();
         listUnsubscribe = listUnsubscribeHeader(email.headers);
+        listUnsubscribePost = listUnsubscribePostHeader(email.headers);
         text = String(email.text || "").slice(0, INBOUND_MAX_TEXT_CHARS) || null;
         rawHtml = String(email.html || "").slice(0, INBOUND_MAX_HTML_CHARS) || null;
         if (!text && rawHtml) text = htmlToText(rawHtml).slice(0, INBOUND_MAX_TEXT_CHARS) || null;
@@ -494,6 +515,7 @@ async function handleInbound(request, env) {
   // reader until the person loads them.
   const payload = { v: 1, text: plaintext };
   if (listUnsubscribe) payload.list_unsubscribe = listUnsubscribe;
+  if (listUnsubscribePost) payload.list_unsubscribe_post = listUnsubscribePost;
   if (rawHtml) {
     try {
       const safe = await sanitizeEmailHtml(rawHtml);
@@ -515,6 +537,20 @@ async function handleInbound(request, env) {
 
   const fromAddr = String(d.from || "unknown@unknown").toLowerCase().slice(0, 320);
   const label = fromName || fromAddr.split("@")[0];
+
+  // A blocked sender is dropped on arrival. 200, never 5xx: a block must not
+  // turn into a retry storm against this Worker.
+  if (target) {
+    try {
+      const blocked = await env.DB.prepare(
+        "SELECT 1 FROM blocked_senders WHERE user_id = ? AND address = ?"
+      ).bind(target.id, fromAddr).first();
+      if (blocked) {
+        console.error("inbound: dropped, sender is blocked:", fromAddr);
+        return json({ ok: true, ignored: "blocked sender" });
+      }
+    } catch { /* a missing table must not lose mail */ }
+  }
 
   try {
     await env.DB.batch([
@@ -1209,6 +1245,99 @@ async function api(request, env, ctx, url, path) {
       return json({ states: await resolveDeliveries(env, names) });
     }
 
+    // ── Server-side unsubscribe ────────────────────────────────────────────
+    // The page decrypts the body, so it supplies the URL it found. That URL is
+    // attacker-controlled, hence the guard. On success the sender is blocked,
+    // which is what actually stops tomorrow's newsletter.
+    if (path === "/api/v1/messages/unsubscribe" && request.method === "POST") {
+      if (!(await rateLimit(env.DB, `unsub:${me.id}`, 20, 3_600_000))) {
+        return bad("too many requests — try again later", 429);
+      }
+      const mid = Number(body.message_id);
+      const msg = Number.isInteger(mid)
+        ? await env.DB.prepare("SELECT id, peer_address FROM messages WHERE id = ? AND owner_id = ?").bind(mid, me.id).first()
+        : null;
+      if (!msg) return bad("message not found", 404);
+      const sender = String(msg.peer_address || "").toLowerCase();
+      const mode = String(body.mode || "");
+      const block = body.block !== false;
+
+      if (mode === "one-click") {
+        const problem = unsubscribeUrlProblem(body.url);
+        if (problem) return bad("that unsubscribe link can't be used: " + problem, 400);
+        let r;
+        try {
+          r = await fetch(String(body.url), {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded", "User-Agent": "Inpriv-Unsubscribe/1" },
+            body: "List-Unsubscribe=One-Click",
+            redirect: "manual",
+          });
+        } catch {
+          return bad("the sender's unsubscribe endpoint could not be reached", 502);
+        }
+        // read a little, never the whole thing, and never log it
+        try {
+          const buf = await r.arrayBuffer();
+          if (buf.byteLength > 65536) console.error("unsubscribe: oversized response ignored");
+        } catch { /* body is not needed */ }
+        if (r.status >= 400) {
+          return bad(`the sender's unsubscribe endpoint refused the request (${r.status})`, 502);
+        }
+        console.log("unsubscribe: one-click ok on", new URL(String(body.url)).host);
+      } else if (mode === "mailto") {
+        const to = String(body.mailto_to || "").toLowerCase().trim().slice(0, 320);
+        if (!/^[^@\s<>,;]+@[^@\s<>,;]+\.[^@\s<>,;]+$/.test(to)) return bad("invalid unsubscribe address", 400);
+        const subject = String(body.subject || "unsubscribe").slice(0, 200);
+        const text = String(body.text || "unsubscribe").slice(0, 2000);
+        const sent = await sendUnsubscribeMail(env, to, subject, text);
+        if (!sent.ok) return bad(sent.error, sent.status);
+        console.log("unsubscribe: mailto sent through the relay");
+      } else {
+        return bad("unknown unsubscribe mode", 400);
+      }
+
+      let blocked = false;
+      if (block && sender) {
+        await env.DB.prepare(
+          "INSERT INTO blocked_senders (user_id, address, created_at) VALUES (?,?,?) ON CONFLICT(user_id, address) DO NOTHING"
+        ).bind(me.id, sender, now()).run();
+        blocked = true;
+      }
+      ctx.waitUntil(logAccess(env.ID_DB, request, "mail", "unsubscribe", me.username));
+      return json({ ok: true, blocked });
+    }
+
+    // ── Blocked senders ────────────────────────────────────────────────────
+    // Per account, dropped on arrival, refused on send, hidden from
+    // suggestions and from the list. Goes away with the account (FK cascade).
+    if (path === "/api/v1/blocked" && request.method === "GET") {
+      const rows = await env.DB.prepare(
+        "SELECT address, created_at FROM blocked_senders WHERE user_id = ? ORDER BY created_at DESC"
+      ).bind(me.id).all();
+      return json({ blocked: rows.results || [] });
+    }
+    if (path === "/api/v1/block" && request.method === "POST") {
+      if (!(await rateLimit(env.DB, `blk:${me.id}`, 60, 3_600_000))) {
+        return bad("too many changes — try again later", 429);
+      }
+      const addr = String(body.address || "").toLowerCase().trim().slice(0, 320);
+      if (!/^[^@\s<>,;]+@[^@\s<>,;]+\.[^@\s<>,;]+$/.test(addr)) return bad("invalid address", 400);
+      await env.DB.prepare(
+        "INSERT INTO blocked_senders (user_id, address, created_at) VALUES (?,?,?) ON CONFLICT(user_id, address) DO NOTHING"
+      ).bind(me.id, addr, now()).run();
+      ctx.waitUntil(logAccess(env.ID_DB, request, "mail", "sender_blocked", me.username));
+      return json({ ok: true, address: addr });
+    }
+    if (path === "/api/v1/unblock" && request.method === "POST") {
+      const addr = String(body.address || "").toLowerCase().trim().slice(0, 320);
+      if (!addr) return bad("address required", 400);
+      const r = await env.DB.prepare("DELETE FROM blocked_senders WHERE user_id = ? AND address = ?")
+        .bind(me.id, addr).run();
+      ctx.waitUntil(logAccess(env.ID_DB, request, "mail", "sender_unblocked", me.username));
+      return json({ ok: true, address: addr, removed: (r.meta && r.meta.changes) || 0 });
+    }
+
     // ── List Messages ─────────────────────────────────────────────────────
     if (path === "/api/v1/messages" && request.method === "GET") {
       const cursor = url.searchParams.get("cursor");
@@ -1219,7 +1348,7 @@ async function api(request, env, ctx, url, path) {
         if (![at, id].every(Number.isSafeInteger)) return bad("invalid cursor", 400);
       }
       const rows = await env.DB.prepare(
-        `SELECT id, direction, peer_address, peer_label, subject, is_read, created_at
+        `SELECT id, direction, peer_address, peer_label, peer_masked, subject, is_read, created_at
          FROM messages WHERE owner_id = ? ${cursor ? "AND (created_at, id) < (?, ?)" : ""}
          ORDER BY created_at DESC, id DESC LIMIT 201`
       ).bind(...(cursor ? [me.id, at, id] : [me.id])).all();
@@ -1231,7 +1360,7 @@ async function api(request, env, ctx, url, path) {
     // ── Get Single Message Envelope (Marks Read) ──────────────────────────
     if ((m = path.match(/^\/api\/v1\/messages\/(\d+)$/)) && request.method === "GET") {
       const msg = await env.DB.prepare(
-        `SELECT id, direction, peer_address, peer_label, subject, encrypted_aes_key,
+        `SELECT id, direction, peer_address, peer_label, peer_masked, subject, encrypted_aes_key,
                 iv, ciphertext, auth_tag, is_read, created_at, key_id
          FROM messages WHERE id = ? AND owner_id = ?`
       ).bind(Number(m[1]), me.id).first();
@@ -1263,9 +1392,9 @@ async function api(request, env, ctx, url, path) {
       const t = now();
 
       if (isExternal) {
-        // Admin policy (admin → Switches → Sending policy). On by default: a
-        // confirmed recovery email is required before sending to other
-        // providers, so a lost passphrase is always recoverable.
+        // Admin policy (admin → Switches → Sending policy). Allowed by
+        // default; the operator can require a confirmed recovery email
+        // before sending to other providers.
         if (!gate.settings.allowExternalWithoutRecovery) {
           const confirmed = await env.ID_DB.prepare("SELECT recovery_email_verified FROM users WHERE username = ?").bind(me.username).first();
           if (!confirmed?.recovery_email_verified) return bad("confirm your recovery email on Inpriv ID before sending to other providers", 403);
@@ -1354,6 +1483,15 @@ async function api(request, env, ctx, url, path) {
       if (resolved.state !== DELIVER || !target) {
         return bad("no Inpriv address like that", 404);
       }
+      const blockedByMe = await env.DB.prepare(
+        "SELECT 1 FROM blocked_senders WHERE user_id = ? AND address = ?"
+      ).bind(me.id, String(target.address || "").toLowerCase()).first();
+      if (blockedByMe) return bad("this address is blocked — unblock it in Account first", 409);
+      // The recipient may have blocked the sender. That is not the sender's
+      // business: the message is accepted and simply not delivered.
+      const recipientBlockedMe = await env.DB.prepare(
+        "SELECT 1 FROM blocked_senders WHERE user_id = ? AND address = ?"
+      ).bind(target.id, String(me.address || "").toLowerCase()).first();
       // encrypted to the recipient's current key only: after a recipient
       // upgrades or resets, nothing new goes to the key they left behind
       if (String(body.recipient_key_id || "") !== (await keyIdOf(env, target))) {
@@ -1371,18 +1509,30 @@ async function api(request, env, ctx, url, path) {
       if (!recEak || !sndEak || !iv || !ct || !tag) return bad("missing encrypted message envelope", 400);
       if (ct.length > 300_000) return bad("message body exceeds maximum size (200 KB)", 400);
 
-      const r = await env.DB.batch([
+      // What the recipient is allowed to see. "Show my address" is off by
+      // default, so a message from an Inpriv user arrives as "Anonymous Inpriv
+      // user"; the real address stays in peer_address so replies still route.
+      const senderPref = await env.ID_DB.prepare("SELECT show_address FROM users WHERE username = ?")
+        .bind(me.username).first();
+      const masked = !(senderPref && senderPref.show_address === 1);
+      const senderLabel = masked ? "Anonymous Inpriv user" : me.username;
+
+      const statements = [
         env.DB.prepare(
           `INSERT INTO messages (owner_id, direction, peer_address, peer_label, subject,
                                  encrypted_aes_key, iv, ciphertext, auth_tag, created_at, is_read, key_id)
            VALUES (?,?,?,?,?,?,?,?,?,?,1,?)`
         ).bind(me.id, "outbound", target.address, target.username, subject, sndEak, iv, ct, tag, t, myKeyId),
-        env.DB.prepare(
-          `INSERT INTO messages (owner_id, direction, peer_address, peer_label, subject,
-                                 encrypted_aes_key, iv, ciphertext, auth_tag, created_at, is_read, key_id)
-           VALUES (?,?,?,?,?,?,?,?,?,?,0,?)`
-        ).bind(target.id, "inbound", me.address, me.username, subject, recEak, iv, ct, tag, t, target.key_id),
-      ]);
+      ];
+      if (!recipientBlockedMe) {
+        statements.push(
+          env.DB.prepare(
+            `INSERT INTO messages (owner_id, direction, peer_address, peer_label, subject,
+                                   encrypted_aes_key, iv, ciphertext, auth_tag, created_at, is_read, key_id, peer_masked)
+             VALUES (?,?,?,?,?,?,?,?,?,?,0,?,?)`
+          ).bind(target.id, "inbound", me.address, senderLabel, subject, recEak, iv, ct, tag, t, target.key_id, masked ? 1 : 0));
+      }
+      const r = await env.DB.batch(statements);
 
       ctx.waitUntil(logAccess(env.ID_DB, request, "mail", "send", me.username));
       return json({ ok: true, id: r[0].meta?.last_row_id, external: false });

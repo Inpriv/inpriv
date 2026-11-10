@@ -26,7 +26,7 @@ export const rand = (n = 6) => Math.random().toString(36).slice(2, 2 + n);
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // ── HTTP client with a cookie jar and an Origin, like a browser page ────────
-const SETUP = new Set(["/api/register", "/api/login", "/api/v1/login", "/api/2fa/setup", "/api/2fa/confirm"]);
+const SETUP = new Set(["/api/register", "/api/login", "/api/v1/login", "/api/v1/init-keys", "/api/v1/me", "/api/2fa/setup", "/api/2fa/confirm"]);
 let ipCounter = 0;
 const RUN = Math.floor(Math.random() * 250) + 1;
 export class Client {

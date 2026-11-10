@@ -984,6 +984,11 @@ html, body { overscroll-behavior-y: contain; }
 .view-from-text { flex: 1; min-width: 0; }
 .view-from-name { font-weight: 650; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .view-from-sub { color: var(--text-3); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.msg-addr-line { color: var(--text-3); font-size: 12px; margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.view-addr { color: var(--text-3); font-size: 12.5px; margin-top: 1px; overflow-wrap: anywhere; }
+.unsub-preview { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 12px 0; font-size: 13.5px; }
+.unsub-preview dt { color: var(--text-3); }
+.unsub-preview dd { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
 .view-key { color: var(--text-3); font-size: 11.5px; font-variant-numeric: tabular-nums; letter-spacing: 0.02em; margin-top: 2px; }
 .view-from-date { flex: none; align-self: flex-start; padding-top: 3px; color: var(--text-3); font-size: 12.5px; font-variant-numeric: tabular-nums; }
 .view-tools { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
@@ -1857,6 +1862,128 @@ html .bottom-nav.glass {
   else boot();
 })();
 </script>
+
+<script id="inpriv-mailbox-keys">
+// Inpriv — the mailbox key ceremony, shared by Inpriv Mail and Inpriv ID.
+//
+// One implementation, inlined into both pages by `node common/ui/sync.mjs`
+// (the pages must not drift: a key ring sealed with a different parameter is
+// unreadable). The private key is generated here, sealed here and never leaves
+// the browser: what travels is the public key (SPKI) and the sealed envelope.
+//
+// The page destructures what it needs:
+//   const { KEY_ITERS, RING_AAD, RSA, generateKeyPair, keyIdOf,
+//           derivePassphraseKey, openRing, sealRing, newRingKey } = InprivMailboxKeys;
+/* global window, crypto, TextEncoder, TextDecoder */
+(function () {
+  'use strict';
+
+  var KEY_ITERS = 600000;                                   // PBKDF2-SHA-256
+  var RING_AAD = new TextEncoder().encode('inpriv-mail-keyring-v2');
+  var RSA = { name: 'RSA-OAEP', hash: 'SHA-256' };
+
+  function b64enc(buf) {
+    var bytes = new Uint8Array(buf), s = '';
+    for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+    return btoa(s);
+  }
+  function b64dec(str) {
+    var raw = atob(str), out = new Uint8Array(raw.length);
+    for (var i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+    return out;
+  }
+  var utf8 = {
+    enc: function (s) { return new TextEncoder().encode(String(s)); },
+    dec: function (b) { return new TextDecoder().decode(b); }
+  };
+
+  function generateKeyPair() {
+    return crypto.subtle.generateKey(
+      { name: 'RSA-OAEP', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
+      true,
+      ['encrypt', 'decrypt']
+    );
+  }
+
+  // First 128 bits of SHA-256 over the public key (SPKI), in hex. The server
+  // computes the same value; people compare it to check a key.
+  async function keyIdOf(spki) {
+    var d = new Uint8Array(await crypto.subtle.digest('SHA-256', spki));
+    return Array.from(d.slice(0, 16), function (x) { return x.toString(16).padStart(2, '0'); }).join('');
+  }
+
+  async function derivePassphraseKey(passphrase, saltB64, iterations) {
+    var base = await crypto.subtle.importKey('raw', utf8.enc(String(passphrase).normalize('NFC')), 'PBKDF2', false, ['deriveKey']);
+    return crypto.subtle.deriveKey(
+      { name: 'PBKDF2', hash: 'SHA-256', salt: b64dec(saltB64), iterations: iterations },
+      base, { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
+  }
+
+  async function openRing(envelope, kek) {
+    var pt = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv: b64dec(envelope.priv_iv), additionalData: RING_AAD },
+      kek, b64dec(envelope.encrypted_private_key));
+    return JSON.parse(utf8.dec(pt));
+  }
+
+  // Seal a ring, then open the result again with a freshly derived key: nothing
+  // is sent unless it is known to open.
+  async function sealRing(ring, passphrase) {
+    var salt = b64enc(crypto.getRandomValues(new Uint8Array(16)).buffer);
+    var kek = await derivePassphraseKey(passphrase, salt, KEY_ITERS);
+    var iv = crypto.getRandomValues(new Uint8Array(12));
+    var ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv, additionalData: RING_AAD }, kek, utf8.enc(JSON.stringify(ring)));
+    var envelope = {
+      key_format: 2,
+      encrypted_private_key: b64enc(ct),
+      priv_iv: b64enc(iv.buffer),
+      priv_salt: salt,
+      priv_iter: KEY_ITERS
+    };
+    var again = await openRing(envelope, await derivePassphraseKey(passphrase, salt, KEY_ITERS));
+    if (JSON.stringify(again) !== JSON.stringify(ring)) throw new Error('key ring check failed');
+    return { envelope: envelope, kek: kek };
+  }
+
+  async function newRingKey() {
+    var kp = await generateKeyPair();
+    var spki = await crypto.subtle.exportKey('spki', kp.publicKey);
+    var pkcs8 = await crypto.subtle.exportKey('pkcs8', kp.privateKey);
+    return { entry: { id: await keyIdOf(spki), created: Date.now(), pkcs8: b64enc(pkcs8) }, spki: b64enc(spki) };
+  }
+
+  // Create a mailbox on Inpriv Mail with the ticket Inpriv ID minted at
+  // sign-up. Mail answers opaquely (no CORS on purpose); the caller confirms
+  // through /api/mailbox/status.
+  async function provision(opts) {
+    var username = String(opts.username || '').toLowerCase();
+    var passphrase = String(opts.passphrase || '');
+    if (!username || passphrase.length < 8) throw new Error('passphrase too short');
+    var k = await newRingKey();
+    var ring = { v: 2, current: k.entry.id, keys: [k.entry] };
+    var sealed = await sealRing(ring, passphrase);
+    await fetch(opts.mailOrigin + '/api/v1/init-keys', {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+      body: JSON.stringify({
+        init_ticket: opts.ticket,
+        public_key: k.spki,
+        key_id: k.entry.id,
+        envelope: sealed.envelope
+      })
+    });
+  }
+
+  window.InprivMailboxKeys = {
+    KEY_ITERS: KEY_ITERS, RING_AAD: RING_AAD, RSA: RSA,
+    generateKeyPair: generateKeyPair, keyIdOf: keyIdOf,
+    derivePassphraseKey: derivePassphraseKey, openRing: openRing,
+    sealRing: sealRing, newRingKey: newRingKey, provision: provision,
+    b64enc: b64enc, b64dec: b64dec
+  };
+})();
+</script>
 <div class="backdrop" aria-hidden="true">
   <div class="ticker"><div class="track"></div><div class="track"></div></div>
   <div class="grain"></div>
@@ -2160,6 +2287,7 @@ const state = {
   currentKeyId: null,    // the key new mail is encrypted to
   pubKey: null,          // RSA-OAEP CryptoKey of the current key
   messages: [],
+  blocked: [],           // senders this account blocked (address + date)
   messagesOwner: null,   // only reuse a list fetched for this signed-in account
   activeTab: 'inbox',    // 'inbox' | 'sent' | 'account'
   searchQuery: '',
@@ -2311,18 +2439,11 @@ async function api(path, opts = {}) {
    password, which the server also receives at sign-in. It's only opened
    here to move the key into a format-2 ring with a new key for future mail.
    ========================================================================== */
-const KEY_ITERS = 600000;
 const MIN_PASSPHRASE = 8;
-const RING_AAD = utf8.enc('inpriv-mail-keyring-v2');
-const RSA = { name: 'RSA-OAEP', hash: 'SHA-256' };
-
-async function generateKeyPair() {
-  return crypto.subtle.generateKey(
-    { name: 'RSA-OAEP', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
-    true,
-    ['encrypt', 'decrypt']
-  );
-}
+// The key ceremony is shared with Inpriv ID (common/ui/mailbox-keys.js,
+// inlined above by sync.mjs), so the two cannot drift apart.
+const { KEY_ITERS, RING_AAD, RSA, generateKeyPair, keyIdOf,
+        derivePassphraseKey, openRing, sealRing, newRingKey } = window.InprivMailboxKeys;
 
 // format 1: chained PBKDF2 over the sign-in password (read-only, to upgrade)
 async function deriveLegacyKey(password, saltB64, iterations = PASS_ITERS) {
@@ -2356,19 +2477,8 @@ async function openLegacyKey(user, aesKey) {
 // format 2: the passphrase key. Extractable only so "Skip mailbox
 // passphrase" can wrap it under this device's key; it lives in memory and
 // is dropped on sign-out.
-async function derivePassphraseKey(passphrase, saltB64, iterations) {
-  const base = await crypto.subtle.importKey('raw', utf8.enc(String(passphrase).normalize('NFC')), 'PBKDF2', false, ['deriveKey']);
-  return crypto.subtle.deriveKey(
-    { name: 'PBKDF2', hash: 'SHA-256', salt: new Uint8Array(b64.dec(saltB64)), iterations },
-    base, { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
-}
-
 // A key id is the first 128 bits of SHA-256 over the public key (SPKI). The
 // server computes it the same way; people compare it to verify a key.
-async function keyIdOf(spki) {
-  const d = new Uint8Array(await crypto.subtle.digest('SHA-256', spki));
-  return Array.from(d.slice(0, 16), (x) => x.toString(16).padStart(2, '0')).join('');
-}
 const fingerprint = (id) => String(id || '').match(/.{1,4}/g)?.join(' ') || '—';
 
 async function publicFromPkcs8(pkcs8B64) {
@@ -2395,33 +2505,6 @@ async function loadRing(ring) {
   }
   if (!keys.has(ring.current)) throw new Error('key ring check failed');
   return keys;
-}
-
-async function openRing(env, kek) {
-  const pt = await crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv: new Uint8Array(b64.dec(env.priv_iv)), additionalData: RING_AAD },
-    kek, b64.dec(env.encrypted_private_key));
-  return JSON.parse(utf8.dec(pt));
-}
-
-// Seal a ring under a passphrase, then open the result again with a freshly
-// derived key: nothing is sent unless it's known to open.
-async function sealRing(ring, passphrase) {
-  const salt = b64.enc(crypto.getRandomValues(new Uint8Array(16)).buffer);
-  const kek = await derivePassphraseKey(passphrase, salt, KEY_ITERS);
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: RING_AAD }, kek, utf8.enc(JSON.stringify(ring)));
-  const envelope = { key_format: 2, encrypted_private_key: b64.enc(ct), priv_iv: b64.enc(iv.buffer), priv_salt: salt, priv_iter: KEY_ITERS };
-  const again = await openRing(envelope, await derivePassphraseKey(passphrase, salt, KEY_ITERS));
-  if (JSON.stringify(again) !== JSON.stringify(ring)) throw new Error('key ring check failed');
-  return { envelope, kek };
-}
-
-async function newRingKey() {
-  const kp = await generateKeyPair();
-  const spki = await crypto.subtle.exportKey('spki', kp.publicKey);
-  const pkcs8 = await crypto.subtle.exportKey('pkcs8', kp.privateKey);
-  return { entry: { id: await keyIdOf(spki), created: Date.now(), pkcs8: b64.enc(pkcs8) }, spki: b64.enc(spki) };
 }
 
 // The unlocked mailbox, in memory only.
@@ -3529,6 +3612,41 @@ function updateNavActive() {
 }
 
 /* ---------- Load & Render Messages ---------- */
+async function loadBlocked() {
+  try {
+    const out = await api('/blocked');
+    state.blocked = Array.isArray(out.blocked) ? out.blocked : [];
+  } catch (_) { /* an older worker without the table: nothing blocked */ }
+  return state.blocked;
+}
+
+async function blockSender(address, { quiet = false } = {}) {
+  const addr = String(address || '').toLowerCase().trim();
+  if (!addr) return false;
+  try {
+    await api('/block', { method: 'POST', body: JSON.stringify({ address: addr }) });
+    await loadBlocked();
+    if (!quiet) toast('Sender blocked', addr);
+    return true;
+  } catch (e) {
+    toast('Could not block that sender', e.message, 'error');
+    return false;
+  }
+}
+
+async function unblockSender(address) {
+  const addr = String(address || '').toLowerCase().trim();
+  try {
+    await api('/unblock', { method: 'POST', body: JSON.stringify({ address: addr }) });
+    await loadBlocked();
+    toast('Unblocked', addr);
+    renderAccountScreen();
+    renderMessageCards();
+  } catch (e) {
+    toast('Could not unblock', e.message, 'error');
+  }
+}
+
 async function loadMessages(older = false) {
   older = older === true;
   if (state.messagesLoading) return;
@@ -3537,6 +3655,7 @@ async function loadMessages(older = false) {
   const refreshBtn = $('#refreshBtn');
   if (refreshBtn) refreshBtn.classList.add('is-refreshing');
   try {
+    if (!older) await loadBlocked();
     const data = await api('/messages' + (older && state.nextCursor ? '?cursor=' + encodeURIComponent(state.nextCursor) : ''));
     if (!state.signedIn || !state.user || state.user.id !== owner) return;
     state.messagesOwner = owner;
@@ -3597,10 +3716,15 @@ function renderMessageCards() {
   const targetDir = state.activeTab === 'inbox' ? 'inbound' : 'outbound';
   let filtered = state.messages.filter(m => m.direction === targetDir);
 
+  // a blocked sender's mail is not shown, and a masked sender cannot be found
+  // by typing the address that is not visible
+  const blocked = blockedSet();
+  filtered = filtered.filter(m => !blocked.has(String(m.peer_address || '').toLowerCase()));
+
   if (state.searchQuery) {
     const q = state.searchQuery.toLowerCase();
     filtered = filtered.filter(m =>
-      (m.peer_address && m.peer_address.toLowerCase().includes(q)) ||
+      (!isMasked(m) && m.peer_address && m.peer_address.toLowerCase().includes(q)) ||
       (m.peer_label && m.peer_label.toLowerCase().includes(q)) ||
       (m.subject && m.subject.toLowerCase().includes(q))
     );
@@ -3631,12 +3755,15 @@ function renderMessageCards() {
     const card = el('div', `msg-card ${m.is_read ? '' : 'unread'}${i < onScreen ? '' : ' still'}`);
     card.dataset.id = m.id;
     if (i < onScreen) card.style.animationDelay = Math.round(i * step) + 'ms';
-    const avatar = el('div', 'msg-avatar', initials(m.peer_label || m.peer_address));
-    avatar.style.background = avatarBg(m.peer_label || m.peer_address);
+    const avatar = el('div', 'msg-avatar', initials(peerName(m)));
+    avatar.style.background = avatarBg(isMasked(m) ? MASKED_LABEL : (m.peer_label || m.peer_address));
     const meta = el('div', 'msg-body-meta');
     const top = el('div', 'msg-top-line');
-    top.append(el('div', 'msg-peer-name', m.peer_label || m.peer_address), el('div', 'msg-time-badge', fmtTime(m.created_at)));
-    meta.append(top, el('div', 'msg-subject-line', m.subject || '(No Subject)'));
+    top.append(el('div', 'msg-peer-name', peerName(m)), el('div', 'msg-time-badge', fmtTime(m.created_at)));
+    meta.append(top);
+    const addr = peerAddress(m);
+    if (addr) meta.append(el('div', 'msg-addr-line', addr));
+    meta.append(el('div', 'msg-subject-line', m.subject || '(No Subject)'));
     card.append(avatar, meta);
     if (!m.is_read && m.direction === 'inbound') card.append(el('div', 'unread-indicator'));
     card.addEventListener('click', () => openMessageView(m.id));
@@ -3709,10 +3836,11 @@ async function openMessageView(id) {
         </div>
 
         <div class="view-from">
-          <div class="msg-avatar" id="viewAvatar">${initials(preview?.peer_label || preview?.peer_address)}</div>
+          <div class="msg-avatar" id="viewAvatar">${initials(preview ? peerName(preview) : '')}</div>
           <div class="view-from-text">
-            <div class="view-from-name" id="viewFrom">${escapeHtml(preview?.direction === 'outbound' ? state.user.email : (preview?.peer_label || preview?.peer_address || ''))}</div>
-            <div class="view-from-sub">to <span id="viewTo">${escapeHtml(preview?.direction === 'inbound' ? state.user.email : (preview?.peer_address || ''))}</span></div>
+            <div class="view-from-name" id="viewFrom">${escapeHtml(preview ? (preview.direction === 'outbound' ? state.user.email : peerName(preview)) : '')}</div>
+            <div class="view-addr" id="viewAddr" hidden></div>
+            <div class="view-from-sub">to <span id="viewTo">${escapeHtml(preview?.direction === 'inbound' ? state.user.email : (preview ? peerAddress(preview) : ''))}</span></div>
             <div class="view-key" id="viewKey" hidden></div>
           </div>
           <div class="view-from-date" id="viewDate"></div>
@@ -3752,6 +3880,7 @@ async function openMessageView(id) {
 
         <div class="view-actions-bar">
           <button class="btn btn-outlined" id="viewCopyBtn" disabled>${mkIcon('content_copy')} <span>Copy Body</span></button>
+          <button class="btn btn-outlined" id="viewBlockBtn" disabled>${mkIcon('block')} <span>Block sender</span></button>
           <button class="btn btn-primary" id="viewReplyBtn" disabled>${mkIcon('reply')} <span>Reply</span></button>
         </div>
       </div>
@@ -3794,12 +3923,23 @@ async function openMessageView(id) {
     const msg = await api(`/messages/${id}`);
     if (!overlay.isConnected || !overlay.classList.contains('open')) return;
     $('#viewSubject').textContent = msg.subject || '(No Subject)';
-    $('#viewFrom').textContent = msg.direction === 'inbound' ? (msg.peer_label || msg.peer_address) : state.user.email;
+    const maskedMsg = isMasked(msg);
+    $('#viewFrom').textContent = msg.direction === 'inbound' ? peerName(msg) : state.user.email;
     $('#viewTo').textContent = msg.direction === 'inbound' ? state.user.email : (msg.peer_label || msg.peer_address);
     $('#viewDate').textContent = fmtTime(msg.created_at);
     $('#viewDate').title = new Date(msg.created_at).toLocaleString();
     $('#viewAvatar').textContent = initials(msg.peer_label || msg.peer_address);
-    $('#viewFrom').title = msg.direction === 'inbound' ? (msg.peer_address || '') : state.user.email;
+    // never put a hidden address in an attribute either
+    if (maskedMsg) $('#viewFrom').removeAttribute('title');
+    else $('#viewFrom').title = msg.direction === 'inbound' ? (msg.peer_address || '') : state.user.email;
+    const addrEl = $('#viewAddr');
+    if (addrEl) {
+      const shown = peerAddress(msg);
+      addrEl.hidden = !shown;
+      addrEl.textContent = shown;
+    }
+    const av = $('#viewAvatar');
+    if (av) { av.textContent = initials(peerName(msg)); av.removeAttribute('title'); }
 
     // The key this message was encrypted to: the same fingerprint the account
     // screen shows, so a recipient can check it out of band.
@@ -3945,6 +4085,9 @@ async function openMessageView(id) {
     if (msg.direction === 'inbound' && !decryptFailed) {
       const action = InprivUnsubscribe.find(payload?.list_unsubscribe, safeRich?.doc || '', decryptedText);
       if (action) {
+        // RFC 8058: the sender says a server-side POST is enough
+        action.oneClick = action.kind === 'web' && /one-click/i.test(String(payload?.list_unsubscribe_post || ''));
+        action.messageId = id;
         const button = $('#viewUnsubscribeBtn');
         button.classList.remove('hidden');
         button.addEventListener('click', () => openUnsubscribeSheet(action));
@@ -3965,8 +4108,20 @@ async function openMessageView(id) {
     });
 
     $('#viewCopyBtn').disabled = false;
-    $('#viewReplyBtn').disabled = false;
+    const blockBtn = $('#viewBlockBtn');
+    blockBtn.disabled = !msg.peer_address;
+    blockBtn.addEventListener('click', async () => {
+      blockBtn.disabled = true;
+      const ok = await blockSender(msg.peer_address);
+      if (ok) { close(); renderMessageCards(); }
+      else blockBtn.disabled = false;
+    });
+    // A masked sender has no address we are allowed to show, so Reply would
+    // have to print it in the composer. It stays unavailable instead.
+    $('#viewReplyBtn').disabled = maskedMsg;
+    if (maskedMsg) $('#viewReplyBtn').title = 'Reply is unavailable for this sender';
     $('#viewReplyBtn').addEventListener('click', () => {
+      if (maskedMsg) return;
       close();
       const replyTo = msg.direction === 'inbound' ? (msg.peer_address || msg.peer_label) : msg.peer_address;
       const replySub = (msg.subject && msg.subject.startsWith('Re:')) ? msg.subject : `Re: ${msg.subject || ''}`;
@@ -3997,6 +4152,15 @@ function contactSuggestions(q) {
   }
   return [...seen].filter((u) => u.includes(q)).slice(0, 8);
 }
+
+// What a sender lets the recipient see. "Show my address" is off by default
+// for Inpriv users, so the worker stores the masked label and a flag; the
+// address must then stay hidden everywhere, including attributes.
+const MASKED_LABEL = 'Anonymous Inpriv user';
+const isMasked = (m) => Number(m && m.peer_masked) === 1;
+const peerName = (m) => (isMasked(m) ? MASKED_LABEL : (m.peer_label || m.peer_address || ''));
+const peerAddress = (m) => (isMasked(m) ? '' : (m.peer_address || ''));
+const blockedSet = () => new Set((state.blocked || []).map((b) => String(b.address || '').toLowerCase()));
 
 function openComposeModal(prefillTo = '', prefillSubject = '', prefillBody = '') {
   const container = $('#modalContainer');
@@ -4368,6 +4532,7 @@ async function installMailApp() {
 
 function showWhatsNew() {
   openInfoSheet("What's new", `
+    <article class="release-entry"><div class="release-date">11 November 2026 <span class="release-tag">Latest</span></div><h3>Say less. Stop the noise.</h3><ul><li>People you write to now see “Anonymous Inpriv user” unless you turn on <em>Show my address to people I write to</em> in Inpriv ID.</li><li>Every message shows the sender's full address, in the list and in the message.</li><li><strong>Block a sender</strong> in one click. Their mail stops arriving, and the list is in Account.</li><li>Unsubscribe now goes out from Inpriv's server, so the sender never sees your IP address. After it succeeds the sender is blocked too, so tomorrow's newsletter doesn't arrive either.</li></ul></article>
     <article class="release-entry"><div class="release-date">11 November 2026 <span class="release-tag">Latest</span></div><h3>Mail that arrives, and an address that works from day one.</h3><ul><li>Mail sent to an Inpriv address that exists but has no mailbox yet is now retried instead of silently dropped, so it arrives once the mailbox is ready.</li><li>Creating an account now also creates your mailbox, with the keys made in your browser.</li><li>Writing to another Inpriv user says plainly when their mailbox isn't set up yet, and the suggestion list marks addresses that can't receive.</li><li>Read receipts for encryption: every message shows the key it was encrypted to, and a test proves the stored copy is unreadable without your passphrase.</li></ul></article>
     <article class="release-entry"><div class="release-date">9 November 2026</div><h3>Older mail, within reach.</h3><ul><li>Mail older than the newest 200 messages is now reachable with Load older mail.</li><li>Messages with the same arrival time stay in a consistent order as you load more.</li></ul></article>
     <article class="release-entry"><div class="release-date">8 November 2026</div><h3>More protection for your account.</h3><ul><li>Changing your password, turning off two-factor authentication, replacing recovery codes, or deleting your account now asks for a fresh second-factor code when two-factor is enabled.</li><li>Each authenticator code can be used once. An unused recovery code also works for these account changes.</li><li>Replacing a mailbox key now requires opening the current key first. A lost mailbox passphrase cannot be bypassed with your sign-in password.</li></ul></article>
@@ -4376,16 +4541,51 @@ function showWhatsNew() {
 }
 
 function openUnsubscribeSheet(action) {
-  if (action.kind === 'web') {
-    openInfoSheet('Unsubscribe', `<p>Open the sender’s unsubscribe page at <strong>${escapeHtml(action.host)}</strong>. Follow the instructions there to finish.</p><p class="info-note">This link comes from the email. Opening it shares your IP address with that site.</p><div class="modal-actions"><a class="btn btn-primary" id="unsubscribeOpenLink" href="${escapeHtml(action.href)}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">Open unsubscribe page ${mkIcon('arrow_outward')}</a></div>`);
-    $('#unsubscribeOpenLink')?.addEventListener('click', () => $('#mailInfoClose')?.click());
-  } else {
-    openInfoSheet('Unsubscribe by email', `<p>Prepare an unsubscribe request to <strong>${escapeHtml(action.to)}</strong>. You can review it before sending.</p><div class="modal-actions"><button type="button" class="btn btn-primary" id="unsubscribeReviewBtn">Review email ${mkIcon('arrow_forward')}</button></div>`);
-    $('#unsubscribeReviewBtn')?.addEventListener('click', () => {
+  const id = action.messageId;
+  const ask = async (body, okText) => {
+    try {
+      const out = await api('/messages/unsubscribe', { method: 'POST', body: JSON.stringify(body) });
+      toast(okText, out && out.blocked ? 'The sender is blocked too, so nothing new arrives.' : undefined);
       $('#mailInfoClose')?.click();
-      openComposeModal(action.to, action.subject, action.body);
-    });
+      await loadBlocked();
+      renderMessageCards();
+    } catch (e) {
+      toast('Unsubscribe failed', e.message, 'error');
+    }
+  };
+
+  if (action.oneClick) {
+    // One click, from the server: the sender never learns the user's IP.
+    openInfoSheet('Unsubscribe', `
+      <p><strong>${escapeHtml(action.host)}</strong> offers one-click unsubscribe.</p>
+      <p>Inpriv sends the request from its own server, so the sender never sees your IP address or browser.</p>
+      <p class="info-note">Afterwards this sender is blocked too, so tomorrow's newsletter does not arrive either.</p>
+      <div class="modal-actions"><button type="button" class="btn btn-primary" id="unsubOneClick">Unsubscribe ${mkIcon('check')}</button></div>`);
+    $('#unsubOneClick')?.addEventListener('click', () => ask({ message_id: id, mode: 'one-click', url: action.href }, 'Unsubscribed'));
+    return;
   }
+
+  if (action.kind === 'email') {
+    // The relay sends it for the user: no mail client, no address leak.
+    openInfoSheet('Unsubscribe by email', `
+      <p>Inpriv sends this request for you, from its own address.</p>
+      <dl class="unsub-preview">
+        <dt>To</dt><dd>${escapeHtml(action.to)}</dd>
+        <dt>Subject</dt><dd>${escapeHtml(action.subject)}</dd>
+        <dt>Body</dt><dd>${escapeHtml(action.body)}</dd>
+      </dl>
+      <p class="info-note">Afterwards this sender is blocked too, so nothing new arrives.</p>
+      <div class="modal-actions"><button type="button" class="btn btn-primary" id="unsubMailto">Send unsubscribe ${mkIcon('send')}</button></div>`);
+    $('#unsubMailto')?.addEventListener('click', () => ask({
+      message_id: id, mode: 'mailto', mailto_to: action.to, subject: action.subject, text: action.body,
+    }, 'Unsubscribe sent'));
+    return;
+  }
+
+  // A plain web link has no server-side form: opening it is the only way, and
+  // that shares the user's IP with the sender.
+  openInfoSheet('Unsubscribe', `<p>Open the sender’s unsubscribe page at <strong>${escapeHtml(action.host)}</strong>. Follow the instructions there to finish.</p><p class="info-note">This link comes from the email. Opening it shares your IP address with that site.</p><div class="modal-actions"><a class="btn btn-primary" id="unsubscribeOpenLink" href="${escapeHtml(action.href)}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">Open unsubscribe page ${mkIcon('arrow_outward')}</a></div>`);
+  $('#unsubscribeOpenLink')?.addEventListener('click', () => $('#mailInfoClose')?.click());
 }
 
 function renderAccountScreen() {
@@ -4488,6 +4688,27 @@ function renderAccountScreen() {
       </div>
     </div>
   `;
+
+  // Blocked senders: per account, and gone with the account.
+  const blockedCard = document.createElement('div');
+  blockedCard.className = 'card glass';
+  blockedCard.style.cssText = 'max-width:600px;margin:14px auto 0';
+  const rows = (state.blocked || []).map((b) => `
+    <div class="acc-info-row" data-blocked="${escapeHtml(b.address)}">
+      <div style="min-width:0">
+        <div class="val" style="overflow-wrap:anywhere">${escapeHtml(b.address)}</div>
+        <div class="label">Blocked ${escapeHtml(new Date(b.created_at).toLocaleDateString())}</div>
+      </div>
+      <button class="copy-chip" data-unblock="${escapeHtml(b.address)}">${mkIcon('check')} <span>Unblock</span></button>
+    </div>`).join('');
+  blockedCard.innerHTML = `
+    <div class="label" style="margin-bottom:8px">Blocked senders</div>
+    ${rows || '<div class="val" style="color:var(--text-3)">Nobody is blocked. Use “Block sender” in a message to stop one.</div>'}
+  `;
+  main.appendChild(blockedCard);
+  blockedCard.querySelectorAll('[data-unblock]').forEach((btn) => {
+    btn.addEventListener('click', () => unblockSender(btn.dataset.unblock));
+  });
 
   $('#copyAddrBtn').addEventListener('click', () => {
     navigator.clipboard.writeText(state.user.email);

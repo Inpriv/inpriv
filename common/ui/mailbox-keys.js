@@ -1,16 +1,18 @@
-// Inpriv ID — mailbox key ceremony used once, right after sign-up.
+// Inpriv — the mailbox key ceremony, shared by Inpriv Mail and Inpriv ID.
 //
-// This is the same ceremony the Mail page runs when it creates a mailbox
-// (.mail/index.html: generateKeyPair / newRingKey / sealRing / derivePassphraseKey,
-// PBKDF2-SHA-256 600k, AAD "inpriv-mail-keyring-v2"). The private key is
-// generated here, sealed here and never leaves the browser: what travels is the
-// public key (SPKI) and the sealed envelope, exactly as Mail's own endpoint
-// expects.
+// One implementation, inlined into both pages by `node common/ui/sync.mjs`
+// (the pages must not drift: a key ring sealed with a different parameter is
+// unreadable). The private key is generated here, sealed here and never leaves
+// the browser: what travels is the public key (SPKI) and the sealed envelope.
 //
-// Keep the two copies identical. If the ring format changes, change both.
+// The page destructures what it needs:
+//   const { KEY_ITERS, RING_AAD, RSA, generateKeyPair, keyIdOf,
+//           derivePassphraseKey, openRing, sealRing, newRingKey } = InprivMailboxKeys;
 /* global window, crypto, TextEncoder, TextDecoder */
 (function () {
-  var KEY_ITERS = 600000;
+  'use strict';
+
+  var KEY_ITERS = 600000;                                   // PBKDF2-SHA-256
   var RING_AAD = new TextEncoder().encode('inpriv-mail-keyring-v2');
   var RSA = { name: 'RSA-OAEP', hash: 'SHA-256' };
 
@@ -58,8 +60,8 @@
     return JSON.parse(utf8.dec(pt));
   }
 
-  // Seal, then open the result again with a freshly derived key: nothing is
-  // sent unless it is known to open.
+  // Seal a ring, then open the result again with a freshly derived key: nothing
+  // is sent unless it is known to open.
   async function sealRing(ring, passphrase) {
     var salt = b64enc(crypto.getRandomValues(new Uint8Array(16)).buffer);
     var kek = await derivePassphraseKey(passphrase, salt, KEY_ITERS);
@@ -84,8 +86,8 @@
     return { entry: { id: await keyIdOf(spki), created: Date.now(), pkcs8: b64enc(pkcs8) }, spki: b64enc(spki) };
   }
 
-  // Create the mailbox on Inpriv Mail with the ticket Inpriv ID just minted.
-  // Mail answers opaquely (it has no CORS on purpose); the caller confirms
+  // Create a mailbox on Inpriv Mail with the ticket Inpriv ID minted at
+  // sign-up. Mail answers opaquely (no CORS on purpose); the caller confirms
   // through /api/mailbox/status.
   async function provision(opts) {
     var username = String(opts.username || '').toLowerCase();
@@ -107,5 +109,11 @@
     });
   }
 
-  window.InprivMailboxKeys = { provision: provision, keyIdOf: keyIdOf };
+  window.InprivMailboxKeys = {
+    KEY_ITERS: KEY_ITERS, RING_AAD: RING_AAD, RSA: RSA,
+    generateKeyPair: generateKeyPair, keyIdOf: keyIdOf,
+    derivePassphraseKey: derivePassphraseKey, openRing: openRing,
+    sealRing: sealRing, newRingKey: newRingKey, provision: provision,
+    b64enc: b64enc, b64dec: b64dec
+  };
 })();
