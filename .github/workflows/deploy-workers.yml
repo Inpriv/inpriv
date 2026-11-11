@@ -85,8 +85,11 @@ jobs:
           set -uo pipefail
           have() { # worker-dir, database, sql, needle
             local out
-            out=$(cd "$1" && npx --yes wrangler@4.83.0 d1 execute "$2" --remote --json --command "$3" 2>/dev/null)
+            # `|| true`: the runner's `bash -e` would otherwise abort here and
+            # hide which column was missing
+            out=$(cd "$1" && npx --yes wrangler@4.83.0 d1 execute "$2" --remote --json --command "$3" 2>&1) || true
             if ! printf '%s' "$out" | grep -q "$4"; then
+              printf '%s\n' "$out" | tail -5
               echo "::error::missing $4 in $2 — apply the migration before deploying"
               exit 1
             fi
