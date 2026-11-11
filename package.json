@@ -10,7 +10,7 @@
     "test:integration": "node --test --test-concurrency=1 tests/api.test.mjs tests/hardening.test.mjs tests/privacy.test.mjs tests/inbound.test.mjs tests/notice.test.mjs"
   },
   "devDependencies": {
-    "eslint": "9.39.5",
+    "eslint": "10.14.0",
     "wrangler": "4.83.0"
   }
 }
