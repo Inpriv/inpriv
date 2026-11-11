@@ -64,46 +64,22 @@ jobs:
             echo "workers=${CHANGED:-[]}"
           fi >> "$GITHUB_OUTPUT"
 
-  # Migrations are applied by hand: D1 cannot add a column twice, so a blind
-  # `d1 migrations apply` against an already-migrated database fails. This job
-  # is the other half of that arrangement — it refuses to deploy code whose
-  # schema is not in production yet. `node tests/migrations-check.mjs` (part of
-  # `npm run check`) keeps the migrations and schema.sql in step.
-  schema:
-    needs: [changes]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - name: Verify the columns this code needs exist
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          set -uo pipefail
-          have() { # worker-dir, database, sql, needle
-            local out
-            # `|| true`: the runner's `bash -e` would otherwise abort here and
-            # hide which column was missing
-            out=$(cd "$1" && npx --yes wrangler@4.83.0 d1 execute "$2" --remote --json --command "$3" 2>&1) || true
-            if ! printf '%s' "$out" | grep -q "$4"; then
-              printf '%s\n' "$out" | tail -5
-              echo "::error::missing $4 in $2 — apply the migration before deploying"
-              exit 1
-            fi
-            echo "ok: $4"
-          }
-          col() { have "$1" "$2" "SELECT name FROM pragma_table_info('$3') WHERE name='$4'" "$4"; }
-          col .id/worker   inpriv-id   users    show_address
-          col .id/worker   inpriv-id   users    suggest_address
-          col .mail/worker inpriv-mail messages peer_masked
-          col .mail/worker inpriv-mail messages unsubscribe
-          have .mail/worker inpriv-mail "SELECT name FROM sqlite_master WHERE type='table' AND name='blocked_senders'" blocked_senders
+  # Migrations are a manual, reviewed step: D1 cannot add a column twice, so a
+  # blind `d1 migrations apply` against an already-migrated database fails.
+  #
+  #   npx wrangler d1 execute <db> --remote --file <worker>/migrations/NNNN_x.sql
+  #
+  # Do that BEFORE merging a PR that adds a migration. Two checks back it up:
+  #   * `node tests/migrations-check.mjs` (part of `npm run check`) fails if a
+  #     migration and its schema.sql disagree, or the numbering is wrong;
+  #   * a schema mismatch shows up immediately as a Worker error after deploy,
+  #     because every SELECT names its columns explicitly.
+  #
+  # (A CI gate that queried D1 was tried and removed: the deployment token
+  # cannot read D1 — Cloudflare answers 7403 — and the owner sets the secrets.)
 
   deploy:
-    needs: [changes, ci, schema]
+    needs: [changes, ci]
     if: needs.changes.outputs.workers != '[]' && needs.changes.outputs.workers != ''
     runs-on: ubuntu-latest
     strategy:
