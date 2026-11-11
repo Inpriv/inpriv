@@ -18,6 +18,8 @@ const WEB = 'https://lists.example/unsubscribe?token=fixture%2Bonly&list=weekly'
 const MAIL = 'mailto:leave@lists.example?subject=Leave%20weekly&body=Please%20remove%20me.%0AReference%3A%20fixture';
 let browser, server, page, origin, user, messages = [];
 const requests = [], errors = [];
+let resolveStates = {};      // name -> state the fake resolver returns
+let resolveFails = false;
 const shots = process.env.SHOTS;
 if (shots) mkdirSync(shots, { recursive: true });
 
@@ -80,10 +82,24 @@ before(async () => {
         { text: 'Sent copy', list_unsubscribe: `<${WEB}>` },
         { text: 'Invalid actions', html: '<a href="javascript:alert(1)">Unsubscribe</a>', list_unsubscribe: '<http://127.0.0.1/unsubscribe>, <mailto:leave@lists.example?bcc=hidden@lists.example>' },
       ];
+      const peers = [
+        { peer: 'alpha@inpriv.xyz', label: 'alpha' },
+        { peer: 'beta@inpriv.xyz', label: 'beta' },
+      ];
       const pub = await importPub(d.public_key);
       messages = await Promise.all(fixtures.map(async (payload, i) => ({ id: i + 1, direction: i === 5 ? 'outbound' : 'inbound', peer_address: 'news@lists.example', peer_label: 'Example newsletter', subject: 'Weekly update ' + (i + 1), is_read: 0, created_at: Date.now(), key_id: d.key_id, ...await seal(pub, JSON.stringify({ v: 1, ...payload })) })));
+      const extra = await Promise.all(peers.map(async (p, i) => ({ id: 100 + i, direction: 'inbound', peer_address: p.peer, peer_label: p.label, peer_masked: 0, subject: 'hello ' + p.label, is_read: 1, created_at: Date.now(), key_id: d.key_id, ...await seal(pub, JSON.stringify({ v: 1, text: 'hi' })) })));
+      messages = [...messages, ...extra];
       data = { user };
     } else if (req.url === '/api/v1/messages') data = { items: messages };
+    else if (req.url === '/api/v1/recipients/resolve') {
+      let body = ''; for await (const chunk of req) body += chunk;
+      if (resolveFails) { status = 500; data = { error: 'fixture: resolver down' }; }
+      else {
+        const names = (JSON.parse(body).names) || [];
+        data = { states: Object.fromEntries(names.map(n => [n, resolveStates[n] || 'never'])) };
+      }
+    } else if (req.url === '/api/v1/blocked') data = { blocked: [] };
     else if (/^\/api\/v1\/messages\/\d+$/.test(req.url)) data = messages.find(m => m.id === Number(req.url.split('/').at(-1)));
     res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(data));
   });

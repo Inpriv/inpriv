@@ -374,7 +374,11 @@ export default {
           await env.DB.batch([
             claimStatement(env.DB, username, "id"),
             env.DB.prepare(
-              "INSERT INTO users (id, username, email, pending_recovery_email, nick, pass_hash, pass_salt, pass_iters, created_at) VALUES (?,?,?,?,?,?,?,?,?)"
+              // show_address is set explicitly: SQLite can't change a column
+              // default on an existing database, so a fresh sign-up must not
+              // depend on the stored default. New accounts show their address
+              // to the people they write to, and are never suggested.
+              "INSERT INTO users (id, username, email, pending_recovery_email, nick, pass_hash, pass_salt, pass_iters, created_at, show_address) VALUES (?,?,?,?,?,?,?,?,?,1)"
             ).bind(uid, username, inprivEmail, recoveryEmail, nick || username, ph, salt, PASS_ITERS, now()),
           ]);
         } catch (e) {

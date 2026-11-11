@@ -1247,7 +1247,9 @@ async function api(request, env, ctx, url, path) {
     // Same resolver as the webhook and the send path, so a suggested name is a
     // name that can actually receive. Up to 8 names, one query per table.
     if (path === "/api/v1/recipients/resolve" && request.method === "POST") {
-      if (!(await rateLimit(env.DB, `rr:${me.id}`, 30, 300_000))) {
+      // The composer asks once per pause and caches each name, so this only
+      // needs to absorb a fast typist, not a script.
+      if (!(await rateLimit(env.DB, `rr:${me.id}`, 60, 300_000))) {
         return bad("too many lookups — wait a few minutes", 429);
       }
       const names = Array.isArray(body.names) ? body.names.slice(0, 8) : [];
