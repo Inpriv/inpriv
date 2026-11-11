@@ -64,8 +64,43 @@ jobs:
             echo "workers=${CHANGED:-[]}"
           fi >> "$GITHUB_OUTPUT"
 
+  # Migrations are applied by hand: D1 cannot add a column twice, so a blind
+  # `d1 migrations apply` against an already-migrated database fails. This job
+  # is the other half of that arrangement — it refuses to deploy code whose
+  # schema is not in production yet. `node tests/migrations-check.mjs` (part of
+  # `npm run check`) keeps the migrations and schema.sql in step.
+  schema:
+    needs: [changes]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify the columns this code needs exist
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -uo pipefail
+          have() { # worker-dir, database, sql, needle
+            local out
+            out=$(cd "$1" && npx --yes wrangler@4.83.0 d1 execute "$2" --remote --json --command "$3" 2>/dev/null)
+            if ! printf '%s' "$out" | grep -q "$4"; then
+              echo "::error::missing $4 in $2 — apply the migration before deploying"
+              exit 1
+            fi
+            echo "ok: $4"
+          }
+          col() { have "$1" "$2" "SELECT name FROM pragma_table_info('$3') WHERE name='$4'" "$4"; }
+          col .id/worker   inpriv-id   users    show_address
+          col .id/worker   inpriv-id   users    suggest_address
+          col .mail/worker inpriv-mail messages peer_masked
+          col .mail/worker inpriv-mail messages unsubscribe
+          have .mail/worker inpriv-mail "SELECT name FROM sqlite_master WHERE type='table' AND name='blocked_senders'" blocked_senders
+
   deploy:
-    needs: [changes, ci]
+    needs: [changes, ci, schema]
     if: needs.changes.outputs.workers != '[]' && needs.changes.outputs.workers != ''
     runs-on: ubuntu-latest
     strategy:

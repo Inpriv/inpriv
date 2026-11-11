@@ -30,3 +30,36 @@ export function unsubscribeUrlProblem(raw) {
   if (host === "inpriv.xyz" || host.endsWith(".inpriv.xyz")) return "our own host";
   return null;
 }
+
+// The one unsubscribe target this message offers, parsed from the raw header at
+// delivery time (before the body is encrypted). The endpoint later acts on this
+// stored copy and ignores whatever the client sends, so a page cannot make the
+// Worker fetch or mail an arbitrary destination.
+//
+// Shape: { kind: "web", href, oneClick } or { kind: "mailto", to, subject, body }
+export function parseUnsubscribeTarget(header, postHeader) {
+  if (typeof header !== "string" || !header || header.length > 8192) return null;
+  const oneClick = /one-click/i.test(String(postHeader || ""));
+  const parts = [...header.matchAll(/<([^<>]+)>/g)].map((m) => m[1].replace(/[\r\n\t ]/g, ""));
+
+  for (const raw of parts) {
+    if (!/^https:/i.test(raw)) continue;
+    if (unsubscribeUrlProblem(raw)) continue;      // never store a target we may not fetch
+    return { kind: "web", href: raw, oneClick };
+  }
+  for (const raw of parts) {
+    if (!/^mailto:/i.test(raw)) continue;
+    try {
+      const u = new URL(raw);
+      const to = decodeURIComponent(u.pathname).toLowerCase().trim();
+      if (!/^[^@\s<>,;]+@[^@\s<>,;]+\.[^@\s<>,;]+$/.test(to) || to.length > 320) continue;
+      return {
+        kind: "mailto",
+        to,
+        subject: String(u.searchParams.get("subject") || "unsubscribe").slice(0, 200),
+        body: String(u.searchParams.get("body") || "unsubscribe").slice(0, 2000),
+      };
+    } catch { /* not a usable mailto */ }
+  }
+  return null;
+}

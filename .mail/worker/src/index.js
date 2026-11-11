@@ -18,7 +18,7 @@ import { clientNet, originAllowed, isUnsafeMethod, pageResponse, apiHeaders, uaF
 import { TEAM_MAILBOXES, normalizeLocal, tryClaim, claimOwner, claimMany, ensureClaims } from "../../../common/addresses.js";
 import { sanitizeEmailHtml } from "../../../common/email-html.js";
 import { listUnsubscribeHeader, listUnsubscribePostHeader } from "./list-unsubscribe.js";
-import { unsubscribeUrlProblem } from "./unsubscribe-guard.js";
+import { unsubscribeUrlProblem, parseUnsubscribeTarget } from "./unsubscribe-guard.js";
 import { WorkerEntrypoint } from "cloudflare:workers";
 
 export { TEAM_MAILBOXES };
@@ -365,6 +365,46 @@ async function resolveDeliveries(env, names) {
   }
 }
 
+// One-click unsubscribe, server-side. A redirect is not success: follow exactly
+// one hop, and only to a URL the guard still accepts. If it still redirects (or
+// the Location is unusable) the browser has to finish it.
+async function deliverOneClick(href) {
+  const post = async (url) => {
+    try {
+      return await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded", "User-Agent": "Inpriv-Unsubscribe/1" },
+        body: "List-Unsubscribe=One-Click",
+        redirect: "manual",
+      });
+    } catch { return null; }
+  };
+
+  let res = await post(href);
+  if (!res) return { error: "the sender's unsubscribe endpoint could not be reached", status: 502 };
+
+  if (res.status >= 300 && res.status < 400) {
+    let next = null;
+    try { next = new URL(res.headers.get("Location") || "", href).href; } catch { next = null; }
+    if (!next || unsubscribeUrlProblem(next)) return { browser: href };
+    res = await post(next);
+    if (!res) return { error: "the sender's unsubscribe endpoint could not be reached", status: 502 };
+    if (res.status >= 300 && res.status < 400) return { browser: href };
+  }
+
+  // read a little, never the whole thing, and never log it
+  try {
+    const buf = await res.arrayBuffer();
+    if (buf.byteLength > 65536) console.error("unsubscribe: oversized response ignored");
+  } catch { /* body is not needed */ }
+
+  if (res.status >= 400) {
+    return { error: `the sender's unsubscribe endpoint refused the request (${res.status})`, status: 502 };
+  }
+  console.log("unsubscribe: one-click ok on", new URL(href).host);
+  return { ok: true };
+}
+
 // Send the unsubscribe request a mailto: link asks for, through the relay, so
 // the user's own address and browser never touch the sender.
 async function sendUnsubscribeMail(env, to, subject, text) {
@@ -525,6 +565,9 @@ async function handleInbound(request, env) {
   const payload = { v: 1, text: plaintext };
   if (listUnsubscribe) payload.list_unsubscribe = listUnsubscribe;
   if (listUnsubscribePost) payload.list_unsubscribe_post = listUnsubscribePost;
+  // The one target the endpoint may ever act on. Parsed here, from the raw
+  // header, and stored server-side; the client's copy is only for the review UI.
+  const unsubscribeTarget = parseUnsubscribeTarget(listUnsubscribe, listUnsubscribePost);
   if (rawHtml) {
     try {
       const safe = await sanitizeEmailHtml(rawHtml);
@@ -565,13 +608,14 @@ async function handleInbound(request, env) {
     await env.DB.batch([
       env.DB.prepare(
         `INSERT INTO messages (owner_id, direction, peer_address, peer_label, subject,
-                               encrypted_aes_key, iv, ciphertext, auth_tag, created_at, is_read, key_id)
-         VALUES (?,?,?,?,?,?,?,?,?,?,0,?)`
+                               encrypted_aes_key, iv, ciphertext, auth_tag, created_at, is_read, key_id, unsubscribe)
+         VALUES (?,?,?,?,?,?,?,?,?,?,0,?,?)`
       ).bind(
         target.id, "inbound", fromAddr, label,
         String(d.subject || "(no subject)").slice(0, 500),
         envelope.encrypted_aes_key, envelope.iv, envelope.ciphertext, envelope.auth_tag,
-        now(), await keyIdOf(env, target)
+        now(), await keyIdOf(env, target),
+        unsubscribeTarget ? JSON.stringify(unsubscribeTarget) : null
       ),
       env.DB.prepare("INSERT INTO rl_counters (k, bucket, c, exp) VALUES (?, 0, 1, ?) ON CONFLICT(k, bucket) DO NOTHING")
         .bind(`svix:${svixId}`, now() + 2 * 86_400_000),
@@ -1266,56 +1310,53 @@ async function api(request, env, ctx, url, path) {
       }
       const mid = Number(body.message_id);
       const msg = Number.isInteger(mid)
-        ? await env.DB.prepare("SELECT id, peer_address FROM messages WHERE id = ? AND owner_id = ?").bind(mid, me.id).first()
+        ? await env.DB.prepare("SELECT id, peer_address, unsubscribe FROM messages WHERE id = ? AND owner_id = ?").bind(mid, me.id).first()
         : null;
       if (!msg) return bad("message not found", 404);
-      const sender = String(msg.peer_address || "").toLowerCase();
-      const mode = String(body.mode || "");
-      const block = body.block !== false;
 
-      if (mode === "one-click") {
-        const problem = unsubscribeUrlProblem(body.url);
-        if (problem) return bad("that unsubscribe link can't be used: " + problem, 400);
-        let r;
-        try {
-          r = await fetch(String(body.url), {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded", "User-Agent": "Inpriv-Unsubscribe/1" },
-            body: "List-Unsubscribe=One-Click",
-            redirect: "manual",
-          });
-        } catch {
-          return bad("the sender's unsubscribe endpoint could not be reached", 502);
-        }
-        // read a little, never the whole thing, and never log it
-        try {
-          const buf = await r.arrayBuffer();
-          if (buf.byteLength > 65536) console.error("unsubscribe: oversized response ignored");
-        } catch { /* body is not needed */ }
-        if (r.status >= 400) {
-          return bad(`the sender's unsubscribe endpoint refused the request (${r.status})`, 502);
-        }
-        console.log("unsubscribe: one-click ok on", new URL(String(body.url)).host);
-      } else if (mode === "mailto") {
-        const to = String(body.mailto_to || "").toLowerCase().trim().slice(0, 320);
-        if (!/^[^@\s<>,;]+@[^@\s<>,;]+\.[^@\s<>,;]+$/.test(to)) return bad("invalid unsubscribe address", 400);
-        const subject = String(body.subject || "unsubscribe").slice(0, 200);
-        const text = String(body.text || "unsubscribe").slice(0, 2000);
-        const sent = await sendUnsubscribeMail(env, to, subject, text);
-        if (!sent.ok) return bad(sent.error, sent.status);
-        console.log("unsubscribe: mailto sent through the relay");
-      } else {
-        return bad("unknown unsubscribe mode", 400);
+      let target = null;
+      try { target = msg.unsubscribe ? JSON.parse(msg.unsubscribe) : null; } catch { target = null; }
+      if (!target || !target.kind) return bad("this message has no unsubscribe link", 400);
+
+      // The client's copy is for the review UI only. If it disagrees with what
+      // was stored at delivery, refuse: acting on this message must never turn
+      // into proxying an arbitrary URL or mailing an arbitrary address.
+      if (typeof body.url === "string" && body.url && body.url !== target.href) {
+        return bad("that unsubscribe link doesn't belong to this message", 400);
+      }
+      if (typeof body.mailto_to === "string" && body.mailto_to &&
+          body.mailto_to.toLowerCase().trim() !== String(target.to || "").toLowerCase()) {
+        return bad("that unsubscribe address doesn't belong to this message", 400);
       }
 
-      let blocked = false;
-      if (block && sender) {
+      const block = body.block !== false;
+      const blockSender = async () => {
+        const sender = String(msg.peer_address || "").toLowerCase();
+        if (!block || !sender) return false;
         await env.DB.prepare(
           "INSERT INTO blocked_senders (user_id, address, created_at) VALUES (?,?,?) ON CONFLICT(user_id, address) DO NOTHING"
         ).bind(me.id, sender, now()).run();
-        blocked = true;
+        return true;
+      };
+
+      if (target.kind === "mailto") {
+        const sent = await sendUnsubscribeMail(env, target.to, String(target.subject || "unsubscribe").slice(0, 200),
+          String(target.body || "unsubscribe").slice(0, 2000));
+        if (!sent.ok) return bad(sent.error, sent.status);
+        console.log("unsubscribe: mailto sent through the relay");
+        const blocked = await blockSender();
+        ctx.waitUntil(logAccess(env.ID_DB, request, "mail", "unsubscribe", me.username));
+        return json({ ok: true, blocked });
       }
+
+      // A plain web link has no server-side form: the browser has to finish it.
+      if (!target.oneClick) return json({ ok: false, browser: true, href: target.href }, 200);
+
+      const res = await deliverOneClick(target.href);
+      if (res.error) return bad(res.error, res.status || 502);
+      const blocked = await blockSender();
       ctx.waitUntil(logAccess(env.ID_DB, request, "mail", "unsubscribe", me.username));
+      if (res.browser) return json({ ok: false, browser: true, href: res.browser, blocked }, 200);
       return json({ ok: true, blocked });
     }
 
@@ -1359,7 +1400,11 @@ async function api(request, env, ctx, url, path) {
         if (![at, id].every(Number.isSafeInteger)) return bad("invalid cursor", 400);
       }
       const rows = await env.DB.prepare(
-        `SELECT id, direction, peer_address, peer_label, peer_masked, subject, is_read, created_at
+        // A masked sender's address is never serialised: the client hides it,
+        // but the JSON would still carry it. NULL is the only honest answer.
+        `SELECT id, direction,
+                CASE WHEN peer_masked = 1 THEN NULL ELSE peer_address END AS peer_address,
+                peer_label, peer_masked, subject, is_read, created_at
          FROM messages WHERE owner_id = ? ${cursor ? "AND (created_at, id) < (?, ?)" : ""}
          ORDER BY created_at DESC, id DESC LIMIT 201`
       ).bind(...(cursor ? [me.id, at, id] : [me.id])).all();
@@ -1371,7 +1416,9 @@ async function api(request, env, ctx, url, path) {
     // ── Get Single Message Envelope (Marks Read) ──────────────────────────
     if ((m = path.match(/^\/api\/v1\/messages\/(\d+)$/)) && request.method === "GET") {
       const msg = await env.DB.prepare(
-        `SELECT id, direction, peer_address, peer_label, peer_masked, subject, encrypted_aes_key,
+        `SELECT id, direction,
+                CASE WHEN peer_masked = 1 THEN NULL ELSE peer_address END AS peer_address,
+                peer_label, peer_masked, subject, encrypted_aes_key,
                 iv, ciphertext, auth_tag, is_read, created_at, key_id
          FROM messages WHERE id = ? AND owner_id = ?`
       ).bind(Number(m[1]), me.id).first();

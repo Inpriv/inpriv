@@ -215,3 +215,39 @@ test('the local status Worker serves its API using local storage', async () => {
   const status = await fetch('http://127.0.0.1:8793/api/status');
   assert.equal(status.status, 200);
 });
+
+// The admin switch gates external sending. This is the switch that is on in
+// production and that has to be flippable in an incident, so both directions
+// are asserted here as well as in gate.test.mjs (which tests project() itself).
+test('external sending needs a confirmed recovery email only when the policy requires it', async () => {
+  const m = await L.newMailbox('external' + L.rand(), PW, 'external test passphrase');
+  const send = () => m.mail.post('/api/v1/messages/send', {
+    mode: 'external', to: 'recipient@example.test', sender_key_id: m.key.id,
+  });
+  const setPolicy = (allow) => L.db('id').prepare(
+    "UPDATE admin_kv SET v = json_set(v, '$.settings.allowExternalWithoutRecovery', json(?)) WHERE k='state'"
+  ).run(allow ? 'true' : 'false');
+  const published = async (allow) => {
+    const d = await (await fetch(URLS.admin + '/public/state')).json();
+    return !!(d.settings && d.settings.allowExternalWithoutRecovery === allow);
+  };
+
+  // default: allowed. The local relay is not configured, so the answer is 503 —
+  // what matters is that the recovery gate is not the thing refusing it.
+  assert.notEqual((await send()).status, 403);
+
+  setPolicy(false);
+  for (let i = 0; i < 60 && !(await published(false)); i++) await L.sleep(500);
+  let r = null;
+  for (let i = 0; i < 3; i++) {
+    r = await send();
+    if (r.status === 403) break;
+    await L.sleep(3000);
+  }
+  assert.equal(r.status, 403);
+  assert.match(r.body.error, /confirm your recovery email/i);
+
+  // leave the local stack at the code default
+  setPolicy(true);
+  for (let i = 0; i < 60 && !(await published(true)); i++) await L.sleep(500);
+});
