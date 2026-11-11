@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS messages (
   auth_tag          TEXT NOT NULL,
   key_id            TEXT,                        -- key the envelope was made for (hint)
   peer_masked       INTEGER NOT NULL DEFAULT 0,   -- sender asked not to be named
+  unsubscribe       TEXT,                        -- parsed List-Unsubscribe target (server-side)
   is_read           INTEGER NOT NULL DEFAULT 0,
   created_at        INTEGER NOT NULL
 );

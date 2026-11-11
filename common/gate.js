@@ -45,7 +45,7 @@ export async function maintenanceGate(serviceId, env = {}) {
   return project(st, serviceId);
 }
 
-function project(st, serviceId) {
+export function project(st, serviceId) {
   const svc = (st.services && st.services[serviceId]) || { locked: false, message: "" };
   const locked = !!(st.global && st.global.locked) || !!svc.locked;
   const message =

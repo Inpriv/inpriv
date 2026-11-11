@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  Client, URLS, rand, newMailbox, registerId, importPub, seal, svixHeaders,
+  Client, URLS, rand, newMailbox, registerId, importPub, seal, svixHeaders, db,
 } from "./lib.mjs";
 import { unsubscribeUrlProblem } from "../.mail/worker/src/unsubscribe-guard.js";
 
@@ -48,8 +48,9 @@ test("a new account shows its address to recipients, and hides it when asked", a
   const second = await inbox(b, "second");
   assert.equal(second.peer_label, MASKED);
   assert.equal(second.peer_masked, 1);
-  // routing still works: the address is kept, it is just not shown
-  assert.equal(second.peer_address, `${a.username}@inpriv.xyz`);
+  // the address is not even serialised: the column keeps it for routing, the
+  // API returns null
+  assert.equal(second.peer_address, null);
 });
 
 test("a blocked sender is refused on send, dropped on arrival, and restored on unblock", async () => {
@@ -112,17 +113,17 @@ test("the unsubscribe guard refuses anything a sender could use to reach inside"
   assert.ok(unsubscribeUrlProblem("not a url"));
 });
 
-test("the unsubscribe endpoint refuses a link the guard rejects", async () => {
+test("a message with no usable unsubscribe target cannot be unsubscribed", async () => {
   const b = await newMailbox("unsub" + rand(), PW, "passphrase-b-123");
   const a = await newMailbox("unsubs" + rand(), PW, "passphrase-a-123");
   await send(a, b, "news");
   const msg = await inbox(b, "news");
+  // the worker stored no target (the header was absent or unusable)
   const r = await b.mail.post("/api/v1/messages/unsubscribe", {
     message_id: msg.id, mode: "one-click", url: "http://127.0.0.1:8799/api/v1/health",
   });
   assert.equal(r.status, 400);
-  assert.match(r.body.error, /can't be used/);
-  // nothing was blocked by a failed attempt
+  assert.match(r.body.error, /no unsubscribe link/);
   assert.equal((await b.mail.get("/api/v1/blocked")).body.blocked.length, 0);
 });
 
@@ -174,4 +175,56 @@ test("an address is suggested only when both switches are on", async () => {
   assert.equal((await idc.post("/api/privacy", { show_address: false })).status, 200);
   r = await asker.mail.post("/api/v1/recipients/resolve", { names: [visible.username] });
   assert.equal(r.body.states[visible.username], "never");
+});
+
+test("a masked message never carries the sender's address in the API", async () => {
+  const a = await newMailbox("hide" + rand(), PW, "passphrase-a-123");
+  const b = await newMailbox("see" + rand(), PW, "passphrase-b-123");
+
+  // a hides the address, then writes
+  const idc = new Client(URLS.id);
+  assert.equal((await idc.post("/api/login", { username: a.username, password: PW })).status, 200);
+  assert.equal((await idc.post("/api/privacy", { show_address: false })).status, 200);
+  assert.equal((await send(a, b, "hidden-one")).status, 200);
+  assert.equal((await send(a, b, "visible-none")).status, 200);
+
+  const address = `${a.username}@inpriv.xyz`;
+  const list = await b.mail.get("/api/v1/messages");
+  const masked = list.body.items.find((m) => m.subject === "hidden-one");
+  assert.ok(masked, "delivered");
+  assert.equal(masked.peer_masked, 1);
+  assert.equal(masked.peer_address, null, "the list must not serialise a masked address");
+  assert.equal(JSON.stringify(list.body).includes(address), false, "nor anywhere else in the list body");
+
+  const one = await b.mail.get(`/api/v1/messages/${masked.id}`);
+  assert.equal(one.status, 200);
+  assert.equal(one.body.peer_address, null, "nor the single message");
+  assert.equal(JSON.stringify(one.body).includes(address), false, "nor anywhere in the single body");
+});
+
+test("the unsubscribe endpoint acts only on the target stored with the message", async () => {
+  const a = await newMailbox("unsubA" + rand(), PW, "passphrase-a-123");
+  const b = await newMailbox("unsubB" + rand(), PW, "passphrase-b-123");
+  assert.equal((await send(a, b, "news-two")).status, 200);
+  const msg = await inbox(b, "news-two");
+
+  // what the worker stores at delivery, from the raw List-Unsubscribe header
+  db("mail").prepare("UPDATE messages SET unsubscribe = ? WHERE id = ?").run(
+    JSON.stringify({ kind: "web", href: "https://lists.example.com/u?t=1", oneClick: true }), msg.id);
+
+  // a URL that is not the stored one is refused, and nothing is fetched
+  let r = await b.mail.post("/api/v1/messages/unsubscribe", {
+    message_id: msg.id, mode: "one-click", url: "https://evil.example.com/u",
+  });
+  assert.equal(r.status, 400);
+  assert.match(r.body.error, /doesn't belong/);
+
+  // a mailto target cannot be smuggled in either
+  r = await b.mail.post("/api/v1/messages/unsubscribe", {
+    message_id: msg.id, mode: "mailto", mailto_to: "attacker@evil.example.com",
+  });
+  assert.equal(r.status, 400);
+
+  // nothing was blocked by a refused attempt
+  assert.equal((await b.mail.get("/api/v1/blocked")).body.blocked.length, 0);
 });
