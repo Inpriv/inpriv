@@ -3581,7 +3581,8 @@ function renderBottomNav() {
     });
   });
 
-  $('#mobileComposeBtn')?.addEventListener('click', openComposeModal);
+  // () => ...: the click Event must not arrive as prefillTo
+  $('#mobileComposeBtn')?.addEventListener('click', () => openComposeModal());
 }
 
 function renderFab() {
@@ -3592,7 +3593,7 @@ function renderFab() {
       ${mkIcon('edit')} <span>Compose</span>
     </button>
   `;
-  $('#desktopFab')?.addEventListener('click', openComposeModal);
+  $('#desktopFab')?.addEventListener('click', () => openComposeModal());
 }
 
 function switchTab(tab) {
@@ -4167,6 +4168,27 @@ const peerName = (m) => (isMasked(m) ? MASKED_LABEL : (m.peer_label || m.peer_ad
 const peerAddress = (m) => (isMasked(m) ? '' : (m.peer_address || ''));
 const blockedSet = () => new Set((state.blocked || []).map((b) => String(b.address || '').toLowerCase()));
 
+// Which of these names may be offered? Only the server can say, so the answer
+// is cached per name for this page. A failure is never cached: the next
+// keystroke asks again, and until then nothing is suggested.
+const _resolveCache = new Map();
+async function resolveNames(names) {
+  const out = {};
+  const missing = [];
+  for (const n of names) {
+    if (_resolveCache.has(n)) out[n] = _resolveCache.get(n);
+    else missing.push(n);
+  }
+  if (!missing.length) return out;
+  const r = await api('/recipients/resolve', { method: 'POST', body: JSON.stringify({ names: missing }) });
+  const states = (r && r.states) || {};
+  for (const [n, st] of Object.entries(states)) {
+    out[n] = st;
+    if (st !== 'lookup_error') _resolveCache.set(n, st);
+  }
+  return out;
+}
+
 function openComposeModal(prefillTo = '', prefillSubject = '', prefillBody = '') {
   const container = $('#modalContainer');
   if (!container) return;
@@ -4314,18 +4336,23 @@ function openComposeModal(prefillTo = '', prefillSubject = '', prefillBody = '')
       try {
         const users = contactSuggestions(q);
         if (users.length === 0) { sugg.classList.add('hidden'); return; }
-        // Ask the server which of these can actually receive mail. It is the
-        // same resolver the send path uses, so a suggested name is a name that
-        // can be written to — and the ones that can't say why.
-        let states = {};
+        // Only the server can say whether a name may be offered. `never` is its
+        // answer both for an address whose owner turned suggestion off and for
+        // a name that does not exist, and it is never rendered.
+        let states;
         try {
-          const r = await api('/recipients/resolve', { method: 'POST', body: JSON.stringify({ names: users }) });
-          states = (r && r.states) || {};
-        } catch (_) { /* offline or rate-limited: show the names unmarked */ }
+          states = await resolveNames(users);
+        } catch (_) {
+          // The privacy promise must not depend on the resolver being up.
+          sugg.classList.add('hidden');
+          return;
+        }
+        const shown = users.filter((u) => states[u] && states[u] !== 'never');
+        if (shown.length === 0) { sugg.classList.add('hidden'); return; }
         const note = (st) => st === 'id_no_mailbox' ? ' · hasn’t set up Mail'
           : st === 'mailbox_no_key' ? ' · can’t receive right now'
           : st === 'lookup_error' ? ' · couldn’t check' : '';
-        sugg.innerHTML = users.map(u => {
+        sugg.innerHTML = shown.map(u => {
           const n = note(states[u]);
           return `
             <div class="autocomplete-item${n ? ' muted' : ''}" data-u="${escapeHtml(u)}">
@@ -4344,7 +4371,7 @@ function openComposeModal(prefillTo = '', prefillSubject = '', prefillBody = '')
       } catch (_) {
         sugg.classList.add('hidden');
       }
-    }, 250);
+    }, 500); // one resolver call per pause, not per keystroke
   });
 
   // Send action
@@ -4537,7 +4564,8 @@ async function installMailApp() {
 
 function showWhatsNew() {
   openInfoSheet("What's new", `
-    <article class="release-entry"><div class="release-date">11 November 2026 <span class="release-tag">Latest</span></div><h3>Say less. Stop the noise.</h3><ul><li>People you write to now see “Anonymous Inpriv user” unless you turn on <em>Show my address to people I write to</em> in Inpriv ID.</li><li>Every message shows the sender's full address, in the list and in the message.</li><li><strong>Block a sender</strong> in one click. Their mail stops arriving, and the list is in Account.</li><li>Unsubscribe now goes out from Inpriv's server, so the sender never sees your IP address. After it succeeds the sender is blocked too, so tomorrow's newsletter doesn't arrive either.</li></ul></article>
+    <article class="release-entry"><div class="release-date">11 November 2026 <span class="release-tag">Latest</span></div><h3>Say less. Stop the noise.</h3><ul><li>People you write to see your address by default; <em>Show my address</em> in Inpriv ID hides it again.</li>
+<li>The composer never offers an address whose owner turned suggestion off — and typing their exact username still works.</li><li>Every message shows the sender's full address, in the list and in the message.</li><li><strong>Block a sender</strong> in one click. Their mail stops arriving, and the list is in Account.</li><li>Unsubscribe now goes out from Inpriv's server, so the sender never sees your IP address. After it succeeds the sender is blocked too, so tomorrow's newsletter doesn't arrive either.</li></ul></article>
     <article class="release-entry"><div class="release-date">11 November 2026 <span class="release-tag">Latest</span></div><h3>Mail that arrives, and an address that works from day one.</h3><ul><li>Mail sent to an Inpriv address that exists but has no mailbox yet is now retried instead of silently dropped, so it arrives once the mailbox is ready.</li><li>Creating an account now also creates your mailbox, with the keys made in your browser.</li><li>Writing to another Inpriv user says plainly when their mailbox isn't set up yet, and the suggestion list marks addresses that can't receive.</li><li>Read receipts for encryption: every message shows the key it was encrypted to, and a test proves the stored copy is unreadable without your passphrase.</li></ul></article>
     <article class="release-entry"><div class="release-date">9 November 2026</div><h3>Older mail, within reach.</h3><ul><li>Mail older than the newest 200 messages is now reachable with Load older mail.</li><li>Messages with the same arrival time stay in a consistent order as you load more.</li></ul></article>
     <article class="release-entry"><div class="release-date">8 November 2026</div><h3>More protection for your account.</h3><ul><li>Changing your password, turning off two-factor authentication, replacing recovery codes, or deleting your account now asks for a fresh second-factor code when two-factor is enabled.</li><li>Each authenticator code can be used once. An unused recovery code also works for these account changes.</li><li>Replacing a mailbox key now requires opening the current key first. A lost mailbox passphrase cannot be bypassed with your sign-in password.</li></ul></article>

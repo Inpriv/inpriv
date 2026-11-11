@@ -27,27 +27,28 @@ async function inbox(b, subject) {
   return items.find((m) => m.subject === subject);
 }
 
-test("a new account is anonymous to the people it writes to, until it says otherwise", async () => {
-  const a = await newMailbox("anon" + rand(), PW, "passphrase-a-123");
+test("a new account shows its address to recipients, and hides it when asked", async () => {
+  const a = await newMailbox("shown" + rand(), PW, "passphrase-a-123");
   const b = await newMailbox("rcpt" + rand(), PW, "passphrase-b-123");
 
+  // default: the recipient sees the sender's username
   assert.equal((await send(a, b, "first")).status, 200);
   const first = await inbox(b, "first");
   assert.ok(first, "delivered");
-  assert.equal(first.peer_label, MASKED);
-  assert.equal(first.peer_masked, 1);
-  // routing still works: the address is kept, it is just not shown
+  assert.equal(first.peer_label, a.username);
+  assert.equal(first.peer_masked, 0);
   assert.equal(first.peer_address, `${a.username}@inpriv.xyz`);
 
-  // the owner turns "Show my address" on, on Inpriv ID
+  // the owner hides it, on Inpriv ID
   const idc = new Client(URLS.id);
   assert.equal((await idc.post("/api/login", { username: a.username, password: PW })).status, 200);
-  assert.equal((await idc.post("/api/privacy", { show_address: true })).status, 200);
+  assert.equal((await idc.post("/api/privacy", { show_address: false })).status, 200);
 
   assert.equal((await send(a, b, "second")).status, 200);
   const second = await inbox(b, "second");
-  assert.equal(second.peer_label, a.username);
-  assert.equal(second.peer_masked, 0);
+  assert.equal(second.peer_label, MASKED);
+  assert.equal(second.peer_masked, 1);
+  // routing still works: the address is kept, it is just not shown
   assert.equal(second.peer_address, `${a.username}@inpriv.xyz`);
 });
 
@@ -134,8 +135,8 @@ test("a new account is not suggested, and answers exactly like a name that never
   const idc = new Client(URLS.id);
   assert.equal((await idc.post("/api/login", { username: hidden.username, password: PW })).status, 200);
   const me = await idc.get("/api/me");
-  assert.equal(me.body.user.show_address, false);
-  assert.equal(me.body.user.suggest_address, false);
+  assert.equal(me.body.user.show_address, true, "address visible by default");
+  assert.equal(me.body.user.suggest_address, false, "never suggested by default");
 
   const one = await asker.mail.post("/api/v1/recipients/resolve", { names: [hidden.username] });
   const two = await asker.mail.post("/api/v1/recipients/resolve", { names: [ghost] });

@@ -15,7 +15,7 @@ const MAIL_ORIGIN = /(^|\.)inpriv\.xyz$/.test(location.hostname)
 try { localStorage.removeItem("inpriv_id_token"); } catch {}
 let user = null;
 let mfaToken = null;
-let vault = { theme: null, avatar: "initials", privacy: { prompt: true, vault: true, log: true } };
+let vault = { theme: null, privacy: { prompt: true, vault: true, log: true } };
 let recoveryCodes = [];
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -347,11 +347,9 @@ function initials(nick) {
 
 function renderProfile() {
   const displayName = user.nick || user.username || "user";
-  if (vault.avatar === "leaf") {
-    $("avatar").innerHTML = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>';
-  } else {
-    $("avatar").textContent = initials(displayName);
-  }
+  // the avatar is always the initials; any "avatar" left in an old vault is
+  // simply ignored (no migration, nothing deleted)
+  $("avatar").textContent = initials(displayName);
   $("pNick").textContent = displayName;
   $("pEmail").textContent = user.inpriv_email || user.email || (user.username + "@inpriv.xyz");
   
@@ -384,7 +382,6 @@ function renderProfile() {
   setSwitch("swVault", vault.privacy.vault);
   setSwitch("swLog", vault.privacy.log);
   syncSeg("thDark", "thLight", window.InprivUI.theme() === "dark");
-  syncSeg("avInitials", "avLeaf", vault.avatar === "initials");
 }
 
 // vault (server-sealed)
@@ -492,8 +489,6 @@ $("recoverySaveBtn").addEventListener("click", async () => {
 // theme seg in panel
 $("thDark").addEventListener("click", (e) => setTheme("dark", e.currentTarget));
 $("thLight").addEventListener("click", (e) => setTheme("light", e.currentTarget));
-$("avInitials").addEventListener("click", () => { vault.avatar = "initials"; renderProfile(); saveVault(); });
-$("avLeaf").addEventListener("click", () => { vault.avatar = "leaf"; renderProfile(); saveVault(); });
 
 // switches
 function setSwitch(id, on) {
